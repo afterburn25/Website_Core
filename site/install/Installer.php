@@ -153,9 +153,14 @@ final class Installer
         foreach (['pdo_mysql', 'mbstring', 'openssl', 'json', 'fileinfo', 'session', 'ctype'] as $ext) {
             $add("ext-{$ext}", extension_loaded($ext), extension_loaded($ext) ? 'present' : 'MISSING');
         }
-        foreach (['gd', 'intl', 'zip', 'curl', 'sodium'] as $ext) {
+        foreach (['gd', 'intl', 'zip', 'curl'] as $ext) {
             $add("ext-{$ext} (recommended)", extension_loaded($ext), extension_loaded($ext) ? 'present' : 'absent', false);
         }
+        // Signature verification works with ext-sodium OR the bundled
+        // sodium_compat polyfill — report which one is live.
+        $sodiumOk = function_exists('sodium_crypto_sign_verify_detached');
+        $add('signature verification (sodium or polyfill)', $sodiumOk,
+            extension_loaded('sodium') ? 'ext-sodium' : ($sodiumOk ? 'sodium_compat polyfill' : 'absent'), false);
 
         $add('config/ writable', $this->writable($this->configDir), $this->configDir);
         $storageDefault = WC_ROOT . '/storage';

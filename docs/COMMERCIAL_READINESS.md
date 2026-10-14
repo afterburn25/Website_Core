@@ -9,10 +9,10 @@ Runtime dependencies (bundled into COMPLETE-UPLOAD via
 |---------|---------|----------|
 | ezyang/htmlpurifier | LGPL-2.1+ | input-boundary rich-text sanitization |
 | phpmailer/phpmailer | LGPL-2.1 | SMTP transport for queued system mail |
+| paragonie/sodium_compat | ISC | Ed25519 verify/sign polyfill on hosts without ext-sodium |
 
-Update signing uses PHP's native `ext-sodium` (Ed25519); the verifier
-fails closed on hosts without it — no bundled crypto polyfill yet
-(roadmap, see UPGRADES).
+Update signing uses PHP's `ext-sodium` when present and sodium_compat
+otherwise; the verifier fails closed only when NEITHER is available.
 
 Dev-only: phpunit/phpunit ^12 (BSD-3) plus its transitive tree — never
 shipped (excluded from artifacts; verified by artifact contents check in

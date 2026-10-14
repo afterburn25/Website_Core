@@ -10,8 +10,8 @@ final class SignatureVerifierTest extends TestCase
 {
     protected function setUp(): void
     {
-        if (!extension_loaded('sodium')) {
-            $this->markTestSkipped('libsodium not loaded in this PHP build');
+        if (!function_exists('sodium_crypto_sign_verify_detached')) {
+            $this->markTestSkipped('no sodium or sodium_compat in this PHP build');
         }
     }
 

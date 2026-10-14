@@ -38,10 +38,11 @@ final class SignatureVerifier
                 : [false, 'Unsigned package and unsigned packages are disabled.'];
         }
 
-        if (!extension_loaded('sodium')) {
+        if (!function_exists('sodium_crypto_sign_verify_detached')) {
             // Fail closed: a signed package cannot be verified at all on a
-            // host without libsodium — never silently accept.
-            return [false, 'Package is signed but this host lacks libsodium — cannot verify.'];
+            // host with neither libsodium nor the sodium_compat polyfill —
+            // never silently accept.
+            return [false, 'Package is signed but this host cannot verify signatures (no libsodium or sodium_compat).'];
         }
 
         $sig = base64_decode($sigB64, true);
@@ -71,8 +72,8 @@ final class SignatureVerifier
     /** Helper for package build tooling: sign a manifest array. */
     public static function signManifest(array $manifest, string $secretKeyB64): array
     {
-        if (!extension_loaded('sodium')) {
-            throw new \RuntimeException('libsodium required to sign packages');
+        if (!function_exists('sodium_crypto_sign_detached')) {
+            throw new \RuntimeException('libsodium or sodium_compat required to sign packages');
         }
         unset($manifest['signature']);
         $payload = json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -87,8 +88,8 @@ final class SignatureVerifier
     /** Helper for fixture/tooling key generation. */
     public static function generateKeypair(): array
     {
-        if (!extension_loaded('sodium')) {
-            throw new \RuntimeException('libsodium required');
+        if (!function_exists('sodium_crypto_sign_keypair')) {
+            throw new \RuntimeException('libsodium or sodium_compat required');
         }
         $kp = sodium_crypto_sign_keypair();
         return [

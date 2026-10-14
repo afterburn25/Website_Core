@@ -35,7 +35,13 @@ final class SystemController extends Controller
             ? 'SQLite ' . (string) $db->pdo()->query('SELECT sqlite_version()')->fetchColumn()
             : (string) $db->pdo()->query('SELECT VERSION()')->fetchColumn();
 
+        $mailRows = $db->fetchAll(
+            'SELECT `to`, subject, status, attempts, last_error, created_at, sent_at'
+            . ' FROM `' . $db->table('system_messages') . '` ORDER BY id DESC LIMIT 20'
+        );
+
         return $this->page($r, 'system/health', [
+            'mailRows' => $mailRows,
             'checks' => [
                 'Core version'     => defined('WC_VERSION') ? WC_VERSION : '?',
                 'PHP'              => PHP_VERSION,

@@ -83,6 +83,41 @@ jobs:
           WC_TEST_MYSQL_USER: root
           WC_TEST_MYSQL_PASS: ''
         run: vendor/bin/phpunit --testsuite native
+      - name: Installer acceptance over HTTP (real MySQL)
+        run: |
+          set -e
+          php -r 'new PDO("mysql:host=127.0.0.1;port=3306","root","")->exec("CREATE DATABASE IF NOT EXISTS wc_install");'
+          cp -r site /tmp/wcsite
+          cp -r vendor /tmp/wcsite/vendor
+          php -S 127.0.0.1:8099 -t /tmp/wcsite >/tmp/php-install.log 2>&1 &
+          sleep 2
+          # First GET claims the install session (cookie jar preserves the binding).
+          curl -sf -c /tmp/wcjar http://127.0.0.1:8099/install.php -o /dev/null
+          code=$(curl -s -b /tmp/wcjar -c /tmp/wcjar -o /tmp/install-resp.html -w '%{http_code}' \
+            -X POST http://127.0.0.1:8099/install.php \
+            --data-urlencode "site_name=Install Accept" \
+            --data-urlencode "base_url=http://127.0.0.1:8099" \
+            --data-urlencode "timezone=UTC" \
+            --data-urlencode "db_host=127.0.0.1" \
+            --data-urlencode "db_port=3306" \
+            --data-urlencode "db_name=wc_install" \
+            --data-urlencode "db_user=root" \
+            --data-urlencode "db_pass=" \
+            --data-urlencode "db_prefix=wc_" \
+            --data-urlencode "owner_username=ci-owner" \
+            --data-urlencode "owner_email=owner@example.test" \
+            --data-urlencode "owner_password=ci-install-pass-1" \
+            --data-urlencode "owner_password2=ci-install-pass-1" \
+            --data-urlencode "storage_path=/tmp/wcsite/storage")
+          if [ "$code" != "302" ]; then
+            echo "install POST returned $code"; grep -o 'err[^<]*<[^>]*>[^<]*' /tmp/install-resp.html | head; exit 1
+          fi
+          test -f /tmp/wcsite/config/installed.lock
+          test -f /tmp/wcsite/config/config.php
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/install.php)" = "403"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/index.php)" = "200"
+          kill %1 2>/dev/null || true
+          echo "installer acceptance OK"
 
   core-only-boot:
     name: Core-only boot check

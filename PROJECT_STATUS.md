@@ -24,7 +24,9 @@ security, usable core-only website). Pre-1.0 — version `0.1.0-dev`.
 | M1 | Admin shell: dashboard, settings, users, modules list, basic pages | implemented | `site/admin/` |
 | M1 | Core-only public website + base theme | implemented | `site/themes/base/`, public page routes |
 | M2 | Content/media/navigation/theme/localization/search metadata | partial | menus, media library, previews, revisions, sitemap/robots done; sections/locales pending |
-| M3 | Package API + Module Manager | implemented core | archive inspector (traversal/symlink/case/size), staged install, enable/disable/uninstall/purge, journal, lock; UI at /admin/modules |
+| M3 | Package API + Module Manager | implemented | archive inspector, lifecycle state machine, journal/lock, migrations on install, dep-ordered enable, per-package contexts, adminRoute/views/service surface, upload/review/action UI, SDK roundtrip test |
+| M4 | Updates/backup/recovery/jobs/mail/diagnostics | partial | BackupService roundtrip + admin UI; health + audit pages; PHPMailer queue + cron drain; Ed25519 signature verifier on stage; recovery-mode flag. Core self-update + diagnostics bundle pending |
+| M5 | Reference packages + portability proof | partial | inquiry add-on + restaurant + salon + terra/noir themes, all installing/booting/serving via real Module Manager (integration-tested); second-site/byte-identical acceptance pending |
 | M4 | Updates, backup/restore, jobs, mail, diagnostics | partial | jobs/outbox schema+runner done |
 | M5 | Reference industries + shared add-on proof | pending | |
 | M6 | Acceptance matrix + commercial docs + RC | pending | |
@@ -43,5 +45,6 @@ security, usable core-only website). Pre-1.0 — version `0.1.0-dev`.
 
 ## Test status
 
-- `unit`+`package`: 70 tests green locally (PHP 8.4.25).
+- `unit`+`package`: 110 tests green locally (PHP 8.4.25); sodium-gated
+  tests run where libsodium exists (CI).
 - `native`: green in CI on mysql:8.4 and mariadb:11.4 service jobs.

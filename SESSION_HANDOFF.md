@@ -149,3 +149,25 @@ the new artifacts job; draft `v0.1.0-dev` byte-verified.
 **Owner-gated items remaining** (engineering done): publish draft
 release; production signing trust root (WC_UPDATE_SIGN_KEY +
 trust.public_keys); PR #7 merge approval; real-host compatibility runs.
+
+## 2026-10-14 (late night) — dead-API elimination
+
+Two `ModuleContext` APIs accepted registrations nothing consumed; both
+are now real, tested, and dogfooded on the extracted artifact.
+
+- **Lifecycle events**: `ctx->on()` now receives real dispatches —
+  `page.saved/published/draft`, `media.uploaded`,
+  `backup.created/restored`, `core.update`,
+  `package.installed/upgraded/enabled/disabled/uninstalled/purged`.
+  Dispatch is fault-isolated per listener (a throwing package listener is
+  logged, never aborts the op). Event surface documented in MODULE_API.
+- **Generic content types**: `ctx->contentType()` declares a validated
+  field set; `content_items` table + `ContentItems` service (declared-key
+  filtering, html via purifier boundary, url schemes, required, select,
+  cross-type protection) + generated admin CRUD at `/admin/content`.
+  Restaurant declares `special`; `/menu` renders published available
+  specials read back through the service. Verified live on the extracted
+  COMPLETE-UPLOAD artifact (generated form → validated POST → rendered).
+
+**Standing**: 130 tests / 504 assertions; lint 149 files; 6/6 CI green
+on both commits; draft release refreshed + byte-verified.

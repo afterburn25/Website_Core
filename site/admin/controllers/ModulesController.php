@@ -40,11 +40,37 @@ final class ModulesController extends Controller
         $journal = $this->db()->fetchAll(
             'SELECT * FROM `' . $this->db()->table('package_journal') . '` ORDER BY id DESC LIMIT 30'
         );
+        $storage = (string) $this->c->get(\Core\Config::class)->get('paths.storage', WC_ROOT . '/storage');
         return $this->page($r, 'modules/index', [
             'packages'   => $packages,
             'journal'    => $journal,
             'canInstall' => $this->auth()->has($u, 'modules.install'),
+            'recovery'   => is_file($storage . '/recovery.flag'),
         ], 'Modules');
+    }
+
+    /** Toggle recovery mode: boots trusted core with NO package code. */
+    public function recovery(Request $r): Response
+    {
+        $u = $this->user();
+        if (!$u || !$this->auth()->has($u, 'modules.install')) {
+            return $this->forbidden();
+        }
+        $storage = (string) $this->c->get(\Core\Config::class)->get('paths.storage', WC_ROOT . '/storage');
+        $flag = $storage . '/recovery.flag';
+        if ($r->string('mode') === 'on') {
+            if (!is_dir($storage)) {
+                @mkdir($storage, 0750, true);
+            }
+            file_put_contents($flag, date('c') . ' by ' . $u->id);
+            $this->flash('ok', 'Recovery mode ON — no package code will run until turned off.');
+        } else {
+            @unlink($flag);
+            $this->flash('ok', 'Recovery mode off — enabled packages boot normally.');
+        }
+        $this->c->get(\Core\Audit\AuditLog::class)
+            ->record('modules.recovery', $u->id, ['mode' => $r->string('mode')]);
+        return $this->redirect($r, '/admin/modules');
     }
 
     public function upload(Request $r): Response

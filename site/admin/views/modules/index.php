@@ -1,6 +1,17 @@
 <?php /** @var array $packages @var array $journal @var \Core\Security\Csrf $csrf @var string $basePath
   * @var bool $canInstall @var \Core\Auth\AdminUser $user */ ?>
 
+<?php if (!empty($recovery)): ?>
+<div class="card" style="border-left:4px solid #b45309">
+<strong>Recovery mode is ON.</strong> No package code is running. Turn it off
+once the failing package is fixed or removed.
+<form method="post" action="<?= e_attr($basePath) ?>/admin/modules/recovery" style="margin-top:.5rem">
+<?= $csrf->field() ?><input type="hidden" name="mode" value="off">
+<button class="btn">Turn recovery mode off</button>
+</form>
+</div>
+<?php endif; ?>
+
 <?php if (!empty($canInstall)): ?>
 <div class="card">
 <h2 style="margin-top:0">Install package</h2>
@@ -12,6 +23,19 @@
 code runs. Reviewed packages move to their destination only on Install.</p>
 </form>
 </div>
+
+<?php if (empty($recovery)): ?>
+<div class="card">
+<h2 style="margin-top:0">Recovery mode</h2>
+<p class="muted">If a package breaks the site, recovery mode boots trusted core only —
+no package code runs — so you can log in and remove it. You can also create
+<code>storage/recovery.flag</code> by hand on the host.</p>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/modules/recovery">
+<?= $csrf->field() ?><input type="hidden" name="mode" value="on">
+<button class="btn secondary">Enable recovery mode</button>
+</form>
+</div>
+<?php endif; ?>
 <?php endif; ?>
 
 <div class="card">

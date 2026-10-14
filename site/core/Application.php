@@ -214,6 +214,16 @@ final class Application
         $contextFactory = fn (string $packageId): ModuleContext =>
             new ModuleContext($packageId, $this->router, $events, $permissions);
 
+        // Recovery mode: a flag file in storage (created from the Modules
+        // screen or by hand on a broken host) boots trusted core ONLY —
+        // no package code runs, so a boot-fatal extension can never lock
+        // the administrator out.
+        $recoveryFlag = (string) $this->config->get('paths.storage', WC_ROOT . '/storage')
+            . '/recovery.flag';
+        if (is_file($recoveryFlag)) {
+            return;
+        }
+
         $registry->bootEnabled(
             fn (string $prefix, string $dir) => \CoreAutoload::register($prefix, $dir),
             $contextFactory,
@@ -272,6 +282,7 @@ final class Application
             $r->any('/navigation', fn (Request $req) => (new \Admin\Controllers\NavigationController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/media', fn (Request $req) => (new \Admin\Controllers\MediaController($c))->index($req), [$auth, $csrfCheck]);
             $r->post('/modules/upload', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->upload($req), [$auth, $csrfCheck]);
+            $r->post('/modules/recovery', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->recovery($req), [$auth, $csrfCheck]);
             $r->post('/modules/{id:.+}/{op:[a-z]+}', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->action($req), [$auth, $csrfCheck]);
             $r->get('/backups', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->index($req), [$auth]);
             $r->post('/backups/create', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->create($req), [$auth, $csrfCheck]);

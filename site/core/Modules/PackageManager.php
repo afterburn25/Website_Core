@@ -214,6 +214,22 @@ final class PackageManager
                 }
             }
 
+            // Package migrations run against its installed files; they own
+            // only module-prefixed tables (enforced by convention + purge).
+            $migDir = trim((string) ($manifest['migrations'] ?? ''), '/');
+            if ($migDir !== '' && is_dir($dest . '/' . $migDir)) {
+                try {
+                    $applied = (new \Core\Database\Migrator($this->db, $dest . '/' . $migDir))->migrate();
+                    if ($applied !== []) {
+                        $this->journal($packageId, 'migrate', 'ok', implode(', ', $applied));
+                    }
+                } catch (\Throwable $e) {
+                    $this->recordPackage($manifest, 'failed');
+                    $this->journal($packageId, 'migrate', 'failed', $e->getMessage());
+                    return [false, 'Package migration failed: ' . $e->getMessage()];
+                }
+            }
+
             $this->recordPackage($manifest, 'installed');
             $this->journal($packageId, $upgrade ? 'upgrade' : 'install', 'ok', $dest);
             return [true, null];

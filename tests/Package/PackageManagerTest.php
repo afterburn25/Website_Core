@@ -232,6 +232,35 @@ final class PackageManagerTest extends TestCase
         $this->assertFalse($this->db->tableExists('widgets_data'));
     }
 
+    public function testPackageMigrationsRunOnInstallAndPurgeDropsThem(): void
+    {
+        $migration = <<<'PHP'
+<?php
+return new class extends \Core\Database\Migration {
+    public function id(): string { return 'widgets_0001_init'; }
+    public function description(): string { return 'widgets schema'; }
+    public function up(\Core\Database\Connection $db): void {
+        $db->pdo()->exec('CREATE TABLE IF NOT EXISTS `' . $db->table('widgets_items') . '` (id INTEGER PRIMARY KEY)');
+    }
+};
+PHP;
+        $zip = $this->zip([
+            'widgets/addon.json' => $this->manifest(['migrations' => 'migrations']),
+            'widgets/migrations/0001_init.php' => $migration,
+        ]);
+        $this->pm->stage($zip);
+        [$ok, $err] = $this->pm->install('acme/widgets');
+        $this->assertTrue($ok, (string) $err);
+        $this->assertTrue($this->db->tableExists('widgets_items'));
+
+        // Data survives file removal; purge drops it.
+        $this->pm->uninstall('acme/widgets');
+        $this->assertTrue($this->db->tableExists('widgets_items'));
+        [$ok, $err] = $this->pm->purgeData('acme/widgets');
+        $this->assertTrue($ok, (string) $err);
+        $this->assertFalse($this->db->tableExists('widgets_items'));
+    }
+
     private function state(string $id): string
     {
         return (string) $this->db->fetchColumn(

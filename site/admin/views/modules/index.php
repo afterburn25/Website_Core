@@ -1,7 +1,7 @@
 <?php /** @var array $packages @var array $journal @var \Core\Security\Csrf $csrf @var string $basePath
-  * @var \Core\Auth\AdminUser $user */ ?>
+  * @var bool $canInstall @var \Core\Auth\AdminUser $user */ ?>
 
-<?php if ($user->isOwner() || true): ?>
+<?php if (!empty($canInstall)): ?>
 <div class="card">
 <h2 style="margin-top:0">Install package</h2>
 <form method="post" action="<?= e_attr($basePath) ?>/admin/modules/upload" enctype="multipart/form-data">

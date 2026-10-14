@@ -23,12 +23,27 @@ final class ModulesController extends Controller
         }
         $this->c->get(ModuleRegistry::class)->discover();
         $packages = $this->c->get(ModuleRegistry::class)->all();
+        // Staged/removed/failed packages aren't on disk in a destination dir,
+        // so the registry can't discover them — merge their DB records in.
+        foreach ($this->db()->fetchAll(
+            'SELECT package_id, state, manifest FROM `' . $this->db()->table('packages') . '`'
+        ) as $row) {
+            if (!isset($packages[$row['package_id']])) {
+                $packages[$row['package_id']] = [
+                    'manifest' => json_decode((string) $row['manifest'], true) ?: [],
+                    'dir'      => null,
+                    'state'    => $row['state'],
+                    'errors'   => [],
+                ];
+            }
+        }
         $journal = $this->db()->fetchAll(
             'SELECT * FROM `' . $this->db()->table('package_journal') . '` ORDER BY id DESC LIMIT 30'
         );
         return $this->page($r, 'modules/index', [
-            'packages' => $packages,
-            'journal'  => $journal,
+            'packages'   => $packages,
+            'journal'    => $journal,
+            'canInstall' => $this->auth()->has($u, 'modules.install'),
         ], 'Modules');
     }
 

@@ -65,6 +65,81 @@ final class SystemController extends Controller
         return $this->page($r, 'system/audit', ['rows' => $rows], 'Audit log');
     }
 
+    /**
+     * Support diagnostics: plain-text bundle of versions, package states,
+     * queue counts, and journal tails. Config KEYS are listed, values
+     * never — secrets stay on the host.
+     */
+    public function diagnostics(Request $r): Response
+    {
+        $u = $this->user();
+        if (!$u || !$this->auth()->has($u, 'system.view')) {
+            return $this->forbidden();
+        }
+        $db = $this->db();
+        $config = $this->c->get(\Core\Config::class);
+        $storage = (string) $config->get('paths.storage', WC_ROOT . '/storage');
+
+        $out = [];
+        $out[] = 'Website Core diagnostics — ' . date('c');
+        $out[] = 'core=' . (defined('WC_VERSION') ? WC_VERSION : '?')
+            . ' php=' . PHP_VERSION
+            . ' db=' . $db->driver()
+            . ' sapi=' . PHP_SAPI;
+        $out[] = '';
+
+        $out[] = '== packages ==';
+        foreach ($db->fetchAll('SELECT package_id, state, updated_at FROM `' . $db->table('packages') . '` ORDER BY package_id') as $p) {
+            $out[] = $p['package_id'] . ' ' . $p['state'] . ' (' . $p['updated_at'] . ')';
+        }
+
+        $out[] = '';
+        $out[] = '== jobs ==';
+        $jobs = $this->c->get(\Core\Jobs\JobQueue::class)->counts();
+        foreach ($jobs as $k => $v) {
+            $out[] = $k . '=' . $v;
+        }
+
+        $out[] = '';
+        $out[] = '== package journal (tail) ==';
+        foreach ($db->fetchAll('SELECT * FROM `' . $db->table('package_journal') . '` ORDER BY id DESC LIMIT 30') as $j) {
+            $out[] = ($j['created_at'] ?? '') . ' ' . ($j['package_id'] ?? '')
+                . ' ' . ($j['operation'] ?? '') . ' ' . ($j['result'] ?? '')
+                . ' ' . ($j['detail'] ?? '');
+        }
+
+        $out[] = '';
+        $out[] = '== core update journal ==';
+        foreach ($this->updater()->journalTail(15) as $line) {
+            $out[] = $line;
+        }
+
+        $out[] = '';
+        $out[] = '== config keys (values withheld) ==';
+        $flat = [];
+        foreach ((array) $config->all() as $section => $values) {
+            if (is_array($values)) {
+                foreach ($values as $k => $v) {
+                    $flat[] = $section . '.' . $k;
+                }
+            } else {
+                $flat[] = (string) $section;
+            }
+        }
+        sort($flat);
+        foreach ($flat as $k) {
+            $out[] = $k;
+        }
+
+        $out[] = '';
+        $out[] = '== storage ==';
+        $out[] = 'writable=' . (is_writable($storage) ? 'yes' : 'NO');
+        $out[] = 'backups=' . count(glob($storage . '/backups/*.zip') ?: []);
+
+        return Response::text(implode("\n", $out))
+            ->header('Content-Disposition', 'attachment; filename="website-core-diagnostics-' . date('Ymd-His') . '.txt"');
+    }
+
     /** Core self-update: stage an UPDATE.zip, review, apply, migrate. */
     public function updates(Request $r): Response
     {

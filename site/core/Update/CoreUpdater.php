@@ -80,6 +80,25 @@ final class CoreUpdater
             if (($manifest['product'] ?? '') !== 'website-core') {
                 return [null, 'update.json is not a Website Core update manifest.'];
             }
+            // Rollback/replay posture (both fields optional): expires
+            // rejects stale metadata; min_core rejects archives whose
+            // declared floor is newer than the running core.
+            $expires = $manifest['expires'] ?? null;
+            if (is_string($expires) && $expires !== '') {
+                $expTs = strtotime($expires);
+                if ($expTs === false) {
+                    return [null, "update.json has an unparseable expires: {$expires}"];
+                }
+                if ($expTs < time()) {
+                    return [null, "Update metadata expired at {$expires} — a replayed or stale archive is refused."];
+                }
+            }
+            $minCore = $manifest['min_core'] ?? null;
+            $running = defined('WC_VERSION') ? WC_VERSION : null;
+            if (is_string($minCore) && $minCore !== '' && $running !== null
+                && !self::versionGe($running, $minCore)) {
+                return [null, "Update requires core >= {$minCore}; running {$running}."];
+            }
         }
 
         if ($this->verifier !== null) {
@@ -176,6 +195,13 @@ final class CoreUpdater
             basename($backupPath)
         ));
         return [true, null, $backupPath];
+    }
+
+    /** Loose semver compare: true when $have satisfies >= $need (dev suffixes treated as lowest). */
+    private static function versionGe(string $have, string $need): bool
+    {
+        $norm = fn (string $v) => preg_replace('/^v/', '', $v);
+        return version_compare($norm($have), $norm($need), '>=');
     }
 
     private function isSkipped(string $name): bool

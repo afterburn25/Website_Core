@@ -140,9 +140,14 @@ for ($i = 0; $i < $uz->numFiles; $i++) {
 }
 ksort($files);
 $manifest = [
-    'product' => 'website-core',
-    'version' => $ver,
-    'files'   => $files,
+    'product'  => 'website-core',
+    'version'  => $ver,
+    'files'    => $files,
+    // Rollback/replay posture honored by CoreUpdater::inspect: stale
+    // metadata and archives declaring a floor newer than the running core
+    // are refused.
+    'expires'  => gmdate('Y-m-d\TH:i:s\Z', time() + 30 * 86400),
+    'min_core' => $ver,
 ];
 $signKey = getenv('WC_UPDATE_SIGN_KEY');
 if ($signKey && extension_loaded('sodium')) {

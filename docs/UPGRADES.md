@@ -56,6 +56,6 @@ by configuring `trust.public_keys` and `trust.allow_unsigned=false`.
 
 ## Not yet implemented (roadmap)
 
-- Automatic opcache reset / maintenance-window enforcement around apply.
-- Signed metadata `expires` / anti-rollback monotonic versions (a
-  TUF-style flow is the reference target; we do not invent cryptography).
+- Maintenance-window enforcement around apply (opcache reset is done).
+- Strictly monotonic anti-rollback versions beyond `min_core`/`expires`
+  (a TUF-style flow is the reference target; we do not invent cryptography).

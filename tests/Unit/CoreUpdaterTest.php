@@ -111,6 +111,25 @@ final class CoreUpdaterTest extends TestCase
         $this->assertStringContainsString('9.9.9', implode('', $this->updater->journalTail()));
     }
 
+    public function testExpiredAndTooNewManifestsAreRefused(): void
+    {
+        $members = $this->validMembers();
+
+        $manifest = $this->manifestFor($members);
+        $manifest['expires'] = '2020-01-01T00:00:00Z';
+        $zip = $this->updateZip($members, $manifest);
+        [$info, $err] = $this->updater->inspect($zip);
+        $this->assertNull($info);
+        $this->assertStringContainsString('expired', $err);
+
+        $manifest = $this->manifestFor($members);
+        $manifest['min_core'] = '99.0.0';
+        $zip = $this->updateZip($members, $manifest);
+        [$info, $err] = $this->updater->inspect($zip);
+        $this->assertNull($info);
+        $this->assertStringContainsString('requires core', $err);
+    }
+
     public function testManifestHashMismatchAbortsApply(): void
     {
         $members = $this->validMembers();

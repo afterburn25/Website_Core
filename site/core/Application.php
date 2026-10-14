@@ -171,6 +171,16 @@ final class Application
             return null;
         });
         $this->container->instance(View::class, $view);
+
+        // Localization: core catalog, then active theme, then enabled
+        // modules (prepended in bootModules so package strings win).
+        $translator = new \Core\I18n\Translator(
+            (string) ($this->container->get(SettingsRepository::class)->get('site.locale', 'en') ?: 'en')
+        );
+        $translator->addDir(WC_ROOT, false);
+        $translator->addDir($themeDir !== '' ? WC_THEMES . '/' . $themeDir : '', false);
+        $this->container->instance(\Core\I18n\Translator::class, $translator);
+        \Core\I18n\Translator::setInstance($translator);
     }
 
     public function dispatch(Request $request): Response
@@ -204,6 +214,15 @@ final class Application
             fn (string $prefix, string $dir) => \CoreAutoload::register($prefix, $dir),
             $contextFactory,
         );
+
+        // Package catalogs layer on top of core/theme strings.
+        $translator = $this->container->get(\Core\I18n\Translator::class);
+        foreach ($registry->contexts() as $ctx) {
+            $pkgDir = $registry->all()[$ctx->packageId()]['dir'] ?? null;
+            if (is_string($pkgDir)) {
+                $translator->addDir($pkgDir);
+            }
+        }
     }
 
     private function registerRoutes(): void

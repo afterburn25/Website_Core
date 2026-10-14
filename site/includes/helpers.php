@@ -31,3 +31,11 @@ if (!function_exists('e_url')) {
         return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }
+
+if (!function_exists('__')) {
+    /** Translate a catalog key through the shared Translator. */
+    function __(string $key, string|int|float ...$args): string
+    {
+        return \Core\I18n\Translator::instance()->t($key, ...$args);
+    }
+}

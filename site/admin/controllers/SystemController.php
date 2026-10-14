@@ -201,6 +201,16 @@ final class SystemController extends Controller
             $this->flash('error', 'No staged update — upload first.');
             return Response::redirect($r->basePath . '/admin/updates');
         }
+        // Optional maintenance window: when updates.require_window is set,
+        // apply refuses unless the owner created storage/maintenance.flag.
+        $config = $this->c->get(\Core\Config::class);
+        $storage = (string) $config->get('paths.storage', WC_ROOT . '/storage');
+        if ((bool) $config->get('updates.require_window', false)
+            && !is_file($storage . '/maintenance.flag')) {
+            $this->flash('error',
+                'Maintenance window required — create ' . $storage . '/maintenance.flag first.');
+            return Response::redirect($r->basePath . '/admin/updates');
+        }
         [$ok, $err, $backup] = $this->updater()->apply($staged);
         if (!$ok) {
             $this->flash('error', 'Update failed: ' . $err

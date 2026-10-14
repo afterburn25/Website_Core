@@ -64,4 +64,20 @@ final class TranslatorTest extends TestCase
         $this->assertSame('en', (new Translator('en_US'))->langTag());
         $this->assertSame('fr', (new Translator('fr-FR'))->langTag());
     }
+
+    /** The shipped catalogs: every en key resolves under fr (own or fallback). */
+    public function testShippedFrenchCatalogCoversEnglishKeys(): void
+    {
+        $en = require WC_ROOT . '/lang/en.php';
+        $fr = require WC_ROOT . '/lang/fr.php';
+        $t = new Translator('fr', 'en');
+        $t->addDir(WC_ROOT, false);
+        foreach (array_keys($en) as $key) {
+            $this->assertNotSame($key, $t->t($key), "unresolved shipped key {$key}");
+        }
+        // A key translated in fr differs from en; an absent key falls back.
+        $this->assertSame($fr['site.powered_by'], $t->t('site.powered_by'));
+        $frOnly = array_diff_key($fr, $en);
+        $this->assertSame([], $frOnly, 'fr catalog must not carry keys absent from en');
+    }
 }

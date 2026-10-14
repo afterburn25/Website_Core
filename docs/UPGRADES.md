@@ -56,6 +56,8 @@ by configuring `trust.public_keys` and `trust.allow_unsigned=false`.
 
 ## Not yet implemented (roadmap)
 
-- Maintenance-window enforcement around apply (opcache reset is done).
+- Maintenance window enforcement is opt-in: set
+  `updates.require_window` and the apply step refuses until
+  `storage/maintenance.flag` exists (owner-created).
 - Strictly monotonic anti-rollback versions beyond `min_core`/`expires`
   (a TUF-style flow is the reference target; we do not invent cryptography).

@@ -58,6 +58,9 @@ return [
         // production trust configuration exists — see docs/UPGRADES.md.
         'trust_roots' => [],
         'channel'     => 'stable',
+        // When true, /admin/updates/apply refuses until the owner creates
+        // <paths.storage>/maintenance.flag — the maintenance-window gate.
+        'require_window' => false,
     ],
     'trust' => [
         // Ed25519 public keys (base64) trusted to sign package/update

@@ -12,7 +12,10 @@ add-ons (e.g. inquiry forms), and themes are separately versioned packages
 installed through the Module Manager.
 
 - **Runtime**: PHP 8.4/8.5, native MySQL/MariaDB via PDO. No Node, Redis,
-  Docker, daemons, or SSH required on the customer host.
+  Docker, daemons, or SSH required on the customer host. Ed25519
+  verification runs on ext-sodium or the bundled sodium_compat polyfill.
+  Admin extras: Backups, Health + diagnostics, owner-only self-update at
+  `/admin/updates`.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
@@ -35,6 +38,12 @@ vendor/bin/phpunit --testsuite native
 # Dev server (uses tools/dev-router.php, an .htaccess mimic):
 cd site && php -S 127.0.0.1:8000 ../tools/dev-router.php
 # then open http://127.0.0.1:8000/ → redirects to the installer
+
+# Release artifacts + verification:
+php tools/build-packages.php          # dist/: FULL-PROJECT / COMPLETE-UPLOAD /
+                                      # UPDATE / package zips / SHA256SUMS
+php tools/verify-artifact.php dist/Website-Core-*-COMPLETE-UPLOAD.zip
+# extracts the artifact to a clean dir, provisions it, prints serve steps
 ```
 
 ## Key documents

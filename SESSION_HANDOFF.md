@@ -31,8 +31,23 @@
 (sqlite): install → login → dashboard/settings/users/modules/pages all 200;
 direct access to `core/`, `config/`, `themes/` blocked (403).
 
+## 2026-10-14 (later) — M2 slice + M3 core
+
+- M2: navigation menus (nested, URL-validated), media library
+  (signature-validated uploads, private split, usage warnings), purpose-
+  bound preview tokens, restore-as-draft, sitemap.xml/robots.txt.
+- M3: ArchiveInspector (central-dir parse for symlink/unix-mode,
+  traversal, case collisions, member/size limits) + PackageManager
+  (stage/validate/install/enable/disable/uninstall/purge, journal,
+  op-lock, integrity hashes, dependency-ordered enable, dependent
+  protection, purge requires typed id) + /admin/modules UI.
+- CI fix: PDO-poll DB readiness (mariadb healthcheck binary differs) —
+  all jobs green incl. native mysql:8.4 + mariadb:11.4. 70 tests green.
+- PR #7 (devin/website-core → main) open.
+
 **Next**
-- M2: media library, navigation builder, revisions UX, preview tokens,
-  sitemap/robots, sanitization (HTMLPurifier), localization strings.
-- M3: Module Manager upload/lifecycle UI + ZIP safety + SDK scaffold.
-- M4: backup/restore, signed updates, SMTP, health/diagnostics.
+- M2 remainder: content sections/fields, sanitization (HTMLPurifier),
+  localization, OG images, redirects manager.
+- M4: backup/restore, signed updates, SMTP transport, health page,
+  system-message templates.
+- M5: restaurant + salon modules + shared inquiry add-on + 2 themes.

@@ -23,8 +23,8 @@ security, usable core-only website). Pre-1.0 — version `0.1.0-dev`.
 | M1 | Admin auth: sessions, CSRF, TOTP MFA, recovery codes, rate limits, last-owner protection | implemented | `site/core/Auth/`, `site/core/Security/`, `tests/Unit/AuthServiceTest.php` |
 | M1 | Admin shell: dashboard, settings, users, modules list, basic pages | implemented | `site/admin/` |
 | M1 | Core-only public website + base theme | implemented | `site/themes/base/`, public page routes |
-| M2 | Content/media/navigation/theme/localization/search metadata | partial | pages+revisions exist; media/nav/SEO pending |
-| M3 | Package API + Module Manager | partial | manifest validator, registry, states, journal; upload UI pending |
+| M2 | Content/media/navigation/theme/localization/search metadata | partial | menus, media library, previews, revisions, sitemap/robots done; sections/locales pending |
+| M3 | Package API + Module Manager | implemented core | archive inspector (traversal/symlink/case/size), staged install, enable/disable/uninstall/purge, journal, lock; UI at /admin/modules |
 | M4 | Updates, backup/restore, jobs, mail, diagnostics | partial | jobs/outbox schema+runner done |
 | M5 | Reference industries + shared add-on proof | pending | |
 | M6 | Acceptance matrix + commercial docs + RC | pending | |
@@ -43,6 +43,5 @@ security, usable core-only website). Pre-1.0 — version `0.1.0-dev`.
 
 ## Test status
 
-- `unit`: 52 tests, green locally (PHP 8.4.25).
-- `package`: registry lifecycle tests, green.
-- `native`: MySQL/MariaDB — runs in CI; local env has no server.
+- `unit`+`package`: 70 tests green locally (PHP 8.4.25).
+- `native`: green in CI on mysql:8.4 and mariadb:11.4 service jobs.

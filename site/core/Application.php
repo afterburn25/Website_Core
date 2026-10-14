@@ -188,6 +188,12 @@ final class Application
         $registry = new ModuleRegistry($db, WC_MODULES . '/industries', WC_MODULES . '/addons', WC_THEMES);
         $registry->discover();
         $this->container->instance(ModuleRegistry::class, $registry);
+        $this->container->instance(\Core\Modules\PackageManager::class, new \Core\Modules\PackageManager(
+            $db, $registry, new \Core\Modules\ArchiveInspector(),
+            (string) $this->config->get('paths.upload', WC_ROOT . '/upload'),
+            WC_MODULES . '/industries', WC_MODULES . '/addons', WC_THEMES,
+            (string) $this->config->get('paths.storage', WC_ROOT . '/storage') . '/package-op.lock',
+        ));
 
         $events = $this->container->get(Dispatcher::class);
         $context = new ModuleContext('core', $this->router, $events);
@@ -241,6 +247,8 @@ final class Application
             $r->post('/pages/{id:\d+}/restore/{rid:\d+}', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->restoreRevision($req), [$auth, $csrfCheck]);
             $r->any('/navigation', fn (Request $req) => (new \Admin\Controllers\NavigationController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/media', fn (Request $req) => (new \Admin\Controllers\MediaController($c))->index($req), [$auth, $csrfCheck]);
+            $r->post('/modules/upload', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->upload($req), [$auth, $csrfCheck]);
+            $r->post('/modules/{id:.+}/{op:[a-z]+}', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->action($req), [$auth, $csrfCheck]);
         });
 
         // Sitemap, robots, media streams, and draft previews — before the

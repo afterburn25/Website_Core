@@ -85,14 +85,19 @@ jobs:
         run: vendor/bin/phpunit --testsuite native
       - name: Installer acceptance over HTTP (real MySQL)
         run: |
-          set -e
+          set -ex
+          trap 'echo "--- php -S log ---"; cat /tmp/php-install.log || true' EXIT
           php -r 'new PDO("mysql:host=127.0.0.1;port=3306","root","")->exec("CREATE DATABASE IF NOT EXISTS wc_install");'
           cp -r site /tmp/wcsite
           cp -r vendor /tmp/wcsite/vendor
           php -S 127.0.0.1:8099 -t /tmp/wcsite >/tmp/php-install.log 2>&1 &
-          sleep 2
-          # First GET claims the install session (cookie jar preserves the binding).
-          curl -sf -c /tmp/wcjar http://127.0.0.1:8099/install.php -o /dev/null
+          # Wait for the dev server, then claim the install session (cookie jar
+          # preserves the session binding the claim mode relies on).
+          for i in $(seq 1 30); do
+            curl -s -o /dev/null http://127.0.0.1:8099/install.php && break
+            sleep 1
+          done
+          curl -s -c /tmp/wcjar http://127.0.0.1:8099/install.php -o /dev/null
           code=$(curl -s -b /tmp/wcjar -c /tmp/wcjar -o /tmp/install-resp.html -w '%{http_code}' \
             -X POST http://127.0.0.1:8099/install.php \
             --data-urlencode "site_name=Install Accept" \

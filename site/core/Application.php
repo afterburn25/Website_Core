@@ -192,6 +192,9 @@ final class Application
         return $this->withSecurityHeaders($response);
     }
 
+    /** Combined auth+CSRF middleware for module admin routes. */
+    private $adminPipeline = null;
+
     private function bootModules(): void
     {
         $db = $this->container->get(Connection::class);
@@ -211,8 +214,13 @@ final class Application
 
         $events = $this->container->get(Dispatcher::class);
         $permissions = $this->container->get(Permissions::class);
-        $contextFactory = fn (string $packageId): ModuleContext =>
-            new ModuleContext($packageId, $this->router, $events, $permissions);
+        $contextFactory = fn (string $packageId): ModuleContext => new ModuleContext(
+            $packageId, $this->router, $events, $permissions,
+            $this->adminPipeline,
+            $this->container->get(\Core\View\View::class),
+            fn (string $id) => $this->container->get($id),
+            fn () => (string) $this->container->get(SettingsRepository::class)->get('theme.active', 'base'),
+        );
 
         // Recovery mode: a flag file in storage (created from the Modules
         // screen or by hand on a broken host) boots trusted core ONLY —
@@ -257,6 +265,11 @@ final class Application
                 return Response::text('Invalid CSRF token.', 419);
             }
             return $next($r);
+        };
+
+        // Combined pipeline for module adminRoute() registrations.
+        $this->adminPipeline = function (Request $r, callable $next) use ($auth, $csrfCheck): Response {
+            return $auth($r, fn (Request $r2) => $csrfCheck($r2, $next));
         };
 
         $this->router->group('/admin', function (Router $r) use ($c, $auth, $csrfCheck) {

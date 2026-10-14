@@ -6,6 +6,7 @@ namespace Core\Modules;
 use Core\Auth\Permissions;
 use Core\Events\Dispatcher;
 use Core\Routing\Router;
+use Core\View\View;
 
 /**
  * The supported extension API surface (version WC_API_VERSION). Packages
@@ -21,11 +22,21 @@ final class ModuleContext
     /** @var array<string, array{label:string,fields:list<array>}> */
     private array $contentTypes = [];
 
+    /**
+     * @param callable|null $adminMiddleware combined auth+CSRF pipeline for
+     *        adminRoute(); null in isolated tests
+     * @param callable|null $serviceResolver core service lookup (trusted code)
+     * @param callable|null $activeTheme returns the active theme dir name
+     */
     public function __construct(
         private string $packageId,
         private Router $router,
         private Dispatcher $events,
         private ?Permissions $permissions = null,
+        private $adminMiddleware = null,
+        private ?View $view = null,
+        private $serviceResolver = null,
+        private $activeTheme = null,
     ) {}
 
     public function packageId(): string
@@ -33,10 +44,21 @@ final class ModuleContext
         return $this->packageId;
     }
 
-    /** Register a public/admin route. Prefix keeps module routes namespaced. */
+    /** Register a public route. Module routes register before the slug catch-all. */
     public function route(string $methods, string $pattern, callable $handler, array $middleware = []): void
     {
         $this->router->add($methods, $pattern, $handler, $middleware);
+    }
+
+    /**
+     * Register an ADMIN route — wrapped in the same authenticated-session +
+     * CSRF pipeline as every core admin screen. The handler must ALSO check
+     * its own declared capability; hidden nav items are not access control.
+     */
+    public function adminRoute(string $methods, string $pattern, callable $handler): void
+    {
+        $mw = $this->adminMiddleware ? [$this->adminMiddleware] : [];
+        $this->router->add($methods, $pattern, $handler, $mw);
     }
 
     public function on(string $event, callable $listener): void
@@ -67,6 +89,43 @@ final class ModuleContext
     public function permission(string $capability, string $description = ''): void
     {
         $this->permissions?->register($capability, $description);
+    }
+
+    /**
+     * Register this package's view directory. Views resolve as
+     * "mod-<slug>:<name>" with theme overrides at
+     * themes/<active>/modules/<package-id>/<name>.php falling back to the
+     * package's own views/<name>.php — overrides never reach module data.
+     */
+    public function views(string $dir): string
+    {
+        $ns = 'mod-' . str_replace(['/', '_'], '-', $this->packageId);
+        $theme = $this->activeTheme;
+        $this->view?->addResolver($ns, function (string $v) use ($dir, $theme): ?string {
+            $active = $theme instanceof \Closure ? $theme() : (is_string($theme) ? $theme : '');
+            if ($active !== '') {
+                $override = WC_THEMES . '/' . $active . '/modules/' . $this->packageId . '/' . $v . '.php';
+                if (is_file($override)) {
+                    return $override;
+                }
+            }
+            $path = rtrim($dir, '/\\') . '/' . $v . '.php';
+            return is_file($path) ? $path : null;
+        });
+        return $ns;
+    }
+
+    /**
+     * Resolve a core service (View, SettingsRepository, JobQueue, SystemMail,
+     * …). Packages are trusted in-process code — this is the supported way
+     * to reach shared infrastructure, not a sandbox boundary.
+     */
+    public function service(string $id): mixed
+    {
+        if ($this->serviceResolver === null) {
+            throw new \RuntimeException('No service resolver bound to this context.');
+        }
+        return ($this->serviceResolver)($id);
     }
 
     // ---- read-only aggregations used by the core shell --------------------

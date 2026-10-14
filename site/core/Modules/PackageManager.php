@@ -358,6 +358,18 @@ final class PackageManager
             $this->db->pdo()->exec('DROP TABLE IF EXISTS `' . $row['name'] . '`');
             $this->journal($packageId, 'purge', 'ok', 'dropped ' . $row['name']);
         }
+        // Package rows in shared stores the table-prefix convention can't see.
+        foreach (['content_items'] as $shared) {
+            if ($this->db->tableExists($shared)) {
+                $n = $this->db->run(
+                    'DELETE FROM `' . $this->db->table($shared) . '` WHERE package = ?',
+                    [$packageId]
+                )->rowCount();
+                if ($n > 0) {
+                    $this->journal($packageId, 'purge', 'ok', "deleted {$n} {$shared} row(s)");
+                }
+            }
+        }
         $this->journal($packageId, 'purge', 'ok', 'data purge complete');
         $this->fire('package.purged', ['package' => $packageId]);
         return [true, null];

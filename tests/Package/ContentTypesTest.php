@@ -155,6 +155,29 @@ final class ContentTypesTest extends TestCase
         $this->assertSame([], $this->items->items('other/pkg', 'faq'));
     }
 
+    public function testPurgeRemovesSharedStoreRows(): void
+    {
+        [$ok, , $id] = $this->items->save(null, 'acme/faq', 'faq', ['question' => 'Q'], 1);
+        $this->assertTrue($ok);
+
+        $pm = new \Core\Modules\PackageManager(
+            $this->db, $this->registry, new \Core\Modules\ArchiveInspector(),
+            $this->tmp . '/staging', $this->tmp . '/industries',
+            $this->tmp . '/addons', $this->tmp . '/themes',
+            $this->tmp . '/op.lock'
+        );
+        [$ok, $err] = $pm->uninstall('acme/faq');
+        $this->assertTrue($ok, (string) $err);
+        // Data is preserved through uninstall — the row survives.
+        $this->assertNotNull($this->items->get($id));
+
+        [$ok, $err] = $pm->purgeData('acme/faq');
+        $this->assertTrue($ok, (string) $err);
+        // Explicit purge removes the shared-store rows too.
+        $this->assertNull($this->items->get($id));
+        $this->assertSame([], $this->items->items('acme/faq', 'faq'));
+    }
+
     public function testUpdateCannotCrossTypeBoundaries(): void
     {
         [$ok1, , $id] = $this->items->save(null, 'acme/faq', 'faq', ['question' => 'Q'], 1);

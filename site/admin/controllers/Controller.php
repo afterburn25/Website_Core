@@ -74,6 +74,8 @@ abstract class Controller
         $nav = [
             ['route' => '/admin',          'label' => 'Dashboard',    'cap' => null],
             ['route' => '/admin/pages',    'label' => 'Content',      'cap' => 'content.manage'],
+            ['route' => '/admin/navigation','label' => 'Navigation',  'cap' => 'navigation.manage'],
+            ['route' => '/admin/media',    'label' => 'Media',        'cap' => 'media.manage'],
             ['route' => '/admin/modules',  'label' => 'Modules',      'cap' => 'modules.view'],
             ['route' => '/admin/users',    'label' => 'Administrators','cap' => 'admins.view'],
             ['route' => '/admin/settings', 'label' => 'Settings',     'cap' => 'settings.manage'],

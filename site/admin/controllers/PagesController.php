@@ -83,6 +83,49 @@ final class PagesController extends Controller
         ], $page ? 'Edit page' : 'New page');
     }
 
+    public function previewLink(Request $r): Response
+    {
+        if (!$this->can()) {
+            return $this->forbidden();
+        }
+        $id = (int) $r->attributes['id'];
+        $tokens = new \Core\Content\PreviewTokens($this->db());
+        $token = $tokens->issue($id, $this->user()->id);
+        $this->flash('ok', 'Preview link (24h, single-purpose): ' . $r->basePath . '/preview/' . $token);
+        return $this->redirect($r, '/admin/pages/edit/' . $id);
+    }
+
+    public function restoreRevision(Request $r): Response
+    {
+        if (!$this->can()) {
+            return $this->forbidden();
+        }
+        $id = (int) $r->attributes['id'];
+        $rid = (int) $r->attributes['rid'];
+        $db = $this->db();
+        $rev = $db->fetch(
+            'SELECT * FROM `' . $db->table('page_revisions') . '` WHERE id = ? AND page_id = ?',
+            [$rid, $id]
+        );
+        if (!$rev) {
+            return Response::notFound();
+        }
+        // Keep the current body recoverable too, then restore as draft.
+        $page = $db->fetch('SELECT * FROM `' . $db->table('pages') . '` WHERE id = ?', [$id]);
+        if ($page) {
+            $db->insert('page_revisions', [
+                'page_id' => $id, 'title' => $page['title'], 'body' => $page['body'],
+                'saved_by' => $this->user()->id, 'created_at' => date('Y-m-d H:i:s'),
+            ]);
+            $db->update('pages', [
+                'title' => $rev['title'], 'body' => $rev['body'], 'status' => 'draft',
+                'updated_by' => $this->user()->id, 'updated_at' => date('Y-m-d H:i:s'),
+            ], 'id = ?', [$id]);
+        }
+        $this->flash('ok', 'Revision restored as draft.');
+        return $this->redirect($r, '/admin/pages/edit/' . $id);
+    }
+
     public function publish(Request $r): Response
     {
         if (!$this->can()) {

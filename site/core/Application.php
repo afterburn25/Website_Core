@@ -150,6 +150,8 @@ final class Application
             $this->container->get(RateLimiter::class),
             $this->container->get(AuditLog::class),
         ));
+        $this->container->instance(\Core\Media\MediaService::class, new \Core\Media\MediaService($db, $this->config));
+        $this->container->instance(\Core\Content\MenuService::class, new \Core\Content\MenuService($db));
 
         $view = new View();
         $view->addResolver('admin', fn (string $v): ?string =>
@@ -235,7 +237,18 @@ final class Application
             $r->any('/pages/edit', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->edit($req), [$auth, $csrfCheck]);
             $r->any('/pages/edit/{id:\d+}', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->edit($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/publish', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->publish($req), [$auth, $csrfCheck]);
+            $r->post('/pages/{id:\d+}/preview', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->previewLink($req), [$auth, $csrfCheck]);
+            $r->post('/pages/{id:\d+}/restore/{rid:\d+}', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->restoreRevision($req), [$auth, $csrfCheck]);
+            $r->any('/navigation', fn (Request $req) => (new \Admin\Controllers\NavigationController($c))->index($req), [$auth, $csrfCheck]);
+            $r->any('/media', fn (Request $req) => (new \Admin\Controllers\MediaController($c))->index($req), [$auth, $csrfCheck]);
         });
+
+        // Sitemap, robots, media streams, and draft previews — before the
+        // page catch-all so they always win.
+        $this->router->get('/sitemap.xml', fn (Request $r) => (new \Admin\Controllers\SitemapController($c))->sitemap($r));
+        $this->router->get('/robots.txt', fn (Request $r) => (new \Admin\Controllers\SitemapController($c))->robots($r));
+        $this->router->get('/media/{id:\d+}/{name:.*}', fn (Request $r) => (new \Admin\Controllers\MediaController($c))->serve($r));
+        $this->router->get('/preview/{token:[a-f0-9]{48}}', fn (Request $r) => (new \Admin\Controllers\PublicPageController($c))->preview($r));
 
         // Namespaced asset resolver (theme/module assets, allowlisted types).
         $this->router->get('/_a/{path:.*}', function (Request $r) use ($c): Response {
@@ -247,7 +260,7 @@ final class Application
         $this->router->get('/', function (Request $r) use ($c): Response {
             return (new \Admin\Controllers\PublicPageController($c))->home($r);
         });
-        $this->router->get('/{slug:(?!admin\b|_a\b|install\.php|cron\.php|api\b|storage\b|upload\b)[a-z0-9][a-z0-9\-\/]*}', function (Request $r) use ($c): Response {
+        $this->router->get('/{slug:(?!admin\b|_a\b|media\b|preview\b|sitemap\.xml|robots\.txt|install\.php|cron\.php|api\b|storage\b|upload\b)[a-z0-9][a-z0-9\-\/]*}', function (Request $r) use ($c): Response {
             return (new \Admin\Controllers\PublicPageController($c))->show($r);
         });
     }

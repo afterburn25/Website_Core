@@ -100,8 +100,9 @@ final class ModuleContext
     /**
      * Register this package's view directory. Views resolve as
      * "mod-<slug>:<name>" with theme overrides at
-     * themes/<active>/modules/<package-id>/<name>.php falling back to the
-     * package's own views/<name>.php — overrides never reach module data.
+     * themes/<active>/templates/modules/<package-id>/<name>.php falling
+     * back to the package's own views/<name>.php — overrides never reach
+     * module data.
      */
     public function views(string $dir): string
     {
@@ -110,7 +111,7 @@ final class ModuleContext
         $this->view?->addResolver($ns, function (string $v) use ($dir, $theme): ?string {
             $active = $theme instanceof \Closure ? $theme() : (is_string($theme) ? $theme : '');
             if ($active !== '') {
-                $override = $this->themesRoot() . '/' . $active . '/modules/' . $this->packageId . '/' . $v . '.php';
+                $override = $this->themesRoot() . '/' . $active . '/templates/modules/' . $this->packageId . '/' . $v . '.php';
                 if (is_file($override)) {
                     return $override;
                 }

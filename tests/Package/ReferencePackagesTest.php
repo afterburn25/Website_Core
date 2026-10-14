@@ -32,7 +32,9 @@ final class ReferencePackagesTest extends TestCase
         if (!extension_loaded('pdo_sqlite') || !extension_loaded('zip')) {
             $this->markTestSkipped('needs pdo_sqlite + zip');
         }
-        $this->tmp = sys_get_temp_dir() . '/wc-ref-' . bin2hex(random_bytes(4));
+        // Process-lifetime dir: provider classes resolve __DIR__-relative
+        // views long after a given test finishes (see WcProcessTmpDirs).
+        $this->tmp = \WcProcessTmpDirs::make('wc-ref-');
         foreach (['staging', 'industries', 'addons', 'themes'] as $d) {
             mkdir($this->tmp . '/' . $d, 0777, true);
         }
@@ -64,14 +66,7 @@ final class ReferencePackagesTest extends TestCase
 
     protected function tearDown(): void
     {
-        $it = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->tmp, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::CHILD_FIRST
-        );
-        foreach ($it as $f) {
-            $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
-        }
-        @rmdir($this->tmp);
+        // Temp dirs cleaned at process shutdown by WcProcessTmpDirs.
     }
 
     private function zipDir(string $srcDir, string $innerName, string $zipName): string

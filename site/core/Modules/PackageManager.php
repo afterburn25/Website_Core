@@ -32,7 +32,18 @@ final class PackageManager
         private string $themesDir,
         private string $lockFile,
         private ?\Core\Update\SignatureVerifier $verifier = null,
+        private ?Dispatcher $events = null,
     ) {}
+
+    /** Fire a lifecycle event for listeners registered via ctx->on(). */
+    private function fire(string $event, array $payload = []): void
+    {
+        if ($this->events !== null) {
+            foreach ($this->events->dispatch($event, $payload) as $err) {
+                error_log('[website-core] event listener error ' . $err);
+            }
+        }
+    }
 
     private function journal(string $id, string $op, string $result, string $detail = ''): void
     {
@@ -245,6 +256,8 @@ final class PackageManager
 
             $this->recordPackage($manifest, 'installed');
             $this->journal($packageId, $upgrade ? 'upgrade' : 'install', 'ok', $dest);
+            $this->fire($upgrade ? 'package.upgraded' : 'package.installed',
+                ['package' => $packageId, 'version' => (string) ($manifest['version'] ?? ''), 'dir' => $dest]);
             return [true, null];
         } finally {
             $this->unlock();
@@ -278,6 +291,7 @@ final class PackageManager
         }
         $this->registry->setState($packageId, 'enabled');
         $this->journal($packageId, 'enable', 'ok');
+        $this->fire('package.enabled', ['package' => $packageId]);
         return [true, null];
     }
 
@@ -293,6 +307,7 @@ final class PackageManager
         }
         $this->registry->setState($packageId, 'disabled');
         $this->journal($packageId, 'disable', 'ok');
+        $this->fire('package.disabled', ['package' => $packageId]);
         return [true, null];
     }
 
@@ -320,6 +335,7 @@ final class PackageManager
             }
             $this->registry->setState($packageId, 'removed');
             $this->journal($packageId, 'uninstall', 'ok', 'data preserved');
+            $this->fire('package.uninstalled', ['package' => $packageId, 'data' => 'preserved']);
             return [true, null];
         } finally {
             $this->unlock();
@@ -343,6 +359,7 @@ final class PackageManager
             $this->journal($packageId, 'purge', 'ok', 'dropped ' . $row['name']);
         }
         $this->journal($packageId, 'purge', 'ok', 'data purge complete');
+        $this->fire('package.purged', ['package' => $packageId]);
         return [true, null];
     }
 

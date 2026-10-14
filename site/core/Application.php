@@ -214,6 +214,7 @@ final class Application
                 (array) $this->config->get('trust.public_keys', []),
                 (bool) $this->config->get('trust.allow_unsigned', true)
             ),
+            $this->container->get(Dispatcher::class),
         ));
 
         $events = $this->container->get(Dispatcher::class);

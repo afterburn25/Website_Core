@@ -35,6 +35,10 @@ final class BackupsController extends Controller
             return $this->forbidden();
         }
         [$path, $err] = $this->svc()->create();
+        if (!$err) {
+            $this->c->get(\Core\Events\Dispatcher::class)->dispatch(
+                'backup.created', ['file' => basename((string) $path), 'by' => $u->id]);
+        }
         $this->flash($err ? 'error' : 'ok', $err ?? 'Backup created: ' . basename((string) $path));
         return $this->redirect($r, '/admin/backups');
     }
@@ -55,6 +59,10 @@ final class BackupsController extends Controller
         }
         [$ok, $err] = $this->svc()->restore($path);
         $this->c->get(\Core\Audit\AuditLog::class)->record('backup.restore', $u->id, ['file' => $name, 'ok' => $ok]);
+        if ($ok) {
+            $this->c->get(\Core\Events\Dispatcher::class)->dispatch(
+                'backup.restored', ['file' => $name, 'by' => $u->id]);
+        }
         $this->flash($ok ? 'ok' : 'error', $ok ? 'Backup restored.' : (string) $err);
         return $this->redirect($r, '/admin/backups');
     }

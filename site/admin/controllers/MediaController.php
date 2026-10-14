@@ -31,6 +31,10 @@ final class MediaController extends Controller
                     $r->string('private') === '1',
                     $r->string('folder')
                 );
+                if (!$err) {
+                    $this->c->get(\Core\Events\Dispatcher::class)->dispatch(
+                        'media.uploaded', ['media' => $id, 'by' => $u->id]);
+                }
                 $this->flash($err ? 'error' : 'ok', $err ?? 'File uploaded.');
             } elseif ($action === 'delete') {
                 $id = (int) $r->string('id');

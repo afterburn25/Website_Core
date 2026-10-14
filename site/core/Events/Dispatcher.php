@@ -19,11 +19,23 @@ final class Dispatcher
         $this->listeners[$event][] = $listener;
     }
 
-    public function dispatch(string $event, array $payload = []): void
+    /**
+     * Lifecycle events. Listeners are package code: one failing listener
+     * must not abort the operation that fired the event, so each call is
+     * isolated and errors are collected, not thrown.
+     * @return list<string> listener error messages (empty when clean)
+     */
+    public function dispatch(string $event, array $payload = []): array
     {
+        $errors = [];
         foreach ($this->listeners[$event] ?? [] as $listener) {
-            $listener($payload);
+            try {
+                $listener($payload);
+            } catch (\Throwable $e) {
+                $errors[] = $event . ': ' . $e->getMessage();
+            }
         }
+        return $errors;
     }
 
     /** @return array<string, int> event => listener count (diagnostics) */

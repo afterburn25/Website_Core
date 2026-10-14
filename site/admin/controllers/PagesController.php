@@ -87,6 +87,8 @@ final class PagesController extends Controller
                         'updated_at' => date('Y-m-d H:i:s'),
                     ], $seo));
                 }
+                $this->c->get(\Core\Events\Dispatcher::class)->dispatch(
+                    'page.saved', ['page' => $id, 'slug' => $slug, 'by' => $this->user()->id]);
                 $this->flash('ok', 'Saved as draft.');
                 return $this->redirect($r, '/admin/pages/edit/' . $id);
             }
@@ -164,6 +166,8 @@ final class PagesController extends Controller
         }
         $this->db()->update('pages', $data, 'id = ?', [$id]);
         $this->c->get(\Core\Audit\AuditLog::class)->record('page.' . $status, $this->user()->id, ['page' => $id]);
+        $this->c->get(\Core\Events\Dispatcher::class)->dispatch(
+            'page.' . $status, ['page' => $id, 'by' => $this->user()->id]);
         $this->flash('ok', $status === 'published' ? 'Page published.' : 'Page unpublished.');
         return $this->redirect($r, '/admin/pages');
     }

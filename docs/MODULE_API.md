@@ -15,7 +15,7 @@ breaking changes bump the major and ship with a migration guide.
 | Method | Purpose |
 |--------|---------|
 | `route($methods, $pattern, $handler, $middleware = [])` | Register HTTP routes (`{param:regex}` syntax). Module routes register before the public slug catch-all. |
-| `on($event, $listener)` | Subscribe to core events (in-transaction dispatch). |
+| `on($event, $listener)` | Subscribe to core lifecycle events (fault-isolated). |
 | `adminPage($label, $route, $capability)` | Add an admin nav item; authorization is still checked server-side per route. |
 | `scheduledJob($type, $handler)` | Register an idempotent job handler executed by the queue runner. |
 | `contentType($type, $label, $fields)` | Register a custom content type/field set. |
@@ -25,6 +25,23 @@ breaking changes bump the major and ship with a migration guide.
 Each enabled package receives its **own** `ModuleContext` stamped with its
 packageId — registrations are attributed to the package and aggregated by
 the `ModuleRegistry` (`adminNavItems()`, `jobHandlers()`, `contexts()`).
+
+## Events fired by core
+
+`on()` listeners receive a payload array; a throwing listener is logged and
+isolated — it never aborts the operation that fired the event.
+
+| Event | Payload | Fired when |
+|-------|---------|-----------|
+| `page.saved` | `page`, `slug`, `by` | a page is written (draft or edit) |
+| `page.published` / `page.draft` | `page`, `by` | publish/unpublish |
+| `media.uploaded` | `media`, `by` | a media file is stored |
+| `backup.created` / `backup.restored` | `file`, `by` | a backup finishes / restores |
+| `package.installed` / `package.upgraded` | `package`, `version`, `dir` | install completes |
+| `package.enabled` / `package.disabled` | `package` | lifecycle flips |
+| `package.uninstalled` | `package`, `data` | files removed, data preserved |
+| `package.purged` | `package` | package-owned tables dropped |
+| `core.update` | audit entry | a core self-update applies |
 
 ## Contracts
 

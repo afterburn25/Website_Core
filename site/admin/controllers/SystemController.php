@@ -235,6 +235,9 @@ final class SystemController extends Controller
         $this->c->get(\Core\Audit\AuditLog::class)->record('core.update', $u->id, [
             'backup' => $backup ? basename($backup) : null,
         ]);
+        $this->c->get(\Core\Events\Dispatcher::class)->dispatch('core.update', [
+            'by' => $u->id, 'backup' => $backup ? basename($backup) : null,
+        ]);
         $this->flash('ok', 'Update applied; migrations run; replaced files backed up.');
         return Response::redirect($r->basePath . '/admin/updates');
     }

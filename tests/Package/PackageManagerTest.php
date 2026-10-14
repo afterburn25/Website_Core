@@ -149,6 +149,77 @@ final class PackageManagerTest extends TestCase
         $this->assertFalse(is_dir($this->tmp . '/addons/widgets'));
     }
 
+    public function testLifecycleFiresEvents(): void
+    {
+        $events = new \Core\Events\Dispatcher();
+        $fired = [];
+        foreach (['package.installed', 'package.enabled', 'package.disabled', 'package.uninstalled'] as $ev) {
+            $events->listen($ev, function (array $p) use (&$fired, $ev) {
+                $fired[] = $ev . ':' . $p['package'];
+            });
+        }
+        $registry = new ModuleRegistry(
+            $this->db,
+            $this->tmp . '/industries', $this->tmp . '/addons', $this->tmp . '/themes'
+        );
+        $pm = new PackageManager(
+            $this->db, $registry, new ArchiveInspector(),
+            $this->tmp . '/staging', $this->tmp . '/industries',
+            $this->tmp . '/addons', $this->tmp . '/themes',
+            $this->tmp . '/op.lock', null, $events
+        );
+
+        $zip = $this->zip([
+            'widgets/addon.json' => $this->manifest(),
+            'widgets/src/Provider.php' => '<?php namespace AcmeWidgets; class Provider { public function register($ctx) {} }',
+        ]);
+        [$staged] = $pm->stage($zip);
+        $this->assertNotNull($staged);
+        [$ok] = $pm->install('acme/widgets');
+        $this->assertTrue($ok);
+        [$ok] = $pm->enable('acme/widgets');
+        $this->assertTrue($ok);
+        [$ok] = $pm->disable('acme/widgets');
+        $this->assertTrue($ok);
+        [$ok] = $pm->uninstall('acme/widgets');
+        $this->assertTrue($ok);
+
+        $this->assertSame([
+            'package.installed:acme/widgets',
+            'package.enabled:acme/widgets',
+            'package.disabled:acme/widgets',
+            'package.uninstalled:acme/widgets',
+        ], $fired);
+    }
+
+    public function testThrowingListenerDoesNotAbortLifecycle(): void
+    {
+        $events = new \Core\Events\Dispatcher();
+        $events->listen('package.enabled', function () {
+            throw new \RuntimeException('listener boom');
+        });
+        $registry = new ModuleRegistry(
+            $this->db,
+            $this->tmp . '/industries', $this->tmp . '/addons', $this->tmp . '/themes'
+        );
+        $pm = new PackageManager(
+            $this->db, $registry, new ArchiveInspector(),
+            $this->tmp . '/staging', $this->tmp . '/industries',
+            $this->tmp . '/addons', $this->tmp . '/themes',
+            $this->tmp . '/op.lock', null, $events
+        );
+        $zip = $this->zip([
+            'widgets/addon.json' => $this->manifest(),
+            'widgets/src/Provider.php' => '<?php namespace AcmeWidgets; class Provider { public function register($ctx) {} }',
+        ]);
+        $pm->stage($zip);
+        [$ok] = $pm->install('acme/widgets');
+        $this->assertTrue($ok);
+        [$ok, $err] = $pm->enable('acme/widgets');
+        $this->assertTrue($ok, (string) $err);
+        $this->assertSame('enabled', $registry->state('acme/widgets'));
+    }
+
     public function testIntegrityMismatchBlocksInstall(): void
     {
         $manifest = $this->manifest([

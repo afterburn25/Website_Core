@@ -1,7 +1,9 @@
 # Project Status
 
-**Current**: M0 complete + M1 first increment (installer, identities,
-security, usable core-only website). Pre-1.0 — version `0.1.0-dev`.
+**Current**: M0–M5 implemented (installer, identities/security, content,
+packages, ops/updates, reference packages + parity proof) with release
+artifacts and CI gating. Pre-1.0 — version `0.1.0-dev`; remaining items
+are owner-gated, not engineering.
 
 ## Baseline
 
@@ -23,28 +25,24 @@ security, usable core-only website). Pre-1.0 — version `0.1.0-dev`.
 | M1 | Admin auth: sessions, CSRF, TOTP MFA, recovery codes, rate limits, last-owner protection | implemented | `site/core/Auth/`, `site/core/Security/`, `tests/Unit/AuthServiceTest.php` |
 | M1 | Admin shell: dashboard, settings, users, modules list, basic pages | implemented | `site/admin/` |
 | M1 | Core-only public website + base theme | implemented | `site/themes/base/`, public page routes |
-| M2 | Content/media/navigation/theme/localization/search metadata | partial | menus, media library, previews, revisions, sitemap/robots done; sections/locales pending |
+| M2 | Content/media/navigation/theme/localization/search metadata | implemented | menus, media library, previews, revisions, sections, redirects, noindex/canonical/OG, HTMLPurifier sanitization, layered i18n (en+fr catalogs, fallback/normalization/placeholders), sitemap/robots |
 | M3 | Package API + Module Manager | implemented | archive inspector, lifecycle state machine, journal/lock, migrations on install, dep-ordered enable, per-package contexts, adminRoute/views/service surface, upload/review/action UI, SDK roundtrip test |
-| M4 | Updates/backup/recovery/jobs/mail/diagnostics | implemented | BackupService roundtrip + admin UI; health + audit pages; diagnostics bundle download; PHPMailer queue + cron drain; Ed25519 signature verifier on stage; recovery-mode flag; CoreUpdater + /admin/updates (manifest-hash-verified apply, pre-update backup, journal, migrations, opcache reset) |
+| M4 | Updates/backup/recovery/jobs/mail/diagnostics | implemented | BackupService roundtrip + admin UI; health + audit pages; diagnostics bundle download; PHPMailer queue + cron drain + recent-messages health table; Ed25519 signature verifier (sodium_compat polyfill); recovery-mode flag; CoreUpdater + /admin/updates (manifest-hash-verified apply, expires/min_core, maintenance-window gate, pre-update backup, journal, migrations, opcache reset) |
 | M5 | Reference packages + portability proof | implemented | inquiry add-on + restaurant + salon + terra/noir themes via real Module Manager; ReferenceSitesParityTest proves identical core schema, byte-identical shared add-on, isolated data, theme-switch preservation, uninstall-preserves/purge-removes |
-| M4 | Updates, backup/restore, jobs, mail, diagnostics | partial | jobs/outbox schema+runner done |
-| M5 | Reference industries + shared add-on proof | pending | |
-| M6 | Acceptance matrix + commercial docs + RC | pending | |
+| M6 | Acceptance matrix + commercial docs + RC | evidence built | release artifacts (FULL-PROJECT/COMPLETE-UPLOAD/UPDATE/packages + SHA256SUMS) built + CI-gated; `tools/verify-artifact.php` fresh-install dogfood; draft GitHub prerelease with 9 assets (unpublished — owner approval) |
 
-## Known gaps this increment
+## Remaining gaps (owner-gated)
 
-- Module Manager upload/install/update/uninstall UI is not yet built;
-  registry + state machine groundwork exists (`ModuleRegistry`,
-  `packages`, `package_journal` tables).
-- Rich-text sanitization for page bodies pending (needs HTMLPurifier dep).
-- Media library, navigation builder, sitemap/robots, preview tokens,
-  localization strings — M2 scope.
-- Backup/restore, signed updates, SMTP transport — M4 scope.
-- SQLite driver exists for dev/test ONLY; production + CI acceptance is
-  MySQL/MariaDB (`docs/COMPATIBILITY.md`).
+- Production Ed25519 trust root (`trust.public_keys`) — owner decision;
+  no key material in repo.
+- Draft prerelease publish — owner approval.
+- Real-host compatibility runs outside local/CI environments.
+- PR #7 merge approval.
 
 ## Test status
 
-- `unit`+`package`: 110 tests green locally (PHP 8.4.25); sodium-gated
-  tests run where libsodium exists (CI).
+- `unit`+`package`: 125 tests / 467 assertions green locally (PHP 8.4.25);
+  3 skips are native-DB gated. Sodium tests run via `sodium_compat`.
 - `native`: green in CI on mysql:8.4 and mariadb:11.4 service jobs.
+- CI: 6 jobs — lint+unit PHP 8.4/8.5, native MySQL, native MariaDB,
+  core-only boot, release-artifact contract.

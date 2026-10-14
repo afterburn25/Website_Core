@@ -133,7 +133,11 @@ final class SystemController extends Controller
             return Response::redirect($r->basePath . '/admin/updates');
         }
         @unlink($staged);
-        // New files are live — run pending core migrations against this DB.
+        // New files are live — flush opcache so the next request can't run
+        // stale bytecode, then run pending core migrations against this DB.
+        if (function_exists('opcache_reset')) {
+            @opcache_reset();
+        }
         (new \Core\Database\Migrator(
             $this->db(), WC_ROOT . '/database/migrations'
         ))->migrate();

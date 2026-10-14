@@ -36,6 +36,7 @@ final class PagesController extends Controller
             $slug = strtolower(preg_replace('/[^a-z0-9]+/', '-', $r->string('slug') !== '' ? $r->string('slug') : $title));
             $slug = trim($slug, '-');
             $body = (string) ($r->post['body'] ?? '');
+            $body = (new \Core\Content\Sanitizer())->html($body);
 
             if ($title === '' || $slug === '') {
                 $error = 'Title and slug are required.';

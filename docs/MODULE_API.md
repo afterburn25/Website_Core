@@ -19,13 +19,21 @@ breaking changes bump the major and ship with a migration guide.
 | `adminPage($label, $route, $capability)` | Add an admin nav item; authorization is still checked server-side per route. |
 | `scheduledJob($type, $handler)` | Register an idempotent job handler executed by the queue runner. |
 | `contentType($type, $label, $fields)` | Register a custom content type/field set. |
+| `permission($capability, $description)` | Declare a package capability. Owner always holds it; `admin` does by default. Packages can never grant core capabilities. |
 | `packageId()` | The package's own `publisher/name` id. |
+
+Each enabled package receives its **own** `ModuleContext` stamped with its
+packageId — registrations are attributed to the package and aggregated by
+the `ModuleRegistry` (`adminNavItems()`, `jobHandlers()`, `contexts()`).
 
 ## Contracts
 
 - **Persistence** — a module owns its tables (created by its own
-  migrations, named `<package>_<table>`). It may never read or write
-  another package's tables.
+  migrations, named `<package>_<table>`, declared via the manifest
+  `migrations` directory of `Migration`-returning PHP files run by
+  `PackageManager::install()`). It may never read or write another
+  package's tables. Uninstall preserves them; `purgeData()` drops only
+  `<prefix><package-slug>_*` after typed-id confirmation.
 - **Views** — module templates resolve `pkg-id/view` with theme overrides
   at `themes/<active>/modules/<pkg-id>/<view>.php`; missing/incompatible
   overrides fall back to the module's shipped view.

@@ -124,3 +124,28 @@ files backed up to storage/update-backups/, config.php untouched,
 /inquiry → 200 (form + CSRF), /about → 404, / → 200.
 
 121 tests / 438 assertions green.
+
+## 2026-10-14 (night) — closure pass: update posture, CI contract, sodium polyfill
+
+- **Rollback/replay posture**: update.json carries `expires` (build+30d)
+  and `min_core`; CoreUpdater refuses stale/replayed or too-new metadata.
+- **CI `artifacts` job**: every push builds all zips and asserts the
+  contract (deployable members at root, prod vendor only, UPDATE passes
+  CoreUpdater::inspect, every package zip passes ArchiveInspector,
+  FULL-PROJECT completeness, no .git).
+- **paragonie/sodium_compat** (ISC) bundled: sodium_* polyfill makes
+  signature verification work on sodium-less hosts; verifier checks
+  function_exists, fails closed only when neither is present; installer
+  reports the provider; 6 previously-skipped tests now run (3 skips
+  left: native-DB gated).
+- Diagnostics bundle endpoint + Health-page link.
+- opcache_reset after core apply.
+- Draft release assets refreshed (all 9) at every artifact-affecting
+  change.
+
+**Standing**: 122 tests / 452 assertions; 6/6 CI jobs green including
+the new artifacts job; draft `v0.1.0-dev` byte-verified.
+
+**Owner-gated items remaining** (engineering done): publish draft
+release; production signing trust root (WC_UPDATE_SIGN_KEY +
+trust.public_keys); PR #7 merge approval; real-host compatibility runs.

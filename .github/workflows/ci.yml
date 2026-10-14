@@ -109,12 +109,15 @@ jobs:
             --data-urlencode "owner_password=ci-install-pass-1" \
             --data-urlencode "owner_password2=ci-install-pass-1" \
             --data-urlencode "storage_path=/tmp/wcsite/storage")
-          if [ "$code" != "302" ]; then
-            echo "install POST returned $code"; grep -o 'err[^<]*<[^>]*>[^<]*' /tmp/install-resp.html | head; exit 1
+          # Success renders a 200 "Installation complete" page; errors re-render the form.
+          if [ "$code" != "200" ] || ! grep -q "Installation complete" /tmp/install-resp.html; then
+            echo "install POST failed (HTTP $code)"; grep -o 'err[^<]*<[^>]*>[^<]*' /tmp/install-resp.html | head; exit 1
           fi
           test -f /tmp/wcsite/config/installed.lock
           test -f /tmp/wcsite/config/config.php
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/install.php)" = "403"
+          # install.php self-renames to .off when writable → 404; installed.lock blocks it otherwise → 403.
+          after=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/install.php)
+          [ "$after" = "403" ] || [ "$after" = "404" ] || { echo "installer still reachable: $after"; exit 1; }
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/index.php)" = "200"
           kill %1 2>/dev/null || true
           echo "installer acceptance OK"

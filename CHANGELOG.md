@@ -39,6 +39,11 @@
   operation lock + package migrations on install; dependency ordering.
 - Per-package `ModuleContext` with `route`/`adminRoute`/`views`/
   `service`/`on`/`adminPage`/`scheduledJob`/`contentType`/`permission`.
+- Generic content types: `ctx->contentType()` declares a validated field
+  set; core stores items in `content_items` and generates admin CRUD at
+  `/admin/content` (text/textarea/html/number/url/select/checkbox,
+  required, option, URL-scheme, and cross-type-boundary enforcement).
+  Restaurant `special` type uses it end-to-end.
 - Module Manager admin UI: upload, review, actions; recovery-mode flag
   boots trusted core only.
 - SDK scaffold tool + roundtrip test.

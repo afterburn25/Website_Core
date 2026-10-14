@@ -126,6 +126,7 @@ final class ReferenceSitesParityTest extends TestCase
             \Core\Security\Csrf::class => new \Core\Security\Csrf(),
             \Core\Mail\SystemMail::class => new \Core\Mail\SystemMail($s->db, $s->settings),
             \Core\Admin\Nav::class => new \Core\Admin\Nav($s->registry, null),
+            \Core\Content\ContentItems::class => new \Core\Content\ContentItems($s->db, $s->registry),
         ];
         $services = fn (string $id) => $map[$id] ?? throw new \RuntimeException("unbound {$id}");
         $adminMw = fn (Request $r, callable $next) =>

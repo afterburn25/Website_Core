@@ -205,6 +205,8 @@ final class Application
         $registry = new ModuleRegistry($db, $modulesRoot . '/industries', $modulesRoot . '/addons', $themesRoot);
         $registry->discover();
         $this->container->instance(ModuleRegistry::class, $registry);
+        $this->container->instance(\Core\Content\ContentItems::class,
+            new \Core\Content\ContentItems($db, $registry));
         $this->container->instance(\Core\Modules\PackageManager::class, new \Core\Modules\PackageManager(
             $db, $registry, new \Core\Modules\ArchiveInspector(),
             (string) $this->config->get('paths.upload', WC_ROOT . '/upload'),
@@ -299,6 +301,11 @@ final class Application
             $r->post('/pages/{id:\d+}/preview', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->previewLink($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/restore/{rid:\d+}', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->restoreRevision($req), [$auth, $csrfCheck]);
             $r->any('/navigation', fn (Request $req) => (new \Admin\Controllers\NavigationController($c))->index($req), [$auth, $csrfCheck]);
+            $r->get('/content', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->index($req), [$auth]);
+            $r->get('/content/list', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->list($req), [$auth]);
+            $r->get('/content/edit', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->edit($req), [$auth]);
+            $r->post('/content/save', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->save($req), [$auth, $csrfCheck]);
+            $r->post('/content/delete', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->delete($req), [$auth, $csrfCheck]);
             $r->any('/media', fn (Request $req) => (new \Admin\Controllers\MediaController($c))->index($req), [$auth, $csrfCheck]);
             $r->get('/appearance', fn (Request $req) => (new \Admin\Controllers\AppearanceController($c))->index($req), [$auth]);
             $r->post('/appearance/activate', fn (Request $req) => (new \Admin\Controllers\AppearanceController($c))->activate($req), [$auth, $csrfCheck]);

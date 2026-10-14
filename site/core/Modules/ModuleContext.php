@@ -147,4 +147,15 @@ final class ModuleContext
     {
         return $this->jobHandlers;
     }
+
+    /**
+     * Content types declared via contentType(). Storage and the generated
+     * admin CRUD live in Core\Content\ContentItems — packages read items
+     * through $ctx->service(\Core\Content\ContentItems::class).
+     * @return array<string, array{label:string,fields:list<array>}>
+     */
+    public function contentTypes(): array
+    {
+        return $this->contentTypes;
+    }
 }

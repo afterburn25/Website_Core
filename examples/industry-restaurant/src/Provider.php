@@ -19,5 +19,15 @@ final class Provider
 
         $ctx->permission('restaurant.manage', 'Manage restaurant menus');
         $ctx->adminPage('Restaurant', '/admin/restaurant', 'restaurant.manage');
+
+        // Daily specials use the generic content-type surface rather than a
+        // custom table — core validates the declared fields and generates
+        // the admin CRUD; this package just reads items back out.
+        $ctx->contentType('special', 'Daily Specials', [
+            ['name' => 'dish', 'label' => 'Dish', 'type' => 'text', 'required' => true],
+            ['name' => 'description', 'label' => 'Description', 'type' => 'textarea'],
+            ['name' => 'price', 'label' => 'Price', 'type' => 'number'],
+            ['name' => 'available', 'label' => 'Available today', 'type' => 'checkbox'],
+        ]);
     }
 }

@@ -73,3 +73,9 @@
 </form>
 </details>
 </div>
+<div class="card">
+<h2 style="margin-top:0">Package content types</h2>
+<p class="muted">Structured lists declared by installed packages (FAQs,
+testimonials, …) get a generated admin UI.</p>
+<p><a class="btn small" href="<?= e_attr($basePath) ?>/admin/content">Manage content types</a></p>
+</div>

@@ -41,7 +41,7 @@ are owner-gated, not engineering.
 
 ## Test status
 
-- `unit`+`package`: 125 tests / 467 assertions green locally (PHP 8.4.25);
+- `unit`+`package`: 130 tests / 504 assertions green locally (PHP 8.4.25);
   3 skips are native-DB gated. Sodium tests run via `sodium_compat`.
 - `native`: green in CI on mysql:8.4 and mariadb:11.4 service jobs.
 - CI: 6 jobs — lint+unit PHP 8.4/8.5, native MySQL, native MariaDB,

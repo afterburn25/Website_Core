@@ -187,6 +187,21 @@ final class ModuleRegistry
         return $items;
     }
 
+    /**
+     * Package-declared content types, keyed packageId => [type => def].
+     * @return array<string, array<string, array{label:string,fields:list<array>}>>
+     */
+    public function contentTypes(): array
+    {
+        $out = [];
+        foreach ($this->contexts as $ctx) {
+            if ($ctx->contentTypes() !== []) {
+                $out[$ctx->packageId()] = $ctx->contentTypes();
+            }
+        }
+        return $out;
+    }
+
     /** Deterministic load order: dependencies before dependents. */
     public function dependencyOrder(): array
     {

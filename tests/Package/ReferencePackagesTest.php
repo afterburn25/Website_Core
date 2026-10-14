@@ -113,6 +113,7 @@ final class ReferencePackagesTest extends TestCase
             \Core\Security\Csrf::class => new \Core\Security\Csrf(),
             \Core\Mail\SystemMail::class => new \Core\Mail\SystemMail($this->db, $settings),
             \Core\Admin\Nav::class => new \Core\Admin\Nav($this->registry, null),
+            \Core\Content\ContentItems::class => new \Core\Content\ContentItems($this->db, $this->registry),
         ];
         return fn (string $id) => $map[$id] ?? throw new \RuntimeException("unbound {$id}");
     }
@@ -201,6 +202,22 @@ final class ReferencePackagesTest extends TestCase
         $this->assertSame(200, $resp->status());
         $this->assertStringContainsString('Gumbo', $resp->body());
         $this->assertStringContainsString('14.50', $resp->body());
+
+        // Generic content-type loop: the 'special' type the package declared
+        // is validated + stored by core and rendered by the package's view.
+        $items = new \Core\Content\ContentItems($this->db, $this->registry);
+        [$ok, $err] = $items->save(null, 'wcref/restaurant', 'special', [
+            'dish' => 'Crawfish Etouffee', 'price' => '12.75', 'available' => '1',
+        ], null);
+        $this->assertTrue($ok, (string) $err);
+        [$ok] = $items->save(null, 'wcref/restaurant', 'special', [
+            'dish' => 'Hidden Gumbo', 'available' => '0',
+        ], null);
+        $this->assertTrue($ok);
+        $resp = $this->req('GET', '/menu');
+        $this->assertStringContainsString('Crawfish Etouffee', $resp->body());
+        $this->assertStringContainsString('12.75', $resp->body());
+        $this->assertStringNotContainsString('Hidden Gumbo', $resp->body());
 
         $this->db->insert('salon_services', [
             'name' => 'Cut', 'duration_minutes' => 45, 'price_cents' => 6000,

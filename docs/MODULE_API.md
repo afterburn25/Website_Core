@@ -18,7 +18,7 @@ breaking changes bump the major and ship with a migration guide.
 | `on($event, $listener)` | Subscribe to core lifecycle events (fault-isolated). |
 | `adminPage($label, $route, $capability)` | Add an admin nav item; authorization is still checked server-side per route. |
 | `scheduledJob($type, $handler)` | Register an idempotent job handler executed by the queue runner. |
-| `contentType($type, $label, $fields)` | Register a custom content type/field set. |
+| `contentType($type, $label, $fields)` | Register a structured content type — validated storage in `content_items` plus generated admin CRUD under `/admin/content`. |
 | `permission($capability, $description)` | Declare a package capability. Owner always holds it; `admin` does by default. Packages can never grant core capabilities. |
 | `packageId()` | The package's own `publisher/name` id. |
 
@@ -42,6 +42,29 @@ isolated — it never aborts the operation that fired the event.
 | `package.uninstalled` | `package`, `data` | files removed, data preserved |
 | `package.purged` | `package` | package-owned tables dropped |
 | `core.update` | audit entry | a core self-update applies |
+
+## Content types
+
+`contentType($type, $label, $fields)` registers a structured content type.
+Each field is `['name' => snake_case, 'label' => ..., 'type' => ...,
+'required' => bool, 'options' => [...] (select only)]` with `type` one of
+`text`, `textarea`, `html` (HTMLPurifier-sanitized), `number`, `url`
+(http/https/mailto), `select`, `checkbox`. Undeclared keys are dropped at
+save time and `required`/`type` violations are rejected.
+
+Core stores items in `content_items` and generates the admin CRUD at
+`/admin/content` (capability `content.manage`). Packages read their own
+items back — presentation stays package-owned:
+
+```php
+$items = $ctx->service(\Core\Content\ContentItems::class)
+    ->items($ctx->packageId(), 'faq', publishedOnly: true);
+```
+
+Each item exposes `id`, `title` (derived from the first text-ish field or
+an explicit `title`), `status` (`draft`/`published`), `sort`, and a decoded
+`fields` map. The restaurant reference package uses this for `special`
+(daily specials) end-to-end.
 
 ## Contracts
 

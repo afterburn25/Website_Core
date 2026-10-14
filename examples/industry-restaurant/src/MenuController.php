@@ -33,6 +33,14 @@ final class MenuController
         $items = $db->fetchAll(
             'SELECT * FROM `' . $db->table('restaurant_items') . '` WHERE visible = 1 ORDER BY name'
         );
+        // Daily specials live in the generic content_items store — this
+        // package declared the type, core validates + stores, we read back
+        // published items flagged "available today".
+        $specials = array_values(array_filter(
+            $this->ctx->service(\Core\Content\ContentItems::class)
+                ->items('wcref/restaurant', 'special', true),
+            fn (array $s) => ($s['fields']['available'] ?? '0') === '1'
+        ));
         $v = $this->ctx->service(View::class);
         $settings = $this->ctx->service(SettingsRepository::class);
         $v->share('basePath', $r->basePath);
@@ -40,7 +48,7 @@ final class MenuController
         $v->share('tagline', $settings->get('site.tagline', ''));
         $v->share('pages', []);
         return Response::html($v->renderInLayout($this->ns . ':menu', 'theme:layout', [
-            'cats' => $cats, 'items' => $items,
+            'cats' => $cats, 'items' => $items, 'specials' => $specials,
             'page' => ['title' => 'Menu', 'meta_title' => 'Menu'],
         ]));
     }

@@ -33,6 +33,7 @@ final class Nav
             ['route' => '/admin/users',     'label' => 'Administrators','cap' => 'admins.view'],
             ['route' => '/admin/backups',   'label' => 'Backups',       'cap' => 'backups.manage'],
             ['route' => '/admin/health',    'label' => 'Health',        'cap' => 'system.view'],
+            ['route' => '/admin/updates',   'label' => 'Updates',       'cap' => 'system.update'],
             ['route' => '/admin/audit',     'label' => 'Audit',         'cap' => 'audit.view'],
             ['route' => '/admin/settings',  'label' => 'Settings',      'cap' => 'settings.manage'],
         ];

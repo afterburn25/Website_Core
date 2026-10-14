@@ -305,6 +305,9 @@ final class Application
             $r->post('/backups/delete', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->delete($req), [$auth, $csrfCheck]);
             $r->get('/health', fn (Request $req) => (new \Admin\Controllers\SystemController($c))->health($req), [$auth]);
             $r->get('/audit', fn (Request $req) => (new \Admin\Controllers\SystemController($c))->audit($req), [$auth]);
+            $r->get('/updates', fn (Request $req) => (new \Admin\Controllers\SystemController($c))->updates($req), [$auth]);
+            $r->post('/updates/stage', fn (Request $req) => (new \Admin\Controllers\SystemController($c))->stageUpdate($req), [$auth, $csrfCheck]);
+            $r->post('/updates/apply', fn (Request $req) => (new \Admin\Controllers\SystemController($c))->applyUpdate($req), [$auth, $csrfCheck]);
         });
 
         // Sitemap, robots, media streams, and draft previews — before the

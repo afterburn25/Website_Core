@@ -122,9 +122,39 @@ $n += buildZip($upload, $tmpVendor . '/vendor', fn (string $rel) => 'vendor/' . 
 echo "COMPLETE-UPLOAD {$n} members\n";
 $sums[] = $upload;
 
-// --- UPDATE: identical deployable payload (update path = overwrite) ------
+// --- UPDATE: deployable payload + update.json manifest -------------------
 $update = "{$out}/Website-Core-{$ver}-UPDATE.zip";
 copy($upload, $update);
+// Manifest: sha256 of every member, so CoreUpdater can integrity-check the
+// payload; optionally Ed25519-signed when WC_UPDATE_SIGN_KEY is set.
+$uz = new ZipArchive();
+$uz->open($update);
+$files = [];
+for ($i = 0; $i < $uz->numFiles; $i++) {
+    $n = $uz->getNameIndex($i);
+    if (!str_ends_with($n, '/')) {
+        $files[$n] = hash('sha256', (string) $uz->getFromIndex($i));
+    }
+}
+ksort($files);
+$manifest = [
+    'product' => 'website-core',
+    'version' => $ver,
+    'files'   => $files,
+];
+$signKey = getenv('WC_UPDATE_SIGN_KEY');
+if ($signKey && extension_loaded('sodium')) {
+    $secret = base64_decode($signKey, true);
+    if ($secret !== false && strlen($secret) === SODIUM_CRYPTO_SIGN_SECRETKEYBYTES) {
+        $payload = json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $manifest['signature'] = base64_encode(sodium_crypto_sign_detached($payload, $secret));
+        echo "update manifest signed\n";
+    } else {
+        fwrite(STDERR, "WC_UPDATE_SIGN_KEY set but invalid — shipping unsigned update\n");
+    }
+}
+$uz->addFromString('update.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+$uz->close();
 $sums[] = $update;
 
 // --- FULL-PROJECT: repo minus .git/vendor/dist/runtime -------------------

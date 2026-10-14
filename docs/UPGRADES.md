@@ -1,39 +1,61 @@
-# Upgrades (design — implementation is M4)
+# Upgrades
 
-## Model
+Owner-controlled updates for core, modules, and themes. No update server
+account, no marketplace token — trusted downloadable/uploaded archives
+work fully offline. Core serving never depends on update infrastructure.
 
-Owner-controlled updates for core, modules, and themes via trusted,
-signed metadata. Target design:
+## Package updates (implemented)
 
-- Update manifests are signed; sites verify signature + per-file hashes
-  before staging. A maintained TUF-style flow is the reference; we do not
-  invent cryptography — signing uses libsodium (bundled paragonie/sodium_compat
-  fallback on hosts without ext-sodium).
-- Metadata carries `expires` and monotonic version — expired or
-  rollback-version metadata is rejected.
-- Trust roots live in `config.updates.trust_roots` (key rotation supported).
-  If no approved production trust root is configured, verification is
-  test-only and that gate stays explicit — no test keys ship in releases.
-- No GitHub tokens or marketplace accounts on customer sites; trusted
-  downloadable/uploaded packages work offline of any directory service.
-- Core serving never depends on update-server availability.
+`PackageManager` handles install-over-install: a staged package whose id
+matches an installed one follows the same inspect → install → verify path,
+with the operation journaled and serialized under the package-operation
+lock. See `docs/MODULE_API.md` and `docs/PACKAGE_SPEC.md`.
 
-## Staging
+## Core self-update (implemented)
 
-Update ZIPs extract to `upload/` staging (protected), verified, then
-applied over `site/` with an operation journal identical to the package
-lifecycle (staged→validated→applied/failed). Files and schema do not share
-one transaction — recovery for a half-applied update is the documented
-restore path, and the journal records exactly where it stopped.
+Admin → **Updates** (`/admin/updates`, owner-only `system.update`
+capability):
 
-## Migrations
+1. Upload a `Website-Core-*-UPDATE.zip` produced by
+   `tools/build-packages.php`.
+2. `Core\Update\CoreUpdater::inspect()` runs the shared archive-safety
+   checks (`ArchiveInspector::inspectSafety`), requires
+   `includes/bootstrap.php`, reads the target version, and validates the
+   embedded `update.json` manifest. The manifest carries `product`,
+   `version`, a `files` sha256 map of every payload member, and an
+   optional Ed25519 `signature` verified by the same
+   `SignatureVerifier`/trust-root config (`trust.public_keys`,
+   `trust.allow_unsigned`) as packages.
+3. `apply()` re-inspects immediately before writing (review-then-apply
+   TOCTOU guard), validates **every** member's hash against the manifest
+   in a pre-pass — a corrupt or tampered archive aborts with zero files
+   written — then backs up each file it will replace into
+   `storage/update-backups/update-<timestamp>.zip`, writes the payload,
+   and appends to `storage/core-update-journal.log`.
+4. The controller runs pending core migrations (`Migrator`) and records
+   `core.update` in the audit log.
 
-Ordered, journaled, repeat-safe; additive-first expand/contract where
-practical. MySQL DDL commits independently — arbitrary rollback is not
-promised; incompatible file/schema combinations require restore, which
-the updater detects and demands.
+An update archive may never write `config/config.php`,
+`config/installed.lock`, `storage/`, `upload/`, or installed
+modules/themes — those stay site-owned.
 
-## Preconditions checked
+## Recovery
 
-Free space, writable targets, active-request/maintenance window,
-opcache behavior (`opcache_reset` where available), DB reachability.
+- A failed update leaves replaced-file backups in
+  `storage/update-backups/`; restoring the pre-update state is: extract
+  the backup zip over `site/` + restore the DB backup taken beforehand.
+- Full portable restore is documented in `docs/BACKUP_RESTORE.md`.
+- A broken optional extension can never lock administrators out: the
+  recovery-mode flag boots trusted core only (Modules screen).
+
+## Signing update manifests
+
+Builds ship unsigned unless `WC_UPDATE_SIGN_KEY` (base64 Ed25519 secret)
+is set when running `tools/build-packages.php`. Sites enforce signatures
+by configuring `trust.public_keys` and `trust.allow_unsigned=false`.
+
+## Not yet implemented (roadmap)
+
+- Automatic opcache reset / maintenance-window enforcement around apply.
+- Signed metadata `expires` / anti-rollback monotonic versions (a
+  TUF-style flow is the reference target; we do not invent cryptography).

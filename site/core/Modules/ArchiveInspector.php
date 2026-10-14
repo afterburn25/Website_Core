@@ -28,6 +28,40 @@ final class ArchiveInspector
      */
     public function inspect(string $zipPath): array
     {
+        $errors = $this->inspectSafety($zipPath);
+        if ($errors !== []) {
+            return $errors;
+        }
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath, ZipArchive::RDONLY) !== true) {
+            return ['Not a readable ZIP archive.'];
+        }
+        try {
+            // Must contain exactly one addon.json or theme.json at depth 1 or 2.
+            $manifests = 0;
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $n = str_replace('\\', '/', (string) $zip->getNameIndex($i));
+                if (preg_match('#^[^/]+/(addon|theme)\.json$#', $n) || in_array($n, ['addon.json', 'theme.json'], true)) {
+                    $manifests++;
+                }
+            }
+            if ($manifests === 0) {
+                $errors[] = 'No addon.json/theme.json manifest found at package root.';
+            }
+        } finally {
+            $zip->close();
+        }
+        return $errors;
+    }
+
+    /**
+     * Archive-structure safety checks shared by package and core-update
+     * uploads: member count, traversal/drive-letter/null-byte paths,
+     * symlinks and non-regular entries, case collisions, member and total
+     * size limits. Does NOT check for a package manifest.
+     */
+    public function inspectSafety(string $zipPath): array
+    {
         $errors = [];
         $zip = new ZipArchive();
         if ($zip->open($zipPath, ZipArchive::RDONLY) !== true) {
@@ -87,17 +121,6 @@ final class ArchiveInspector
                 }
             }
 
-            // Must contain exactly one addon.json or theme.json at depth 1 or 2.
-            $manifests = 0;
-            for ($i = 0; $i < $zip->numFiles; $i++) {
-                $n = str_replace('\\', '/', (string) $zip->getNameIndex($i));
-                if (preg_match('#^[^/]+/(addon|theme)\.json$#', $n) || in_array($n, ['addon.json', 'theme.json'], true)) {
-                    $manifests++;
-                }
-            }
-            if ($manifests === 0) {
-                $errors[] = 'No addon.json/theme.json manifest found at package root.';
-            }
         } finally {
             $zip->close();
         }

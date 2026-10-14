@@ -51,3 +51,43 @@ direct access to `core/`, `config/`, `themes/` blocked (403).
 - M4: backup/restore, signed updates, SMTP transport, health page,
   system-message templates.
 - M5: restaurant + salon modules + shared inquiry add-on + 2 themes.
+
+## 2026-10-14 (later) — M2 remainder + M4 + M5
+
+**M2 remainder**: HTMLPurifier input-boundary sanitization, redirects
+manager + 404-path lookup, reusable content sections, per-page
+noindex/canonical/OG fields, layered localization (core→theme→modules).
+
+**M4**: portable BackupService + admin UI + restore tests; health + audit
+pages; PHPMailer queue transport (capture/smtp, write-only password);
+Ed25519 SignatureVerifier (fails closed without libsodium) on package
+stage; recovery-mode flag booting trusted core only; **CoreUpdater +
+/admin/updates** — owner-only staged core self-update: shared
+inspectSafety, update.json manifest (per-file sha256 + optional
+signature), pre-write hash validation (zero-write abort on mismatch),
+replaced-file backup to storage/update-backups/, journal, post-apply
+migrations + audit.
+
+**M5**: reference packages all working through the real Module Manager —
+inquiry add-on (CSRF+honeypot form, migration, admin list), restaurant +
+salon industry modules, terra + noir themes; Appearance page
+(theme.active only); ReferencePackagesTest + ReferenceSitesParityTest:
+two isolated sites, identical core schema, byte-identical shared add-on,
+distinct data, theme-switch data preservation, uninstall-preserves/
+purge-removes.
+
+**Release tooling**: `tools/build-packages.php` → FULL-PROJECT /
+COMPLETE-UPLOAD (prod `composer install --no-dev` vendor) / UPDATE
+(+ update.json, optional WC_UPDATE_SIGN_KEY signing) / per-package zips
+/ SHA256SUMS. All artifacts pass our own inspectors.
+
+**Status**: 116 tests, 415 assertions green locally (9 skips: sodium +
+native-DB gated). CI green.
+
+**Next for 1.0**
+- Accessibility + security evidence pass (THREAT_MODEL conformance
+  checklist, template a11y review).
+- COMMERCIAL_READINESS/RELEASE_CHECKLIST refresh; tag a prerelease with
+  dist/ artifacts attached.
+- opcache reset / maintenance-window around core apply; signed-metadata
+  expires + anti-rollback (roadmap in UPGRADES.md).

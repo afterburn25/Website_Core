@@ -104,3 +104,56 @@ jobs:
         run: |
           test -z "$(find site/modules/industries -mindepth 1 -maxdepth 1 -type d)"
           test -z "$(find site/modules/addons -mindepth 1 -maxdepth 1 -type d)"
+
+  artifacts:
+    name: Release artifacts build + contract check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, openssl, pdo_mysql, pdo_sqlite, fileinfo, zip
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - name: Build all release artifacts
+        run: php tools/build-packages.php /tmp/dist
+      - name: Artifact contract assertions
+        run: |
+          php -r '
+          require "tests/bootstrap.php";
+          // COMPLETE-UPLOAD: deployable members at root, prod vendor only.
+          $z = new ZipArchive();
+          $z->open(glob("/tmp/dist/*COMPLETE-UPLOAD.zip")[0]);
+          $need = ["index.php","includes/bootstrap.php","vendor/autoload.php","themes/base/theme.json","cron.php","install.php"];
+          $names = [];
+          for ($i=0;$i<$z->numFiles;$i++) $names[] = $z->getNameIndex($i);
+          foreach ($need as $n) {
+              if (!in_array($n,$names,true)) { fwrite(STDERR,"missing $n\n"); exit(1); }
+          }
+          foreach ($names as $n) {
+              if (str_starts_with($n,"config/config.php")||str_contains($n,"/phpunit/")||str_starts_with($n,"tests/")) {
+                  fwrite(STDERR,"forbidden member $n\n"); exit(1);
+              }
+          }
+          $z->close();
+          // UPDATE.zip must pass our own CoreUpdater inspection + manifest hashes.
+          $u = new Core\Update\CoreUpdater(WC_ROOT, sys_get_temp_dir(), new Core\Modules\ArchiveInspector());
+          [$info,$err] = $u->inspect(glob("/tmp/dist/*-UPDATE.zip")[0]);
+          if ($err !== null) { fwrite(STDERR,"update inspect: $err\n"); exit(1); }
+          // Every reference package zip must pass the archive inspector.
+          foreach (glob("/tmp/dist/Website-Core-Package-*.zip") as $pkg) {
+              $errs = (new Core\Modules\ArchiveInspector())->inspect($pkg);
+              if ($errs !== []) { fwrite(STDERR,basename($pkg).": ".implode(";",$errs)."\n"); exit(1); }
+          }
+          // FULL-PROJECT must contain docs+tests+sdk+examples, no .git.
+          $z->open(glob("/tmp/dist/*FULL-PROJECT.zip")[0]);
+          $has = ["Website-Core/docs/","Website-Core/tests/","Website-Core/sdk/","Website-Core/examples/"];
+          $found = array_fill_keys($has,false);
+          for ($i=0;$i<$z->numFiles;$i++) {
+              $n = $z->getNameIndex($i);
+              if (str_contains($n,"/.git/")) { fwrite(STDERR,"git member $n\n"); exit(1); }
+              foreach ($has as $h) if (str_starts_with($n,$h)) $found[$h]=true;
+          }
+          foreach ($found as $h=>$ok) if (!$ok) { fwrite(STDERR,"FULL-PROJECT missing $h\n"); exit(1); }
+          echo "artifact contract OK\n";'

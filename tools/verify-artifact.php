@@ -109,7 +109,7 @@ $db->insert('pages', [
 ]);
 $settings = new Core\Settings\SettingsRepository($db);
 $settings->set('site.name', 'Artifact Verification Site');
-$settings->set('site.home_page', 'home');
+$settings->set('site.home_slug', 'home');
 echo "migrated + seeded\n";
 PHP;
 $script = strtr($script, ['__ROOT__' => $outDir]);

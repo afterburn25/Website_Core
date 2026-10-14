@@ -280,6 +280,22 @@ final class Installer
                 'disabled'      => 0,
                 'created_at'    => date('Y-m-d H:i:s'),
             ]);
+
+            // A fresh install must serve something at '/' — the home route
+            // resolves site.home_slug (default 'home').
+            $now = date('Y-m-d H:i:s');
+            $db->insert('pages', [
+                'slug' => 'home', 'title' => 'Welcome',
+                'body' => '<p>Your new site is ready. Sign in to the administration area to edit this page.</p>',
+                'status' => 'published',
+                'created_at' => $now, 'updated_at' => $now,
+            ]);
+
+            // Themes render site.name — seed it from the install form so the
+            // site does not greet visitors as "Website Core".
+            $settings = new \Core\Settings\SettingsRepository($db);
+            $settings->set('site.name', $siteName);
+            $settings->set('site.tagline', '');
         } catch (\Throwable $e) {
             return $this->page($checks, ['db_name' => 'Schema/owner creation failed: ' . $e->getMessage()], $request);
         }

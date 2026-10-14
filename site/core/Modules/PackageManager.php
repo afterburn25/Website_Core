@@ -31,6 +31,7 @@ final class PackageManager
         private string $addonsDir,
         private string $themesDir,
         private string $lockFile,
+        private ?\Core\Update\SignatureVerifier $verifier = null,
     ) {}
 
     private function journal(string $id, string $op, string $result, string $detail = ''): void
@@ -94,6 +95,18 @@ final class PackageManager
             $verrors = Manifest::validate($manifest);
             if ($verrors !== []) {
                 return [null, implode(' ', $verrors)];
+            }
+            // Trust gate BEFORE anything executes or lands on disk:
+            // signed packages must match a configured trusted key.
+            if ($this->verifier !== null) {
+                [$trusted, $terr] = $this->verifier->verify($manifest);
+                if (!$trusted) {
+                    $this->journal(
+                        (string) ($manifest['id'] ?? 'unknown'),
+                        'stage', 'rejected', (string) $terr
+                    );
+                    return [null, $terr];
+                }
             }
             $id = (string) $manifest['id'];
             $this->recordPackage($manifest, 'staged');

@@ -203,6 +203,10 @@ final class Application
             (string) $this->config->get('paths.upload', WC_ROOT . '/upload'),
             WC_MODULES . '/industries', WC_MODULES . '/addons', WC_THEMES,
             (string) $this->config->get('paths.storage', WC_ROOT . '/storage') . '/package-op.lock',
+            new \Core\Update\SignatureVerifier(
+                (array) $this->config->get('trust.public_keys', []),
+                (bool) $this->config->get('trust.allow_unsigned', true)
+            ),
         ));
 
         $events = $this->container->get(Dispatcher::class);

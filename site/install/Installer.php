@@ -153,7 +153,7 @@ final class Installer
         foreach (['pdo_mysql', 'mbstring', 'openssl', 'json', 'fileinfo', 'session', 'ctype'] as $ext) {
             $add("ext-{$ext}", extension_loaded($ext), extension_loaded($ext) ? 'present' : 'MISSING');
         }
-        foreach (['gd', 'intl', 'zip', 'curl'] as $ext) {
+        foreach (['gd', 'intl', 'zip', 'curl', 'sodium'] as $ext) {
             $add("ext-{$ext} (recommended)", extension_loaded($ext), extension_loaded($ext) ? 'present' : 'absent', false);
         }
 

@@ -17,6 +17,16 @@ final class SettingsController extends Controller
         'site.locale'        => ['label' => 'Locale', 'type' => 'text'],
     ];
 
+    /** Mail settings — password is write-only and never rendered back. */
+    private const MAIL_FIELDS = [
+        'mail.transport' => ['label' => 'Mail transport (smtp | mail | none)', 'type' => 'text'],
+        'mail.from'      => ['label' => 'From address', 'type' => 'email'],
+        'smtp.host'      => ['label' => 'SMTP host', 'type' => 'text'],
+        'smtp.port'      => ['label' => 'SMTP port', 'type' => 'number'],
+        'smtp.secure'    => ['label' => 'SMTP encryption (tls | ssl | blank)', 'type' => 'text'],
+        'smtp.user'      => ['label' => 'SMTP username', 'type' => 'text'],
+    ];
+
     public function index(Request $r): Response
     {
         $user = $this->user();
@@ -26,8 +36,12 @@ final class SettingsController extends Controller
 
         $settings = $this->settings();
         if ($r->isPost()) {
-            foreach (self::FIELDS as $key => $meta) {
+            foreach (self::FIELDS + self::MAIL_FIELDS as $key => $meta) {
                 $settings->set($key, $r->string(str_replace('.', '_', $key)));
+            }
+            $pw = $r->string('smtp_password');
+            if ($pw !== '') {
+                $settings->set('smtp.password', $pw);
             }
             if ($settings->get('system.cron_token', '') === '') {
                 $settings->set('system.cron_token', bin2hex(random_bytes(24)));
@@ -37,12 +51,14 @@ final class SettingsController extends Controller
         }
 
         $values = [];
-        foreach (self::FIELDS as $key => $meta) {
+        foreach (self::FIELDS + self::MAIL_FIELDS as $key => $meta) {
             $values[$key] = (string) $settings->get($key, '');
         }
         return $this->page($r, 'settings/index', [
             'fields'    => self::FIELDS,
+            'mailFields' => self::MAIL_FIELDS,
             'values'    => $values,
+            'hasSmtpPassword' => $settings->get('smtp.password', '') !== '',
             'cronToken' => (string) $settings->get('system.cron_token', ''),
         ], 'Settings');
     }

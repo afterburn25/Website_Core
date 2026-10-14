@@ -28,7 +28,9 @@ if (!$cli) {
 
 $runner = new \Core\Jobs\Runner($app->container());
 $processed = $runner->run(10, 25);
+// Drain the transactional queue every pass — no separate cron entry needed.
+$mailed = $app->container()->get(\Core\Mail\SystemMail::class)->flush(10);
 if (!$cli) {
     header('Content-Type: text/plain');
 }
-echo "processed={$processed}\n";
+echo "processed={$processed} mailed={$mailed}\n";

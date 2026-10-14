@@ -59,4 +59,13 @@ return [
         'trust_roots' => [],
         'channel'     => 'stable',
     ],
+    'trust' => [
+        // Ed25519 public keys (base64) trusted to sign package/update
+        // manifests. Package PHP never executes before this check.
+        'public_keys'    => [],
+        // Development default; production releases should ship false and
+        // an approved trust root. Signed packages ALWAYS require a
+        // matching key regardless of this flag.
+        'allow_unsigned' => true,
+    ],
 ];

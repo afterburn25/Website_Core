@@ -56,6 +56,9 @@ final class Runner
             'core.heartbeat' => function (array $payload, Container $c): void {
                 $c->get(Connection::class); // touch DB; proves runner works
             },
+            'mail.send' => function (array $payload, Container $c): void {
+                $c->get(\Core\Mail\SystemMail::class)->flush((int) ($payload['limit'] ?? 10));
+            },
         ];
     }
 }

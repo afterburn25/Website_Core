@@ -1,4 +1,5 @@
-<?php /** @var array $fields @var array $values @var string $cronToken @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
+<?php /** @var array $fields @var array $mailFields @var array $values @var string $cronToken
+  * @var bool $hasSmtpPassword @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
 <div class="card">
 <form method="post" action="<?= e_attr($basePath) ?>/admin/settings">
 <?= $csrf->field() ?>
@@ -8,6 +9,18 @@
 <input id="<?= e_attr($name) ?>" name="<?= e_attr($name) ?>" type="<?= e_attr($meta['type']) ?>"
        value="<?= e_attr($values[$key]) ?>">
 <?php endforeach; ?>
+
+<h2>System mail</h2>
+<p class="muted">Transactional messages only (recovery/security notices). Without SMTP,
+messages queue until a transport is configured — the site keeps working.</p>
+<?php foreach ($mailFields as $key => $meta): ?>
+<?php $name = str_replace('.', '_', $key); ?>
+<label for="<?= e_attr($name) ?>"><?= e($meta['label']) ?></label>
+<input id="<?= e_attr($name) ?>" name="<?= e_attr($name) ?>" type="<?= e_attr($meta['type']) ?>"
+       value="<?= e_attr($values[$key]) ?>">
+<?php endforeach; ?>
+<label for="smtp_password">SMTP password <?= $hasSmtpPassword ? '<span class="muted">(set — enter to change)</span>' : '' ?></label>
+<input id="smtp_password" name="smtp_password" type="password" value="" autocomplete="new-password">
 <div style="margin-top:1rem"><button class="btn" type="submit">Save settings</button></div>
 </form>
 </div>

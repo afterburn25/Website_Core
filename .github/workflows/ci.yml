@@ -91,13 +91,14 @@ jobs:
           cp -r site /tmp/wcsite
           cp -r vendor /tmp/wcsite/vendor
           php -S 127.0.0.1:8099 -t /tmp/wcsite >/tmp/php-install.log 2>&1 &
-          # Wait for the dev server, then claim the install session (cookie jar
-          # preserves the session binding the claim mode relies on).
+          # Wait for the dev server. The cookie jar must be used from the very
+          # first request — the claim mode binds setup to the first session
+          # that loads install.php, and a different session gets a 409.
           for i in $(seq 1 30); do
-            curl -s -o /dev/null http://127.0.0.1:8099/install.php && break
+            curl -s -b /tmp/wcjar -c /tmp/wcjar -o /tmp/install-get.html http://127.0.0.1:8099/install.php && break
             sleep 1
           done
-          curl -s -c /tmp/wcjar http://127.0.0.1:8099/install.php -o /dev/null
+          grep -q "Install" /tmp/install-get.html || { echo "installer page did not render"; exit 1; }
           code=$(curl -s -b /tmp/wcjar -c /tmp/wcjar -o /tmp/install-resp.html -w '%{http_code}' \
             -X POST http://127.0.0.1:8099/install.php \
             --data-urlencode "site_name=Install Accept" \

@@ -1,0 +1,33 @@
+<?php /** @var string $content @var string $siteName @var string $tagline @var string $basePath @var array $pages @var array|null $page */ ?>
+<!doctype html>
+<html lang="<?= e_attr(\Core\I18n\Translator::instance()->langTag()) ?>">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><?= e(($page['meta_title'] ?? $page['title'] ?? '') !== '' ? ($page['meta_title'] ?? $page['title']) . ' // ' : '') ?><?= e($siteName) ?></title>
+<?php if (!empty($page['meta_description'])): ?>
+<meta name="description" content="<?= e_attr($page['meta_description']) ?>">
+<?php endif; ?>
+<?php if (!empty($page['noindex'])): ?><meta name="robots" content="noindex, nofollow"><?php endif; ?>
+<?php if (!empty($page['canonical'])): ?><link rel="canonical" href="<?= e_attr($page['canonical']) ?>"><?php endif; ?>
+<link rel="stylesheet" href="<?= e_attr($basePath) ?>/_a/themes/noir/assets/css/style.css">
+</head>
+<body>
+<div class="shell">
+<aside class="rail">
+<a class="rail-brand" href="<?= e_attr($basePath) ?>/"><?= e($siteName) ?></a>
+<?php if ($tagline !== ''): ?><p class="rail-tag"><?= e($tagline) ?></p><?php endif; ?>
+<nav class="rail-nav" aria-label="Primary">
+<?php foreach ($pages ?? [] as $nav): ?>
+<?php $href = ($nav['url'] ?? '') !== '' && $nav['url'][0] !== '/' ? $nav['url'] : ($basePath . ($nav['url'] ?? '/' . ($nav['slug'] ?? ''))); ?>
+<a href="<?= e_url($href) ?>"><?= e($nav['title']) ?></a>
+<?php endforeach; ?>
+</nav>
+</aside>
+<main class="stage">
+<?= $content ?>
+<footer class="foot"><?= e($siteName) ?></footer>
+</main>
+</div>
+</body>
+</html>

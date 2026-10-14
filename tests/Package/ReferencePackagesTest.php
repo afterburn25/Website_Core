@@ -1,0 +1,237 @@
+<?php
+declare(strict_types=1);
+
+namespace Tests\Package;
+
+use Core\Database\Connection;
+use Core\Database\Migrator;
+use Core\Http\Request;
+use Core\Http\Response;
+use Core\Modules\ArchiveInspector;
+use Core\Modules\ModuleRegistry;
+use Core\Modules\PackageManager;
+use Core\Routing\Router;
+use PHPUnit\Framework\TestCase;
+use ZipArchive;
+
+/**
+ * Installs the shipped reference packages (examples/) through the real
+ * Module Manager path and dispatches real requests against their routes —
+ * proves the examples work, not just that they parse.
+ */
+final class ReferencePackagesTest extends TestCase
+{
+    private string $tmp;
+    private Connection $db;
+    private PackageManager $pm;
+    private ModuleRegistry $registry;
+    private Router $router;
+
+    protected function setUp(): void
+    {
+        if (!extension_loaded('pdo_sqlite') || !extension_loaded('zip')) {
+            $this->markTestSkipped('needs pdo_sqlite + zip');
+        }
+        $this->tmp = sys_get_temp_dir() . '/wc-ref-' . bin2hex(random_bytes(4));
+        foreach (['staging', 'industries', 'addons', 'themes'] as $d) {
+            mkdir($this->tmp . '/' . $d, 0777, true);
+        }
+        // The test theme root needs a 'base' fallback for theme:layout.
+        $this->linkBaseTheme();
+
+        $this->db = new Connection(new \PDO('sqlite::memory:'), 'wc_');
+        (new Migrator($this->db, WC_ROOT . '/database/migrations'))->migrate();
+        $this->router = new Router();
+        $this->registry = new ModuleRegistry(
+            $this->db, $this->tmp . '/industries', $this->tmp . '/addons', $this->tmp . '/themes'
+        );
+        $this->pm = new PackageManager(
+            $this->db, $this->registry, new ArchiveInspector(),
+            $this->tmp . '/staging', $this->tmp . '/industries',
+            $this->tmp . '/addons', $this->tmp . '/themes',
+            $this->tmp . '/op.lock'
+        );
+        \Core\I18n\Translator::setInstance(new \Core\I18n\Translator('en'));
+    }
+
+    private function linkBaseTheme(): void
+    {
+        // Views resolve theme:* against WC_THEMES — that's the real constant;
+        // for module view overrides the resolver also uses WC_THEMES, so the
+        // test relies on the package's own views (no theme override needed).
+        // Nothing to do here beyond noting the layout comes from real base.
+    }
+
+    protected function tearDown(): void
+    {
+        $it = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($this->tmp, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($it as $f) {
+            $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
+        }
+        @rmdir($this->tmp);
+    }
+
+    private function zipDir(string $srcDir, string $innerName, string $zipName): string
+    {
+        $path = $this->tmp . '/' . $zipName;
+        $zip = new ZipArchive();
+        $zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $it = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($srcDir, \FilesystemIterator::SKIP_DOTS)
+        );
+        foreach ($it as $f) {
+            if ($f->isFile()) {
+                $rel = $innerName . '/' . substr($f->getPathname(), strlen($srcDir) + 1);
+                $zip->addFile($f->getPathname(), str_replace('\\', '/', $rel));
+            }
+        }
+        $zip->close();
+        return $path;
+    }
+
+    private function installEnable(string $exampleDir, string $inner, string $id): void
+    {
+        $zip = $this->zipDir(WC_ROOT . '/../examples/' . $exampleDir, $inner, $inner . '.zip');
+        [, $err] = $this->pm->stage($zip);
+        $this->assertNull($err, "stage {$id}");
+        [$ok, $err] = $this->pm->install($id);
+        $this->assertTrue($ok, "install {$id}: {$err}");
+        [$ok, $err] = $this->pm->enable($id);
+        $this->assertTrue($ok, "enable {$id}: {$err}");
+    }
+
+    private function services(): callable
+    {
+        $settings = new \Core\Settings\SettingsRepository($this->db);
+        $view = new \Core\View\View();
+        $view->addResolver('admin', fn (string $v): ?string =>
+            is_file(WC_ROOT . '/admin/views/' . $v . '.php') ? WC_ROOT . '/admin/views/' . $v . '.php' : null);
+        $view->addResolver('theme', fn (string $v): ?string =>
+            is_file(WC_THEMES . '/base/templates/' . $v . '.php') ? WC_THEMES . '/base/templates/' . $v . '.php' : null);
+        $map = [
+            Connection::class => $this->db,
+            \Core\Settings\SettingsRepository::class => $settings,
+            \Core\View\View::class => $view,
+            \Core\Security\Csrf::class => new \Core\Security\Csrf(),
+            \Core\Mail\SystemMail::class => new \Core\Mail\SystemMail($this->db, $settings),
+            \Core\Admin\Nav::class => new \Core\Admin\Nav($this->registry, null),
+        ];
+        return fn (string $id) => $map[$id] ?? throw new \RuntimeException("unbound {$id}");
+    }
+
+    private function boot(array $extraCtxArgs = []): void
+    {
+        $this->registry->discover();
+        $services = $this->services();
+        $adminMw = fn (Request $r, callable $next) => Response::text('ADMIN-AUTH-REQUIRED', 302);
+        $this->registry->bootEnabled(
+            fn (string $p, string $d) => \CoreAutoload::register($p, $d),
+            fn (string $id) => new \Core\Modules\ModuleContext(
+                $id, $this->router, new \Core\Events\Dispatcher(), new \Core\Auth\Permissions(),
+                $adminMw, $services(\Core\View\View::class), $services, fn () => 'base',
+            )
+        );
+    }
+
+    private function req(string $method, string $path, array $post = []): Response
+    {
+        return $this->router->dispatch(new Request($method, $path, '', [], $post, [], [], []));
+    }
+
+    public function testInquiryAddonEndToEnd(): void
+    {
+        $this->installEnable('addon-inquiry', 'inquiry', 'wcref/inquiry');
+        $this->boot();
+
+        // Migration ran on install.
+        $this->assertTrue($this->db->tableExists('inquiry_submissions'));
+
+        // Public form renders inside the theme layout.
+        $resp = $this->req('GET', '/inquiry');
+        $this->assertSame(200, $resp->status());
+        $this->assertStringContainsString('Contact us', $resp->body());
+        $this->assertStringContainsString('_csrf', $resp->body());
+
+        // POST without CSRF → 419.
+        $resp = $this->req('POST', '/inquiry', ['name' => 'A', 'email' => 'a@x.com', 'message' => 'hi']);
+        $this->assertSame(419, $resp->status());
+
+        // Honeypot → silent redirect, nothing stored.
+        $_SESSION['_wc_csrf'] = 'tok';
+        $resp = $this->req('POST', '/inquiry', [
+            '_csrf' => 'tok', 'name' => 'Bot', 'email' => 'b@x.com',
+            'message' => 'spam', 'website' => 'http://spam',
+        ]);
+        $this->assertSame(302, $resp->status());
+        $this->assertSame(0, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('inquiry_submissions') . '`'
+        ));
+
+        // Valid submit → stored + redirected.
+        $resp = $this->req('POST', '/inquiry', [
+            '_csrf' => 'tok', 'name' => 'Pat', 'email' => 'pat@x.com', 'message' => 'Interested!',
+        ]);
+        $this->assertSame(302, $resp->status());
+        $this->assertSame(1, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('inquiry_submissions') . '`'
+        ));
+
+        // Admin page requires the admin pipeline (auth+CSRF) — not reachable bare.
+        $resp = $this->req('GET', '/admin/inquiries');
+        $this->assertSame(302, $resp->status());
+        $this->assertStringContainsString('ADMIN-AUTH-REQUIRED', $resp->body());
+    }
+
+    public function testRestaurantAndSalonInstallAndBoot(): void
+    {
+        $this->installEnable('industry-restaurant', 'restaurant', 'wcref/restaurant');
+        $this->installEnable('industry-salon', 'salon', 'wcref/salon');
+        $this->boot();
+
+        $this->assertTrue($this->db->tableExists('restaurant_categories'));
+        $this->assertTrue($this->db->tableExists('restaurant_items'));
+        $this->assertTrue($this->db->tableExists('salon_services'));
+        $this->assertTrue($this->db->tableExists('salon_staff'));
+
+        // Seed via module-owned tables, then public pages render.
+        $this->db->insert('restaurant_categories', ['name' => 'Mains', 'sort_order' => 1, 'created_at' => date('c')]);
+        $this->db->insert('restaurant_items', [
+            'category_id' => 1, 'name' => 'Gumbo', 'price_cents' => 1450, 'visible' => 1,
+            'created_at' => date('c'),
+        ]);
+        $resp = $this->req('GET', '/menu');
+        $this->assertSame(200, $resp->status());
+        $this->assertStringContainsString('Gumbo', $resp->body());
+        $this->assertStringContainsString('14.50', $resp->body());
+
+        $this->db->insert('salon_services', [
+            'name' => 'Cut', 'duration_minutes' => 45, 'price_cents' => 6000,
+            'visible' => 1, 'created_at' => date('c'),
+        ]);
+        $resp = $this->req('GET', '/services');
+        $this->assertSame(200, $resp->status());
+        $this->assertStringContainsString('Cut', $resp->body());
+        $this->assertStringContainsString('60.00', $resp->body());
+    }
+
+    public function testThemesValidateAsPackages(): void
+    {
+        foreach (['theme-terra' => 'terra', 'theme-noir' => 'noir'] as $dir => $inner) {
+            $manifest = json_decode((string) file_get_contents(
+                WC_ROOT . '/../examples/' . $dir . '/theme.json'
+            ), true);
+            $this->assertSame([], \Core\Modules\Manifest::validate($manifest), $dir);
+            $zip = $this->zipDir(WC_ROOT . '/../examples/' . $dir, $inner, $inner . '.zip');
+            [, $err] = $this->pm->stage($zip);
+            $this->assertNull($err, "stage {$dir}");
+            $id = $manifest['id'];
+            [$ok, $err] = $this->pm->install($id);
+            $this->assertTrue($ok, "install {$id}: {$err}");
+            $this->assertFileExists($this->tmp . '/themes/' . $inner . '/theme.json');
+            $this->assertFileExists($this->tmp . '/themes/' . $inner . '/templates/layout.php');
+        }
+    }
+}

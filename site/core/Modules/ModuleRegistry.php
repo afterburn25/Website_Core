@@ -43,8 +43,9 @@ final class ModuleRegistry
                 continue;
             }
             foreach (glob($dir . '/*', GLOB_ONLYDIR) ?: [] as $packageDir) {
-                $file = $packageDir . '/addon.json';
-                if (!is_file($file)) {
+                $file = is_file($packageDir . '/addon.json') ? $packageDir . '/addon.json'
+                    : (is_file($packageDir . '/theme.json') ? $packageDir . '/theme.json' : null);
+                if ($file === null) {
                     continue;
                 }
                 $decoded = json_decode((string) file_get_contents($file), true);

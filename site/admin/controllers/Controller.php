@@ -71,35 +71,21 @@ abstract class Controller
     /** Core admin navigation; module pages are merged in by the registry. */
     protected function adminNav(): array
     {
-        $nav = [
-            ['route' => '/admin',          'label' => 'Dashboard',    'cap' => null],
-            ['route' => '/admin/pages',    'label' => 'Content',      'cap' => 'content.manage'],
-            ['route' => '/admin/navigation','label' => 'Navigation',  'cap' => 'navigation.manage'],
-            ['route' => '/admin/media',    'label' => 'Media',        'cap' => 'media.manage'],
-            ['route' => '/admin/modules',  'label' => 'Modules',      'cap' => 'modules.view'],
-            ['route' => '/admin/users',    'label' => 'Administrators','cap' => 'admins.view'],
-            ['route' => '/admin/backups',  'label' => 'Backups',      'cap' => 'backups.manage'],
-            ['route' => '/admin/health',   'label' => 'Health',       'cap' => 'system.view'],
-            ['route' => '/admin/audit',    'label' => 'Audit',        'cap' => 'audit.view'],
-            ['route' => '/admin/settings', 'label' => 'Settings',     'cap' => 'settings.manage'],
-        ];
-        if ($this->c->has(\Core\Modules\ModuleRegistry::class)) {
-            foreach ($this->c->get(\Core\Modules\ModuleRegistry::class)->adminNavItems() as $item) {
-                $nav[] = ['route' => $item['route'], 'label' => $item['label'], 'cap' => $item['capability']];
-            }
-        }
-        return $nav;
+        return $this->nav()->all();
     }
 
     /** Navigation filtered by the current user's capabilities (server-side). */
     private function visibleNav(): array
     {
-        $user = $this->user();
-        return array_values(array_filter(
-            $this->adminNav(),
-            fn (array $item) => $item['cap'] === null
-                || ($user !== null && $this->auth()->has($user, (string) $item['cap']))
-        ));
+        return $this->nav()->visible($this->user());
+    }
+
+    private function nav(): \Core\Admin\Nav
+    {
+        return new \Core\Admin\Nav(
+            $this->c->has(\Core\Modules\ModuleRegistry::class) ? $this->c->get(\Core\Modules\ModuleRegistry::class) : null,
+            $this->c->has(AuthService::class) ? $this->auth() : null,
+        );
     }
 
     /** 403 helper for capability failures. */

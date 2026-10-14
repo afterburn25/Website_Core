@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "id": "wcref/noir",
+  "type": "theme",
+  "name": "Noir",
+  "version": "1.0.0",
+  "license": "UNLICENSED-INTERNAL",
+  "requires": { "core": ">=0.0.1", "api": 1 },
+  "tokens": {
+    "font": "'Segoe UI', system-ui, sans-serif",
+    "font-mono": "ui-monospace, 'Cascadia Code', monospace",
+    "color-bg": "#0f1115",
+    "color-text": "#e5e7eb",
+    "color-accent": "#34d399",
+    "radius": "0",
+    "max-width": "72rem"
+  },
+  "assets": { "css": ["assets/css/style.css"], "js": [] },
+  "templates": ["layout", "page", "404"]
+}

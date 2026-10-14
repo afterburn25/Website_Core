@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "id": "wcref/restaurant",
+  "type": "industry",
+  "name": "Restaurant Menus",
+  "version": "1.0.0",
+  "license": "UNLICENSED-INTERNAL",
+  "requires": { "core": ">=0.0.1", "api": 1 },
+  "provider": "Wcref\\Restaurant\\Provider",
+  "psr4": { "Wcref\\Restaurant\\": "src/" },
+  "migrations": "migrations",
+  "capabilities": ["restaurant.manage"]
+}

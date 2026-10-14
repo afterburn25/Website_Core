@@ -29,6 +29,10 @@ final class CoreUpdaterTest extends TestCase
         file_put_contents($this->root . '/config/config.php', 'SITE-OWNED-CONFIG');
         file_put_contents($this->root . '/index.php', 'OLD-INDEX');
         file_put_contents($this->root . '/upload/existing.jpg', 'UPLOAD');
+        @mkdir($this->root . '/themes/terra', 0777, true);
+        @mkdir($this->root . '/themes/base', 0777, true);
+        file_put_contents($this->root . '/themes/terra/theme.json', 'INSTALLED-TERRA');
+        file_put_contents($this->root . '/themes/base/theme.json', 'OLD-BASE');
         $this->updater = new CoreUpdater($this->root, $this->storage, new ArchiveInspector());
     }
 
@@ -55,6 +59,8 @@ final class CoreUpdaterTest extends TestCase
             'includes/new-file.php'  => 'NEW-FILE',
             'config/config.php'      => 'EVIL-OVERWRITE',
             'upload/existing.jpg'    => 'EVIL-UPLOAD',
+            'themes/terra/theme.json' => 'EVIL-THEME-OVERWRITE',
+            'themes/base/theme.json' => 'NEW-BASE',
             'update.json'            => '{}',
         ];
     }
@@ -98,6 +104,9 @@ final class CoreUpdaterTest extends TestCase
         $this->assertSame('NEW-FILE', file_get_contents($this->root . '/includes/new-file.php'));
         $this->assertSame('SITE-OWNED-CONFIG', file_get_contents($this->root . '/config/config.php'));
         $this->assertSame('UPLOAD', file_get_contents($this->root . '/upload/existing.jpg'));
+        // Installed themes are site-owned; the shipped base theme updates.
+        $this->assertSame('INSTALLED-TERRA', file_get_contents($this->root . '/themes/terra/theme.json'));
+        $this->assertSame('NEW-BASE', file_get_contents($this->root . '/themes/base/theme.json'));
 
         // Backup contains the replaced originals.
         $bz = new ZipArchive();

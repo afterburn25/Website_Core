@@ -212,6 +212,13 @@ final class CoreUpdater
                 return true;
             }
         }
+        // Installed themes are site-owned; only the shipped base theme and
+        // the dir's own .htaccess are core-writable.
+        if (str_starts_with($name, 'themes/')
+            && $name !== 'themes/.htaccess'
+            && !str_starts_with($name, 'themes/base/')) {
+            return true;
+        }
         return false;
     }
 

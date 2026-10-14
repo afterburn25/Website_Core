@@ -269,6 +269,12 @@ final class Application
             $r->any('/media', fn (Request $req) => (new \Admin\Controllers\MediaController($c))->index($req), [$auth, $csrfCheck]);
             $r->post('/modules/upload', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->upload($req), [$auth, $csrfCheck]);
             $r->post('/modules/{id:.+}/{op:[a-z]+}', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->action($req), [$auth, $csrfCheck]);
+            $r->get('/backups', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->index($req), [$auth]);
+            $r->post('/backups/create', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->create($req), [$auth, $csrfCheck]);
+            $r->post('/backups/restore', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->restore($req), [$auth, $csrfCheck]);
+            $r->post('/backups/delete', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->delete($req), [$auth, $csrfCheck]);
+            $r->get('/health', fn (Request $req) => (new \Admin\Controllers\SystemController($c))->health($req), [$auth]);
+            $r->get('/audit', fn (Request $req) => (new \Admin\Controllers\SystemController($c))->audit($req), [$auth]);
         });
 
         // Sitemap, robots, media streams, and draft previews — before the

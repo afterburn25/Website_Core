@@ -78,6 +78,9 @@ abstract class Controller
             ['route' => '/admin/media',    'label' => 'Media',        'cap' => 'media.manage'],
             ['route' => '/admin/modules',  'label' => 'Modules',      'cap' => 'modules.view'],
             ['route' => '/admin/users',    'label' => 'Administrators','cap' => 'admins.view'],
+            ['route' => '/admin/backups',  'label' => 'Backups',      'cap' => 'backups.manage'],
+            ['route' => '/admin/health',   'label' => 'Health',       'cap' => 'system.view'],
+            ['route' => '/admin/audit',    'label' => 'Audit',        'cap' => 'audit.view'],
             ['route' => '/admin/settings', 'label' => 'Settings',     'cap' => 'settings.manage'],
         ];
         if ($this->c->has(\Core\Modules\ModuleRegistry::class)) {

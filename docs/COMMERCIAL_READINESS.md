@@ -2,6 +2,11 @@
 
 ## SBOM / provenance
 
+A CycloneDX 1.5 SBOM is emitted as `SBOM.json` with every release build
+(`tools/sbom.php`, generated from `composer.lock` runtime packages only —
+dev deps never ship) and is checksum-protected inside `SHA256SUMS.txt`.
+The CI artifacts job asserts its format and contents.
+
 Runtime dependencies (bundled into COMPLETE-UPLOAD via
 `composer install --no-dev`):
 

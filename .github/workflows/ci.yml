@@ -146,6 +146,18 @@ jobs:
               $errs = (new Core\Modules\ArchiveInspector())->inspect($pkg);
               if ($errs !== []) { fwrite(STDERR,basename($pkg).": ".implode(";",$errs)."\n"); exit(1); }
           }
+          // SBOM: valid CycloneDX, runtime packages only (no phpunit).
+          $sbom = json_decode(file_get_contents("/tmp/dist/SBOM.json"), true);
+          if (($sbom["bomFormat"] ?? "") !== "CycloneDX" || !is_array($sbom["components"] ?? null)) {
+              fwrite(STDERR,"SBOM missing or malformed\n"); exit(1);
+          }
+          $names2 = array_map(fn($c) => $c["name"], $sbom["components"]);
+          foreach (["ezyang/htmlpurifier","phpmailer/phpmailer","paragonie/sodium_compat"] as $dep) {
+              if (!in_array($dep,$names2,true)) { fwrite(STDERR,"SBOM missing $dep\n"); exit(1); }
+          }
+          foreach ($names2 as $n) {
+              if (str_contains($n,"phpunit")) { fwrite(STDERR,"SBOM dev dep leaked: $n\n"); exit(1); }
+          }
           // FULL-PROJECT must contain docs+tests+sdk+examples, no .git.
           $z->open(glob("/tmp/dist/*FULL-PROJECT.zip")[0]);
           $has = ["Website-Core/docs/","Website-Core/tests/","Website-Core/sdk/","Website-Core/examples/"];

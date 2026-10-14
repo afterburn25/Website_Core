@@ -15,10 +15,13 @@ From a clean, tested commit — never a renamed scaffold.
      (per-file sha256 manifest, signed when `WC_UPDATE_SIGN_KEY` is set);
      apply never touches config/keys/content/storage/installed packages.
    - Separately versioned example package ZIPs (never inside
-     COMPLETE-UPLOAD) + `SHA256SUMS.txt`.
+     COMPLETE-UPLOAD) + `SHA256SUMS.txt` + `SBOM.json` (CycloneDX 1.5,
+     runtime deps only — emitted by `tools/sbom.php`, CI-asserted).
 4. Verify extracted artifacts: member paths, no missing files, version
    consistency, dependency hashes, source↔package equivalence.
-5. Fresh install + upgrade using the actual artifacts on a clean host dir.
+5. Fresh install + upgrade using the actual artifacts on a clean host dir
+   (`php tools/verify-artifact.php <COMPLETE-UPLOAD.zip>` extracts,
+   provisions, and serves the real artifact).
 6. Independent review gate on the exact main commit → GitHub release
    (labeled), assets downloaded back and byte-verified. Published tags
    never move; ZIPs never silently replaced.

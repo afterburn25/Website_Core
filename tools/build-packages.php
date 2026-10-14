@@ -200,6 +200,15 @@ foreach (glob($root . '/examples/*', GLOB_ONLYDIR) as $dir) {
     $sums[] = $zipPath;
 }
 
+// --- SBOM (runtime dependency set, CycloneDX) --------------------------------
+passthru(PHP_BINARY . ' ' . escapeshellarg($root . '/tools/sbom.php')
+    . ' ' . escapeshellarg($out . '/SBOM.json'), $sbomRc);
+if ($sbomRc !== 0) {
+    fwrite(STDERR, "SBOM generation failed\n");
+    exit(1);
+}
+$sums[] = $out . '/SBOM.json';
+
 // --- Checksums ------------------------------------------------------------
 $lines = '';
 foreach ($sums as $p) {

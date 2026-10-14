@@ -50,11 +50,10 @@ jobs:
         image: ${{ matrix.db }}
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: '1'
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
           MYSQL_DATABASE: wc_test
+          MARIADB_DATABASE: wc_test
         ports: ['3306:3306']
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1"
-          --health-interval=5s --health-timeout=5s --health-retries=20
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -67,6 +66,17 @@ jobs:
           path: vendor
           key: composer-${{ matrix.php }}-${{ hashFiles('composer.json') }}
       - run: composer install --no-interaction --prefer-dist
+      - name: Wait for database (PDO poll)
+        run: |
+          php -r '
+          $deadline = time() + 60;
+          do {
+              try {
+                  new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_test", "root", "");
+                  echo "db ready\n"; exit(0);
+              } catch (Throwable $e) { usleep(500000); }
+          } while (time() < $deadline);
+          fwrite(STDERR, "db never became ready\n"); exit(1);'
       - name: Native schema + acceptance tests (MySQL/MariaDB)
         env:
           WC_TEST_MYSQL_DSN: 'mysql:host=127.0.0.1;port=3306;dbname=wc_test'

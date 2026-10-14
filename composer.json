@@ -1,0 +1,34 @@
+{
+    "name": "afterburn/website-core",
+    "description": "Universal Core — a reusable PHP website platform for shared hosting (core + industry modules + add-ons + themes).",
+    "type": "project",
+    "license": "UNLICENSED-INTERNAL",
+    "require": {
+        "php": ">=8.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Core\\": "site/core/",
+            "Admin\\": "site/admin/",
+            "Install\\": "site/install/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit --testsuite unit",
+        "test:all": "phpunit",
+        "lint": "php tools/lint.php"
+    },
+    "config": {
+        "platform": {
+            "php": "8.4.0"
+        }
+    }
+}

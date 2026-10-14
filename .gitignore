@@ -1,0 +1,33 @@
+# Generated configuration and secrets — NEVER commit
+site/config/config.php
+site/config/setup.token
+site/config/claim.lock
+site/config/claim.session
+site/config/installed.lock
+site/install.php.off
+
+# Runtime artifacts
+site/storage/backups/*
+site/storage/tmp/*
+site/storage/ratelimit/*
+!site/storage/**/.gitkeep
+site/upload/*
+!site/upload/.gitkeep
+!site/upload/.htaccess
+
+# Dependencies / build
+site/vendor/
+vendor/
+composer.lock.dist
+node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Test debris
+.phpunit.cache/
+coverage/
+tests/fixtures/tmp/

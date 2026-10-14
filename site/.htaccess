@@ -1,0 +1,38 @@
+# Website Core — front controller + private-path protection.
+# Never rely on this alone for confidentiality: private data should live in
+# the configured storage path, ideally outside the document root.
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Support subfolder deployments (uncomment and adjust if needed):
+    # RewriteBase /site/
+
+    # Private source/config/package/runtime directories — never served.
+    RewriteRule ^(config|core|database|includes|install|modules|themes|upload|storage|admin/controllers|admin/views|vendor)(/|$) - [F,L]
+
+    # Composer/dotfiles protection.
+    RewriteRule (^|/)\. - [F,L]
+    RewriteRule (^|/)(composer\.(json|lock)|addon\.json|theme\.json|package\.json|README|LICENSE) - [F,L]
+
+    # Existing public files/directories pass through (assets/, images/, css).
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Everything else goes to the front controller.
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    # No-rewrite fallback: requests route through index.php?p=/path
+    # (supported, documented in docs/INSTALLATION.md).
+    DirectoryIndex index.php
+</IfModule>
+
+# Defense in depth for environments where per-dir .htaccess is honored.
+<IfModule mod_php.c>
+    php_flag display_errors off
+</IfModule>

@@ -1,0 +1,22 @@
+{
+    "schema": 1,
+    "id": "core/base",
+    "type": "theme",
+    "name": "Base",
+    "version": "0.1.0",
+    "license": "UNLICENSED-INTERNAL",
+    "requires": { "core": ">=0.1.0", "api": 1 },
+    "tokens": {
+        "font": "system-ui, -apple-system, sans-serif",
+        "color-bg": "#ffffff",
+        "color-text": "#1e293b",
+        "color-accent": "#0369a1",
+        "radius": "0.5rem",
+        "max-width": "64rem"
+    },
+    "assets": {
+        "css": ["assets/css/style.css"],
+        "js": []
+    },
+    "templates": ["layout", "page", "404"]
+}

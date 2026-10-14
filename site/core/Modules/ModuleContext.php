@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Core\Modules;
 
+use Core\Auth\Permissions;
 use Core\Events\Dispatcher;
 use Core\Routing\Router;
 
@@ -24,6 +25,7 @@ final class ModuleContext
         private string $packageId,
         private Router $router,
         private Dispatcher $events,
+        private ?Permissions $permissions = null,
     ) {}
 
     public function packageId(): string
@@ -58,6 +60,13 @@ final class ModuleContext
     public function contentType(string $type, string $label, array $fields): void
     {
         $this->contentTypes[$type] = ['label' => $label, 'fields' => $fields];
+    }
+
+    /** Declare a capability this package adds; owner always holds it and
+     * admin does by default — a package can never grant itself core caps. */
+    public function permission(string $capability, string $description = ''): void
+    {
+        $this->permissions?->register($capability, $description);
     }
 
     // ---- read-only aggregations used by the core shell --------------------

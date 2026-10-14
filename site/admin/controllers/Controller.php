@@ -80,8 +80,8 @@ abstract class Controller
             ['route' => '/admin/users',    'label' => 'Administrators','cap' => 'admins.view'],
             ['route' => '/admin/settings', 'label' => 'Settings',     'cap' => 'settings.manage'],
         ];
-        if ($this->c->has(\Core\Modules\ModuleContext::class)) {
-            foreach ($this->c->get(\Core\Modules\ModuleContext::class)->adminNavItems() as $item) {
+        if ($this->c->has(\Core\Modules\ModuleRegistry::class)) {
+            foreach ($this->c->get(\Core\Modules\ModuleRegistry::class)->adminNavItems() as $item) {
                 $nav[] = ['route' => $item['route'], 'label' => $item['label'], 'cap' => $item['capability']];
             }
         }

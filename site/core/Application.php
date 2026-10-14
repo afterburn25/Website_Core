@@ -196,12 +196,13 @@ final class Application
         ));
 
         $events = $this->container->get(Dispatcher::class);
-        $context = new ModuleContext('core', $this->router, $events);
-        $this->container->instance(ModuleContext::class, $context);
+        $permissions = $this->container->get(Permissions::class);
+        $contextFactory = fn (string $packageId): ModuleContext =>
+            new ModuleContext($packageId, $this->router, $events, $permissions);
 
         $registry->bootEnabled(
             fn (string $prefix, string $dir) => \CoreAutoload::register($prefix, $dir),
-            $context,
+            $contextFactory,
         );
     }
 

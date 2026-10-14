@@ -19,11 +19,10 @@ final class Runner
     public function run(int $batch = 10, int $secondsBudget = 25): int
     {
         $queue = $this->container->get(JobQueue::class);
-        $context = $this->container->has(\Core\Modules\ModuleContext::class)
-            ? $this->container->get(\Core\Modules\ModuleContext::class)
+        $registry = $this->container->has(\Core\Modules\ModuleRegistry::class)
+            ? $this->container->get(\Core\Modules\ModuleRegistry::class)
             : null;
-        $handlers = $context?->jobHandlers() ?? [];
-        $handlers += $this->coreHandlers();
+        $handlers = ($registry?->jobHandlers() ?? []) + $this->coreHandlers();
 
         $workerId = gethostname() . ':' . getmypid() . ':' . bin2hex(random_bytes(4));
         $deadline = time() + $secondsBudget;

@@ -84,3 +84,27 @@
 - `tools/verify-artifact.php`: extract + provision + serve a
   COMPLETE-UPLOAD artifact (fresh-install dogfood).
 - CI `artifacts` job asserting the whole contract every push.
+
+### Added — generic content types
+- `ctx->contentType()` is now a real feature: `content_items` migration,
+  `ContentItems` service (declared-key filtering, required/typed/url
+  validation, html through the purifier boundary, cross-type protection),
+  generated admin CRUD at `/admin/content`, and a restaurant `special`
+  type rendered end-to-end on `/menu`.
+
+### Fixed — hardening sweep
+- Package purge now deletes shared `content_items` rows keyed by package
+  id (only prefix-named tables were dropped).
+- Backups now cover config/upload/modules/themes (matching the doc
+  claims), centralize the root allowlist for create+restore, validate
+  every archive member name before extraction, and normalize manifest
+  paths to '/' — fixing Windows-created backups losing files on Linux
+  restore. BACKUP_RESTORE.md rewritten to describe actual behavior.
+- Update archives can no longer overwrite installed themes (site-owned);
+  core-owned `themes/base/` still updates.
+- Fresh installs now seed a published 'home' page and site.name/
+  site.tagline — '/' no longer 404s and themes render the real name.
+- 404 pages shared the layout without `tagline` — fixed via a single
+  shareGlobals() path.
+- CI: installer acceptance over real HTTP on both MySQL and MariaDB
+  legs (claim session → real POST → lock/config/self-disable assertions).

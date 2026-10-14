@@ -171,3 +171,30 @@ are now real, tested, and dogfooded on the extracted artifact.
 
 **Standing**: 130 tests / 504 assertions; lint 149 files; 6/6 CI green
 on both commits; draft release refreshed + byte-verified.
+
+## 2026-10-14 (later still) — hardening sweep: purge, backup, installer
+
+- **Package purge correctness**: shared `content_items` rows keyed by
+  package id survived `purgeData()` (only prefix-named tables dropped).
+  Purge now deletes them; test asserts the rows die with the package.
+- **Backup coverage + hardening**: defaults were config+upload while docs
+  claimed modules/themes. `BackupService` now defaults to all four roots,
+  centralizes the allowlist for both directions, validates every archive
+  member name (traversal/absolute/drive-letter/NUL/backslash) via the
+  shared `ArchiveInspector` path check BEFORE extraction, and normalizes
+  manifest paths to '/' — fixing Windows-created backups silently losing
+  files on Linux restore. BACKUP_RESTORE.md rewritten to describe actual
+  behavior (no encryption-at-rest, local snapshots, no job pause).
+- **Real installer acceptance in CI**: native job now copies the
+  deployable tree to a clean docroot, claims the install session over
+  HTTP, POSTs the real form against live MySQL/MariaDB, and asserts
+  installed.lock + config.php, installer self-disable (404/403), and '/'
+  serving 200. Writing this check exposed three real first-run bugs:
+  '/' 404'd on a fresh install (installer now seeds a published 'home'
+  page), every 404 logged an undefined-$tagline warning (renderNotFound
+  now shares view globals via one helper), and themes rendered
+  "Website Core" (installer now seeds site.name/site.tagline).
+
+**Standing**: 131 tests / 521 assertions / 3 native-gated skips; 6/6 CI
+jobs green (installer acceptance runs on both database legs); draft
+`v0.1.0-dev` refreshed with all 10 assets.

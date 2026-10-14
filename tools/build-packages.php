@@ -89,16 +89,18 @@ copy($root . '/composer.json', $tmpVendor . '/composer.json');
 copy($root . '/composer.lock', $tmpVendor . '/composer.lock');
 $code = 1;
 $cout = [];
-$candidates = ['composer', 'composer.bat', 'composer.phar', getenv('HOME') . '/bin/composer'];
-foreach ($candidates as $composer) {
-    // Composer is distributed as a PHP phar; invoking it through PHP_BINARY
-    // works whether the entry point is a shim, bat wrapper, or bare phar.
-    $cmd = sprintf(
-        '"%s" "%s" install --no-dev --no-scripts --no-plugins --prefer-dist --no-interaction --working-dir=%s 2>&1',
-        PHP_BINARY,
-        $composer,
-        escapeshellarg($tmpVendor)
-    );
+$args = 'install --no-dev --no-scripts --no-plugins --prefer-dist --no-interaction --working-dir='
+    . escapeshellarg($tmpVendor) . ' 2>&1';
+// Composer may be a real executable on PATH, a bat wrapper, or a bare PHP
+// phar (the ~/bin shim on Windows). Try the executable form first, then
+// drive the same candidates through PHP_BINARY for phar entry points.
+$cmds = [
+    'composer ' . $args,
+    'composer.bat ' . $args,
+    '"' . PHP_BINARY . '" composer ' . $args,
+    '"' . PHP_BINARY . '" ' . escapeshellarg((getenv('HOME') ?: '') . '/bin/composer') . ' ' . $args,
+];
+foreach ($cmds as $cmd) {
     exec($cmd, $cout, $code);
     if ($code === 0) {
         break;

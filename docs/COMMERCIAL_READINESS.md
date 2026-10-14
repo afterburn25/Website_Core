@@ -2,24 +2,30 @@
 
 ## SBOM / provenance
 
-Runtime dependencies: **none yet** (this increment is dependency-free PHP).
-Planned maintained libraries as features land (each needs license review):
+Runtime dependencies (bundled into COMPLETE-UPLOAD via
+`composer install --no-dev`):
 
-| Feature | Candidate library | Status |
-|---------|------------------|--------|
-| Rich-text sanitization | ezyang/htmlpurifier (LGPL-2.1+) | pending M2 |
-| SMTP transport | phpmailer/phpmailer (LGPL-2.1) | pending M4 |
-| Update signing | sodium / paragonie/sodium_compat (ISC) | pending M4 |
-| Build-time semver | composer/semver (MIT) — tooling only | planned |
+| Package | License | Used for |
+|---------|---------|----------|
+| ezyang/htmlpurifier | LGPL-2.1+ | input-boundary rich-text sanitization |
+| phpmailer/phpmailer | LGPL-2.1 | SMTP transport for queued system mail |
 
-Dev-only: phpunit/phpunit ^12 (BSD-3) — never shipped.
+Update signing uses PHP's native `ext-sodium` (Ed25519); the verifier
+fails closed on hosts without it — no bundled crypto polyfill yet
+(roadmap, see UPGRADES).
+
+Dev-only: phpunit/phpunit ^12 (BSD-3) plus its transitive tree — never
+shipped (excluded from artifacts; verified by artifact contents check in
+`tools/build-packages.php` output).
 
 ## Open owner/legal decisions (engineering continues regardless)
 
 - Product license terms + legal entity name for copyright notices
   (currently `UNLICENSED-INTERNAL` placeholders — deliberately not MIT/GPL).
 - Pricing/support promises/compliance claims — none asserted anywhere.
-- Production update-signing trust root (see UPGRADES).
+- Production update-signing trust root (see UPGRADES): signing key exists
+  only when `WC_UPDATE_SIGN_KEY` is provided at build time; no key
+  material is committed.
 - Marketplace/agency products — explicitly out of 1.0 scope.
 
 ## Rules honored
@@ -29,3 +35,19 @@ Dev-only: phpunit/phpunit ^12 (BSD-3) — never shipped.
   through any licensing outage.
 - Redistribution rights verified per bundled dependency before release —
   tracked here, not assumed.
+
+## Evidence status (as of M5)
+
+| Requirement | Status | Where |
+|-------------|--------|-------|
+| Core-only install/operation | implemented | installer + core-only boot test |
+| Package lifecycle | implemented + tested | PackageManager, /admin/modules, package tests |
+| Two reference sites, identical core + unchanged shared add-on | implemented + tested | ReferenceSitesParityTest |
+| Theme switch preserves data | implemented + tested | ReferenceSitesParityTest |
+| Uninstall preserves / purge removes | implemented + tested | ReferenceSitesParityTest |
+| Backup/restore | implemented + tested | BackupService tests, /admin/backups |
+| Signed updates | implemented (unsigned builds allowed by config) | SignatureVerifier, CoreUpdater, /admin/updates |
+| Failure recovery | implemented | recovery-mode flag, quarantine, update backups |
+| Accessibility floor | tested | AccessibilityTest — landmarks/labels/lang on all themes |
+| Reproducible artifacts | implemented | tools/build-packages.php + SHA256SUMS |
+| Security model | documented | docs/THREAT_MODEL.md |

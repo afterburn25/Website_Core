@@ -37,7 +37,13 @@ final class ModuleContext
         private ?View $view = null,
         private $serviceResolver = null,
         private $activeTheme = null,
+        private ?string $themesRoot = null,
     ) {}
+
+    private function themesRoot(): string
+    {
+        return $this->themesRoot ?? (defined('WC_THEMES') ? WC_THEMES : 'themes');
+    }
 
     public function packageId(): string
     {
@@ -104,7 +110,7 @@ final class ModuleContext
         $this->view?->addResolver($ns, function (string $v) use ($dir, $theme): ?string {
             $active = $theme instanceof \Closure ? $theme() : (is_string($theme) ? $theme : '');
             if ($active !== '') {
-                $override = WC_THEMES . '/' . $active . '/modules/' . $this->packageId . '/' . $v . '.php';
+                $override = $this->themesRoot() . '/' . $active . '/modules/' . $this->packageId . '/' . $v . '.php';
                 if (is_file($override)) {
                     return $override;
                 }

@@ -91,3 +91,36 @@ native-DB gated). CI green.
   dist/ artifacts attached.
 - opcache reset / maintenance-window around core apply; signed-metadata
   expires + anti-rollback (roadmap in UPGRADES.md).
+
+## 2026-10-14 (even later) — artifact verification caught a real bug
+
+`tools/verify-artifact.php` (new): extracts a COMPLETE-UPLOAD.zip to a
+clean dir, provisions config/migrations/owner/home page, prints serve
+instructions. Checklist step 5 is now repeatable.
+
+Live verification of the extracted artifact (PHP built-in server +
+dev-router): public page 200, install.php blocked, config/vendor 403,
+owner login + all admin pages 200, inquiry package upload → install →
+enable through the real Module Manager.
+
+**Bug found**: /inquiry 404'd on a real install — `registerRoutes()`
+added the public slug catch-all BEFORE `bootModules()` registered
+package routes, and dispatch was first-match-wins. Unit tests (module
+routes only) stayed green; the artifact run exposed it.
+
+**Fix (two layers)**:
+1. `Router::dispatch` now picks the MOST-SPECIFIC match (literal chars,
+   then fewer params), independent of registration order — broad
+   catch-alls can never shadow concrete routes, wherever they register.
+2. `Application` registers public routes after `bootModules()` — keeps
+   the documented order explicit as well.
+
+paths.modules / paths.themes are now config-driven (defaults WC_*),
+threaded through ModuleContext view overrides.
+
+**Proof the fix works on the artifact**: rebuilt UPDATE.zip, applied it
+through the live /admin/updates flow on the extracted host — replaced
+files backed up to storage/update-backups/, config.php untouched,
+/inquiry → 200 (form + CSRF), /about → 404, / → 200.
+
+121 tests / 438 assertions green.

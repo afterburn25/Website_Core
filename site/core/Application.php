@@ -161,9 +161,10 @@ final class Application
             is_file(WC_ROOT . '/install/views/' . $v . '.php')
                 ? WC_ROOT . '/install/views/' . $v . '.php' : null);
         $themeDir = (string) ($this->container->get(SettingsRepository::class)->get('theme.active', 'base'));
-        $view->addResolver('theme', function (string $v) use ($themeDir): ?string {
+        $themesRoot = (string) $this->config->get('paths.themes', WC_THEMES);
+        $view->addResolver('theme', function (string $v) use ($themeDir, $themesRoot): ?string {
             foreach ([$themeDir, 'base'] as $theme) {
-                $path = WC_THEMES . '/' . $theme . '/templates/' . $v . '.php';
+                $path = $themesRoot . '/' . $theme . '/templates/' . $v . '.php';
                 if (is_file($path)) {
                     return $path;
                 }
@@ -178,7 +179,7 @@ final class Application
             (string) ($this->container->get(SettingsRepository::class)->get('site.locale', 'en') ?: 'en')
         );
         $translator->addDir(WC_ROOT, false);
-        $translator->addDir($themeDir !== '' ? WC_THEMES . '/' . $themeDir : '', false);
+        $translator->addDir($themeDir !== '' ? $themesRoot . '/' . $themeDir : '', false);
         $this->container->instance(\Core\I18n\Translator::class, $translator);
         \Core\I18n\Translator::setInstance($translator);
     }
@@ -188,6 +189,7 @@ final class Application
         $this->bootServices();
         $this->registerRoutes();
         $this->bootModules();
+        $this->registerPublicRoutes();
         $response = $this->router->dispatch($request);
         return $this->withSecurityHeaders($response);
     }
@@ -198,13 +200,15 @@ final class Application
     private function bootModules(): void
     {
         $db = $this->container->get(Connection::class);
-        $registry = new ModuleRegistry($db, WC_MODULES . '/industries', WC_MODULES . '/addons', WC_THEMES);
+        $modulesRoot = (string) $this->config->get('paths.modules', WC_MODULES);
+        $themesRoot = (string) $this->config->get('paths.themes', WC_THEMES);
+        $registry = new ModuleRegistry($db, $modulesRoot . '/industries', $modulesRoot . '/addons', $themesRoot);
         $registry->discover();
         $this->container->instance(ModuleRegistry::class, $registry);
         $this->container->instance(\Core\Modules\PackageManager::class, new \Core\Modules\PackageManager(
             $db, $registry, new \Core\Modules\ArchiveInspector(),
             (string) $this->config->get('paths.upload', WC_ROOT . '/upload'),
-            WC_MODULES . '/industries', WC_MODULES . '/addons', WC_THEMES,
+            $modulesRoot . '/industries', $modulesRoot . '/addons', $themesRoot,
             (string) $this->config->get('paths.storage', WC_ROOT . '/storage') . '/package-op.lock',
             new \Core\Update\SignatureVerifier(
                 (array) $this->config->get('trust.public_keys', []),
@@ -220,6 +224,7 @@ final class Application
             $this->container->get(\Core\View\View::class),
             fn (string $id) => $this->container->get($id),
             fn () => (string) $this->container->get(SettingsRepository::class)->get('theme.active', 'base'),
+            $themesRoot,
         );
 
         // Recovery mode: a flag file in storage (created from the Modules
@@ -322,8 +327,17 @@ final class Application
             return (new \Admin\Controllers\AssetController($c))->serve($r);
         });
 
-        // Public routes — the slug catch-all stays last so /admin and any
-        // module routes always win. Reserved prefixes are excluded anyway.
+    }
+
+    /**
+     * Public routes are registered LAST, after bootModules() — the router
+     * is first-match-wins, so a module's public routes must exist before
+     * the slug catch-all or the catch-all swallows them as 404s. Reserved
+     * prefixes are still excluded inside the pattern.
+     */
+    private function registerPublicRoutes(): void
+    {
+        $c = $this->container;
         $this->router->get('/', function (Request $r) use ($c): Response {
             return (new \Admin\Controllers\PublicPageController($c))->home($r);
         });

@@ -78,7 +78,7 @@ final class RouterTest extends TestCase
         $this->assertSame(['before', 'handler', 'after'], $log);
     }
 
-    public function testFirstMatchWinsSoCatchAllMustBeLast(): void
+    public function testSpecificRoutesBeatCatchAll(): void
     {
         $r = new Router();
         $r->get('/admin/login', fn (Request $q) => Response::text('login'));
@@ -88,5 +88,21 @@ final class RouterTest extends TestCase
         // 'adminanything' is not under /admin — a legitimate public slug.
         $this->assertSame('page:adminanything/deep', $r->dispatch($this->request('GET', '/adminanything/deep'))->body());
         $this->assertSame(404, $r->dispatch($this->request('GET', '/admin/nonexistent'))->status());
+    }
+
+    /**
+     * Regression: the slug catch-all used to shadow module public routes
+     * because it registered first and dispatch was first-match-wins.
+     * Specificity, not order, must decide overlapping matches.
+     */
+    public function testLaterSpecificRouteStillBeatsEarlierCatchAll(): void
+    {
+        $r = new Router();
+        // Catch-all registered FIRST — the old dispatch order.
+        $r->get('/{slug:(?!admin\b)[a-z0-9][a-z0-9\-\/]*}', fn (Request $q) => Response::text('page:' . $q->attributes['slug']));
+        // Module route registered AFTER.
+        $r->get('/inquiry', fn (Request $q) => Response::text('module-form'));
+        $this->assertSame('module-form', $r->dispatch($this->request('GET', '/inquiry'))->body());
+        $this->assertSame('page:about', $r->dispatch($this->request('GET', '/about'))->body());
     }
 }

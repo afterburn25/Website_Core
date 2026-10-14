@@ -83,8 +83,13 @@ final class Router
     public function dispatch(Request $request): Response
     {
         $path = rtrim($request->path, '/') ?: '/';
+        // Most-specific match wins, independent of registration order —
+        // a broad catch-all (/{slug}) must never shadow a concrete module
+        // route registered later. Score: literal characters, then fewer
+        // params; registration order breaks exact ties (stable sort).
+        $candidates = [];
         $allowed = [];
-        foreach ($this->routes as $route) {
+        foreach ($this->routes as $i => $route) {
             if (!preg_match($route['regex'], $path, $m)) {
                 continue;
             }
@@ -92,6 +97,19 @@ final class Router
                 $allowed = array_merge($allowed, $route['methods']);
                 continue;
             }
+            $candidates[] = [
+                'route' => $route,
+                'm' => $m,
+                'score' => $this->specificity($route['pattern']),
+                'i' => $i,
+            ];
+        }
+        if ($candidates !== []) {
+            usort($candidates, fn (array $a, array $b) =>
+                $b['score'] <=> $a['score'] ?: $a['i'] <=> $b['i']);
+            $winner = $candidates[0];
+            $route = $winner['route'];
+            $m = $winner['m'];
             foreach ($route['params'] as $i => $name) {
                 $request->attributes[$name] = isset($m[$i + 1]) ? urldecode($m[$i + 1]) : null;
             }
@@ -103,6 +121,18 @@ final class Router
                 ->header('Allow', implode(', ', array_unique($allowed)));
         }
         return Response::notFound($this->render404());
+    }
+
+    /**
+     * Specificity score for tie-breaking overlapping patterns: literal
+     * characters dominate (concrete paths beat placeholders); fewer
+     * parameters break ties (narrower patterns beat broad ones).
+     */
+    private function specificity(string $pattern): int
+    {
+        $params = preg_match_all('/\{[^}]+\}/', $pattern);
+        $literal = strlen((string) preg_replace('/\{[^}]+\}/', '', $pattern));
+        return $literal * 1000 - $params;
     }
 
     /**

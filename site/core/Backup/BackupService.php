@@ -31,12 +31,21 @@ final class BackupService
     ) {}
 
     /**
+     * File roots a backup may embed and a restore may write back. Kept as
+     * one constant so the two directions can never drift; storage/ is
+     * deliberately absent (backups must never contain backups).
+     */
+    private const RESTORABLE_ROOTS = ['config', 'upload', 'modules', 'themes'];
+
+    /**
      * Create a backup. $includeDirs are site-root-relative paths whose trees
-     * are embedded under files/<relpath>/.
+     * are embedded under files/<relpath>/; anything outside RESTORABLE_ROOTS
+     * is silently dropped.
      * @return array{0:?string,1:?string} [backup path, error]
      */
-    public function create(array $includeDirs = ['config', 'upload']): array
+    public function create(array $includeDirs = self::RESTORABLE_ROOTS): array
     {
+        $includeDirs = array_values(array_intersect($includeDirs, self::RESTORABLE_ROOTS));
         if (!is_dir($this->backupDir) && !@mkdir($this->backupDir, 0750, true)) {
             return [null, 'Backup directory is not writable.'];
         }
@@ -67,7 +76,9 @@ final class BackupService
                     if (!$f->isFile()) {
                         continue;
                     }
-                    $sub = trim($rel, '/') . '/' . substr($f->getPathname(), strlen($src) + 1);
+                    // Normalize to forward slashes — Windows iterators yield
+                    // backslashes, and the manifest must be portable.
+                    $sub = str_replace('\\', '/', trim($rel, '/') . '/' . substr($f->getPathname(), strlen($src) + 1));
                     $dest = $filesBase . '/' . $sub;
                     @mkdir(dirname($dest), 0750, true);
                     if (!@copy($f->getPathname(), $dest)) {
@@ -131,6 +142,15 @@ final class BackupService
         $zip = new \ZipArchive();
         if ($zip->open($path, \ZipArchive::RDONLY) !== true) {
             return [null, 'Not a readable archive.'];
+        }
+        // Member names are written verbatim by extractTo — reject any that
+        // could traverse out of the staging dir before it ever runs.
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            if (!\Core\Modules\ArchiveInspector::memberNameOk((string) $zip->getNameIndex($i))) {
+                $name = (string) $zip->getNameIndex($i);
+                $zip->close();
+                return [null, "Illegal member path in backup: {$name}"];
+            }
         }
         $metaRaw = $zip->getFromName('meta.json');
         $sqlRaw = $zip->getFromName('db.sql');
@@ -199,8 +219,12 @@ final class BackupService
                 foreach (($meta['files'] ?? []) as $rel => $hash) {
                     $dest = $this->siteRoot . '/' . $rel;
                     // Only restore into the declared include roots — a
-                    // tampered manifest cannot write outside them.
-                    if (!preg_match('#^(config|upload)/#', $rel)) {
+                    // tampered manifest cannot write outside them. '..' or
+                    // backslash segments would defeat the prefix check, so
+                    // they are rejected outright rather than normalized.
+                    if (!preg_match('#^(' . implode('|', self::RESTORABLE_ROOTS) . ')/#', $rel)
+                        || str_contains($rel, '..')
+                        || str_contains($rel, '\\')) {
                         continue;
                     }
                     @mkdir(dirname($dest), 0750, true);

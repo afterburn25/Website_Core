@@ -55,6 +55,21 @@ final class ArchiveInspector
     }
 
     /**
+     * Path safety for a single archive member: rejects NUL bytes, leading
+     * slashes, '..' segments (after backslash normalization), and
+     * drive-letter absolutes. Shared with BackupService::inspect so a
+     * crafted backup cannot escape its staging dir on extractTo.
+     */
+    public static function memberNameOk(string $name): bool
+    {
+        $norm = str_replace('\\', '/', $name);
+        return !str_contains($norm, "\0")
+            && !str_starts_with($norm, '/')
+            && !preg_match('#(^|/)\.\.(/|$)#', $norm)
+            && !preg_match('#^[a-zA-Z]:#', $norm);
+    }
+
+    /**
      * Archive-structure safety checks shared by package and core-update
      * uploads: member count, traversal/drive-letter/null-byte paths,
      * symlinks and non-regular entries, case collisions, member and total
@@ -82,10 +97,7 @@ final class ArchiveInspector
                 $name = (string) $stat['name'];
                 $norm = str_replace('\\', '/', $name);
 
-                if (str_contains($norm, "\0")
-                    || str_starts_with($norm, '/')
-                    || preg_match('#(^|/)\.\.(/|$)#', $norm)
-                    || preg_match('#^[a-zA-Z]:#', $norm)) {
+                if (!self::memberNameOk($name)) {
                     $errors[] = "Illegal member path: {$name}";
                     continue;
                 }

@@ -20,12 +20,15 @@ final class BackupTest extends TestCase
             $this->markTestSkipped('needs pdo_sqlite + zip');
         }
         $this->tmp = sys_get_temp_dir() . '/wc-bk-' . bin2hex(random_bytes(4));
-        foreach (['backups', 'staging', 'site/config', 'site/upload/docs'] as $d) {
+        foreach (['backups', 'staging', 'site/config', 'site/upload/docs',
+                  'site/modules/addons/inquiry', 'site/themes/terra'] as $d) {
             mkdir($this->tmp . '/' . $d, 0777, true);
         }
         $this->siteRoot = $this->tmp . '/site';
         file_put_contents($this->siteRoot . '/config/config.php', '<?php return ["x"=>1];');
         file_put_contents($this->siteRoot . '/upload/docs/a.txt', 'payload');
+        file_put_contents($this->siteRoot . '/modules/addons/inquiry/addon.json', '{"id":"wcref/inquiry"}');
+        file_put_contents($this->siteRoot . '/themes/terra/theme.json', '{"id":"wcref/terra"}');
         $this->db = new Connection(new \PDO('sqlite::memory:'), 'wc_');
         (new Migrator($this->db, WC_ROOT . '/database/migrations'))->migrate();
     }
@@ -69,6 +72,8 @@ final class BackupTest extends TestCase
         $db2 = new Connection(new \PDO('sqlite::memory:'), 'wc_');
         unlink($this->siteRoot . '/config/config.php');
         unlink($this->siteRoot . '/upload/docs/a.txt');
+        unlink($this->siteRoot . '/modules/addons/inquiry/addon.json');
+        unlink($this->siteRoot . '/themes/terra/theme.json');
         [$ok, $err] = $this->svc($db2)->restore($path);
         $this->assertTrue($ok, (string) $err);
 
@@ -77,6 +82,11 @@ final class BackupTest extends TestCase
         $this->assertSame("text;\n-- WC-STMT-END\nDROP TABLE wc_pages;", $row['body']);
         $this->assertFileExists($this->siteRoot . '/config/config.php');
         $this->assertSame('payload', file_get_contents($this->siteRoot . '/upload/docs/a.txt'));
+        // Installed package + theme files roundtrip too.
+        $this->assertSame('{"id":"wcref/inquiry"}',
+            file_get_contents($this->siteRoot . '/modules/addons/inquiry/addon.json'));
+        $this->assertSame('{"id":"wcref/terra"}',
+            file_get_contents($this->siteRoot . '/themes/terra/theme.json'));
     }
 
     public function testCorruptArchiveRejected(): void
@@ -138,25 +148,54 @@ final class BackupTest extends TestCase
         $src->open($path, \ZipArchive::RDONLY);
         $sql = $src->getFromName('db.sql');
         $meta = json_decode($src->getFromName('meta.json'), true);
-        // Forge a file entry outside allowed roots — restore must skip it.
         $evilHash = hash('sha256', 'owned');
-        $meta['files']['../escape.txt'] = $evilHash;
-        $meta['files']['core/evil.php'] = $evilHash;
         $src->close();
-        $fake = $this->tmp . '/esc.zip';
+
+        // (a) Traversal member names are rejected at inspect() — the
+        // archive never reaches extractTo.
+        $bad = $this->tmp . '/badmembers.zip';
         $zip = new \ZipArchive();
-        $zip->open($fake, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->open($bad, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
         $zip->addFromString('meta.json', json_encode($meta));
         $zip->addFromString('db.sql', $sql);
-        @mkdir($this->tmp . '/ziptmp', 0777, true);
-        // The forged files must exist in the archive for hash check to pass…
-        // — but inspect() only hashes db.sql; restore() checks each file.
-        // Provide them so only the root-allowlist stops the write.
         $zip->addFromString('files/../escape.txt', 'owned');
+        $zip->addFromString('files/config/../escape2.txt', 'owned');
+        $zip->close();
+        [$meta2, $err2] = $this->svc()->inspect($bad);
+        $this->assertNull($meta2);
+        $this->assertStringContainsString('Illegal member path', (string) $err2);
+        $this->svc()->restore($bad);
+        $this->assertFileDoesNotExist($this->tmp . '/escape.txt');
+        $this->assertFileDoesNotExist($this->siteRoot . '/escape2.txt');
+
+        // (b) Manifest '..' keys with legal member names fail the integrity
+        // hash (the file can never legally exist under files/).
+        $metaB = $meta;
+        $metaB['files'] = ['config/../escape2.txt' => $evilHash];
+        $bad = $this->tmp . '/badmanifest.zip';
+        $zip = new \ZipArchive();
+        $zip->open($bad, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addFromString('meta.json', json_encode($metaB));
+        $zip->addFromString('db.sql', $sql);
+        $zip->close();
+        [$ok, $err] = $this->svc()->restore($bad);
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('integrity', (string) $err);
+        $this->assertFileDoesNotExist($this->siteRoot . '/escape2.txt');
+
+        // (c) A legal member outside the restorable roots passes integrity
+        // but is skipped at write time by the allowlist.
+        $metaC = $meta;
+        $metaC['files'] = ['core/evil.php' => $evilHash];
+        $bad = $this->tmp . '/evilroot.zip';
+        $zip = new \ZipArchive();
+        $zip->open($bad, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addFromString('meta.json', json_encode($metaC));
+        $zip->addFromString('db.sql', $sql);
         $zip->addFromString('files/core/evil.php', 'owned');
         $zip->close();
-        $this->svc()->restore($fake); // may fail integrity — either way, no escape
-        $this->assertFileDoesNotExist($this->tmp . '/escape.txt');
+        [$ok] = $this->svc()->restore($bad);
+        $this->assertTrue($ok);
         $this->assertFileDoesNotExist($this->siteRoot . '/core/evil.php');
     }
 }

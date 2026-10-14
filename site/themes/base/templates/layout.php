@@ -8,6 +8,16 @@
 <?php if (!empty($page['meta_description'])): ?>
 <meta name="description" content="<?= e_attr($page['meta_description']) ?>">
 <?php endif; ?>
+<?php if (!empty($page['noindex'])): ?>
+<meta name="robots" content="noindex, nofollow">
+<?php endif; ?>
+<?php if (!empty($page['canonical'])): ?>
+<link rel="canonical" href="<?= e_attr($page['canonical']) ?>">
+<?php endif; ?>
+<?php if (!empty($page['og_image_url'])): ?>
+<meta property="og:title" content="<?= e_attr($page['meta_title'] ?? $page['title'] ?? '') ?>">
+<meta property="og:image" content="<?= e_attr($page['og_image_url']) ?>">
+<?php endif; ?>
 <link rel="stylesheet" href="<?= e_attr($basePath) ?>/_a/themes/base/assets/css/style.css">
 </head>
 <body>

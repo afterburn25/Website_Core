@@ -62,6 +62,15 @@ final class PublicPageController extends Controller
             [$slug]
         );
         if (!$page) {
+            // A configured redirect beats a 404 — moved pages keep working.
+            $redirect = (new \Core\Content\RedirectService($this->db()))->match($r->path);
+            if ($redirect) {
+                $target = (string) $redirect['target'];
+                if (str_starts_with($target, '/')) {
+                    $target = $r->basePath . $target;
+                }
+                return Response::redirect($target, (int) $redirect['status_code']);
+            }
             return Response::notFound($this->renderNotFound($r));
         }
 
@@ -69,6 +78,19 @@ final class PublicPageController extends Controller
         $v->share('basePath', $r->basePath);
         $v->share('siteName', $this->settings()->get('site.name', 'Website Core'));
         $v->share('tagline', $this->settings()->get('site.tagline', ''));
+        $sections = new \Core\Content\SectionService($this->db());
+        $v->share('section', fn (string $key): string => $sections->render($key));
+
+        // Resolve the OG image id to a public media URL when configured.
+        if (!empty($page['og_media_id'])) {
+            $media = $this->db()->fetch(
+                'SELECT id, filename FROM `' . $this->db()->table('media') . '` WHERE id = ? AND is_private = 0',
+                [(int) $page['og_media_id']]
+            );
+            if ($media) {
+                $page['og_image_url'] = $r->basePath . '/media/' . (int) $media['id'] . '/' . rawurlencode((string) $media['filename']);
+            }
+        }
 
         $body = $v->renderInLayout('theme:page', 'theme:layout', [
             'page'    => $page,

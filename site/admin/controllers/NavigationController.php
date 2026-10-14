@@ -16,6 +16,7 @@ final class NavigationController extends Controller
             return $this->forbidden();
         }
         $menus = new MenuService($this->db());
+        $redirects = new \Core\Content\RedirectService($this->db());
         $location = 'primary';
         $menuId = $menus->ensureLocation($location, 'Primary navigation');
 
@@ -33,13 +34,26 @@ final class NavigationController extends Controller
             } elseif ($action === 'delete') {
                 $menus->deleteItem((int) $r->string('id'));
                 $this->flash('ok', 'Menu item removed.');
+            } elseif ($action === 'redirect_add') {
+                [$ok, $err] = $redirects->save(
+                    null,
+                    $r->string('source'),
+                    $r->string('target'),
+                    (int) $r->string('status_code', '301'),
+                    $u->id
+                );
+                $this->flash($err ? 'error' : 'ok', $err ?? 'Redirect added.');
+            } elseif ($action === 'redirect_delete') {
+                $redirects->delete((int) $r->string('id'));
+                $this->flash('ok', 'Redirect removed.');
             }
             return $this->redirect($r, '/admin/navigation');
         }
 
         return $this->page($r, 'navigation/index', [
-            'items'   => $menus->itemsFor($location),
-            'menuId'  => $menuId,
+            'items'     => $menus->itemsFor($location),
+            'menuId'    => $menuId,
+            'redirects' => $redirects->all(),
         ], 'Navigation');
     }
 }

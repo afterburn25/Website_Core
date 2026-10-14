@@ -13,10 +13,27 @@ final class PagesController extends Controller
         if (!$this->can()) {
             return $this->forbidden();
         }
+        $sections = new \Core\Content\SectionService($this->db());
+        if ($r->isPost()) {
+            $action = $r->string('action');
+            if ($action === 'section_save') {
+                [$ok, $err] = $sections->save(
+                    $r->string('key'), $r->string('label'),
+                    (string) ($r->post['body'] ?? ''), $this->user()->id
+                );
+                $this->flash($err ? 'error' : 'ok', $err ?? 'Section saved.');
+            } elseif ($action === 'section_delete') {
+                $sections->delete((int) $r->string('id'));
+                $this->flash('ok', 'Section removed.');
+            }
+            return $this->redirect($r, '/admin/pages');
+        }
         $pages = $this->db()->fetchAll(
             'SELECT * FROM `' . $this->db()->table('pages') . '` ORDER BY slug'
         );
-        return $this->page($r, 'pages/index', ['pages' => $pages], 'Content');
+        return $this->page($r, 'pages/index', [
+            'pages' => $pages, 'sections' => $sections->all(),
+        ], 'Content');
     }
 
     public function edit(Request $r): Response
@@ -43,29 +60,32 @@ final class PagesController extends Controller
             } elseif ($this->slugTaken($slug, $id)) {
                 $error = 'That slug is already in use.';
             } else {
+                $seo = [
+                    'meta_title' => $r->string('meta_title'),
+                    'meta_description' => $r->string('meta_description'),
+                    'noindex' => $r->string('noindex') !== '' ? 1 : 0,
+                    'canonical' => $r->string('canonical'),
+                    'og_media_id' => ($og = $r->string('og_media_id')) !== '' ? (int) $og : null,
+                ];
                 if ($page) {
                     // Save a revision before overwriting (revision recovery).
                     $db->insert('page_revisions', [
                         'page_id' => $id, 'title' => $page['title'], 'body' => $page['body'],
                         'saved_by' => $this->user()->id, 'created_at' => date('Y-m-d H:i:s'),
                     ]);
-                    $db->update('pages', [
+                    $db->update('pages', array_merge([
                         'title' => $title, 'slug' => $slug, 'body' => $body,
-                        'meta_title' => $r->string('meta_title'),
-                        'meta_description' => $r->string('meta_description'),
                         'updated_by' => $this->user()->id,
                         'updated_at' => date('Y-m-d H:i:s'),
-                    ], 'id = ?', [$id]);
+                    ], $seo), 'id = ?', [$id]);
                 } else {
-                    $id = (int) $db->insert('pages', [
+                    $id = (int) $db->insert('pages', array_merge([
                         'title' => $title, 'slug' => $slug, 'body' => $body,
                         'status' => 'draft',
-                        'meta_title' => $r->string('meta_title'),
-                        'meta_description' => $r->string('meta_description'),
                         'updated_by' => $this->user()->id,
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s'),
-                    ]);
+                    ], $seo));
                 }
                 $this->flash('ok', 'Saved as draft.');
                 return $this->redirect($r, '/admin/pages/edit/' . $id);

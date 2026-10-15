@@ -358,15 +358,9 @@ final class PackageManager
             }
         }
 
-        // License check (optional - allow disabling even if license invalid for recovery)
-        $info = $this->registry->all()[$packageId] ?? null;
-        if ($info !== null && isset($info['manifest']['license_key'])) {
-            [$licenseOk, $licenseError] = $this->checkLicense($packageId, $info['manifest']);
-            if (!$licenseOk) {
-                $this->journal($packageId, 'disable', 'failed', $licenseError ?? 'License check failed');
-                return [false, $licenseError ?? 'License check failed'];
-            }
-        }
+        // No license check here — disabling only reduces a module's surface;
+        // a deactivated site must be able to disable its licensed modules
+        // during recovery. install/enable remain license-gated.
 
         $this->registry->setState($packageId, 'disabled');
         $this->journal($packageId, 'disable', 'ok');

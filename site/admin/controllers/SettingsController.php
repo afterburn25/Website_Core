@@ -91,9 +91,13 @@ final class SettingsController extends Controller
                 $this->flash('error', 'No license is installed on this site.');
                 return $this->redirect($r, '/admin/settings');
             }
+            $domain = $validator->detectDomain();
+            if ($domain === '') {
+                $domain = (string) ($status['license_domain'] ?? '');
+            }
             [$valid, $error, $denied] = $validator->validate(
                 (string) $status['license_key'],
-                (string) ($status['license_domain'] ?? '')
+                $domain
             );
             if ($denied) {
                 $validator->deactivate();

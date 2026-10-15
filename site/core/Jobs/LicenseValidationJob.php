@@ -38,9 +38,17 @@ final class LicenseValidationJob
         }
 
         $validator = new LicenseValidation($this->db, $this->config);
+        // Validate the domain this install actually declares (app.url) —
+        // a site moved to an unregistered host self-denies rather than
+        // passing on its stale stored domain. Fall back to the stored
+        // domain if config yields nothing.
+        $domain = $validator->detectDomain();
+        if ($domain === '') {
+            $domain = (string) $license['license_domain'];
+        }
         [$valid, $error, $denied] = $validator->validate(
             (string) $license['license_key'],
-            (string) $license['license_domain']
+            $domain
         );
 
         if (!$valid) {

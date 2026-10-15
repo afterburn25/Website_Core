@@ -135,6 +135,21 @@ final class LicenseValidation
     }
 
     /**
+     * The domain this install declares itself to serve — from the
+     * canonical app.url the admin maintains. A site genuinely moved to a
+     * new host gets its app.url updated, so validation then targets the
+     * new domain and the install self-denies until that domain is
+     * registered in the portal. HTTP_HOST is deliberately not used:
+     * preview URLs, IP access and internal hostnames must never produce
+     * a false denial.
+     */
+    public function detectDomain(): string
+    {
+        $host = (string) parse_url((string) $this->config->get('app.url', ''), PHP_URL_HOST);
+        return strtolower((string) preg_replace('/:\d+$/', '', trim($host)));
+    }
+
+    /**
      * Get the current license status for display.
      *
      * @return array{license_key:?string,license_domain:?string,license_valid:?int,license_deactivated:?int,license_validated_at:?string,license_error:?string}
@@ -200,14 +215,15 @@ final class LicenseValidation
                 [$licenseKey, $domain, $valid ? 1 : 0, $now, $error]
             );
         } catch (\Throwable $e) {
-            // If duplicate key, update instead
+            // If duplicate key, update instead — the stored domain tracks
+            // what was actually validated last (app.url may have moved).
             $this->db->run(
                 "UPDATE `{$table}`
-                 SET license_valid = ?, license_validated_at = ?, license_error = ?,
+                 SET license_valid = ?, license_domain = ?, license_validated_at = ?, license_error = ?,
                      license_deactivated = CASE WHEN ? THEN 0 ELSE license_deactivated END,
                      updated_at = CURRENT_TIMESTAMP
                  WHERE license_key = ?",
-                [$valid ? 1 : 0, $now, $error, $valid ? 1 : 0, $licenseKey]
+                [$valid ? 1 : 0, $domain, $now, $error, $valid ? 1 : 0, $licenseKey]
             );
         }
     }

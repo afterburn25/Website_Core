@@ -202,19 +202,28 @@ jobs:
             echo json_decode($p->query("SELECT value FROM wc_settings WHERE `key`=\"system.cron_token\"")->fetchColumn());')
           test -n "$TOKEN"
 
-          # Remote deactivation (domain no longer registered) → next
-          # validation takes public pages offline; /admin stays reachable.
-          php -r '$p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");
-            $p->exec("UPDATE wc_license SET license_domain=\"unregistered.example.com\", license_validated_at=\"2000-01-01 00:00:00\"");'
+          # Remote deactivation simulated as a site moved to an
+          # unregistered domain — the canonical app.url changes, so the
+          # next validation targets the new host and self-denies.
+          php -r '$f="/tmp/wcsite2/config/config.php";
+            file_put_contents($f,str_replace("e2e.example.com","unregistered.example.com",file_get_contents($f)));
+            $p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");
+            $p->exec("UPDATE wc_license SET license_validated_at=\"2000-01-01 00:00:00\"");'
           curl -s http://127.0.0.1:8100/index.php >/dev/null   # request enqueues the validation job
           curl -s "http://127.0.0.1:8100/cron.php?token=$TOKEN" | grep -q "processed="
+          # The install reported its actual configured domain — not the
+          # stale one stored at install time.
+          grep -q '"domain":"unregistered.example.com"' /tmp/license-api.log
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/index.php)" = "503"
           adm=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8100/index.php?p=/admin/login")
           [ "$adm" = "200" ] || { echo "admin unreachable while deactivated: $adm"; exit 1; }
 
-          # Re-registering the domain restores the site on next validation.
-          php -r '$p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");
-            $p->exec("UPDATE wc_license SET license_domain=\"e2e.example.com\", license_validated_at=\"2000-01-01 00:00:00\"");'
+          # Moving back (domain re-registered) restores the site on next
+          # validation — success clears license_deactivated.
+          php -r '$f="/tmp/wcsite2/config/config.php";
+            file_put_contents($f,str_replace("unregistered.example.com","e2e.example.com",file_get_contents($f)));
+            $p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");
+            $p->exec("UPDATE wc_license SET license_validated_at=\"2000-01-01 00:00:00\"");'
           curl -s "http://127.0.0.1:8100/cron.php?token=$TOKEN" >/dev/null
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/index.php)" = "200"
 

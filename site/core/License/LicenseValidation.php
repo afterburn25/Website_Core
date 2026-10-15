@@ -38,7 +38,7 @@ final class LicenseValidation
      */
     public function validate(string $licenseKey, string $domain): array
     {
-        $endpoint = $this->apiBase() . '/validate';
+        $endpoint = $this->apiBase() . '/validate.php';
         $payload = json_encode([
             'license_key' => $licenseKey,
             'domain' => $domain,

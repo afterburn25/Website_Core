@@ -41,7 +41,8 @@ change it if your licensing service runs on a different URL.
 ```
 
 **Configuration:** `license.api_url` in `config.php` (e.g.,
-`https://cajunwebpro.com/api/validate`)
+`https://cajunwebpro.com/api/validate.php` — the clean `/api/validate`
+URL is also supported via Apache rewrite where mod_rewrite is available)
 
 ## License key binding
 

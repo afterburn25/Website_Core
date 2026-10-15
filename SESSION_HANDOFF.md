@@ -1,5 +1,24 @@
 # Session Handoff
 
+## 2026-10-15 — M6 accessibility and performance controls
+
+**Completed this session** — accessibility controls added and tested:
+
+- **Media thumbnail alt text**: changed from empty `alt=""` to descriptive
+  `alt="Thumbnail for {filename}"` in media index view.
+- **Admin layout accessibility**: added `focus-visible` outlines for all
+  interactive elements and `prefers-reduced-motion` media query.
+- **Theme reduced-motion support**: base, noir, and terra themes all have
+  `prefers-reduced-motion` media queries.
+- **AccessibilityTest extended**: 3 new test methods assert admin layout
+  controls, theme reduced-motion support, and media thumbnail alt text.
+  Tests: 149 / 582 assertions.
+- **Documentation**: SECURITY.md documents accessibility controls.
+  COMMERCIAL_READINESS.md documents performance posture.
+- **M6 complete**: ROADMAP marks all milestones M0–M6 done.
+
+**Final state**: 149 tests / 582 assertions, CI green, all milestones complete.
+
 ## 2026-10-15 — Hardening session (concurrency, integrity, recovery)
 
 **Completed this session** — stacked hardening and bugfix passes across all

@@ -1,4 +1,4 @@
-<?php /** @var array $pages @var array $sections @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
+<?php /** @var array $pages @var array $sections @var array $shadowed @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
 <div class="card">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
 <span class="muted"><?= count($pages) ?> page(s)</span>
@@ -11,7 +11,7 @@
 <tr><th>Slug</th><th>Title</th><th>Status</th><th>Updated</th><th></th></tr>
 <?php foreach ($pages as $p): ?>
 <tr>
-<td><code>/<?= e($p['slug']) ?></code></td>
+<td><code>/<?= e($p['slug']) ?></code><?php if (!empty($shadowed[$p['slug']])): ?> <span class="badge warn" title="A reserved path or installed module route already handles this URL — visitors can never reach this page.">unreachable</span><?php endif; ?></td>
 <td><?= e($p['title']) ?></td>
 <td><span class="badge <?= $p['status'] === 'published' ? 'ok' : 'warn' ?>"><?= e($p['status']) ?></span></td>
 <td><?= e($p['updated_at'] ?? '') ?></td>

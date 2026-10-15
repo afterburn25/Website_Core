@@ -31,8 +31,16 @@ final class PagesController extends Controller
         $pages = $this->db()->fetchAll(
             'SELECT * FROM `' . $this->db()->table('pages') . '` ORDER BY slug'
         );
+        // Flag slugs the router can never serve — pre-existing data and
+        // pages shadowed when a module route appeared after the save.
+        $shadowed = [];
+        foreach ($pages as $p) {
+            if ($this->slugShadowed((string) $p['slug'])) {
+                $shadowed[(string) $p['slug']] = true;
+            }
+        }
         return $this->page($r, 'pages/index', [
-            'pages' => $pages, 'sections' => $sections->all(),
+            'pages' => $pages, 'sections' => $sections->all(), 'shadowed' => $shadowed,
         ], 'Content');
     }
 

@@ -31,6 +31,7 @@ final class Application
     private Container $container;
     private Router $router;
     private ?Request $request = null;
+    private bool $servicesBooted = false;
 
     public function __construct(private Config $config)
     {
@@ -111,8 +112,18 @@ final class Application
         return (ord($ipBin[$bytes]) & ord($mask)) === (ord($netBin[$bytes]) & ord($mask));
     }
 
-    private function bootServices(): void
+    /**
+     * Bind the service layer (DB, sessions, security, view, i18n). Called by
+     * dispatch() with the real request; non-HTTP entry points (cron.php)
+     * call it with no request — sessions are HTTP-only and skipped.
+     * Idempotent: a second call is a no-op.
+     */
+    public function bootServices(?Request $request = null): void
     {
+        if ($this->servicesBooted) {
+            return;
+        }
+        $this->servicesBooted = true;
         $driver = (string) $this->config->get('database.driver', 'mysql');
         $db = $driver === 'sqlite'
             // Dev/test only — production is MySQL/MariaDB (COMPATIBILITY.md).
@@ -132,7 +143,9 @@ final class Application
         $this->container->instance(Connection::class, $db);
 
         $session = new SessionManager($this->config);
-        $session->start($this->request);
+        if ($request !== null) {
+            $session->start($request);
+        }
         $this->container->instance(SessionManager::class, $session);
 
         $this->container->instance(Csrf::class, new Csrf());
@@ -186,7 +199,7 @@ final class Application
 
     public function dispatch(Request $request): Response
     {
-        $this->bootServices();
+        $this->bootServices($request);
         $this->registerRoutes();
         $this->bootModules();
         $this->registerPublicRoutes();

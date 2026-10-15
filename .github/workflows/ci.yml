@@ -125,6 +125,11 @@ jobs:
           after=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/install.php)
           [ "$after" = "403" ] || [ "$after" = "404" ] || { echo "installer still reachable: $after"; exit 1; }
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/index.php)" = "200"
+          # cron.php must boot services + gate on the token — a boot fatal
+          # would return 200, so 403 proves the whole path (regression: it
+          # previously crashed reaching for the container before boot).
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/cron.php)" = "403"
+          test "$(curl -s -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8099/cron.php?token=wrong')" = "403"
           kill %1 2>/dev/null || true
           echo "installer acceptance OK"
 

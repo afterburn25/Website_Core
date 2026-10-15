@@ -15,6 +15,9 @@ if (!$app->installed()) {
 }
 
 $cli = PHP_SAPI === 'cli';
+// Non-HTTP entry points must boot services explicitly — dispatch() does it
+// for web requests, cron never dispatches.
+$app->bootServices();
 if (!$cli) {
     $token = (string) ($_GET['token'] ?? '');
     $db = $app->container()->get(\Core\Database\Connection::class);

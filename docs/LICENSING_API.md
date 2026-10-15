@@ -10,8 +10,8 @@ Customers purchase "Restaurant Website" (or other industry module). The
 licensing service generates a bundled ZIP:
 
 - `site/` — Website Core
-- `modules/industry-{name}/` — industry module with `license_key` embedded in
-  `addon.json`
+- `site/modules/industries/industry-{name}/` — industry module with
+  `license_key` embedded in `addon.json`
 
 ## License validation API
 
@@ -60,18 +60,23 @@ site retries on the next scheduled validation.
 - Each purchase gets a unique `license_key`
 - The key is embedded in the module's `addon.json`
 - The installer stores the key in the `license` table
-- Module operations check the key — mismatched modules are refused
+- Module `install`/`enable` operations check the key — mismatched modules
+  are refused. `disable()` deliberately skips the check so an invalid or
+  deactivated license can never trap an administrator out of recovery.
 
 ## Domain binding
 
 - Customer registers domain(s) in the licensing service portal
-- Same server (IP) can host multiple instances (public + test)
+- A license allows at most **2 active domains** — public + test instances
+  on the same server
 - Changing a domain deactivates the old site; the new site validates on next
   check
 
 ## Periodic validation
 
-`LicenseValidationJob` runs daily via cron to re-validate the license.
+`LicenseValidationJob` re-validates the license via cron — daily while the
+license is valid, and **hourly while deactivated** so a corrected domain
+registration restores the site quickly.
 
 - **Explicit denial** (`authorized: false` — deactivated license or
   unregistered domain): the site marks `license_deactivated = 1` and public

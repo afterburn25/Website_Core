@@ -26,10 +26,9 @@ declare(strict_types=1);
  */
 
 $root = dirname(__DIR__);
-$command = $argv[1] ?? null;
-$out = $argv[2] ?? $root . '/dist';
+$out = $argv[1] ?? $root . '/dist';
 
-if ($command === 'bundle') {
+if ($argv[1] === 'bundle') {
     // php tools/build-packages.php bundle <industry> <license_key> [outdir]
     $industry = $argv[2] ?? null;
     $licenseKey = $argv[3] ?? null;

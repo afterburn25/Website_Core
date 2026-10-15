@@ -21,12 +21,20 @@
 <td><?= $a->disabled ? '<span class="badge bad">disabled</span>' : '<span class="badge ok">active</span>' ?></td>
 <td><?= e($a->lastLoginAt ?? '—') ?></td>
 <td>
-<?php if ($a->id !== $user->id): ?>
+<?php if ($a->id !== $user->id && (!$a->isOwner() || $user->isOwner())): ?>
 <form method="post" action="<?= e_attr($basePath) ?>/admin/users/<?= (int) $a->id ?>/disable" style="display:inline">
 <?= $csrf->field() ?>
 <button class="btn small <?= $a->disabled ? '' : 'danger' ?>" type="submit">
 <?= $a->disabled ? 'Enable' : 'Disable' ?></button>
 </form>
+<details style="display:inline-block;margin-left:.5rem">
+<summary class="muted" style="cursor:pointer">Reset password</summary>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/users/<?= (int) $a->id ?>/reset-password" style="margin:.25rem 0">
+<?= $csrf->field() ?>
+<input name="new_password" type="password" required minlength="12" autocomplete="new-password" placeholder="new temporary password">
+<button class="btn small" type="submit">Reset</button>
+</form>
+</details>
 <?php endif; ?>
 </td>
 </tr>

@@ -126,6 +126,46 @@ final class UsersController extends Controller
         return $this->redirect($r, '/admin/users');
     }
 
+    public function resetPassword(Request $r): Response
+    {
+        $actor = $this->user();
+        $target = (int) ($r->attributes['id'] ?? 0);
+        $repo = $this->c->get(\Core\Auth\AdminRepository::class);
+        $targetUser = $repo->find($target);
+
+        if (!$actor || !$targetUser) {
+            return Response::notFound();
+        }
+        // Same authority boundary as role changes: only owners touch owners,
+        // others need admins.manage_nonowner.
+        if ($targetUser->isOwner() && !$actor->isOwner()) {
+            return $this->forbidden();
+        }
+        if (!$actor->isOwner() && !$this->auth()->has($actor, 'admins.manage_nonowner')) {
+            return $this->forbidden();
+        }
+
+        $new = (string) ($r->post['new_password'] ?? '');
+        if (strlen($new) < 12) {
+            $this->flash('error', 'Temporary password must be at least 12 characters.');
+            return $this->redirect($r, '/admin/users');
+        }
+
+        $repo->update($target, ['password_hash' => password_hash($new, PASSWORD_DEFAULT)]);
+        // Every existing session dies — the old credentials must stop working
+        // the moment the reset lands.
+        $this->db()->run(
+            'UPDATE `' . $this->db()->table('admin_sessions')
+            . '` SET revoked_at = ? WHERE admin_id = ? AND revoked_at IS NULL',
+            [date('Y-m-d H:i:s'), $target]
+        );
+        $this->c->get(\Core\Audit\AuditLog::class)->record('admin.password_reset', $actor->id, [
+            'target' => $target,
+        ]);
+        $this->flash('ok', 'Password reset; all sessions revoked. Share the new password out-of-band.');
+        return $this->redirect($r, '/admin/users');
+    }
+
     public function toggleDisable(Request $r): Response
     {
         $actor = $this->user();

@@ -294,6 +294,7 @@ final class Application
             $r->post('/users/create', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->create($req), [$auth, $csrfCheck]);
             $r->post('/users/{id:\d+}/role', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->changeRole($req), [$auth, $csrfCheck]);
             $r->post('/users/{id:\d+}/disable', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->toggleDisable($req), [$auth, $csrfCheck]);
+            $r->post('/users/{id:\d+}/reset-password', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->resetPassword($req), [$auth, $csrfCheck]);
             $r->get('/modules', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->index($req), [$auth]);
             $r->any('/pages', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/pages/edit', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->edit($req), [$auth, $csrfCheck]);

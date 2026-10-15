@@ -172,25 +172,29 @@ final class LicenseValidation
         $now = date('Y-m-d H:i:s');
         $table = $this->db->table('license');
 
-        // First try to insert
+        if ($valid === null) {
+            // Inconclusive: log the attempt + error on an existing row,
+            // preserving the stored verdict. Never INSERT here — a fresh
+            // row would have license_key set with license_valid=0, which
+            // the public gate reads as an invalid license.
+            $this->db->run(
+                "UPDATE `{$table}`
+                 SET license_validated_at = ?, license_error = ?, updated_at = CURRENT_TIMESTAMP
+                 WHERE license_key = ?",
+                [$now, $error, $licenseKey]
+            );
+            return;
+        }
+
+        // Definitive verdict: first try to insert, update on duplicate.
         try {
             $this->db->run(
                 "INSERT INTO `{$table}`
                  (license_key, license_domain, license_valid, license_validated_at, license_error)
                  VALUES (?, ?, ?, ?, ?)",
-                [$licenseKey, $domain, $valid === true ? 1 : 0, $now, $error]
+                [$licenseKey, $domain, $valid ? 1 : 0, $now, $error]
             );
         } catch (\Throwable $e) {
-            if ($valid === null) {
-                // Inconclusive: log the attempt + error, keep the verdict.
-                $this->db->run(
-                    "UPDATE `{$table}`
-                     SET license_validated_at = ?, license_error = ?, updated_at = CURRENT_TIMESTAMP
-                     WHERE license_key = ?",
-                    [$now, $error, $licenseKey]
-                );
-                return;
-            }
             // If duplicate key, update instead
             $this->db->run(
                 "UPDATE `{$table}`

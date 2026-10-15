@@ -394,12 +394,16 @@ outage can never take a licensed site offline, and no row is created by
 an inconclusive first attempt.
 
 Domain-follow binding: `detectDomain()` derives the reported domain from
-the canonical `app.url` — a site genuinely moved (config updated) to an
+the canonical `app.url` — a site genuinely moved (URL updated) to an
 unregistered host self-denies at its next check instead of passing on
 the stale stored domain. `HTTP_HOST` is deliberately untrusted (preview
 URLs/IP access would cause false denials); `license_domain` refreshes to
 the last domain actually validated. Falls back to stored domain if
-config yields nothing.
+config yields nothing. `app.url` is an **admin-editable settings
+override** (`/admin/settings`) — the field stays blank to keep the
+installed `config.php` value; filling it lets an owner point the site at
+its newly-registered domain and recover via "Validate now" without a
+config edit. Sitemap/robots read the same override.
 
 "Validate now" admin action at `POST /admin/settings/license-validate`
 triggers immediate revalidation + reactivation — owners don't wait for

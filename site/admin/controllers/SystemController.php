@@ -251,7 +251,7 @@ final class SystemController extends Controller
             new \Core\Modules\ArchiveInspector(),
             new \Core\Update\SignatureVerifier(
                 (array) $config->get('trust.public_keys', []),
-                (bool) $config->get('trust.allow_unsigned', true)
+                (bool) $config->get('trust.allow_unsigned', false)
             ),
         );
     }

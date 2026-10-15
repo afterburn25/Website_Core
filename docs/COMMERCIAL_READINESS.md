@@ -30,7 +30,10 @@ shipped (excluded from artifacts; verified by artifact contents check in
 - Pricing/support promises/compliance claims — none asserted anywhere.
 - Production update-signing trust root (see UPGRADES): signing key exists
   only when `WC_UPDATE_SIGN_KEY` is provided at build time; no key
-  material is committed.
+  material is committed. Hard dependency: installed sites ship
+  `trust.allow_unsigned=false`, so unsigned draft/dev artifacts refuse at
+  stage time — production releases MUST be built with the sign key and
+  target installs configured with `trust.public_keys`.
 - Marketplace/agency products — explicitly out of 1.0 scope.
 
 ## Rules honored
@@ -51,7 +54,7 @@ shipped (excluded from artifacts; verified by artifact contents check in
 | Theme switch preserves data | implemented + tested | ReferenceSitesParityTest |
 | Uninstall preserves / purge removes | implemented + tested | ReferenceSitesParityTest |
 | Backup/restore | implemented + tested | BackupService tests, /admin/backups |
-| Signed updates | implemented (unsigned builds allowed by config) | SignatureVerifier, CoreUpdater, /admin/updates |
+| Signed updates | implemented (fail-closed: installs refuse unsigned manifests by default) | SignatureVerifier, CoreUpdater, /admin/updates |
 | Failure recovery | implemented | recovery-mode flag, quarantine, update backups |
 | Accessibility floor | tested | AccessibilityTest — landmarks/labels/lang on all themes |
 | Reproducible artifacts | implemented | tools/build-packages.php + SHA256SUMS |

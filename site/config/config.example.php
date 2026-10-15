@@ -54,9 +54,6 @@ return [
         'from_name'   => 'Website Core',
     ],
     'updates' => [
-        // Trust roots for signed update metadata. Empty until an approved
-        // production trust configuration exists — see docs/UPGRADES.md.
-        'trust_roots' => [],
         'channel'     => 'stable',
         // When true, /admin/updates/apply refuses until the owner creates
         // <paths.storage>/maintenance.flag — the maintenance-window gate.

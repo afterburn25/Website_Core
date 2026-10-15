@@ -55,8 +55,11 @@ modules/themes — those stay site-owned.
 ## Signing update manifests
 
 Builds ship unsigned unless `WC_UPDATE_SIGN_KEY` (base64 Ed25519 secret)
-is set when running `tools/build-packages.php`. Sites enforce signatures
-by configuring `trust.public_keys` and `trust.allow_unsigned=false`.
+is set when running `tools/build-packages.php`. Installed sites default
+to `trust.allow_unsigned=false`: an unsigned build refuses until the
+owner configures `trust.public_keys` for signed builds, or explicitly
+opts back into unsigned artifacts (development posture — the shipped
+`config.example.php` keeps `allow_unsigned=true` for local use).
 
 ## Not yet implemented (roadmap)
 

@@ -390,7 +390,8 @@ final class Installer
                 'smtp_host' => '', 'smtp_port' => 587, 'smtp_user' => '', 'smtp_pass' => '',
                 'smtp_secure' => 'tls', 'from' => 'no-reply@example.com', 'from_name' => {$s($v['siteName'])},
             ],
-            'updates' => ['trust_roots' => [], 'channel' => 'stable'],
+            'trust' => ['public_keys' => [], 'allow_unsigned' => false],
+            'updates' => ['channel' => 'stable', 'require_window' => false],
         ];
         PHP;
     }

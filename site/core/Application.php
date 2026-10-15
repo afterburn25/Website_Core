@@ -239,7 +239,7 @@ final class Application
             (string) $this->config->get('paths.storage', WC_ROOT . '/storage') . '/package-op.lock',
             new \Core\Update\SignatureVerifier(
                 (array) $this->config->get('trust.public_keys', []),
-                (bool) $this->config->get('trust.allow_unsigned', true)
+                (bool) $this->config->get('trust.allow_unsigned', false)
             ),
             $this->container->get(Dispatcher::class),
         ));

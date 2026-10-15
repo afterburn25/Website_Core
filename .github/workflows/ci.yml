@@ -121,6 +121,9 @@ jobs:
           fi
           test -f /tmp/wcsite/config/installed.lock
           test -f /tmp/wcsite/config/config.php
+          # Generated config must ship fail-closed on unsigned update/package
+          # manifests (production posture; dev opts in via config.example).
+          grep -q "'allow_unsigned' => false" /tmp/wcsite/config/config.php
           # install.php self-renames to .off when writable → 404; installed.lock blocks it otherwise → 403.
           after=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/install.php)
           [ "$after" = "403" ] || [ "$after" = "404" ] || { echo "installer still reachable: $after"; exit 1; }

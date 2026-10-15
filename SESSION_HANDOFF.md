@@ -353,4 +353,25 @@ jobs green (installer acceptance runs on both database legs); draft
   (sitemap uses configured app.url), diagnostics exports key names only,
   SMTP password write-only.
 
-**Standing**: 139 tests / 552 assertions; 6/6 CI green; draft refreshed.
+**Standing**: 153 tests / 588 assertions; 6/6 CI green; draft refreshed.
+
+## DRM / licensing system (new — commercial extension)
+
+Website Core now supports a DRM licensing model for bundled products
+(core + industry module):
+
+- `site/core/License/LicenseValidation.php` — phone-home validation,
+  domain binding, periodic validation, deactivation handling.
+- `site/core/Jobs/LicenseValidationJob.php` — cron job for periodic
+  validation.
+- `site/database/migrations/2026_10_15_0008_license_tracking.php` —
+  license table schema.
+- `site/core/Modules/PackageManager.php` — license checks before
+  install/enable/disable operations.
+- `site/install/Installer.php` — validates license key during install.
+- `tools/build-packages.php bundle` — creates bundled ZIPs with embedded
+  license keys.
+- `docs/LICENSING_API.md` — documents the Cajunwebpro.com API contract.
+
+The licensing service (cajunwebpro.com) is NOT yet implemented — see
+`docs/LICENSING_API.md` for the API specification.

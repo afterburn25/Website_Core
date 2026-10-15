@@ -40,12 +40,35 @@ items are owner-gated, not engineering.
 - Real-host compatibility runs outside local/CI environments.
 - PR #7 merge approval.
 
+## DRM / licensing (new — commercial extension)
+
+Website Core now supports a DRM licensing model for bundled products:
+
+- **License keys**: Unique per purchase, embedded in module `addon.json`,
+  stored in the `license` table, checked before module operations.
+- **Domain binding**: Customer registers domain in the licensing portal;
+  validation API checks key + domain; changing a domain deactivates the
+  old site.
+- **Validation**: Installer validates license during install; periodic
+  validation runs via cron job; failed validation shows warning to admins
+  but site continues for public visitors.
+- **Build tool**: `php tools/build-packages.php bundle <industry>
+  <license_key> [outdir]` creates a bundled ZIP with the license key
+  embedded in the module manifest.
+- **LICENSING_API.md**: documents the Cajunwebpro.com API contract.
+
+**Not yet implemented on cajunwebpro.com:** License key generation,
+domain registration portal, validation API endpoint, domain change
+workflow. See `docs/LICENSING_API.md` for the API specification.
+
 ## Test status
 
-- `unit`+`package`: 149 tests / 582 assertions green locally (PHP 8.4.25);
+- `unit`+`package`: 153 tests / 588 assertions green locally (PHP 8.4.25);
   3 skips are native-DB gated. Sodium tests run via `sodium_compat`.
   AccessibilityTest (7 tests) asserts aria-label, for labels, alt text,
   focus-visible, reduced-motion across admin layout and all 3 themes.
+  LicenseValidationTest (4 tests) asserts license storage, status, domain
+  binding.
 - `native`: green in CI on mysql:8.4 and mariadb:11.4 service jobs —
   each leg also exercises the real installer over HTTP (claim → POST →
   lock/config/self-disable assertions).

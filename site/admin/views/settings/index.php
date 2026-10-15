@@ -54,6 +54,10 @@ messages queue until a transport is configured — the site keeps working.</p>
 <dd><?= e(date('Y-m-d H:i', strtotime($licenseStatus['license_validated_at']))) ?></dd>
 <?php endif; ?>
 </dl>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/settings/license-validate" style="margin-top:.5rem">
+<?= $csrf->field() ?><button type="submit">Validate now</button>
+<span class="muted">Re-checks the license immediately — use after fixing a domain registration.</span>
+</form>
 <?php else: ?>
 <p class="muted">Not licensed. Install a module bundle with an embedded license key.</p>
 <?php endif; ?>

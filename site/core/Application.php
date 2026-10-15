@@ -445,6 +445,7 @@ final class Application
 
             $r->get('/', fn (Request $req) => (new \Admin\Controllers\DashboardController($c))->index($req), [$auth]);
             $r->any('/settings', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->index($req), [$auth, $csrfCheck]);
+            $r->post('/settings/license-validate', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->validateLicense($req), [$auth, $csrfCheck]);
             $r->any('/profile', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->index($req), [$auth, $csrfCheck]);
             $r->post('/profile/mfa/enable', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->enableMfa($req), [$auth, $csrfCheck]);
             $r->post('/profile/mfa/disable', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->disableMfa($req), [$auth, $csrfCheck]);

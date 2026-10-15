@@ -71,4 +71,41 @@ final class SettingsController extends Controller
             'cronToken' => (string) $settings->get('system.cron_token', ''),
         ], 'Settings');
     }
+
+    /**
+     * Admin-triggered license revalidation. Lets an owner who fixed a
+     * domain registration restore a deactivated site immediately instead
+     * of waiting for the next scheduled check.
+     */
+    public function validateLicense(Request $r): Response
+    {
+        $user = $this->user();
+        if (!$user || !$this->auth()->has($user, 'settings.manage')) {
+            return $this->forbidden();
+        }
+
+        try {
+            $validator = $this->app->get(\Core\License\LicenseValidation::class);
+            $status = $validator->status();
+            if ($status['license_key'] === null) {
+                $this->flash('error', 'No license is installed on this site.');
+                return $this->redirect($r, '/admin/settings');
+            }
+            [$valid, $error, $denied] = $validator->validate(
+                (string) $status['license_key'],
+                (string) ($status['license_domain'] ?? '')
+            );
+            if ($denied) {
+                $validator->deactivate();
+            }
+            if ($valid) {
+                $this->flash('ok', 'License validated — this site is active.');
+            } else {
+                $this->flash('error', 'License validation failed: ' . ($error ?? 'unknown error'));
+            }
+        } catch (\Throwable $e) {
+            $this->flash('error', 'License validation unavailable: ' . $e->getMessage());
+        }
+        return $this->redirect($r, '/admin/settings');
+    }
 }

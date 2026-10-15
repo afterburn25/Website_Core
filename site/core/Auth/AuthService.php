@@ -30,6 +30,8 @@ final class AuthService
         private SessionManager $sessions,
         private RateLimiter $limiter,
         private ?AuditLog $audit = null,
+        private ?\Core\Config $config = null,
+        private ?\Core\Mail\SystemMail $mail = null,
     ) {}
 
     /**
@@ -203,6 +205,89 @@ final class AuthService
             . '` SET revoked_at = ? WHERE admin_id = ? AND session_hash != ? AND revoked_at IS NULL',
             [date('Y-m-d H:i:s'), $adminId, hash('sha256', session_id())]
         );
+    }
+
+    /**
+     * Self-service reset request: mints a single-use token, stores only its
+     * sha256 hash + a 30-minute expiry, and queues the link via SystemMail.
+     * Always returns null — existence of an account is never disclosed.
+     * Throws RuntimeException only on rate limit (safe to surface — it
+     * identifies the requesting IP's budget, not an account).
+     */
+    public function requestReset(Request $request, string $identifier): void
+    {
+        $bucket = 'pwreset:' . $request->ip();
+        if (!$this->limiter->attempt($bucket, 5, 600)) {
+            throw new \RuntimeException('Too many reset requests. Try again later.');
+        }
+
+        $identifier = trim($identifier);
+        $row = str_contains($identifier, '@')
+            ? $this->db->fetch(
+                'SELECT * FROM `' . $this->db->table('admins') . '` WHERE email = ? AND disabled = 0',
+                [$identifier]
+            )
+            : $this->admins->findByUsername($identifier);
+        if (!$row || (bool) ($row['disabled'] ?? false)) {
+            return; // silent — no account enumeration
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $this->admins->update((int) $row['id'], [
+            'reset_token_hash' => hash('sha256', $token),
+            'reset_expires_at' => date('Y-m-d H:i:s', time() + 1800),
+        ]);
+
+        // ?p=/… form — identical on rewrite and no-rewrite hosts.
+        $base = rtrim((string) ($this->config?->get('app.url') ?? ''), '/');
+        if ($base === '') {
+            // Fallback: derive from the request (emails need absolute links).
+            $host = $request->header('Host') ?: 'localhost';
+            $base = ($request->isSecure() ? 'https' : 'http') . '://' . $host
+                . rtrim($request->basePath, '/');
+        }
+        $link = $base . '/index.php?p=/admin/reset&token=' . $token;
+        $this->mail?->passwordReset((string) $row['email'], $link);
+        $this->audit?->record('admin.password_reset_request', (int) $row['id']);
+    }
+
+    /**
+     * Consume a reset token: validates hash + expiry, writes the new
+     * password, clears the token, and revokes every session — a stolen
+     * session cannot outlive a completed reset.
+     */
+    public function completeReset(Request $request, string $token, string $password): bool
+    {
+        if (!preg_match('/^[a-f0-9]{64}$/', $token)) {
+            return false;
+        }
+        $bucket = 'pwreset-token:' . $request->ip();
+        if (!$this->limiter->attempt($bucket, 10, 600)) {
+            throw new \RuntimeException('Too many attempts. Try again later.');
+        }
+
+        $row = $this->db->fetch(
+            'SELECT id FROM `' . $this->db->table('admins')
+            . '` WHERE reset_token_hash = ? AND reset_expires_at > ? AND disabled = 0',
+            [hash('sha256', $token), date('Y-m-d H:i:s')]
+        );
+        if (!$row) {
+            return false;
+        }
+
+        $id = (int) $row['id'];
+        $this->admins->update($id, [
+            'password_hash'    => password_hash($password, PASSWORD_DEFAULT),
+            'reset_token_hash' => null,
+            'reset_expires_at' => null,
+        ]);
+        $this->db->run(
+            'UPDATE `' . $this->db->table('admin_sessions')
+            . '` SET revoked_at = ? WHERE admin_id = ? AND revoked_at IS NULL',
+            [date('Y-m-d H:i:s'), $id]
+        );
+        $this->audit?->record('admin.password_reset_done', $id);
+        return true;
     }
 
     /**

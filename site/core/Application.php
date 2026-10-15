@@ -162,6 +162,8 @@ final class Application
             $session,
             $this->container->get(RateLimiter::class),
             $this->container->get(AuditLog::class),
+            $this->config,
+            new \Core\Mail\SystemMail($db, $this->container->get(SettingsRepository::class)),
         ));
         $this->container->instance(\Core\Media\MediaService::class, new \Core\Media\MediaService($db, $this->config));
         $this->container->instance(\Core\Content\MenuService::class, new \Core\Content\MenuService($db));
@@ -237,7 +239,13 @@ final class Application
     {
         $flag = (string) $this->config->get('paths.storage', WC_ROOT . '/storage')
             . '/maintenance.flag';
-        if (!is_file($flag) || rtrim($request->path, '/') === '/admin/login') {
+        if (!is_file($flag)) {
+            return false;
+        }
+        // Login + reset stay reachable or a logged-out operator is locked
+        // out of their own maintenance window.
+        $open = ['/admin/login', '/admin/forgot', '/admin/reset'];
+        if (in_array(rtrim($request->path, '/') ?: '/', $open, true)) {
             return false;
         }
         return $this->container->get(AuthService::class)->user() === null;
@@ -331,6 +339,8 @@ final class Application
 
         $this->router->group('/admin', function (Router $r) use ($c, $auth, $csrfCheck) {
             $r->any('/login', fn (Request $req) => (new \Admin\Controllers\AuthController($c))->login($req));
+            $r->any('/forgot', fn (Request $req) => (new \Admin\Controllers\AuthController($c))->forgot($req));
+            $r->any('/reset', fn (Request $req) => (new \Admin\Controllers\AuthController($c))->reset($req));
             $r->any('/mfa', fn (Request $req) => (new \Admin\Controllers\AuthController($c))->mfa($req));
             $r->post('/logout', fn (Request $req) => (new \Admin\Controllers\AuthController($c))->logout($req), [$csrfCheck]);
 

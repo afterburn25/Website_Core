@@ -16,6 +16,10 @@ tests/tool scores are evidence, not certification.
 ## Current controls (implemented)
 
 - Passwords: `password_hash`/`password_verify`/`password_needs_rehash`.
+- Self-service reset: emailed link carries a single-use token (sha256
+  stored, 30-minute expiry); completing a reset revokes all sessions.
+  Request and consume endpoints are rate-limited; unknown accounts get
+  an identical response (no enumeration).
 - MFA: RFC 6238 TOTP, last-counter replay protection, hashed single-use
   recovery codes.
 - Sessions: hardened cookies (HttpOnly, SameSite=Lax, Secure auto),

@@ -308,18 +308,6 @@ final class Installer
                 'created_at'    => date('Y-m-d H:i:s'),
             ]);
 
-            // Store license key if present
-            if ($licenseKey !== null) {
-                $now = date('Y-m-d H:i:s');
-                $domain = parse_url($baseUrl, PHP_URL_HOST);
-                $db->run(
-                    "INSERT INTO `" . $db->table('license') . "`
-                     (license_key, license_domain, license_valid, license_validated_at)
-                     VALUES (?, ?, 1, ?)",
-                    [$licenseKey, $domain, $now]
-                );
-            }
-
             // A fresh install must serve something at '/' — the home route
             // resolves site.home_slug (default 'home').
             $now = date('Y-m-d H:i:s');

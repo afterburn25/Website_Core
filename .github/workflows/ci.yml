@@ -220,6 +220,8 @@ jobs:
 
           kill $MOCK_PID $SITE_PID 2>/dev/null || true
           echo "licensed bundle acceptance OK"
+
+  core-only-boot:
     name: Core-only boot check
     runs-on: ubuntu-latest
     steps:

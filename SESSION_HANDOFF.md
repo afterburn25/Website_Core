@@ -217,3 +217,18 @@ jobs green (installer acceptance runs on both database legs); draft
 
 **Standing**: 132 tests / 524 assertions; 6/6 CI green; draft
 `v0.1.0-dev` refreshed with all 10 assets after every source change.
+
+## 2026-10-14 (final pass 2) — rollback floor + last consistency sweep
+
+- `CoreUpdater::inspect` never compared archive vs running version —
+  "rollback protection" was claimed but absent. Older archives are now
+  refused; update.json `version` must match the bundled bootstrap. Same-
+  version apply still works (verified live on the extracted artifact).
+- Base 404 wired to its own `page.not_found*`/`nav.home` catalog keys
+  (en+fr); shipped-catalog test validates every en key under fr.
+- Remaining audit confirmed clean: redirect targets are path-or-https
+  only with loop detection; asset serving is extension-allowlisted +
+  realpath-constrained; private media needs `media.manage`; module
+  adminRoutes get the full auth+CSRF pipeline; login errors are uniform.
+
+**Standing**: 134 tests / 529 assertions; 6/6 CI green; draft refreshed.

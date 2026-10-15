@@ -126,3 +126,11 @@
   robots meta.
 - THREAT_MODEL mitigations corrected to describe shipped controls
   (no rollback-floor/encrypted-backup claims).
+
+### Fixed — update posture + i18n consistency
+- `CoreUpdater::inspect` now enforces the rollback floor: archives older
+  than the running core are refused outright (intentional recovery is
+  backup restore, not an update artifact), and a manifest `version` that
+  disagrees with the bundled bootstrap is rejected as lying metadata.
+- Base-theme 404 uses its own catalog keys (`page.not_found*`,
+  `nav.home`) — shipped catalogs no longer carry dead keys.

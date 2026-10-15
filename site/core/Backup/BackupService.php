@@ -178,6 +178,27 @@ final class BackupService
      */
     public function restore(string $path, bool $restoreFiles = true): array
     {
+        // One restore at a time — concurrent restores interleave file
+        // copies and SQL imports into a mixed tree/database.
+        @mkdir($this->stagingDir, 0750, true);
+        $lockFh = @fopen($this->stagingDir . '/restore.lock', 'c');
+        if ($lockFh === false) {
+            return [false, 'Cannot open the restore lock file — check storage permissions.'];
+        }
+        if (!flock($lockFh, LOCK_EX | LOCK_NB)) {
+            fclose($lockFh);
+            return [false, 'Another restore is already in progress.'];
+        }
+        try {
+            return $this->restoreLocked($path, $restoreFiles);
+        } finally {
+            flock($lockFh, LOCK_UN);
+            fclose($lockFh);
+        }
+    }
+
+    private function restoreLocked(string $path, bool $restoreFiles): array
+    {
         [$meta, $err] = $this->inspect($path);
         if ($meta === null) {
             return [false, $err];

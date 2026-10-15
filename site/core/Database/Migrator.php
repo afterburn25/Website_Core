@@ -79,31 +79,85 @@ final class Migrator
     public function migrate(): array
     {
         $this->ensureJournal();
-        $applied = [];
-        $batch = (int) ($this->db->fetchColumn(
-            'SELECT COALESCE(MAX(batch),0) FROM `' . $this->db->table('migrations') . '`'
-        ) ?: 0) + 1;
+        $this->acquireLock();
+        try {
+            $applied = [];
+            $batch = (int) ($this->db->fetchColumn(
+                'SELECT COALESCE(MAX(batch),0) FROM `' . $this->db->table('migrations') . '`'
+            ) ?: 0) + 1;
 
-        foreach ($this->pending() as $migration) {
-            try {
-                $migration->up($this->db);
-            } catch (\Throwable $e) {
-                throw new \RuntimeException(
-                    'Migration ' . $migration->id() . ' failed: ' . $e->getMessage(),
-                    0,
-                    $e
-                );
+            foreach ($this->pending() as $migration) {
+                try {
+                    $migration->up($this->db);
+                } catch (\Throwable $e) {
+                    throw new \RuntimeException(
+                        'Migration ' . $migration->id() . ' failed: ' . $e->getMessage(),
+                        0,
+                        $e
+                    );
+                }
+                $this->db->insert('migrations', [
+                    'migration_id' => $migration->id(),
+                    'description'  => $migration->description(),
+                    'batch'        => $batch,
+                    'checksum'     => hash_file('sha256', $this->fileFor($migration)),
+                    'applied_at'   => date('Y-m-d H:i:s'),
+                ]);
+                $applied[] = $migration->id();
             }
-            $this->db->insert('migrations', [
-                'migration_id' => $migration->id(),
-                'description'  => $migration->description(),
-                'batch'        => $batch,
-                'checksum'     => hash_file('sha256', $this->fileFor($migration)),
-                'applied_at'   => date('Y-m-d H:i:s'),
-            ]);
-            $applied[] = $migration->id();
+            return $applied;
+        } finally {
+            $this->releaseLock();
         }
-        return $applied;
+    }
+
+    /**
+     * DB-level mutex: a sentinel journal row whose UNIQUE migration_id
+     * arbitrates concurrent migrate() runs (update apply vs package install,
+     * installer vs first request). Stale locks older than 120s are reclaimed —
+     * a crashed run must not wedge migrations forever.
+     */
+    private const LOCK_ID = '__migrate_lock__';
+    private const LOCK_TTL = 120;
+
+    private function acquireLock(): void
+    {
+        $table = $this->db->table('migrations');
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            try {
+                $this->db->insert('migrations', [
+                    'migration_id' => self::LOCK_ID,
+                    'description'  => 'migration lock sentinel',
+                    'batch'        => 0,
+                    'checksum'     => str_repeat('0', 64),
+                    'applied_at'   => date('Y-m-d H:i:s'),
+                ]);
+                return;
+            } catch (\Throwable) {
+                // Lock row exists — fall through to the staleness check.
+            }
+            $row = $this->db->fetch(
+                "SELECT applied_at FROM `{$table}` WHERE migration_id = ?",
+                [self::LOCK_ID]
+            );
+            if ($row && strtotime((string) $row['applied_at']) < time() - self::LOCK_TTL) {
+                // Reclaim atomically-ish: delete only if still stale, then
+                // let the unique constraint re-arbitrate the retry insert.
+                $this->db->pdo()->prepare(
+                    "DELETE FROM `{$table}` WHERE migration_id = ? AND applied_at < ?"
+                )->execute([self::LOCK_ID, date('Y-m-d H:i:s', time() - self::LOCK_TTL)]);
+                continue;
+            }
+            throw new \RuntimeException('Another migration run is in progress.');
+        }
+        throw new \RuntimeException('Another migration run is in progress.');
+    }
+
+    private function releaseLock(): void
+    {
+        $this->db->pdo()->prepare(
+            'DELETE FROM `' . $this->db->table('migrations') . '` WHERE migration_id = ?'
+        )->execute([self::LOCK_ID]);
     }
 
     private function load(string $file): ?Migration

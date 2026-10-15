@@ -25,7 +25,11 @@ capability):
    `version`, a `files` sha256 map of every payload member, and an
    optional Ed25519 `signature` verified by the same
    `SignatureVerifier`/trust-root config (`trust.public_keys`,
-   `trust.allow_unsigned`) as packages.
+   `trust.allow_unsigned`) as packages. `inspect()` also refuses a
+   manifest whose declared `version` disagrees with the bundled
+   bootstrap, and any archive older than the running core — the rollback
+   floor; intentional recovery goes through backup restore, not an
+   update artifact.
 3. `apply()` re-inspects immediately before writing (review-then-apply
    TOCTOU guard), validates **every** member's hash against the manifest
    in a pre-pass — a corrupt or tampered archive aborts with zero files
@@ -59,5 +63,7 @@ by configuring `trust.public_keys` and `trust.allow_unsigned=false`.
 - Maintenance window enforcement is opt-in: set
   `updates.require_window` and the apply step refuses until
   `storage/maintenance.flag` exists (owner-created).
-- Strictly monotonic anti-rollback versions beyond `min_core`/`expires`
-  (a TUF-style flow is the reference target; we do not invent cryptography).
+- A stronger TUF-style signed-metadata chain is a reference target; the
+  shipped floor already refuses older archives, expired manifests,
+  incompatible `min_core`, and manifest/bootstrap version mismatches —
+  we do not invent cryptography beyond that.

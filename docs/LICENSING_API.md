@@ -15,8 +15,12 @@ licensing service generates a bundled ZIP:
 
 ## License validation API
 
-Website Core calls `POST {license_api_url}` during installation and periodically
+Website Core calls `POST {license.api_url}` during installation and periodically
 thereafter.
+
+**Configuration:** `license.api_url` in `config.php` (e.g.,
+`https://cajunwebpro.com/api`). The installer sets this to the default;
+change it if your licensing service runs on a different URL.
 
 **Request:**
 ```json

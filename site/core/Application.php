@@ -218,19 +218,27 @@ final class Application
         $this->container->instance(\Core\License\LicenseValidation::class, new \Core\License\LicenseValidation($db, $this->config));
         $this->container->instance(\Core\Jobs\LicenseValidationJob::class, new \Core\Jobs\LicenseValidationJob($db, $this->config));
 
-        // Enqueue license validation job if it hasn't run in the last 24 hours
-        $licenseTable = $db->table('license');
-        $lastRun = $db->fetch(
-            "SELECT MAX(license_validated_at) AS last_run FROM `{$licenseTable}` WHERE license_validated_at IS NOT NULL"
-        );
-        $needsValidation = !$lastRun || strtotime((string) $lastRun['last_run']) < strtotime('-24 hours');
-        if ($needsValidation) {
-            $db->insert('jobs', [
-                'type' => 'license.validate',
-                'payload' => json_encode([]),
-                'run_at' => date('Y-m-d H:i:s'),
-                'created_at' => date('Y-m-d H:i:s'),
-            ]);
+        // Enqueue license validation job if it hasn't run in the last 24 hours.
+        // Licensed installs only; wrapped so a missing jobs/license table can
+        // never break request handling.
+        try {
+            $licenseTable = $db->table('license');
+            $lastRun = $db->fetch(
+                "SELECT MAX(license_validated_at) AS last_run FROM `{$licenseTable}` WHERE license_validated_at IS NOT NULL"
+            );
+            $hasLicense = (bool) $db->fetch("SELECT license_key FROM `{$licenseTable}` WHERE license_key IS NOT NULL AND license_key <> '' LIMIT 1");
+            $needsValidation = $hasLicense && (!$lastRun || strtotime((string) $lastRun['last_run']) < strtotime('-24 hours'));
+            if ($needsValidation) {
+                $jobsTable = $db->table('jobs');
+                $pending = $db->fetch(
+                    "SELECT id FROM `{$jobsTable}` WHERE type = 'license.validate' AND status IN ('pending','uncertain','running') LIMIT 1"
+                );
+                if (!$pending) {
+                    (new \Core\Jobs\JobQueue($db))->dispatch('license.validate');
+                }
+            }
+        } catch (\Throwable) {
+            // licensing/job tables absent on this schema — skip silently
         }
 
         $modulesRoot = (string) $this->config->get('paths.modules', WC_MODULES);

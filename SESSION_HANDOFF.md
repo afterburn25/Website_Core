@@ -268,3 +268,23 @@ jobs green (installer acceptance runs on both database legs); draft
   all audited clean.
 
 **Standing**: 138 tests / 538 assertions; 6/6 CI green; draft refreshed.
+
+## 2026-10-14 (final pass 5) — routing correctness + URL escaping
+
+- **Unreachable-slug guard**: page save now refuses slugs a router can
+  never serve — reserved segments (admin/api/media/…, shared const
+  building the catch-all lookahead) and concrete module routes
+  (Router::isConcreteMatch — GET-capable, non-catchall). Index flags
+  already-shadowed rows 'unreachable' (covers pre-existing data and
+  retroactive shadowing when a module is enabled later).
+- **e_url obfuscation bypass**: parse_url returns no scheme for
+  "java\tscript:" / " javascript:" but browsers strip tabs/newlines
+  inside schemes + leading whitespace — raw payloads rendered.
+  Now probes a control-char-stripped copy. Write-side validators
+  (MenuService::urlOk, RedirectService) were already fail-closed.
+- Audited clean this pass: preview tokens (hashed+expiry, peek+consume),
+  XFF/isSecure gated on trusted-proxy CIDR, host() never reaches output
+  (sitemap uses configured app.url), diagnostics exports key names only,
+  SMTP password write-only.
+
+**Standing**: 139 tests / 552 assertions; 6/6 CI green; draft refreshed.

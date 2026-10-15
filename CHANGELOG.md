@@ -156,3 +156,11 @@
   docblock corrected.
 - The shared inquiry add-on rate-limits submissions (5/IP/10min) via
   the core RateLimiter — CSRF/honeypot paths never burn the bucket.
+
+### Fixed — routing + URL escaping
+- Page save refuses unreachable slugs: reserved path segments and any
+  slug a module route already handles (concrete routes always outscore
+  the page catch-all). Content index flags already-dead pages
+  'unreachable'.
+- e_url() rejected "javascript:" but not browser-de-obfuscated forms
+  ("java\tscript:", " javascript:") — control-char probe added.

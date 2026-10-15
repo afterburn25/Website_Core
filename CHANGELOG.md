@@ -179,6 +179,20 @@
 - `Dispatcher` lifecycle events (`page.*`, `media.uploaded`,
   `backup.*`, `package.*`) with fault-isolated listeners.
 
+### Added — DRM licensing system
+- `LicenseValidation` service for phone-home validation with domain
+  binding and periodic re-validation via `LicenseValidationJob` cron.
+- `license` table for storing license key, domain, validity, deactivation.
+- PackageManager license checks before module install/enable/disable.
+- Installer validates license key if a bundled module is detected.
+- Admin settings shows license status (key, domain, validity, last
+  validated).
+- `tools/build-packages.php bundle <industry> <license_key>` creates
+  bundled ZIPs with embedded license_key in module manifest.
+- `license_key` field added to manifest schema v1.
+- `docs/LICENSING_API.md` documents the Cajunwebpro.com API contract.
+- `LicenseValidationTest` (4 tests) for license storage/status/binding.
+
 ### Added — release tooling
 - `tools/build-packages.php`: FULL-PROJECT / COMPLETE-UPLOAD (prod-only
   vendor) / UPDATE (update.json, signable) / package zips / SHA256SUMS.

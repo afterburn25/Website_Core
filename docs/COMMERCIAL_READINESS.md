@@ -39,10 +39,26 @@ shipped (excluded from artifacts; verified by artifact contents check in
 ## Rules honored
 
 - Public repo: no customer data, credentials, or signing material.
-- No mandatory activation/license phone-home; installed sites keep working
-  through any licensing outage.
 - Redistribution rights verified per bundled dependency before release —
   tracked here, not assumed.
+
+## DRM / licensing (new)
+
+Website Core supports a DRM licensing model for bundled products:
+
+- **License keys**: Unique per purchase, embedded in module manifests,
+  validated before install and periodically thereafter.
+- **Domain binding**: Keys are tied to domains registered in the licensing
+  portal; changes deactivate the old site.
+- **Two-instance support**: Same server (IP) can host public + test sites
+  on the same license key.
+- **Build tool**: `php tools/build-packages.php bundle <industry>
+  <license_key>` creates bundled ZIPs.
+
+**Status**: API specification in `docs/LICENSING_API.md`. Cajunwebpro.com
+licensing service is NOT yet implemented — needs license key generation,
+domain registration portal, validation endpoint, and domain change
+workflow.
 
 ## Performance posture
 

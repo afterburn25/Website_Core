@@ -33,6 +33,31 @@ lives at `sdk/schema/addon.schema.json`.
 | `integrity.files` | object | path → sha256 for post-extract verification |
 | `templates` | list | theme: named template inventory |
 | `tokens` | object | theme: design tokens (fonts/colors/radius/...) |
+| `license_key` | string | Optional: license key binding this module to a site |
+
+## Bundled products
+
+Commercial distributions bundle the core + industry module in one ZIP:
+
+- `site/` — Website Core
+- `modules/industry-{name}/` — module with `license_key` in `addon.json`
+
+**Install flow:**
+1. Installer detects bundled module (`modules/industry-*/addon.json`)
+2. Reads `license_key` from the manifest
+3. Validates against the licensing service (`license.api_url`)
+4. If valid → stores the key, installs core, enables the module
+5. If invalid → shows an error, refuses to proceed
+
+**Module binding:** Once a site is installed with a module, that module is
+bound to the license key. Operations on other modules check the key match —
+mismatched keys are refused.
+
+**Domain binding:** The license key is associated with a domain in the
+licensing service. Periodic validation checks the key + domain; if the
+domain changes, the old site deactivates.
+
+See `docs/LICENSING_API.md` for the full API contract.
 
 ## Rules enforced by the registry
 

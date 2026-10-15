@@ -42,6 +42,12 @@ Bundles ship the industry module pre-extracted at
   deactivate and never clear the stored verdict. Settings → License →
   "Validate now" re-checks on demand and reactivates a fixed site
   immediately without waiting for cron.
+- **Moving a licensed site**: the site reports the domain it actually
+  serves (its `app.url`, not the raw request host). To move it, replace
+  the domain in the Cajunwebpro client portal (the old site
+  auto-deactivates at its next check), then set **Settings → Base URL**
+  on the new install and run "Validate now" — no `config.php` edit
+  needed. The site refuses to run on an unregistered domain.
 
 ## Ownership claim model (no install key)
 

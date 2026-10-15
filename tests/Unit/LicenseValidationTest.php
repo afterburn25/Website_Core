@@ -149,4 +149,30 @@ final class LicenseValidationTest extends TestCase
         $license = new LicenseValidation($db, $this->config());
         $this->assertSame('', $license->detectDomain());
     }
+
+    public function testDetectDomainSettingsOverrideWins(): void
+    {
+        $db = $this->db();
+        // Config says old.example.com; the admin-editable settings
+        // override (domain-move recovery) must win.
+        $cfg = tempnam(sys_get_temp_dir(), 'wc-cfg');
+        file_put_contents($cfg, "<?php return ['app' => ['url' => 'https://old.example.com']];");
+        $settings = new \Core\Settings\SettingsRepository($db);
+        $settings->set('app.url', 'https://new.example.com');
+        $license = new LicenseValidation($db, new Config($cfg));
+        $this->assertSame('new.example.com', $license->detectDomain());
+        unlink($cfg);
+    }
+
+    public function testDetectDomainBlankOverrideFallsBackToConfig(): void
+    {
+        $db = $this->db();
+        $cfg = tempnam(sys_get_temp_dir(), 'wc-cfg');
+        file_put_contents($cfg, "<?php return ['app' => ['url' => 'https://installed.example.com']];");
+        $settings = new \Core\Settings\SettingsRepository($db);
+        $settings->set('app.url', ''); // cleared override
+        $license = new LicenseValidation($db, new Config($cfg));
+        $this->assertSame('installed.example.com', $license->detectDomain());
+        unlink($cfg);
+    }
 }

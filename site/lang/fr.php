@@ -6,4 +6,5 @@ return [
     'page.not_found'      => 'Page introuvable',
     'page.not_found_help' => 'La page demandée n’existe pas ou a été déplacée.',
     'nav.primary'         => 'Principale',
+    'nav.home'            => 'Retour à la page d’accueil',
 ];

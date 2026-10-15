@@ -5,4 +5,5 @@ return [
     'page.not_found'     => 'Page not found',
     'page.not_found_help' => 'The page you requested does not exist or has moved.',
     'nav.primary'        => 'Primary',
+    'nav.home'           => 'Return to the home page',
 ];

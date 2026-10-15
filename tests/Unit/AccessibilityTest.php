@@ -64,6 +64,38 @@ final class AccessibilityTest extends TestCase
         $this->assertStringContainsString('<h1>', $html);
     }
 
+    public function testAdminLayoutAccessibilityControls(): void
+    {
+        $adminLayout = (string) file_get_contents(WC_ROOT . '/admin/views/layouts/admin.php');
+        $this->assertStringContainsString('aria-label="Admin"', $adminLayout, 'admin nav labelled');
+        $this->assertStringContainsString('focus-visible', $adminLayout, 'focus-visible outlines present');
+        $this->assertStringContainsString('prefers-reduced-motion', $adminLayout, 'reduced-motion support present');
+    }
+
+    public function testThemeReducedMotionSupport(): void
+    {
+        $themes = [
+            WC_THEMES . '/base/assets/css/style.css',
+            dirname(WC_ROOT) . '/examples/theme-noir/assets/css/style.css',
+            dirname(WC_ROOT) . '/examples/theme-terra/assets/css/style.css',
+        ];
+        foreach ($themes as $cssPath) {
+            $this->assertFileExists($cssPath, "$cssPath exists");
+            $css = (string) file_get_contents($cssPath);
+            $this->assertStringContainsString('prefers-reduced-motion', $css, "$cssPath supports reduced motion");
+        }
+    }
+
+    public function testMediaThumbnailAltTextNotAlwaysEmpty(): void
+    {
+        $mediaIndex = (string) file_get_contents(WC_ROOT . '/admin/views/media/index.php');
+        $this->assertMatchesRegularExpression(
+            '/alt="[^"]+"/',
+            $mediaIndex,
+            'Media thumbnail has descriptive alt text (not empty)'
+        );
+    }
+
     public function testInquiryFormLabelsAllVisibleControls(): void
     {
         $form = (string) file_get_contents(

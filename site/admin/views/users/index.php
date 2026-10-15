@@ -32,5 +32,25 @@
 </tr>
 <?php endforeach; ?>
 </table>
-<p class="muted">The last enabled owner cannot be demoted or disabled. User invitations arrive in a later milestone.</p>
+<p class="muted">The last enabled owner cannot be demoted or disabled.</p>
 </div>
+<?php if (!empty($canCreate)): ?>
+<div class="card">
+<h2>Add administrator</h2>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/users/create">
+<?= $csrf->field() ?>
+<div class="grid2">
+<label>Username <input name="username" required minlength="3" maxlength="60"></label>
+<label>Email <input name="email" type="email" required></label>
+<label>Role <select name="role">
+<?php foreach (($createRoles ?? $roles) as $role): ?>
+<option value="<?= e_attr($role) ?>" <?= $role === 'editor' ? 'selected' : '' ?>><?= e($role) ?></option>
+<?php endforeach; ?>
+</select></label>
+<label>Temporary password <input name="password" type="password" required minlength="12" autocomplete="new-password"></label>
+</div>
+<button class="btn" type="submit">Create</button>
+<p class="muted">Share the temporary password out-of-band; the new admin should change it and enable MFA on first sign-in. Only owners can assign the owner role.</p>
+</form>
+</div>
+<?php endif; ?>

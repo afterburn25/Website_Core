@@ -291,6 +291,7 @@ final class Application
             $r->post('/profile/mfa/enable', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->enableMfa($req), [$auth, $csrfCheck]);
             $r->post('/profile/mfa/disable', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->disableMfa($req), [$auth, $csrfCheck]);
             $r->get('/users', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->index($req), [$auth]);
+            $r->post('/users/create', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->create($req), [$auth, $csrfCheck]);
             $r->post('/users/{id:\d+}/role', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->changeRole($req), [$auth, $csrfCheck]);
             $r->post('/users/{id:\d+}/disable', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->toggleDisable($req), [$auth, $csrfCheck]);
             $r->get('/modules', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->index($req), [$auth]);

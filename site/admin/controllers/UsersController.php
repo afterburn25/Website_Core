@@ -19,7 +19,66 @@ final class UsersController extends Controller
         return $this->page($r, 'users/index', [
             'admins' => $users,
             'roles'  => $this->c->get(Permissions::class)->roles(),
+            'canCreate' => $user->isOwner()
+                || $this->auth()->has($user, 'admins.manage_nonowner'),
+            'createRoles' => $user->isOwner()
+                ? $this->c->get(Permissions::class)->roles()
+                : array_values(array_diff(
+                    $this->c->get(Permissions::class)->roles(), ['owner']
+                )),
         ], 'Administrators');
+    }
+
+    public function create(Request $r): Response
+    {
+        $actor = $this->user();
+        if (!$actor) {
+            return $this->forbidden();
+        }
+        $repo = $this->c->get(\Core\Auth\AdminRepository::class);
+        $perms = $this->c->get(Permissions::class);
+
+        $username = $r->string('username');
+        $email = $r->string('email');
+        $role = $r->string('role');
+        $password = (string) ($r->post['password'] ?? '');
+
+        // Capability: owners create anyone; manage_nonowner holders create
+        // non-owner accounts only — an admin must never mint a new owner.
+        if (!$actor->isOwner()) {
+            if (!$this->auth()->has($actor, 'admins.manage_nonowner') || $role === 'owner') {
+                return $this->forbidden();
+            }
+        }
+        if (!$perms->roleExists($role)) {
+            return $this->forbidden();
+        }
+
+        $errors = [];
+        if (!preg_match('/^[a-zA-Z0-9_.-]{3,60}$/', $username)) {
+            $errors[] = 'Username: 3-60 chars, letters/digits/._-';
+        } elseif ($repo->findByUsername($username) !== null) {
+            $errors[] = 'That username is already taken.';
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'A valid email is required.';
+        }
+        if (strlen($password) < 12) {
+            $errors[] = 'Password must be at least 12 characters.';
+        }
+        if ($errors !== []) {
+            $this->flash('error', implode(' ', $errors));
+            return $this->redirect($r, '/admin/users');
+        }
+
+        $id = $repo->create(
+            $username, $email, password_hash($password, PASSWORD_DEFAULT), $role
+        );
+        $this->c->get(\Core\Audit\AuditLog::class)->record('admin.created', $actor->id, [
+            'target' => $id, 'username' => $username, 'role' => $role,
+        ]);
+        $this->flash('ok', 'Administrator created. They can enable MFA on first sign-in.');
+        return $this->redirect($r, '/admin/users');
     }
 
     public function changeRole(Request $r): Response

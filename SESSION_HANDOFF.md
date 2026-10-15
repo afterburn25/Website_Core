@@ -353,25 +353,44 @@ jobs green (installer acceptance runs on both database legs); draft
   (sitemap uses configured app.url), diagnostics exports key names only,
   SMTP password write-only.
 
-**Standing**: 153 tests / 588 assertions; 6/6 CI green; draft refreshed.
+**Standing**: 159 tests / 615 assertions; CI green on `devin/website-core`.
 
 ## DRM / licensing system (new — commercial extension)
 
-Website Core now supports a DRM licensing model for bundled products
+Website Core supports a DRM licensing model for bundled products
 (core + industry module):
 
 - `site/core/License/LicenseValidation.php` — phone-home validation,
-  domain binding, periodic validation, deactivation handling.
-- `site/core/Jobs/LicenseValidationJob.php` — cron job for periodic
-  validation.
+  domain binding, deactivation handling.
+- `site/core/Jobs/LicenseValidationJob.php` — cron job, enqueued every
+  24h for licensed installs (pending-job deduped).
 - `site/database/migrations/2026_10_15_0008_license_tracking.php` —
-  license table schema.
+  license table schema (unique `license_key`).
 - `site/core/Modules/PackageManager.php` — license checks before
   install/enable/disable operations.
-- `site/install/Installer.php` — validates license key during install.
+- `site/install/Installer.php` — detects bundled modules via embedded
+  `license_key` in `addon.json`, validates against the API, stores the
+  key. Endpoint: `{license.api_url}/validate.php`; `WC_LICENSE_API_URL`
+  env overrides the default for install-time validation and generated
+  config (used by tests/mocks).
+- `site/core/Application.php` — public pages return 503 when an installed
+  license is invalid/deactivated; `/admin` stays reachable.
 - `tools/build-packages.php bundle` — creates bundled ZIPs with embedded
   license keys.
-- `docs/LICENSING_API.md` — documents the Cajunwebpro.com API contract.
+- `docs/LICENSING_API.md` — API contract.
 
-The licensing service (cajunwebpro.com) is NOT yet implemented — see
-`docs/LICENSING_API.md` for the API specification.
+Deactivation semantics: only an explicit server denial
+(`authorized:false`) deactivates; network failures/malformed responses
+are inconclusive and retry. A successful validation clears
+`license_deactivated`.
+
+The licensing service on cajunwebpro.com IS implemented (Cajun_Web
+`main`): `api/validate.php` (rate-limited, audited), license service,
+`license_domains` (max 2 active per license), `license_bundles`, admin
+UI (`studio-licenses`), portal domain management + owner-only
+`api/bundle-download.php`, auto-fulfilment on paid invoices
+(`license_fulfill_invoice`, SKU `WEBSITE-{INDUSTRY}`), customer email.
+
+Coverage: `LicenseValidationTest` + `LicenseApiContractTest` (6 tests
+spawning a real `php -S` mock endpoint — verifies wire contract,
+denial/inconclusive semantics, reactivation).

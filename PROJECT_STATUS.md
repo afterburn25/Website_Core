@@ -39,10 +39,11 @@ items are owner-gated, not engineering.
 - Draft prerelease publish — owner approval.
 - Real-host compatibility runs outside local/CI environments.
 - PR #7 merge approval.
-- **Cajunwebpro.com licensing service implementation** — the API contract
-  is documented (`docs/LICENSING_API.md`); the actual service (key
-  generation, domain portal, validation endpoint, domain changes) needs
-  to be built on cajunwebpro.com.
+- **Cajunwebpro.com licensing service** — implemented on Cajun_Web `main`
+  (validation endpoint, license service, admin/portal UI, auto-fulfilment,
+  bundle downloads). Remaining: production config (`license_core_dir`
+  pointing to a Website_Core checkout) and a live end-to-end cycle —
+  no real purchase/install/validation has been run yet.
 
 ## DRM / licensing (new — commercial extension)
 
@@ -52,27 +53,29 @@ Website Core now supports a DRM licensing model for bundled products:
   stored in the `license` table, checked before module operations.
 - **Domain binding**: Customer registers domain in the licensing portal;
   validation API checks key + domain; changing a domain deactivates the
-  old site.
-- **Validation**: Installer validates license during install; periodic
-  validation runs via cron job; failed validation shows warning to admins
-  but site continues for public visitors.
+  old site. Max 2 active domains per license (public + test).
+- **Validation**: Installer validates license during install against
+  `{license.api_url}/validate.php`; periodic revalidation runs via a
+  deduped 24h job. **Explicit denial** (deactivated license/unregistered
+  domain) blocks public pages with 503 while `/admin` stays open;
+  **transient failures** (network/malformed) never deactivate;
+  **successful** validation auto-reactivates.
 - **Build tool**: `php tools/build-packages.php bundle <industry>
   <license_key> [outdir]` creates a bundled ZIP with the license key
   embedded in the module manifest.
-- **LICENSING_API.md**: documents the Cajunwebpro.com API contract.
-
-**Not yet implemented on cajunwebpro.com:** License key generation,
-domain registration portal, validation API endpoint, domain change
-workflow. See `docs/LICENSING_API.md` for the API specification.
+- **LICENSING_API.md**: documents the Cajunwebpro.com API contract,
+  `license.api_url` config, and `WC_LICENSE_API_URL` test override.
 
 ## Test status
 
-- `unit`+`package`: 153 tests / 588 assertions green locally (PHP 8.4.25);
+- `unit`+`package`: 159 tests / 615 assertions green locally (PHP 8.4.25);
   3 skips are native-DB gated. Sodium tests run via `sodium_compat`.
   AccessibilityTest (7 tests) asserts aria-label, for labels, alt text,
   focus-visible, reduced-motion across admin layout and all 3 themes.
-  LicenseValidationTest (4 tests) asserts license storage, status, domain
-  binding.
+  LicenseValidationTest asserts license storage/status/domain binding;
+  LicenseApiContractTest (6 tests) spawns a real `php -S` mock of the
+  Cajunwebpro endpoint and verifies the wire contract — well-formed POST,
+  explicit denials vs inconclusive failures, reactivation.
 - `native`: green in CI on mysql:8.4 and mariadb:11.4 service jobs —
   each leg also exercises the real installer over HTTP (claim → POST →
   lock/config/self-disable assertions).

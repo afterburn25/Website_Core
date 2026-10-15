@@ -66,7 +66,16 @@ final class Connection
     /** Prefix-aware table name. Callers always use logical names. */
     public function table(string $name): string
     {
+        self::assertIdent($name);
         return $this->prefix . $name;
+    }
+
+    /** Identifiers are interpolated, never bound — allowlist them. */
+    private static function assertIdent(string $name): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
+            throw new \InvalidArgumentException("Unsafe SQL identifier: {$name}");
+        }
     }
 
     public function run(string $sql, array $params = []): PDOStatement
@@ -96,6 +105,9 @@ final class Connection
     public function insert(string $table, array $data): string
     {
         $cols = array_keys($data);
+        foreach ($cols as $c) {
+            self::assertIdent($c);
+        }
         $sql = 'INSERT INTO `' . $this->table($table) . '` (`'
             . implode('`,`', $cols) . '`) VALUES (' . rtrim(str_repeat('?,', count($cols)), ',') . ')';
         $this->run($sql, array_values($data));
@@ -104,7 +116,11 @@ final class Connection
 
     public function update(string $table, array $data, string $where, array $params = []): int
     {
-        $set = implode(',', array_map(fn (string $c) => "`{$c}`=?", array_keys($data)));
+        $cols = array_keys($data);
+        foreach ($cols as $c) {
+            self::assertIdent($c);
+        }
+        $set = implode(',', array_map(fn (string $c) => "`{$c}`=?", $cols));
         $stmt = $this->run(
             'UPDATE `' . $this->table($table) . "` SET {$set} WHERE {$where}",
             [...array_values($data), ...$params]

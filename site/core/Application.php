@@ -218,6 +218,21 @@ final class Application
         $this->container->instance(\Core\License\LicenseValidation::class, new \Core\License\LicenseValidation($db, $this->config));
         $this->container->instance(\Core\Jobs\LicenseValidationJob::class, new \Core\Jobs\LicenseValidationJob($db, $this->config));
 
+        // Enqueue license validation job if it hasn't run in the last 24 hours
+        $licenseTable = $db->table('license');
+        $lastRun = $db->fetch(
+            "SELECT MAX(license_validated_at) AS last_run FROM `{$licenseTable}` WHERE license_validated_at IS NOT NULL"
+        );
+        $needsValidation = !$lastRun || strtotime((string) $lastRun['last_run']) < strtotime('-24 hours');
+        if ($needsValidation) {
+            $db->insert('jobs', [
+                'type' => 'license.validate',
+                'payload' => json_encode([]),
+                'run_at' => date('Y-m-d H:i:s'),
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
         $modulesRoot = (string) $this->config->get('paths.modules', WC_MODULES);
         $themesRoot = (string) $this->config->get('paths.themes', WC_THEMES);
         $registry = new ModuleRegistry($db, $modulesRoot . '/industries', $modulesRoot . '/addons', $themesRoot);

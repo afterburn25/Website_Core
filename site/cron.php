@@ -15,6 +15,16 @@ if (!$app->installed()) {
 }
 
 $cli = PHP_SAPI === 'cli';
+// Honor maintenance.flag like the request path — jobs and mail must not
+// run against a mid-swap tree during an update/restore window.
+$storage = (string) $app->container()->get(\Core\Config::class)
+    ->get('paths.storage', WC_ROOT . '/storage');
+if (is_file($storage . '/maintenance.flag')) {
+    if (PHP_SAPI !== 'cli') {
+        http_response_code(503);
+    }
+    exit("maintenance\n");
+}
 // Non-HTTP entry points must boot explicitly — dispatch() does it for web
 // requests, cron never dispatches. bootJobs() also boots enabled packages
 // so their scheduledJob() handlers are registered before the runner claims.

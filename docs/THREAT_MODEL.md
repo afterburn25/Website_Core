@@ -42,7 +42,7 @@ backups; job queue contents; audit trail integrity.
 | Malicious package | manifest+integrity validation pre-load, staged extraction, quarantine, lifecycle journal |
 | Host-header abuse | validated configured URL; trusted-proxies explicit |
 | Secrets in artifacts | config.php gitignored, deny rules, redacted audit/support bundles |
-| Update tampering | optional Ed25519 signature on update.json + per-file sha256 verified before any write + manifest expiry + min_core gate + replaced-file backups |
+| Update tampering | optional Ed25519 signature on update.json + per-file sha256 verified before any write + manifest expiry + min_core gate + rollback floor (older archives refused) + replaced-file backups |
 | Backup exfiltration | archives stored under private `storage/`; path-validated members + integrity manifest on restore. Archives are NOT encrypted — see BACKUP_RESTORE.md for limits |
 
 ## Explicit non-claims

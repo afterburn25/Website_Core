@@ -14,13 +14,20 @@ use Core\Database\Connection;
  */
 final class LicenseValidation
 {
-    private const API_BASE = 'https://cajunwebpro.com/api';
     private const TIMEOUT = 10;
 
     public function __construct(
         private Connection $db,
         private Config $config,
     ) {}
+
+    /**
+     * Get the API base URL from config.
+     */
+    private function apiBase(): string
+    {
+        return rtrim((string) $this->config->get('license.api_url', 'https://cajunwebpro.com/api'), '/');
+    }
 
     /**
      * Validate a license key for the current domain.
@@ -31,7 +38,7 @@ final class LicenseValidation
      */
     public function validate(string $licenseKey, string $domain): array
     {
-        $endpoint = self::API_BASE . '/validate';
+        $endpoint = $this->apiBase() . '/validate';
         $payload = json_encode([
             'license_key' => $licenseKey,
             'domain' => $domain,

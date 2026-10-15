@@ -493,6 +493,9 @@ final class Installer
                 'smtp_host' => '', 'smtp_port' => 587, 'smtp_user' => '', 'smtp_pass' => '',
                 'smtp_secure' => 'tls', 'from' => 'no-reply@example.com', 'from_name' => {$s($v['siteName'])},
             ],
+            'license' => [
+                'api_url' => 'https://cajunwebpro.com/api',
+            ],
             'trust' => ['public_keys' => [], 'allow_unsigned' => false],
             'updates' => ['channel' => 'stable', 'require_window' => false],
         ];

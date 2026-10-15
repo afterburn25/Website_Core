@@ -41,8 +41,11 @@ items are owner-gated, not engineering.
 - PR #7 merge approval.
 - **Cajunwebpro.com licensing service** — implemented on Cajun_Web `main`
   (validation endpoint, license service, admin/portal UI, auto-fulfilment,
-  bundle downloads). Remaining: production config (`license_core_dir`
-  pointing to a Website_Core checkout) and a live end-to-end cycle —
+  bundle downloads). CI now proves the full client cycle end-to-end:
+  the native leg stages a licensed bundle, runs the real installer over
+  HTTP on MySQL/MariaDB against the contract-mock API, then drives a
+  cron validation → denial → 503 → reactivation. Remaining: production
+  config (`license_core_dir`) and a *live* cajunwebpro.com cycle —
   no real purchase/install/validation has been run yet.
 
 ## DRM / licensing (new — commercial extension)

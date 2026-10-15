@@ -214,6 +214,12 @@
   `WC_LICENSE_API_URL` env overrides the base for install-time
   validation and generated config.
 - `license.validate` job deduplication — one pending/running job max.
+- Native CI leg proves the cycle end-to-end over HTTP on real
+  MySQL/MariaDB: staged bundle detection → licensed install → license
+  row + enabled package + module tables → cron-driven revalidation →
+  remote denial taking public pages to 503 with `/admin` reachable →
+  reactivation on domain re-registration — all against the
+  `tests/fixtures/license-api` mock of the Cajunwebpro contract.
 
 ### Added — release tooling
 - `tools/build-packages.php`: FULL-PROJECT / COMPLETE-UPLOAD (prod-only

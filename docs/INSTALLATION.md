@@ -35,9 +35,13 @@ Bundles ship the industry module pre-extracted at
 - The `WC_LICENSE_API_URL` environment variable overrides the API base
   for install-time validation and the generated `license.api_url`
   config (used by tests/mocks).
-- The installed site re-validates daily; explicit server denial takes
-  public pages offline (503) while `/admin` stays reachable for
-  correction; transient outages never deactivate.
+- The installed site re-validates via the cron job runner — daily while
+  valid, hourly while deactivated (schedule `cron.php` per Post-install
+  below). Explicit server denial takes public pages offline (503) while
+  `/admin` stays reachable for correction; transient outages never
+  deactivate and never clear the stored verdict. Settings → License →
+  "Validate now" re-checks on demand and reactivates a fixed site
+  immediately without waiting for cron.
 
 ## Ownership claim model (no install key)
 

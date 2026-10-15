@@ -33,6 +33,20 @@ tests/tool scores are evidence, not certification.
   permissions policies.
 - Installer: claim model (seeded token or bound-session), generated
   secrets, self-disable + permanent lock.
+
+## Accessibility
+
+All interactive elements in the admin interface and themes support keyboard
+navigation and screen readers:
+
+- `aria-label` attributes on navigation regions (admin sidebar, site nav).
+- Form inputs have associated `for` labels.
+- Image thumbnails have descriptive `alt` text.
+- `focus-visible` outlines on all interactive elements (links, buttons, inputs).
+- `prefers-reduced-motion` media query disables animations/transitions for users
+  who request reduced motion (admin layout, base theme, noir theme, terra theme).
+- Semantic HTML: `<nav>`, `<header>`, `<main>`, `<h1>` headings.
+- Responsive layout with mobile breakpoints (admin sidebar stacks, themes adapt).
 - Package safety: manifest validation before any code load, quarantine on
   boot failure, integrity hashes supported in schema.
 - Assets: namespaced resolver, allowlisted MIME, realpath confinement,

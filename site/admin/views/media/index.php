@@ -29,7 +29,7 @@
 <td>
 <?php if (str_starts_with($m['mime'], 'image/')): ?>
 <img src="<?= e_attr($basePath) ?>/media/<?= (int) $m['id'] ?>/<?= e_attr($m['original_name']) ?>"
-     alt="" style="width:48px;height:48px;object-fit:cover;border-radius:4px;vertical-align:middle">
+     alt="Thumbnail for <?= e_attr($m['original_name']) ?>" style="width:48px;height:48px;object-fit:cover;border-radius:4px;vertical-align:middle">
 <?php endif; ?>
 <a href="<?= e_attr($basePath) ?>/media/<?= (int) $m['id'] ?>/<?= e_attr($m['original_name']) ?>"><?= e($m['original_name']) ?></a>
 <?= $m['is_private'] ? ' <span class="badge warn">private</span>' : '' ?>

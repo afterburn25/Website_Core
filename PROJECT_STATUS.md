@@ -82,7 +82,7 @@ Website Core now supports a DRM licensing model for bundled products:
 
 ## Test status
 
-- `unit`+`package`: 165 tests / 647 assertions green locally (PHP 8.4.25);
+- `unit`+`package`: 167 tests / 649 assertions green locally (PHP 8.4.25);
   3 skips are native-DB gated. Sodium tests run via `sodium_compat`.
   AccessibilityTest (7 tests) asserts aria-label, for labels, alt text,
   focus-visible, reduced-motion across admin layout and all 3 themes.

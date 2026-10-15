@@ -73,13 +73,15 @@ if ($command === 'bundle') {
     // Add core files
     $coreBase = $root . '/site';
     $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($coreBase, RecursiveDirectoryIterator::SKIP_DOTS),
-        RecursiveIteratorIterator::SELF_FIRST
+        new RecursiveDirectoryIterator($coreBase, FilesystemIterator::SKIP_DOTS)
     );
     $count = 0;
     foreach ($iterator as $file) {
-        $path = $file->getRealPath();
-        $rel = substr($path, strlen($coreBase) + 1);
+        if (!$file->isFile()) {
+            continue;
+        }
+        $path = $file->getPathname();
+        $rel = str_replace('\\', '/', substr($path, strlen($coreBase) + 1));
         // Skip secrets and runtime artifacts
         if (str_starts_with($rel, 'config/config.php')
             || str_starts_with($rel, 'config/installed.lock')
@@ -91,33 +93,31 @@ if ($command === 'bundle') {
         ) {
             continue;
         }
-        if ($file->isFile()) {
-            $zip->addFile($path, 'site/' . $rel);
-            $count++;
-        }
+        $zip->addFile($path, 'site/' . $rel);
+        $count++;
     }
     // Add module files with embedded license_key
     $moduleBase = $moduleDir;
     $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($moduleBase, RecursiveDirectoryIterator::SKIP_DOTS),
-        RecursiveIteratorIterator::SELF_FIRST
+        new RecursiveDirectoryIterator($moduleBase, FilesystemIterator::SKIP_DOTS)
     );
     foreach ($iterator as $file) {
-        $path = $file->getRealPath();
-        $rel = substr($path, strlen($moduleBase) + 1);
-        if ($file->isFile()) {
-            // Embed license_key in addon.json
-            if ($rel === 'addon.json') {
-                $content = file_get_contents($path);
-                $manifest = json_decode($content, true);
-                $manifest['license_key'] = $licenseKey;
-                $zip->addFromString('modules/' . $moduleName . '/addon.json',
-                    json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-            } else {
-                $zip->addFile($path, 'modules/' . $moduleName . '/' . $rel);
-            }
-            $count++;
+        if (!$file->isFile()) {
+            continue;
         }
+        $path = $file->getPathname();
+        $rel = str_replace('\\', '/', substr($path, strlen($moduleBase) + 1));
+        // Embed license_key in addon.json
+        if ($rel === 'addon.json') {
+            $content = file_get_contents($path);
+            $manifest = json_decode($content, true);
+            $manifest['license_key'] = $licenseKey;
+            $zip->addFromString('modules/' . $moduleName . '/addon.json',
+                json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        } else {
+            $zip->addFile($path, 'modules/' . $moduleName . '/' . $rel);
+        }
+        $count++;
     }
     $zip->close();
     echo "Bundle created: {$bundleZip} ({$count} files)\n";

@@ -44,6 +44,28 @@ shipped (excluded from artifacts; verified by artifact contents check in
 - Redistribution rights verified per bundled dependency before release —
   tracked here, not assumed.
 
+## Performance posture
+
+Website Core is intentionally simple for shared hosting constraints:
+
+- **In-request caching**: SettingsRepository maintains an in-request cache
+  (no persistent cache required). HTMLPurifier uses a serializer cache
+  (`storage/cache/htmlpurifier`) to avoid re-parsing config on every
+  sanitize call.
+- **No complex caching layers**: No Redis, memcached, or daemons — by design.
+  Platform performs adequately for ordinary business websites on shared
+  hosting without external dependencies.
+- **OPcache integration**: opcache is reset after core updates
+  (`opcache_reset()` in SystemController) to ensure new code is loaded.
+- **Database indexes**: Migration 0005 adds hot-path indexes on jobs,
+  system_messages, page_revisions, menu_items, and media_usage.
+- **No N+1 queries**: All database access uses prepared statements with
+  bounded queries; admin list views paginate.
+
+Performance testing (load tests, profiling) is not claimed — the platform
+targets ordinary business sites on shared hosting, not high-traffic
+applications.
+
 ## Evidence status (as of M5)
 
 | Requirement | Status | Where |
@@ -59,3 +81,5 @@ shipped (excluded from artifacts; verified by artifact contents check in
 | Accessibility floor | tested | AccessibilityTest — landmarks/labels/lang on all themes |
 | Reproducible artifacts | implemented | tools/build-packages.php + SHA256SUMS |
 | Security model | documented | docs/THREAT_MODEL.md |
+| Accessibility | implemented | aria-label on nav, for labels on inputs, alt text on images, focus-visible outlines, prefers-reduced-motion support (admin layout, base theme, noir theme, terra theme) — documented in docs/SECURITY.md |
+| Performance posture | documented | intentionally simple for shared hosting: in-request settings cache, HTMLPurifier serializer cache, opcache reset after updates, no complex caching layers (by design) — documented in docs/COMMERCIAL_READINESS.md |

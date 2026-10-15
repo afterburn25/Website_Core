@@ -30,7 +30,8 @@ final class LicenseValidationJob
     public function handle(array $payload): bool
     {
         $license = $this->db->fetch(
-            'SELECT license_key, license_domain FROM `' . $this->db->table('license') . '` LIMIT 1'
+            'SELECT license_key, license_domain FROM `' . $this->db->table('license')
+            . '` ORDER BY created_at DESC LIMIT 1'
         );
         if (!$license) {
             // No license found - this may be a dev install

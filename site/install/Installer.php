@@ -430,7 +430,7 @@ final class Installer
 
         $response = @file_get_contents($endpoint, false, $context);
         if ($response === false) {
-            return [false, 'Could not contact license server. Please check your internet connection or proceed without license validation (dev mode).'];
+            return [false, 'Could not contact license server. Please check your internet connection.'];
         }
 
         $data = json_decode($response, true);

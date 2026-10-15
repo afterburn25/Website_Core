@@ -57,13 +57,11 @@ final class SettingsController extends Controller
         }
 
         $values = [];
-        foreach (self::FIELDS + self::MAIL_FIELDS as $key => $meta) {
+        $fields = self::FIELDS;
+        $fields['app.url']['label'] .= ' — leave blank to keep '
+            . ((string) $this->app->get(\Core\Config::class)->get('app.url', '') ?: 'the installed URL');
+        foreach ($fields + self::MAIL_FIELDS as $key => $meta) {
             $values[$key] = (string) $settings->get($key, '');
-        }
-        // app.url falls back to the installed config value when unset —
-        // show the effective URL so the admin sees what is actually used.
-        if ($values['app.url'] === '') {
-            $values['app.url'] = (string) $this->app->get(\Core\Config::class)->get('app.url', '');
         }
         // License status
         $licenseStatus = null;
@@ -74,7 +72,7 @@ final class SettingsController extends Controller
             // License table may not exist yet
         }
         return $this->page($r, 'settings/index', [
-            'fields'    => self::FIELDS,
+            'fields'    => $fields,
             'mailFields' => self::MAIL_FIELDS,
             'values'    => $values,
             'licenseStatus' => $licenseStatus,

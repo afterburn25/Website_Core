@@ -128,6 +128,10 @@ jobs:
           after=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/install.php)
           [ "$after" = "403" ] || [ "$after" = "404" ] || { echo "installer still reachable: $after"; exit 1; }
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/index.php)" = "200"
+          # License-free install must never render the license warning
+          # (regression: it used to show on every page — isValid() is
+          # false when no license row exists).
+          curl -s http://127.0.0.1:8099/index.php | grep -q "License Warning" && { echo "license warning leaked into license-free install"; exit 1; } || true
           # cron.php must boot services + gate on the token — a boot fatal
           # would return 200, so 403 proves the whole path (regression: it
           # previously crashed reaching for the container before boot).
@@ -217,6 +221,8 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/index.php)" = "503"
           adm=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8100/index.php?p=/admin/login")
           [ "$adm" = "200" ] || { echo "admin unreachable while deactivated: $adm"; exit 1; }
+          # Admin login page renders the license warning for the owner.
+          curl -s "http://127.0.0.1:8100/index.php?p=/admin/login" | grep -q "License Warning" || { echo "license warning missing on admin while deactivated"; exit 1; }
 
           # Moving back (domain re-registered) restores the site on next
           # validation — success clears license_deactivated.

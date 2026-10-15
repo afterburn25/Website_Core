@@ -210,6 +210,11 @@
   and never create a license row); successful validation clears
   `license_deactivated`.
 - Revalidation cadence: 24h while valid, hourly while deactivated.
+- Validation reports the install's actual served domain (`app.url`), not
+  the stale stored one — a site moved to an unregistered host self-denies
+  at its next check; `HTTP_HOST` is deliberately untrusted (preview/IP
+  access must never cause a false denial); `license_domain` refreshes to
+  the last domain actually validated.
 - Validation endpoint is the rewrite-free `{license.api_url}/validate.php`;
   `WC_LICENSE_API_URL` env overrides the base for install-time
   validation and generated config.

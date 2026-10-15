@@ -431,5 +431,5 @@ denial/inconclusive semantics, verdict preservation, reactivation) +
 `BundledModuleInstallTest` + `testDisableAllowedWithInvalidLicenseForRecovery`
 + the native licensed-bundle CI leg.
 
-Standing: 165 tests / 647 assertions; lint clean; CI green through
-`bd08b2b`.
+Standing: 169 tests / 651 assertions; lint clean; CI green through
+`6e938c1`.

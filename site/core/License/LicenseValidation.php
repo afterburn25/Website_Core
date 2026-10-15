@@ -145,8 +145,27 @@ final class LicenseValidation
      */
     public function detectDomain(): string
     {
-        $host = (string) parse_url((string) $this->config->get('app.url', ''), PHP_URL_HOST);
+        $host = (string) parse_url($this->appUrl(), PHP_URL_HOST);
         return strtolower((string) preg_replace('/:\d+$/', '', trim($host)));
+    }
+
+    /**
+     * The canonical public URL: the admin-editable `app.url` setting wins
+     * (an owner who moved the site updates it in /admin/settings — no
+     * config.php edit needed), falling back to the installed config
+     * value. The settings table may not exist pre-migration.
+     */
+    private function appUrl(): string
+    {
+        try {
+            $u = (string) (new \Core\Settings\SettingsRepository($this->db))->get('app.url', '');
+            if ($u !== '') {
+                return $u;
+            }
+        } catch (\Throwable) {
+            // Settings unavailable — use the installed config value.
+        }
+        return (string) $this->config->get('app.url', '');
     }
 
     /**

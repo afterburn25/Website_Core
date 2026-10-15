@@ -20,7 +20,8 @@ final class SitemapController extends Controller
             'SELECT slug, updated_at FROM `' . $this->db()->table('pages')
             . "` WHERE status = 'published' AND noindex = 0 ORDER BY slug"
         );
-        $base = rtrim((string) $this->c->get(\Core\Config::class)->get('app.url'), '/');
+        $base = rtrim((string) ($this->settings()->get('app.url', '')
+            ?: $this->c->get(\Core\Config::class)->get('app.url', '')), '/');
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
             . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
@@ -37,7 +38,8 @@ final class SitemapController extends Controller
     public function robots(Request $r): Response
     {
         $custom = (string) $this->settings()->get('seo.robots_txt', '');
-        $base = rtrim((string) $this->c->get(\Core\Config::class)->get('app.url'), '/');
+        $base = rtrim((string) ($this->settings()->get('app.url', '')
+            ?: $this->c->get(\Core\Config::class)->get('app.url', '')), '/');
         $body = $custom !== '' ? $custom : "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /preview\n";
         $body .= "\nSitemap: {$base}/sitemap.xml\n";
         return Response::text($body);

@@ -9,6 +9,7 @@ use Core\Http\Response;
 final class SettingsController extends Controller
 {
     private const FIELDS = [
+        'app.url'            => ['label' => 'Base URL (https://…)', 'type' => 'text'],
         'site.name'          => ['label' => 'Site name', 'type' => 'text'],
         'site.tagline'       => ['label' => 'Tagline', 'type' => 'text'],
         'site.contact_email' => ['label' => 'Public contact email', 'type' => 'email'],
@@ -36,6 +37,11 @@ final class SettingsController extends Controller
 
         $settings = $this->settings();
         if ($r->isPost()) {
+            $baseUrl = trim($r->string('app_url'));
+            if ($baseUrl !== '' && !preg_match('#^https?://#i', $baseUrl)) {
+                $this->flash('error', 'Base URL must start with http:// or https://');
+                return $this->redirect($r, '/admin/settings');
+            }
             foreach (self::FIELDS + self::MAIL_FIELDS as $key => $meta) {
                 $settings->set($key, $r->string(str_replace('.', '_', $key)));
             }
@@ -53,6 +59,11 @@ final class SettingsController extends Controller
         $values = [];
         foreach (self::FIELDS + self::MAIL_FIELDS as $key => $meta) {
             $values[$key] = (string) $settings->get($key, '');
+        }
+        // app.url falls back to the installed config value when unset —
+        // show the effective URL so the admin sees what is actually used.
+        if ($values['app.url'] === '') {
+            $values['app.url'] = (string) $this->app->get(\Core\Config::class)->get('app.url', '');
         }
         // License status
         $licenseStatus = null;

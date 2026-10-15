@@ -1,5 +1,52 @@
 # Session Handoff
 
+## 2026-10-15 — Hardening session (concurrency, integrity, recovery)
+
+**Completed this session** — stacked hardening and bugfix passes across all
+mutating paths and security layers:
+
+- **Job queue double-claim race**: atomic rowCount-guarded transitions
+  (`pending/uncertain` → `running`) + expired-lease sweep (no wedged jobs).
+- **Dead job leases**: expired `running` rows reclaimed to `uncertain`.
+- **Header injection**: `Response::header()` rejects CR/LF/NUL/DEL.
+- **SQL identifier injection**: allowlist regex `[a-zA-Z0-9_]+` on all table/column.
+- **Hot-path indexes**: migration 0005 (jobs, system_messages, page_revisions,
+  menu_items, media_usage).
+- **Upload error surfacing**: shared Controller helpers map every
+  `UPLOAD_ERR_*` + discarded-body detection; all three upload paths fixed.
+- **Migrator documentation**: corrected to reflect idempotent behavior; exception
+  now names the failed migration.
+- **Inquiry rate limiting**: 5/IP/10min after CSRF + honeypot.
+- **Slug shadow guard**: reserved list + concrete-route check; unreachable-page
+  badge on index.
+- **`e_url` scheme-obfuscation bypass**: probe control-char-stripped copy.
+- **Cron boot bugs**: fixed service boot + module boot so package scheduledJob()
+  handlers exist; CI regression assertions added.
+- **Entry-point sweep**: all 3 root `.php` files have correct boot/exception handling.
+- **No-rewrite fallback**: verified live on raw artifact (`?p=` + PATH_INFO).
+- **Unsigned manifests fail-closed**: flipped default `allow_unsigned=false`;
+  installer writes the key; real artifact dogfood proven.
+- **Mail flush double-send**: atomic `sending` claims + 5-minute lease sweep.
+- **Update apply concurrency**: exclusive `flock` on `storage/update.lock`; temp-write
+  + rename per member.
+- **Migrator concurrency**: DB-level sentinel lock (`__migrate_lock__`) with
+  120s stale reclaim.
+- **Backup restore concurrency**: exclusive `flock` on `storage/restore.lock`.
+- **Maintenance enforcement**: `dispatch()` 503s while `storage/maintenance.flag`
+  exists; `/admin/login` bypassed; cron honors the flag.
+- **Self-service password reset**: `/admin/forgot` + `/admin/reset`, rate-limited,
+  sha256 token, 30-min expiry, single-use, sessions revoked on completion,
+  migration 0007 columns.
+
+**Test count**: 146 tests / 572 assertions, 3 native-gated skips. Lint 157 files clean.
+**CI**: 6/6 jobs green on every push (PHP 8.4/8.5 lint+unit, MySQL 8.4 + MariaDB 11.4
+native installer acceptance, core-only boot, artifact build).
+**Composer audit**: clean.
+**Draft release**: v0.1.0-dev — 10 artifacts, byte-verified, refreshed after each build.
+
+**Owner-gated items remain**: publish draft, production signing trust root, PR #7 merge,
+real-host compatibility runs (Apache/LiteSpeed). Engineering is complete.
+
 ## 2026-10-14 — M0 + M1 first increment
 
 **Baseline**: empty public repo; initialized on `main`, integration branch

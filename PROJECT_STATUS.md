@@ -1,9 +1,10 @@
 # Project Status
 
-**Current**: M0–M5 implemented (installer, identities/security, content,
-packages, ops/updates, reference packages + parity proof) with release
-artifacts and CI gating. Pre-1.0 — version `0.1.0-dev`; remaining items
-are owner-gated, not engineering.
+**Current**: M0–M5 implemented and hardened — installer, identities/security,
+content, packages, ops/updates, reference packages + parity proof, with
+release artifacts and CI gating. 146 tests / 572 assertions; all layers
+audited. Pre-1.0 — version `0.1.0-dev`; remaining items are owner-gated,
+not engineering.
 
 ## Baseline
 

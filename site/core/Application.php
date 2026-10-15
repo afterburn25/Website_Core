@@ -212,11 +212,35 @@ final class Application
     public function dispatch(Request $request): Response
     {
         $this->bootServices($request);
+        if ($this->inMaintenance($request)) {
+            return $this->withSecurityHeaders(
+                Response::html(
+                    '<h1>Maintenance</h1><p>This site is briefly offline for maintenance. Back shortly.</p>',
+                    503
+                )->header('Retry-After', '120')
+            );
+        }
         $this->registerRoutes();
         $this->bootModules();
         $this->registerPublicRoutes();
         $response = $this->router->dispatch($request);
         return $this->withSecurityHeaders($response);
+    }
+
+    /**
+     * storage/maintenance.flag 503s every request except authenticated
+     * admins — the operators performing the maintenance — and the login
+     * route itself, or a logged-out operator could never get in. Updates
+     * would otherwise swap code underneath in-flight public requests.
+     */
+    private function inMaintenance(Request $request): bool
+    {
+        $flag = (string) $this->config->get('paths.storage', WC_ROOT . '/storage')
+            . '/maintenance.flag';
+        if (!is_file($flag) || rtrim($request->path, '/') === '/admin/login') {
+            return false;
+        }
+        return $this->container->get(AuthService::class)->user() === null;
     }
 
     /** Combined auth+CSRF middleware for module admin routes. */

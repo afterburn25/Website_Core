@@ -39,6 +39,14 @@ capability):
 4. The controller runs pending core migrations (`Migrator`) and records
    `core.update` in the audit log.
 
+Maintenance windows are owner-driven: creating
+`storage/maintenance.flag` returns 503 + `Retry-After` for every
+non-admin request while it exists (authenticated operators keep
+access), so an apply never swaps code underneath public traffic.
+Setting `updates.require_window` additionally makes the apply step
+refuse until the flag exists — enforcing the workflow, not just
+honoring it.
+
 An update archive may never write `config/config.php`,
 `config/installed.lock`, `storage/`, `upload/`, or installed
 modules/themes — those stay site-owned.
@@ -63,9 +71,6 @@ opts back into unsigned artifacts (development posture — the shipped
 
 ## Not yet implemented (roadmap)
 
-- Maintenance window enforcement is opt-in: set
-  `updates.require_window` and the apply step refuses until
-  `storage/maintenance.flag` exists (owner-created).
 - A stronger TUF-style signed-metadata chain is a reference target; the
   shipped floor already refuses older archives, expired manifests,
   incompatible `min_core`, and manifest/bootstrap version mismatches —

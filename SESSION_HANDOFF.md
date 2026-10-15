@@ -232,3 +232,17 @@ jobs green (installer acceptance runs on both database legs); draft
   adminRoutes get the full auth+CSRF pipeline; login errors are uniform.
 
 **Standing**: 134 tests / 529 assertions; 6/6 CI green; draft refreshed.
+
+## 2026-10-14 (final pass 3) — queue correctness + SQL/header hardening
+
+- **JobQueue**: claim was racy (guard included 'running', so two workers
+  executed the same job) and never reclaimed dead leases (crashed
+  workers left jobs invisible forever). Claims are now atomic and
+  expired leases return to 'uncertain' — matching the at-least-once +
+  idempotent-handler contract. First direct JobQueueTest (3 tests).
+- **Header injection guards**: Response::header throws on CR/LF/NUL/DEL;
+  redirect targets with control chars refused at save.
+- **SQL identifier allowlist**: table()/insert()/update() reject
+  non-[a-zA-Z0-9_] identifiers — no future caller can inject via keys.
+
+**Standing**: 138 tests / 538 assertions; draft refreshed.

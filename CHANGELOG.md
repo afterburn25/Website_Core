@@ -134,3 +134,14 @@
   disagrees with the bundled bootstrap is rejected as lying metadata.
 - Base-theme 404 uses its own catalog keys (`page.not_found*`,
   `nav.home`) — shipped catalogs no longer carry dead keys.
+
+### Fixed — job queue + SQL identifier hardening
+- `JobQueue::claim` was racy: its guard allowed re-claiming `running`
+  jobs so concurrent workers executed the same job twice, and expired
+  leases were never reclaimed — a crashed worker's job stayed invisible
+  forever. Claims are now atomic (rowCount-checked guarded update) and
+  dead leases return to `uncertain` for retry.
+- `Response::header()` throws on control characters; redirect targets
+  containing CR/LF are rejected at save.
+- `Connection::table()/insert()/update()` allowlist SQL identifiers —
+  interpolated names can no longer carry a backtick escape.

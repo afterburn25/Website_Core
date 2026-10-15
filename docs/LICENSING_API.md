@@ -15,12 +15,19 @@ licensing service generates a bundled ZIP:
 
 ## License validation API
 
-Website Core calls `POST {license.api_url}` during installation and periodically
-thereafter.
+Website Core calls `POST {license.api_url}/validate.php` during installation
+and periodically thereafter — for the default base this resolves to
+`POST https://cajunwebpro.com/api/validate.php`. The clean `/api/validate`
+URL is also served on the licensing side via Apache rewrite, but the `.php`
+route is canonical and works without mod_rewrite.
 
-**Configuration:** `license.api_url` in `config.php` (e.g.,
-`https://cajunwebpro.com/api`). The installer sets this to the default;
-change it if your licensing service runs on a different URL.
+**Configuration:** `license.api_url` in `config.php` — a **base** URL
+(e.g., `https://cajunwebpro.com/api`); the service appends `/validate.php`.
+The installer sets this to the default; change it if your licensing service
+runs on a different URL. During install, the `WC_LICENSE_API_URL`
+environment variable overrides the default for both install-time
+validation and the generated config — used by tests pointing at a local
+mock endpoint.
 
 **Request:**
 ```json
@@ -39,10 +46,6 @@ change it if your licensing service runs on a different URL.
 ```json
 {"authorized": false, "error": "License key not found or domain not registered"}
 ```
-
-**Configuration:** `license.api_url` in `config.php` (e.g.,
-`https://cajunwebpro.com/api/validate.php` — the clean `/api/validate`
-URL is also supported via Apache rewrite where mod_rewrite is available)
 
 ## License key binding
 

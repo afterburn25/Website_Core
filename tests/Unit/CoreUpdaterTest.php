@@ -139,6 +139,29 @@ final class CoreUpdaterTest extends TestCase
         $this->assertStringContainsString('requires core', $err);
     }
 
+    public function testDowngradeArchiveIsRefused(): void
+    {
+        $members = $this->validMembers();
+        $members['includes/bootstrap.php'] = "<?php define('WC_VERSION', '0.0.1');";
+        $manifest = $this->manifestFor($members);
+        $manifest['version'] = '0.0.1';
+        $zip = $this->updateZip($members, $manifest);
+        [$info, $err] = $this->updater->inspect($zip);
+        $this->assertNull($info);
+        $this->assertStringContainsString('downgrade', $err);
+    }
+
+    public function testManifestVersionMustMatchBootstrap(): void
+    {
+        $members = $this->validMembers();
+        $manifest = $this->manifestFor($members);
+        $manifest['version'] = '8.8.8'; // bootstrap says 9.9.9
+        $zip = $this->updateZip($members, $manifest);
+        [$info, $err] = $this->updater->inspect($zip);
+        $this->assertNull($info);
+        $this->assertStringContainsString('does not match', $err);
+    }
+
     public function testManifestHashMismatchAbortsApply(): void
     {
         $members = $this->validMembers();

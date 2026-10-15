@@ -67,6 +67,14 @@ final class CoreUpdater
             return [null, 'Update archive does not declare a version.'];
         }
         $version = $m[1];
+        // Rollback floor: an archive older than the running core must never
+        // silently downgrade the site — intentional recovery goes through
+        // backup restore, not an update artifact.
+        $running = defined('WC_VERSION') ? WC_VERSION : null;
+        if ($running !== null && !self::versionGe($version, $running)) {
+            $zip->close();
+            return [null, "Refusing downgrade: archive is {$version}, running {$running}."];
+        }
         $manifestJson = $zip->getFromName('update.json');
         $members = $zip->numFiles;
         $zip->close();
@@ -79,6 +87,12 @@ final class CoreUpdater
             }
             if (($manifest['product'] ?? '') !== 'website-core') {
                 return [null, 'update.json is not a Website Core update manifest.'];
+            }
+            // The manifest's declared version must match the code it ships —
+            // metadata is not allowed to describe a different release.
+            $declared = $manifest['version'] ?? null;
+            if (is_string($declared) && $declared !== '' && $declared !== $version) {
+                return [null, "update.json version {$declared} does not match bundled bootstrap {$version}."];
             }
             // Rollback/replay posture (both fields optional): expires
             // rejects stale metadata; min_core rejects archives whose

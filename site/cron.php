@@ -15,9 +15,10 @@ if (!$app->installed()) {
 }
 
 $cli = PHP_SAPI === 'cli';
-// Non-HTTP entry points must boot services explicitly — dispatch() does it
-// for web requests, cron never dispatches.
-$app->bootServices();
+// Non-HTTP entry points must boot explicitly — dispatch() does it for web
+// requests, cron never dispatches. bootJobs() also boots enabled packages
+// so their scheduledJob() handlers are registered before the runner claims.
+$app->bootJobs();
 if (!$cli) {
     $token = (string) ($_GET['token'] ?? '');
     $db = $app->container()->get(\Core\Database\Connection::class);

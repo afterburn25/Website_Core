@@ -197,6 +197,18 @@ final class Application
         \Core\I18n\Translator::setInstance($translator);
     }
 
+    /**
+     * Boot enough for the job runner: services + enabled packages so
+     * scheduledJob() handlers exist. Routes register as usual but are
+     * never dispatched (no HTTP), and module admin routes get a null
+     * pipeline — unreachable in this context by construction.
+     */
+    public function bootJobs(): void
+    {
+        $this->bootServices();
+        $this->bootModules();
+    }
+
     public function dispatch(Request $request): Response
     {
         $this->bootServices($request);

@@ -387,13 +387,45 @@ definitive denial — non-200 statuses (429/400/5xx), network failures and
 malformed responses are inconclusive and retry. A successful validation
 clears `license_deactivated`.
 
+State preservation (`recordValidation` accepts `?bool`): inconclusive
+attempts update `license_validated_at`/`license_error` but preserve the
+stored `license_valid` verdict and deactivation state — a transient API
+outage can never take a licensed site offline, and no row is created by
+an inconclusive first attempt.
+
+Domain-follow binding: `detectDomain()` derives the reported domain from
+the canonical `app.url` — a site genuinely moved (config updated) to an
+unregistered host self-denies at its next check instead of passing on
+the stale stored domain. `HTTP_HOST` is deliberately untrusted (preview
+URLs/IP access would cause false denials); `license_domain` refreshes to
+the last domain actually validated. Falls back to stored domain if
+config yields nothing.
+
+"Validate now" admin action at `POST /admin/settings/license-validate`
+triggers immediate revalidation + reactivation — owners don't wait for
+cron.
+
+Native CI leg (`licensed-bundle` step in the matrix jobs, real
+MySQL/MariaDB + `php -S` + mock license API): staged bundle → licensed
+install → license/packages/module-table assertions → valid site 200 →
+moved-site (config edit) → cron denial → public 503, `/admin` 200 with
+"License Warning" present → moved back → cron → public 200. The
+core-only boot job also asserts a license-free install never renders
+"License Warning".
+
 The licensing service on cajunwebpro.com IS implemented (Cajun_Web
 `main`): `api/validate.php` (rate-limited, audited), license service,
-`license_domains` (max 2 active per license), `license_bundles`, admin
-UI (`studio-licenses`), portal domain management + owner-only
-`api/bundle-download.php`, auto-fulfilment on paid invoices
-(`license_fulfill_invoice`, SKU `WEBSITE-{INDUSTRY}`), customer email.
+`license_domains` (max 2 active per license, www/apex canonicalized to
+the same site), `license_bundles`, admin UI (`studio-licenses`), portal
+domain management + owner-only `api/bundle-download.php`,
+auto-fulfilment on paid invoices (`license_fulfill_invoice`, SKU
+`WEBSITE-{INDUSTRY}`), customer email.
 
-Coverage: `LicenseValidationTest` + `LicenseApiContractTest` (6 tests
+Coverage: `LicenseValidationTest` + `LicenseApiContractTest` (9 tests
 spawning a real `php -S` mock endpoint — verifies wire contract,
-denial/inconclusive semantics, reactivation).
+denial/inconclusive semantics, verdict preservation, reactivation) +
+`BundledModuleInstallTest` + `testDisableAllowedWithInvalidLicenseForRecovery`
++ the native licensed-bundle CI leg.
+
+Standing: 165 tests / 647 assertions; lint clean; CI green through
+`bd08b2b`.

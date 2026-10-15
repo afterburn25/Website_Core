@@ -355,6 +355,7 @@ final class Installer
             'dbUser' => $dbUser, 'dbPass' => $dbPass, 'dbPrefix' => $dbPrefix,
             'storage' => $storagePath, 'appKey' => $appKey,
             'https' => $this->requestSecure(),
+            'licenseApiUrl' => rtrim((string) (getenv('WC_LICENSE_API_URL') ?: 'https://cajunwebpro.com/api'), '/'),
         ]);
         if (@file_put_contents($this->configDir . '/config.php', $configPhp, LOCK_EX) === false) {
             return $this->page($checks, ['site_name' => 'Could not write config/config.php — check permissions.'], $request);
@@ -396,7 +397,10 @@ final class Installer
      */
     private function validateLicense(string $licenseKey, string $domain): array
     {
-        $endpoint = 'https://cajunwebpro.com/api/validate';
+        // WC_LICENSE_API_URL lets tests/dev point at a local mock. Production
+        // uses the canonical PHP route — it works without mod_rewrite.
+        $apiBase = getenv('WC_LICENSE_API_URL') ?: 'https://cajunwebpro.com/api';
+        $endpoint = rtrim($apiBase, '/') . '/validate.php';
         $payload = json_encode([
             'license_key' => $licenseKey,
             'domain' => $domain,
@@ -483,7 +487,7 @@ final class Installer
                 'smtp_secure' => 'tls', 'from' => 'no-reply@example.com', 'from_name' => {$s($v['siteName'])},
             ],
             'license' => [
-                'api_url' => 'https://cajunwebpro.com/api',
+                'api_url' => {$s($v['licenseApiUrl'])},
             ],
             'trust' => ['public_keys' => [], 'allow_unsigned' => false],
             'updates' => ['channel' => 'stable', 'require_window' => false],

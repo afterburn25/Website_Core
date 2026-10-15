@@ -36,12 +36,18 @@ messages queue until a transport is configured — the site keeps working.</p>
 <?php if ($licenseStatus['license_valid'] !== null): ?>
 <dt><strong>Status</strong></dt>
 <dd>
-<?php if ($licenseStatus['license_valid']): ?>
+<?php if (!empty($licenseStatus['license_deactivated'])): ?>
+<span style="color:red">Deactivated</span>
+<?php elseif ($licenseStatus['license_valid']): ?>
 <span style="color:green">Active</span>
 <?php else: ?>
 <span style="color:red">Inactive</span>
 <?php endif; ?>
 </dd>
+<?php endif; ?>
+<?php if (!empty($licenseStatus['license_error'])): ?>
+<dt><strong>Last error</strong></dt>
+<dd><code><?= e($licenseStatus['license_error']) ?></code></dd>
 <?php endif; ?>
 <?php if ($licenseStatus['license_validated_at'] !== null): ?>
 <dt><strong>Last validated</strong></dt>

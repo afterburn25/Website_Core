@@ -60,9 +60,18 @@ URL is also supported via Apache rewrite where mod_rewrite is available)
 
 ## Periodic validation
 
-`LicenseValidationJob` runs daily via cron to re-validate the license. If it
-fails, the site shows a warning to admins but continues to work for public
-visitors.
+`LicenseValidationJob` runs daily via cron to re-validate the license.
+
+- **Explicit denial** (`authorized: false` — deactivated license or
+  unregistered domain): the site marks `license_deactivated = 1` and public
+  pages return `503 Site unavailable`. `/admin` stays reachable so the owner
+  can fix the domain or contact support.
+- **Inconclusive failure** (API unreachable, timeout, malformed response):
+  the attempt is logged but the site keeps running — transient outages must
+  not take customer sites offline.
+- **Reactivation**: a subsequent successful validation clears
+  `license_deactivated` automatically — re-registering the domain restores
+  the site on the next scheduled check.
 
 ## Database schema
 

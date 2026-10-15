@@ -131,6 +131,9 @@
 - `.htaccess` matrix: root rewrite rule forbids all private paths; per-dir
   deny files for config/core/storage/upload/admin/controllers/admin/views/
   vendor/etc.; mod_php `display_errors off`.
+- Real-host testing checklist added: `docs/REAL_HOSTING_TESTING.md` provides
+  step-by-step verification for Apache/LiteSpeed/cPanel hosts (installer,
+  no-rewrite fallback, cron, packages, password reset, backup/restore, updates).
 
 ### Added — M4 operations, updates, recovery
 - BackupService (portable SQL dump; db + config keys + uploads) +

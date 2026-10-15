@@ -59,6 +59,8 @@ final class PagesController extends Controller
                 $error = 'Title and slug are required.';
             } elseif ($this->slugTaken($slug, $id)) {
                 $error = 'That slug is already in use.';
+            } elseif ($this->slugShadowed($slug)) {
+                $error = 'That slug is reserved or already handled by an installed module — the page would be unreachable.';
             } else {
                 $seo = [
                     'meta_title' => $r->string('meta_title'),
@@ -178,6 +180,20 @@ final class PagesController extends Controller
             'SELECT COUNT(*) FROM `' . $this->db()->table('pages') . '` WHERE slug = ? AND id != ?',
             [$slug, $excludeId]
         );
+    }
+
+    /**
+     * A saved page is only useful if the router can reach it: the catch-all
+     * excludes core-reserved segments, and any concrete (module) route
+     * matching the slug outscores or predates it.
+     */
+    private function slugShadowed(string $slug): bool
+    {
+        $first = strtolower((string) (explode('/', $slug)[0] ?? ''));
+        if (in_array($first, \Core\Application::RESERVED_SLUGS, true)) {
+            return true;
+        }
+        return $this->c->get(\Core\Routing\Router::class)->isConcreteMatch('/' . $slug);
     }
 
     private function can(): bool

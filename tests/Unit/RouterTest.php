@@ -105,4 +105,23 @@ final class RouterTest extends TestCase
         $this->assertSame('module-form', $r->dispatch($this->request('GET', '/inquiry'))->body());
         $this->assertSame('page:about', $r->dispatch($this->request('GET', '/about'))->body());
     }
+
+    /**
+     * Slug-shadow detection for page saves: any GET-capable route other
+     * than the page catch-all that matches a slug makes it unreachable.
+     */
+    public function testIsConcreteMatch(): void
+    {
+        $r = new Router();
+        $r->get('/inquiry', fn (Request $q) => Response::text('form'));
+        $r->get('/menu/{cat}', fn (Request $q) => Response::text('menu'));
+        $r->post('/only-post', fn (Request $q) => Response::text('no'));
+        $r->get('/{slug:(?!admin\b)[a-z0-9][a-z0-9\-\/]*}', fn (Request $q) => Response::text('page'));
+
+        $this->assertTrue($r->isConcreteMatch('/inquiry'));      // literal module route
+        $this->assertTrue($r->isConcreteMatch('/menu/mains'));   // param module route
+        $this->assertFalse($r->isConcreteMatch('/about'));       // only catch-all matches
+        $this->assertFalse($r->isConcreteMatch('/only-post'));   // POST-only cannot shadow GET pages
+        $this->assertFalse($r->isConcreteMatch('/'));            // nothing matches
+    }
 }

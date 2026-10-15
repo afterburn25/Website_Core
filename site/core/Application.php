@@ -346,13 +346,27 @@ final class Application
      * the slug catch-all or the catch-all swallows them as 404s. Reserved
      * prefixes are still excluded inside the pattern.
      */
+    /**
+     * First path segments the page catch-all never serves — a page saved
+     * under one of these is unreachable. PagesController blocks them via
+     * this same list so the router and the validator share one source.
+     */
+    public const RESERVED_SLUGS = [
+        'admin', '_a', 'media', 'preview', 'sitemap.xml', 'robots.txt',
+        'install.php', 'cron.php', 'api', 'storage', 'upload',
+    ];
+
     private function registerPublicRoutes(): void
     {
         $c = $this->container;
+        $reserved = implode('|', array_map(
+            fn (string $s) => preg_quote($s) . '\b',
+            self::RESERVED_SLUGS
+        ));
         $this->router->get('/', function (Request $r) use ($c): Response {
             return (new \Admin\Controllers\PublicPageController($c))->home($r);
         });
-        $this->router->get('/{slug:(?!admin\b|_a\b|media\b|preview\b|sitemap\.xml|robots\.txt|install\.php|cron\.php|api\b|storage\b|upload\b)[a-z0-9][a-z0-9\-\/]*}', function (Request $r) use ($c): Response {
+        $this->router->get('/{slug:(?!' . $reserved . ')[a-z0-9][a-z0-9\-\/]*}', function (Request $r) use ($c): Response {
             return (new \Admin\Controllers\PublicPageController($c))->show($r);
         });
     }

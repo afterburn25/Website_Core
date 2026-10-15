@@ -80,6 +80,31 @@ final class Router
         );
     }
 
+    /**
+     * True when a GET-capable route other than the public page catch-all
+     * matches $path — meaning a page saved under that slug could never be
+     * served (concrete routes always outscore or predate the catch-all).
+     */
+    public function isConcreteMatch(string $path): bool
+    {
+        $path = rtrim($path, '/') ?: '/';
+        foreach ($this->routes as $route) {
+            // The page catch-all is the only single-{slug} pattern; other
+            // bare-placeholder routes tie its score and win by earlier
+            // registration, so they DO shadow and must not be skipped.
+            if ($route['pattern'] === '/{slug}' || str_starts_with($route['pattern'], '/{slug:')) {
+                continue;
+            }
+            if (!in_array('GET', $route['methods'], true)) {
+                continue;
+            }
+            if (preg_match($route['regex'], $path)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public function dispatch(Request $request): Response
     {
         $path = rtrim($request->path, '/') ?: '/';

@@ -70,11 +70,12 @@ site retries on the next scheduled validation.
 - A license allows at most **2 active domains** — public + test instances
   on the same server; `www.example.com` and `example.com` are the same site
 - Periodic validation reports the domain the install actually serves —
-  derived from the canonical `app.url` in `config.php`, which an admin
-  must update when genuinely moving the site. `HTTP_HOST` is deliberately
-  not trusted: preview URLs, IP access and internal hostnames must never
-  produce a false denial. The stored `license_domain` is the fallback and
-  is refreshed to the last domain actually validated.
+  the `app.url` setting wins (`/admin/settings`, owner-editable — the
+  field stays blank to keep the installed `config.php` value), then the
+  installed `app.url` config. `HTTP_HOST` is deliberately not trusted:
+  preview URLs, IP access and internal hostnames must never produce a
+  false denial. The stored `license_domain` is the fallback and is
+  refreshed to the last domain actually validated.
 - Moving the site (or pointing `app.url` at an unregistered domain)
   therefore makes the install self-deny at its next validation; the old
   domain stops being reported once config changes.

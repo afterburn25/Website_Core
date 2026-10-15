@@ -108,3 +108,21 @@
   shareGlobals() path.
 - CI: installer acceptance over real HTTP on both MySQL and MariaDB
   legs (claim session → real POST → lock/config/self-disable assertions).
+
+### Added — administration lifecycle
+- `POST /admin/users/create`: real administrator creation (username/
+  email/password validation matching the installer, owner-role gated to
+  owners, audited `admin.created`) — the installer owner is no longer
+  the only admin the product can produce.
+- `POST /admin/users/{id}/reset-password`: owner-delegated credential
+  reset with session revocation so old passwords die immediately.
+- Installer seeds `system.cron_token` — web-triggered cron works before
+  the first settings save.
+
+### Fixed — consistency sweep
+- Theme overrides for package views resolve at
+  `templates/modules/<pkg-id>/` matching THEME_API (was `modules/`).
+- Sitemap excludes `noindex` pages — no longer contradicts per-page
+  robots meta.
+- THREAT_MODEL mitigations corrected to describe shipped controls
+  (no rollback-floor/encrypted-backup claims).

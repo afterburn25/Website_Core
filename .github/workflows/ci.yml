@@ -199,7 +199,7 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/index.php)" = "200"
 
           TOKEN=$(php -r '$p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");
-            echo $p->query("SELECT value FROM wc_settings WHERE \`key\`=\"system.cron_token\"")->fetchColumn();')
+            echo $p->query("SELECT value FROM wc_settings WHERE `key`=\"system.cron_token\"")->fetchColumn();')
           test -n "$TOKEN"
 
           # Remote deactivation (domain no longer registered) → next

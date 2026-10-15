@@ -198,3 +198,22 @@ on both commits; draft release refreshed + byte-verified.
 **Standing**: 131 tests / 521 assertions / 3 native-gated skips; 6/6 CI
 jobs green (installer acceptance runs on both database legs); draft
 `v0.1.0-dev` refreshed with all 10 assets.
+
+## 2026-10-14 (final pass) — admin lifecycle + doc/consistency sweep
+
+- **Administrator creation**: `AdminRepository::create()` was unreachable —
+  the installer owner was the only admin the product could produce.
+  `POST /admin/users/create` now validates like the installer, gates the
+  owner role to owners, audits `admin.created`, and renders a guarded
+  form. Verified live on the extracted artifact (create → new admin
+  signs in → dashboard 200).
+- **Password reset**: owners/`manage_nonowner` holders can reset another
+  admin's password; every session is revoked so old credentials die.
+- **Consistency fixes**: theme overrides for package views now live at
+  `templates/modules/<pkg-id>/` (matching THEME_API); sitemap excludes
+  `noindex`; `system.cron_token` seeds at install; THREAT_MODEL
+  overclaims (rollback floor, encrypted backups) corrected; MODULE_API
+  registration table completed (adminRoute/views/service).
+
+**Standing**: 132 tests / 524 assertions; 6/6 CI green; draft
+`v0.1.0-dev` refreshed with all 10 assets after every source change.

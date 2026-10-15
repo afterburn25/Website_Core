@@ -56,7 +56,10 @@ Website Core now supports a DRM licensing model for bundled products:
   stored in the `license` table, checked before module operations.
 - **Domain binding**: Customer registers domain in the licensing portal;
   validation API checks key + domain; changing a domain deactivates the
-  old site. Max 2 active domains per license (public + test).
+  old site. Max 2 active domains per license (public + test). The install
+  reports the domain it actually serves (`app.url`) — a site moved to an
+  unregistered host self-denies at its next check rather than passing on
+  a stale registered domain; `HTTP_HOST` is deliberately untrusted.
 - **Validation**: Installer validates license during install against
   `{license.api_url}/validate.php`; periodic revalidation runs via a
   deduped job — hourly while deactivated (fast recovery after a portal

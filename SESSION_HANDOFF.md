@@ -353,7 +353,7 @@ jobs green (installer acceptance runs on both database legs); draft
   (sitemap uses configured app.url), diagnostics exports key names only,
   SMTP password write-only.
 
-**Standing**: 163 tests / 634 assertions; CI green on `devin/website-core`.
+**Standing**: 164 tests / 640 assertions; CI green on `devin/website-core`.
 
 ## DRM / licensing system (new — commercial extension)
 
@@ -362,17 +362,20 @@ Website Core supports a DRM licensing model for bundled products
 
 - `site/core/License/LicenseValidation.php` — phone-home validation,
   domain binding, deactivation handling.
-- `site/core/Jobs/LicenseValidationJob.php` — cron job, enqueued every
-  24h for licensed installs (pending-job deduped).
+- `site/core/Jobs/LicenseValidationJob.php` — cron job, enqueued hourly
+  while deactivated and every 24h otherwise (pending-job deduped).
 - `site/database/migrations/2026_10_15_0008_license_tracking.php` —
   license table schema (unique `license_key`).
 - `site/core/Modules/PackageManager.php` — license checks before
-  install/enable/disable operations.
+  install/enable; `disable()` intentionally skips the check so an
+  invalid license can never trap a site (covered by
+  `testDisableAllowedWithInvalidLicenseForRecovery`).
 - `site/install/Installer.php` — detects bundled modules via embedded
   `license_key` in `addon.json`, validates against the API, stores the
-  key. Endpoint: `{license.api_url}/validate.php`; `WC_LICENSE_API_URL`
-  env overrides the default for install-time validation and generated
-  config (used by tests/mocks).
+  key, registers the package, runs module migrations and marks it
+  `enabled`. Endpoint: `{license.api_url}/validate.php`;
+  `WC_LICENSE_API_URL` env overrides the default for install-time
+  validation and generated config (used by tests/mocks).
 - `site/core/Application.php` — public pages return 503 when an installed
   license is invalid/deactivated; `/admin` stays reachable.
 - `tools/build-packages.php bundle` — creates bundled ZIPs with embedded

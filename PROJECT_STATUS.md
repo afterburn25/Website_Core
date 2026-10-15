@@ -56,10 +56,18 @@ Website Core now supports a DRM licensing model for bundled products:
   old site. Max 2 active domains per license (public + test).
 - **Validation**: Installer validates license during install against
   `{license.api_url}/validate.php`; periodic revalidation runs via a
-  deduped 24h job. **Explicit denial** (deactivated license/unregistered
-  domain) blocks public pages with 503 while `/admin` stays open;
-  **transient failures** (network/malformed) never deactivate;
-  **successful** validation auto-reactivates.
+  deduped job — hourly while deactivated (fast recovery after a portal
+  domain fix), otherwise 24h. **Explicit denial** (deactivated
+  license/unregistered domain) blocks public pages with 503 while
+  `/admin` stays open; **transient failures** (network/non-200/malformed)
+  never deactivate; **successful** validation auto-reactivates.
+- **Bundled install**: the installer detects a license-carrying module
+  in `site/modules/industries/*/addon.json`, validates its key, records
+  the license, registers the package, runs its migrations and marks it
+  `enabled` — bundled products work out of the box.
+- **Recovery**: `disable()` never requires a valid license — an admin
+  can always deactivate a broken/expired package; `install`/`enable`
+  remain license-gated.
 - **Build tool**: `php tools/build-packages.php bundle <industry>
   <license_key> [outdir]` creates a bundled ZIP with the license key
   embedded in the module manifest.
@@ -68,7 +76,7 @@ Website Core now supports a DRM licensing model for bundled products:
 
 ## Test status
 
-- `unit`+`package`: 163 tests / 634 assertions green locally (PHP 8.4.25);
+- `unit`+`package`: 164 tests / 640 assertions green locally (PHP 8.4.25);
   3 skips are native-DB gated. Sodium tests run via `sodium_compat`.
   AccessibilityTest (7 tests) asserts aria-label, for labels, alt text,
   focus-visible, reduced-motion across admin layout and all 3 themes.

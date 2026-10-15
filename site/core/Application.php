@@ -68,16 +68,17 @@ final class Application
             }
             $response = $this->dispatch($this->request);
 
-            // Check license validity after dispatch (services are booted)
-            // Show warning but allow admin access so owner can fix license issues
+            // License warning on the rendered page. Only reachable for
+            // /admin requests — public paths were 503'd by licenseBlocked.
+            // A license-free install has no row and must never see this.
             $validator = $this->container->get(\Core\License\LicenseValidation::class);
-            if (!$validator->isValid()) {
-                // Add deactivation warning to response if it's HTML
+            $licenseStatus = $validator->status();
+            if ($licenseStatus['license_key'] !== null && !$validator->isValid()) {
                 $body = $response->body();
                 if (str_starts_with($body, '<!doctype html') || str_starts_with($body, '<html')) {
                     $warning = '<div style="background:#fee2e2;color:#b91c1c;padding:1rem;margin:1rem;border-radius:0.5rem">'
                         . '<strong>License Warning:</strong> '
-                        . e($validator->status()['error'] ?? 'License is not valid.')
+                        . e($licenseStatus['license_error'] ?? 'License is not valid.')
                         . ' Please contact Cajunwebpro.com support.</div>';
                     $body = str_replace('</body>', $warning . '</body>', $body);
                     $response = Response::html($body, $response->status(), $response->headers());

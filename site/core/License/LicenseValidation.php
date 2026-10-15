@@ -67,6 +67,21 @@ final class LicenseValidation
             return [false, 'Could not contact license server. Please check your internet connection.', false];
         }
 
+        // Only HTTP 200 responses carry a definitive verdict. 429 (rate
+        // limit), 4xx (malformed request) and 5xx (server error) are
+        // transient — the server could not evaluate the license, so the
+        // result is inconclusive and must not deactivate the site.
+        $statusCode = 0;
+        foreach (($http_response_header ?? []) as $line) {
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $line, $m)) {
+                $statusCode = (int) $m[1]; // last status line wins (redirects)
+            }
+        }
+        if ($statusCode !== 200) {
+            $this->recordValidation($licenseKey, $domain, false, 'License server returned HTTP ' . $statusCode);
+            return [false, 'License server returned HTTP ' . $statusCode . '. Validation will retry automatically.', false];
+        }
+
         $data = json_decode($response, true);
         if (!is_array($data)) {
             $this->recordValidation($licenseKey, $domain, false, 'Invalid API response');

@@ -39,13 +39,21 @@ mock endpoint.
 
 **Response (authorized):**
 ```json
+HTTP 200
 {"authorized": true}
 ```
 
-**Response (unauthorized):**
+**Response (denied — explicit, takes the site offline):**
 ```json
+HTTP 200
 {"authorized": false, "error": "License key not found or domain not registered"}
 ```
+
+**Response (transient — never deactivates):** any non-200 status
+(429 rate-limited, 400 malformed request, 5xx server error). Only a
+`200 + authorized:false` verdict is a real denial; every other outcome —
+non-200, malformed JSON, unreachable host — is inconclusive and the
+site retries on the next scheduled validation.
 
 ## License key binding
 

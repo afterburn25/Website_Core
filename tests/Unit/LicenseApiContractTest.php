@@ -150,6 +150,22 @@ final class LicenseApiContractTest extends TestCase
         $this->assertFalse($denied, 'malformed responses must not be treated as explicit denial');
     }
 
+    public function testRateLimitedIsInconclusiveNotDenial(): void
+    {
+        $license = $this->license();
+        [$valid, , $denied] = $license->validate('RATELIMIT-KEY', 'e2e.example.com');
+        $this->assertFalse($valid);
+        $this->assertFalse($denied, 'HTTP 429 must not deactivate — it is a transient throttle');
+    }
+
+    public function testServerErrorIsInconclusiveNotDenial(): void
+    {
+        $license = $this->license();
+        [$valid, , $denied] = $license->validate('ERROR-KEY', 'e2e.example.com');
+        $this->assertFalse($valid);
+        $this->assertFalse($denied, 'HTTP 500 must not deactivate — the server could not evaluate the license');
+    }
+
     public function testUnreachableServerIsInconclusiveNotDenial(): void
     {
         file_put_contents($this->configFile,

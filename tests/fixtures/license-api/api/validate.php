@@ -7,9 +7,11 @@
  * {"authorized": bool, "error"?: string}.
  *
  * Behavior by license key prefix:
- *  - "GOOD-"   : authorized only when domain === 'e2e.example.com'
- *  - "DENIED-" : always denied (explicit server denial)
- *  - "BROKEN-" : returns malformed JSON
+ *  - "GOOD-"      : authorized only when domain === 'e2e.example.com'
+ *  - "DENIED-"    : always denied (explicit server denial)
+ *  - "BROKEN-"    : returns malformed JSON
+ *  - "RATELIMIT-" : HTTP 429 — transient, must not deactivate
+ *  - "ERROR-"     : HTTP 500 — transient, must not deactivate
  *  - anything else: denied as an unknown license
  *
  * Every request payload is appended to the file named by E2E_LOG so the
@@ -31,6 +33,16 @@ $domain = strtolower((string) $data['domain']);
 
 if (str_starts_with($key, 'BROKEN-')) {
     echo 'this is not json';
+    exit;
+}
+if (str_starts_with($key, 'RATELIMIT-')) {
+    http_response_code(429);
+    echo json_encode(['authorized' => false, 'error' => 'Rate limit exceeded']);
+    exit;
+}
+if (str_starts_with($key, 'ERROR-')) {
+    http_response_code(500);
+    echo json_encode(['authorized' => false, 'error' => 'Internal server error']);
     exit;
 }
 if (str_starts_with($key, 'GOOD-')) {

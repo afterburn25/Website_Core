@@ -9,8 +9,9 @@ use Core\Database\Connection;
 /**
  * Bounded, single-pass job runner used by cron.php. Claims a batch under a
  * worker lease, invokes registered handlers, and records results. A job that
- * throws is retried with backoff; a job left running past its lease returns
- * to 'uncertain' for manual review rather than silent re-execution.
+ * throws is retried with backoff; a job whose worker died mid-run returns to
+ * 'uncertain' on the next claim and is retried — handlers must be idempotent
+ * (at-least-once delivery, never exactly-once external effects).
  */
 final class Runner
 {

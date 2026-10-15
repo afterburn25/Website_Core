@@ -277,6 +277,15 @@ final class Application
                 )->header('Retry-After', '120')
             );
         }
+        if ($this->licenseBlocked($request)) {
+            return $this->withSecurityHeaders(
+                Response::html(
+                    '<h1>Site unavailable</h1><p>This website\'s license is no longer active. '
+                    . 'If you are the site owner, sign in to the administration area or contact Cajunwebpro.com support.</p>',
+                    503
+                )->header('Retry-After', '300')
+            );
+        }
         $this->registerRoutes();
         $this->bootModules();
         $this->registerPublicRoutes();
@@ -304,6 +313,27 @@ final class Application
             return false;
         }
         return $this->container->get(AuthService::class)->user() === null;
+    }
+
+    /**
+     * An installed license that failed validation or was remotely deactivated
+     * blocks public pages. Admin routes stay open — the owner needs them to
+     * re-register the domain or contact support. cron.php and install.php are
+     * standalone entry points that never reach this gate, so revalidation can
+     * still reactivate the site. License-free installs are unaffected.
+     */
+    private function licenseBlocked(Request $request): bool
+    {
+        if (str_starts_with(rtrim($request->path, '/') ?: '/', '/admin')) {
+            return false;
+        }
+        try {
+            $row = $this->container->get(\Core\License\LicenseValidation::class)->status();
+            return $row['license_key'] !== null
+                && !((bool) ($row['license_valid'] ?? 0) && !(bool) ($row['license_deactivated'] ?? 0));
+        } catch (\Throwable) {
+            return false; // Licensing unavailable (e.g. license table missing) — do not block
+        }
     }
 
     /** Combined auth+CSRF middleware for module admin routes. */

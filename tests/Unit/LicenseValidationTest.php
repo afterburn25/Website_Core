@@ -88,4 +88,46 @@ final class LicenseValidationTest extends TestCase
         $status = $license->status();
         $this->assertSame('different.com', $status['license_domain']);
     }
+
+    public function testIsValidRequiresValidAndNotDeactivated(): void
+    {
+        $db = $this->db();
+        $license = new LicenseValidation($db, $this->config());
+        $table = $db->table('license');
+
+        $db->run(
+            "INSERT INTO `{$table}` (license_key, license_domain, license_valid, license_deactivated)
+             VALUES (?, ?, ?, ?)",
+            ['KEY-A', 'example.com', 1, 0]
+        );
+        $this->assertTrue($license->isValid());
+
+        $db->run("UPDATE `{$table}` SET license_deactivated = 1");
+        $this->assertFalse($license->isValid());
+
+        $db->run("UPDATE `{$table}` SET license_deactivated = 0, license_valid = 0");
+        $this->assertFalse($license->isValid());
+    }
+
+    public function testStatusIncludesDeactivatedFlag(): void
+    {
+        $db = $this->db();
+        $license = new LicenseValidation($db, $this->config());
+        $table = $db->table('license');
+        $db->run(
+            "INSERT INTO `{$table}` (license_key, license_domain, license_valid, license_deactivated)
+             VALUES (?, ?, ?, ?)",
+            ['KEY-B', 'example.com', 0, 1]
+        );
+        $status = $license->status();
+        $this->assertSame(0, $status['license_valid']);
+        $this->assertSame(1, $status['license_deactivated']);
+    }
+
+    public function testIsValidFalseWithoutLicense(): void
+    {
+        $db = $this->db();
+        $license = new LicenseValidation($db, $this->config());
+        $this->assertFalse($license->isValid());
+    }
 }

@@ -115,12 +115,12 @@ final class LicenseValidation
     /**
      * Get the current license status for display.
      *
-     * @return array{license_key:?string,license_domain:?string,license_valid:?int,license_validated_at:?string,license_error:?string}
+     * @return array{license_key:?string,license_domain:?string,license_valid:?int,license_deactivated:?int,license_validated_at:?string,license_error:?string}
      */
     public function status(): array
     {
         $row = $this->db->fetch(
-            'SELECT license_key, license_domain, license_valid, license_validated_at, license_error FROM `'
+            'SELECT license_key, license_domain, license_valid, license_deactivated, license_validated_at, license_error FROM `'
             . $this->db->table('license') . '` ORDER BY created_at DESC LIMIT 1'
         );
         if (!$row) {

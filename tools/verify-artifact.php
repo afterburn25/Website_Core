@@ -110,6 +110,7 @@ $db->insert('pages', [
 $settings = new Core\Settings\SettingsRepository($db);
 $settings->set('site.name', 'Artifact Verification Site');
 $settings->set('site.home_slug', 'home');
+$settings->set('system.cron_token', bin2hex(random_bytes(24)));
 echo "migrated + seeded\n";
 PHP;
 $script = strtr($script, ['__ROOT__' => $outDir]);

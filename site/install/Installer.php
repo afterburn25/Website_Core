@@ -296,6 +296,9 @@ final class Installer
             $settings = new \Core\Settings\SettingsRepository($db);
             $settings->set('site.name', $siteName);
             $settings->set('site.tagline', '');
+            // Web-triggered cron requires this token — generate it here so
+            // it exists before the first settings save.
+            $settings->set('system.cron_token', bin2hex(random_bytes(24)));
         } catch (\Throwable $e) {
             return $this->page($checks, ['db_name' => 'Schema/owner creation failed: ' . $e->getMessage()], $request);
         }

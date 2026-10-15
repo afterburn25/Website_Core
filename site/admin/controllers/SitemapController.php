@@ -14,9 +14,11 @@ final class SitemapController extends Controller
 {
     public function sitemap(Request $r): Response
     {
+        // noindex pages are excluded — the sitemap must not contradict the
+        // per-page robots meta an editor chose.
         $pages = $this->db()->fetchAll(
             'SELECT slug, updated_at FROM `' . $this->db()->table('pages')
-            . "` WHERE status = 'published' ORDER BY slug"
+            . "` WHERE status = 'published' AND noindex = 0 ORDER BY slug"
         );
         $base = rtrim((string) $this->c->get(\Core\Config::class)->get('app.url'), '/');
 

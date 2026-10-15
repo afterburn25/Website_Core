@@ -34,7 +34,10 @@ final class LicenseValidation
      *
      * @param string $licenseKey The license key from the bundled module
      * @param string $domain The current domain (detected from request)
-     * @return array{0:bool,1:?string} [valid, error_message]
+     * @return array{0:bool,1:?string,2:bool} [valid, error, explicit-denial]
+     *         The third element is true only when the server returned a
+     *         definitive denial (HTTP 200 + authorized:false) — the only
+     *         outcome that may deactivate the site.
      */
     public function validate(string $licenseKey, string $domain): array
     {
@@ -109,7 +112,8 @@ final class LicenseValidation
     public function isValid(): bool
     {
         $row = $this->db->fetch(
-            'SELECT license_valid, license_deactivated FROM `' . $this->db->table('license') . '` LIMIT 1'
+            'SELECT license_valid, license_deactivated FROM `' . $this->db->table('license')
+            . '` ORDER BY created_at DESC LIMIT 1'
         );
         if (!$row) {
             return false;
@@ -162,9 +166,6 @@ final class LicenseValidation
         );
     }
 
-    /**
-     * Record a validation attempt in the database.
-     */
     /**
      * Record a validation attempt. `$valid === null` means the outcome was
      * inconclusive (transport failure, non-200, malformed body) — the

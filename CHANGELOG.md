@@ -183,24 +183,33 @@
 - `LicenseValidation` service for phone-home validation with domain
   binding and periodic re-validation via `LicenseValidationJob` cron.
 - `license` table for storing license key, domain, validity, deactivation.
-- PackageManager license checks before module install/enable/disable.
+- PackageManager license checks before module install/enable; `disable()`
+  is exempt so an invalid license can never trap recovery.
 - Installer validates license key if a bundled module is detected.
 - Admin settings shows license status (key, domain, validity, last
-  validated).
+  validated) plus a "Validate now" action that revalidates on demand —
+  success clears `license_deactivated` immediately.
 - `tools/build-packages.php bundle <industry> <license_key>` creates
   bundled ZIPs with embedded license_key in module manifest.
 - `license_key` field added to manifest schema v1.
 - `docs/LICENSING_API.md` documents the Cajunwebpro.com API contract.
 - `LicenseValidationTest` for license storage/status/binding.
-- `LicenseApiContractTest` (6 tests) — real `php -S` mock of the
+- `LicenseApiContractTest` (9 tests) — real `php -S` mock of the
   licensing endpoint verifies the wire contract, explicit-denial vs
-  inconclusive-failure semantics, and auto-reactivation.
+  inconclusive-failure semantics, verdict preservation on transient
+  failures, and auto-reactivation.
+- `BundledModuleInstallTest` — real example module installed the way
+  the installer does it (license row, packages row, module migrations,
+  enabled, booted).
 - Installer registers, migrates and enables bundled modules (packages
   row + `bundled-install` journal entry) and reports bundle detection
   in capability checks.
 - License-gated public 503: explicit server denial takes public pages
   offline while `/admin` stays reachable; transient API/network failures
-  never deactivate; successful validation clears `license_deactivated`.
+  never deactivate (inconclusive attempts preserve the stored verdict
+  and never create a license row); successful validation clears
+  `license_deactivated`.
+- Revalidation cadence: 24h while valid, hourly while deactivated.
 - Validation endpoint is the rewrite-free `{license.api_url}/validate.php`;
   `WC_LICENSE_API_URL` env overrides the base for install-time
   validation and generated config.

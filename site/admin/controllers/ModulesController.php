@@ -79,11 +79,11 @@ final class ModulesController extends Controller
         if (!$u || !$this->auth()->has($u, 'modules.install')) {
             return $this->forbidden();
         }
-        $file = $r->files['package'] ?? null;
-        if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            $this->flash('error', 'Choose a package ZIP to upload.');
+        if (($err = $this->uploadError($r, 'package')) !== null) {
+            $this->flash('error', $err);
             return $this->redirect($r, '/admin/modules');
         }
+        $file = $r->files['package'];
         [$staged, $err] = $this->manager()->stage((string) $file['tmp_name']);
         $this->flash($err ? 'error' : 'ok', $err ?? 'Package staged — review and install.');
         return $this->redirect($r, '/admin/modules');

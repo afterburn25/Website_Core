@@ -174,11 +174,11 @@ final class SystemController extends Controller
         if (!$u || !$this->auth()->has($u, 'system.update')) {
             return $this->forbidden();
         }
-        $file = $r->files['update'] ?? null;
-        if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            $this->flash('error', 'No update archive uploaded.');
+        if (($err = $this->uploadError($r, 'update')) !== null) {
+            $this->flash('error', $err);
             return Response::redirect($r->basePath . '/admin/updates');
         }
+        $file = $r->files['update'];
         $staged = $this->stagedPath();
         @mkdir(dirname($staged), 0777, true);
         if (!move_uploaded_file((string) $file['tmp_name'], $staged)

@@ -23,6 +23,10 @@ final class MediaController extends Controller
         $media = $this->svc();
 
         if ($r->isPost()) {
+            if (($err = $this->discardedPostError($r)) !== null) {
+                $this->flash('error', $err);
+                return $this->redirect($r, '/admin/media');
+            }
             $action = $r->string('action');
             if ($action === 'upload' && isset($r->files['file'])) {
                 [$id, $err] = $media->store(

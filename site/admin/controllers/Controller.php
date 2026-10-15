@@ -93,4 +93,32 @@ abstract class Controller
     {
         return Response::html('<h1>403 — Forbidden</h1>', 403);
     }
+
+    /**
+     * Error message when PHP silently discarded the entire POST body
+     * (CONTENT_LENGTH > post_max_size leaves $_POST and $_FILES empty).
+     */
+    protected function discardedPostError(Request $r): ?string
+    {
+        return $r->isPost()
+            && (int) ($r->server['CONTENT_LENGTH'] ?? 0) > 0
+            && $r->post === [] && $r->files === []
+            ? 'Upload exceeds the server post size limit (' . ini_get('post_max_size') . ').'
+            : null;
+    }
+
+    /** Human-readable upload failure for $field, or null on success. */
+    protected function uploadError(Request $r, string $field): ?string
+    {
+        $file = $r->files[$field] ?? null;
+        if (is_array($file) && ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+            return null;
+        }
+        return $this->discardedPostError($r) ?? match ($file['error'] ?? UPLOAD_ERR_NO_FILE) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Upload exceeds the server file size limit (' . ini_get('upload_max_filesize') . ').',
+            UPLOAD_ERR_PARTIAL => 'Upload was incomplete — try again.',
+            UPLOAD_ERR_NO_TMP_DIR, UPLOAD_ERR_CANT_WRITE, UPLOAD_ERR_EXTENSION => 'Server upload error — check the host configuration.',
+            default => 'Choose a file to upload.',
+        };
+    }
 }

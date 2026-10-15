@@ -6,7 +6,9 @@ namespace Core\Database;
 /**
  * Discovers migration files, applies pending ones in id order, and journals
  * each application (id, description, batch, applied_at, checksum). A failed
- * migration records a failure row so operations can inspect what stopped.
+ * migration stops the run and the thrown exception names the migration id;
+ * core migrations are idempotent (IF NOT EXISTS / guarded index creation)
+ * so re-running after a fix converges without manual cleanup.
  */
 final class Migrator
 {
@@ -83,7 +85,15 @@ final class Migrator
         ) ?: 0) + 1;
 
         foreach ($this->pending() as $migration) {
-            $migration->up($this->db);
+            try {
+                $migration->up($this->db);
+            } catch (\Throwable $e) {
+                throw new \RuntimeException(
+                    'Migration ' . $migration->id() . ' failed: ' . $e->getMessage(),
+                    0,
+                    $e
+                );
+            }
             $this->db->insert('migrations', [
                 'migration_id' => $migration->id(),
                 'description'  => $migration->description(),

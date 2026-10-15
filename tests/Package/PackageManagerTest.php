@@ -288,6 +288,51 @@ final class PackageManagerTest extends TestCase
         $this->assertStringContainsString('depends', (string) $err);
     }
 
+    public function testDisableAllowedWithInvalidLicenseForRecovery(): void
+    {
+        $licenseTable = $this->db->table('license');
+        $this->db->run(
+            "INSERT INTO `{$licenseTable}` (license_key, license_domain, license_valid, license_validated_at, created_at)
+             VALUES (?, ?, 1, ?, ?)",
+            ['SITE-KEY-1', 'site.example', date('Y-m-d H:i:s'), date('Y-m-d H:i:s')]
+        );
+
+        $registry = new ModuleRegistry(
+            $this->db,
+            $this->tmp . '/industries', $this->tmp . '/addons', $this->tmp . '/themes'
+        );
+        $pm = new PackageManager(
+            $this->db, $registry, new ArchiveInspector(),
+            $this->tmp . '/staging', $this->tmp . '/industries',
+            $this->tmp . '/addons', $this->tmp . '/themes',
+            $this->tmp . '/op2.lock',
+            null, null,
+            new \Core\License\LicenseValidation($this->db, new \Core\Config('/nonexistent'))
+        );
+
+        $zip = $this->zip([
+            'widgets/addon.json' => $this->manifest(['license_key' => 'SITE-KEY-1']),
+        ]);
+        $pm->stage($zip);
+        [$ok, $err] = $pm->install('acme/widgets');
+        $this->assertTrue($ok, (string) $err);
+        [$ok, $err] = $pm->enable('acme/widgets');
+        $this->assertTrue($ok, (string) $err);
+
+        // Remote denial marks the license invalid + deactivated.
+        $this->db->run("UPDATE `{$licenseTable}` SET license_valid = 0, license_deactivated = 1");
+
+        // Disabling is a recovery/control action — must still work.
+        [$ok, $err] = $pm->disable('acme/widgets');
+        $this->assertTrue($ok, (string) $err);
+        $this->assertSame('disabled', $registry->state('acme/widgets'));
+
+        // Re-enabling stays gated by the invalid license.
+        [$ok, $err] = $pm->enable('acme/widgets');
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('license', strtolower((string) $err));
+    }
+
     public function testPurgeDropsModuleTables(): void
     {
         $zip = $this->zip(['widgets/addon.json' => $this->manifest()]);

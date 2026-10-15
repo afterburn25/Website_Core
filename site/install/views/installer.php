@@ -61,6 +61,14 @@ host panel or seed <code>config/setup.token</code> before visiting — see docs/
 </ul>
 </div>
 
+<?php if (isset($errors['license'])): ?>
+<div class="warn">
+<strong>License validation failed.</strong> <?= e($errors['license']) ?>
+The domain must be registered to this license in your Cajunwebpro client
+portal — install again after registering, or contact Cajunwebpro support.
+</div>
+<?php endif; ?>
+
 <form method="post" action="install.php" novalidate>
 <div class="card">
 <h2 style="margin-top:0">Site</h2>

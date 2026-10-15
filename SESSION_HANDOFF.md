@@ -353,7 +353,7 @@ jobs green (installer acceptance runs on both database legs); draft
   (sitemap uses configured app.url), diagnostics exports key names only,
   SMTP password write-only.
 
-**Standing**: 164 tests / 640 assertions; CI green on `devin/website-core`.
+**Standing**: 165 tests / 647 assertions; CI green on `devin/website-core`.
 
 ## DRM / licensing system (new — commercial extension)
 

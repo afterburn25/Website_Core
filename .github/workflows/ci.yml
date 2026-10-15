@@ -136,7 +136,90 @@ jobs:
           kill %1 2>/dev/null || true
           echo "installer acceptance OK"
 
-  core-only-boot:
+      - name: Licensed bundle install acceptance over HTTP (real MySQL + mock license API)
+        run: |
+          set -ex
+          trap 'echo "--- mock requests ---"; cat /tmp/license-api.log 2>/dev/null || true; echo "--- php -S log ---"; cat /tmp/php-lic.log 2>/dev/null || true' EXIT
+          php -r 'new PDO("mysql:host=127.0.0.1;port=3306","root","")->exec("CREATE DATABASE IF NOT EXISTS wc_install_lic");'
+
+          # Mock licensing API — mirrors Cajun_Web site/api/handlers/license.php
+          # contract (GOOD-KEY-* authorized for e2e.example.com only).
+          E2E_LOG=/tmp/license-api.log php -S 127.0.0.1:8098 -t tests/fixtures/license-api >/tmp/mock-srv.log 2>&1 &
+          MOCK_PID=$!
+
+          # Stage a customer bundle: core + industry module with embedded key.
+          cp -r site /tmp/wcsite2
+          cp -r vendor /tmp/wcsite2/vendor
+          mkdir -p /tmp/wcsite2/modules/industries
+          cp -r examples/industry-restaurant /tmp/wcsite2/modules/industries/industry-restaurant
+          php -r '$f="/tmp/wcsite2/modules/industries/industry-restaurant/addon.json";$m=json_decode(file_get_contents($f),true);$m["license_key"]="GOOD-KEY-1";file_put_contents($f,json_encode($m,JSON_PRETTY_PRINT));'
+
+          WC_LICENSE_API_URL=http://127.0.0.1:8098/api php -S 127.0.0.1:8100 -t /tmp/wcsite2 >/tmp/php-lic.log 2>&1 &
+          SITE_PID=$!
+          for i in $(seq 1 30); do
+            curl -s -b /tmp/wcjar2 -c /tmp/wcjar2 -o /tmp/lic-get.html http://127.0.0.1:8100/install.php && break
+            sleep 1
+          done
+          # Checks page must report the detected bundle.
+          grep -q "industry-restaurant" /tmp/lic-get.html || { echo "bundle detection not reported"; exit 1; }
+          code=$(curl -s -b /tmp/wcjar2 -c /tmp/wcjar2 -o /tmp/lic-resp.html -w '%{http_code}' \
+            -X POST http://127.0.0.1:8100/install.php \
+            --data-urlencode "site_name=Licensed Accept" \
+            --data-urlencode "base_url=http://e2e.example.com" \
+            --data-urlencode "timezone=UTC" \
+            --data-urlencode "db_host=127.0.0.1" \
+            --data-urlencode "db_port=3306" \
+            --data-urlencode "db_name=wc_install_lic" \
+            --data-urlencode "db_user=root" \
+            --data-urlencode "db_pass=" \
+            --data-urlencode "db_prefix=wc_" \
+            --data-urlencode "owner_username=ci-lic" \
+            --data-urlencode "owner_email=lic@example.test" \
+            --data-urlencode "owner_password=ci-lic-pass-1" \
+            --data-urlencode "owner_password2=ci-lic-pass-1" \
+            --data-urlencode "storage_path=/tmp/wcsite2/storage")
+          if [ "$code" != "200" ] || ! grep -q "Installation complete" /tmp/lic-resp.html; then
+            echo "licensed install POST failed (HTTP $code)"; head -60 /tmp/lic-resp.html; exit 1
+          fi
+
+          # License stored valid; module registered + enabled + migrated.
+          php -r '$p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");
+            $lic=$p->query("SELECT license_key,license_domain,license_valid FROM wc_license")->fetch();
+            if(!$lic||$lic["license_key"]!=="GOOD-KEY-1"||$lic["license_domain"]!=="e2e.example.com"||(int)$lic["license_valid"]!==1){fwrite(STDERR,"license row wrong\n");exit(1);}
+            $pkg=$p->query("SELECT state FROM wc_packages WHERE package_id=\"wcref/restaurant\"")->fetch();
+            if(!$pkg||$pkg["state"]!=="enabled"){fwrite(STDERR,"package not enabled\n");exit(1);}
+            if($p->query("SHOW TABLES LIKE \"wc_restaurant_items\"")->rowCount()!==1){fwrite(STDERR,"module tables missing\n");exit(1);}
+            echo "license row + package state + module tables OK\n";'
+
+          # Mock saw a well-formed validation request at install time.
+          grep -q '"license_key":"GOOD-KEY-1"' /tmp/license-api.log
+          grep -q '"domain":"e2e.example.com"' /tmp/license-api.log
+
+          # Valid license → public site serves 200.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/index.php)" = "200"
+
+          TOKEN=$(php -r '$p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");
+            echo $p->query("SELECT value FROM wc_settings WHERE \`key\`=\"system.cron_token\"")->fetchColumn();')
+          test -n "$TOKEN"
+
+          # Remote deactivation (domain no longer registered) → next
+          # validation takes public pages offline; /admin stays reachable.
+          php -r '$p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");
+            $p->exec("UPDATE wc_license SET license_domain=\"unregistered.example.com\", license_validated_at=\"2000-01-01 00:00:00\"");'
+          curl -s http://127.0.0.1:8100/index.php >/dev/null   # request enqueues the validation job
+          curl -s "http://127.0.0.1:8100/cron.php?token=$TOKEN" | grep -q "processed="
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/index.php)" = "503"
+          adm=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8100/index.php?p=/admin/login")
+          [ "$adm" = "200" ] || { echo "admin unreachable while deactivated: $adm"; exit 1; }
+
+          # Re-registering the domain restores the site on next validation.
+          php -r '$p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");
+            $p->exec("UPDATE wc_license SET license_domain=\"e2e.example.com\", license_validated_at=\"2000-01-01 00:00:00\"");'
+          curl -s "http://127.0.0.1:8100/cron.php?token=$TOKEN" >/dev/null
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/index.php)" = "200"
+
+          kill $MOCK_PID $SITE_PID 2>/dev/null || true
+          echo "licensed bundle acceptance OK"
     name: Core-only boot check
     runs-on: ubuntu-latest
     steps:

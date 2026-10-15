@@ -152,8 +152,12 @@ final class LicenseValidation
      */
     public function deactivate(): void
     {
+        // Preserve the API's denial reason when one was recorded — it is
+        // far more useful to the admin ("Domain not registered") than a
+        // generic message.
         $this->db->run(
-            'UPDATE `' . $this->db->table('license') . '` SET license_deactivated = 1, license_error = ?',
+            'UPDATE `' . $this->db->table('license') . '` SET license_deactivated = 1,
+             license_error = COALESCE(license_error, ?)',
             ['License deactivated by Cajunwebpro.com.']
         );
     }

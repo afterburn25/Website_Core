@@ -69,18 +69,37 @@ final class SystemMail
     /** Drain up to $limit queued messages through the configured transport. */
     public function flush(int $limit = 10): int
     {
+        $table = $this->db->table('system_messages');
+        // Reclaim claims stranded by a crashed worker — a row left in
+        // 'sending' past the lease is safe to retry (the send either never
+        // happened or the status write was lost; re-sending duplicates at
+        // worst, matching at-least-once semantics).
+        $this->db->pdo()->prepare(
+            "UPDATE `{$table}` SET status = 'queued', claimed_at = NULL
+             WHERE status = 'sending' AND claimed_at < ?"
+        )->execute([date('Y-m-d H:i:s', time() - 300)]);
+
         $rows = $this->db->fetchAll(
-            'SELECT * FROM `' . $this->db->table('system_messages')
+            'SELECT * FROM `' . $table
             . "` WHERE status = 'queued' ORDER BY id LIMIT " . (int) $limit
         );
         $sent = 0;
         foreach ($rows as $row) {
+            // Atomic claim — concurrent workers may have selected the same
+            // row; only the winner of this guarded update may send it.
+            if ($this->db->update('system_messages',
+                    ['status' => 'sending', 'claimed_at' => date('Y-m-d H:i:s')],
+                    "id = ? AND status = 'queued'",
+                    [(int) $row['id']]) === 0) {
+                continue;
+            }
             [$ok, $err] = $this->send((string) $row['to'], (string) $row['subject'], (string) $row['body']);
             $this->db->update('system_messages', [
                 'status' => $ok ? 'sent' : 'failed',
                 'attempts' => (int) $row['attempts'] + 1,
                 'last_error' => $ok ? null : substr((string) $err, 0, 2000),
                 'sent_at' => $ok ? date('Y-m-d H:i:s') : null,
+                'claimed_at' => null,
             ], 'id = ?', [(int) $row['id']]);
             if ($ok) {
                 $sent++;

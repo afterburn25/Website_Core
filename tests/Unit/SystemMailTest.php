@@ -79,6 +79,37 @@ final class SystemMailTest extends TestCase
         $this->assertStringContainsString('smtp.host', (string) $row['last_error']);
     }
 
+    public function testConcurrentClaimSkipsActiveAndReclaimsStale(): void
+    {
+        $captured = 0;
+        SystemMail::captureWith(function () use (&$captured) {
+            $captured++;
+        });
+        $this->settings->set('mail.transport', 'capture');
+        $this->mail()->queue('a@example.com', 'S', 'B');
+        $id = (int) $this->db->fetchColumn(
+            'SELECT id FROM `' . $this->db->table('system_messages') . '`'
+        );
+
+        // Simulate another worker's live claim — flush must not send it.
+        $this->db->update('system_messages',
+            ['status' => 'sending', 'claimed_at' => date('Y-m-d H:i:s')],
+            'id = ?', [$id]);
+        $this->assertSame(0, $this->mail()->flush());
+        $this->assertSame(0, $captured);
+
+        // Lease expired → the stranded claim is reclaimed and sent.
+        $this->db->update('system_messages',
+            ['claimed_at' => date('Y-m-d H:i:s', time() - 600)],
+            'id = ?', [$id]);
+        $this->assertSame(1, $this->mail()->flush());
+        $this->assertSame(1, $captured);
+        $this->assertSame('sent', $this->db->fetchColumn(
+            'SELECT status FROM `' . $this->db->table('system_messages') . '` WHERE id = ?',
+            [$id]
+        ));
+    }
+
     public function testPasswordResetTemplate(): void
     {
         $id = $this->mail()->passwordReset('admin@example.com', 'https://x/reset?t=1');

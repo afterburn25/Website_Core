@@ -130,4 +130,23 @@ final class LicenseValidationTest extends TestCase
         $license = new LicenseValidation($db, $this->config());
         $this->assertFalse($license->isValid());
     }
+
+    public function testDetectDomainUsesCanonicalAppUrl(): void
+    {
+        $db = $this->db();
+        $cfg = tempnam(sys_get_temp_dir(), 'wc-cfg');
+        file_put_contents($cfg, "<?php return ['app' => ['url' => 'HTTP://EXAMPLE.com:8080/site']];");
+        $license = new LicenseValidation($db, new Config($cfg));
+        // Scheme uppercase, mixed-case host, port and path are all
+        // normalized to the bare lowercase domain.
+        $this->assertSame('example.com', $license->detectDomain());
+        unlink($cfg);
+    }
+
+    public function testDetectDomainEmptyWithoutAppUrl(): void
+    {
+        $db = $this->db();
+        $license = new LicenseValidation($db, $this->config());
+        $this->assertSame('', $license->detectDomain());
+    }
 }

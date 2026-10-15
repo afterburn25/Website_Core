@@ -332,8 +332,10 @@ final class Installer
         }
 
         // --- bundled module installation (DRM) --------------------------------
-        // The bundled module is already at site/modules/industries/NAME/ —
-        // just store the license key and mark it installed.
+        // The bundled module ships extracted at site/modules/industries/NAME/.
+        // Store the license, then register the package, run its migrations and
+        // mark it enabled — a bundled product must work out of the box without
+        // the customer manually enabling anything.
         if ($licenseModuleDir !== null) {
             try {
                 $table = $db->table('license');
@@ -342,8 +344,35 @@ final class Installer
                      VALUES (?, ?, ?, ?, ?)",
                     [$licenseKey, $domain, 1, date('Y-m-d H:i:s'), date('Y-m-d H:i:s')]
                 );
+
+                $manifest = json_decode((string) file_get_contents($licenseModuleDir . '/addon.json'), true);
+                $packageId = (string) ($manifest['id'] ?? basename($licenseModuleDir));
+                $packagesTable = $db->table('packages');
+                $db->run(
+                    "INSERT INTO `{$packagesTable}` (package_id, state, version, manifest, updated_at)
+                     VALUES (?, 'installed', ?, ?, ?)"
+                    . ($db->driver() === 'sqlite'
+                        ? ' ON CONFLICT(package_id) DO UPDATE SET state=excluded.state, version=excluded.version, manifest=excluded.manifest, updated_at=excluded.updated_at'
+                        : ' ON DUPLICATE KEY UPDATE state=VALUES(state), version=VALUES(version), manifest=VALUES(manifest), updated_at=VALUES(updated_at)'),
+                    [$packageId, (string) ($manifest['version'] ?? ''), json_encode($manifest), date('Y-m-d H:i:s')]
+                );
+
+                $migDir = trim((string) ($manifest['migrations'] ?? ''), '/');
+                if ($migDir !== '' && is_dir($licenseModuleDir . '/' . $migDir)) {
+                    (new Migrator($db, $licenseModuleDir . '/' . $migDir))->migrate();
+                }
+
+                $db->run(
+                    "UPDATE `{$packagesTable}` SET state = 'enabled', updated_at = ? WHERE package_id = ?",
+                    [date('Y-m-d H:i:s'), $packageId]
+                );
+                $db->insert('package_journal', [
+                    'package_id' => $packageId, 'operation' => 'bundled-install',
+                    'result' => 'ok', 'detail' => 'Bundled module enabled during install',
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
             } catch (\Throwable $e) {
-                return $this->page($checks, ['license' => 'Failed to store license: ' . $e->getMessage()], $request);
+                return $this->page($checks, ['license' => 'Failed to install bundled module: ' . $e->getMessage()], $request);
             }
         }
 

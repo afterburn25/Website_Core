@@ -353,7 +353,7 @@ jobs green (installer acceptance runs on both database legs); draft
   (sitemap uses configured app.url), diagnostics exports key names only,
   SMTP password write-only.
 
-**Standing**: 159 tests / 615 assertions; CI green on `devin/website-core`.
+**Standing**: 163 tests / 634 assertions; CI green on `devin/website-core`.
 
 ## DRM / licensing system (new — commercial extension)
 
@@ -379,10 +379,10 @@ Website Core supports a DRM licensing model for bundled products
   license keys.
 - `docs/LICENSING_API.md` — API contract.
 
-Deactivation semantics: only an explicit server denial
-(`authorized:false`) deactivates; network failures/malformed responses
-are inconclusive and retry. A successful validation clears
-`license_deactivated`.
+Deactivation semantics: only `HTTP 200 + authorized:false` is a
+definitive denial — non-200 statuses (429/400/5xx), network failures and
+malformed responses are inconclusive and retry. A successful validation
+clears `license_deactivated`.
 
 The licensing service on cajunwebpro.com IS implemented (Cajun_Web
 `main`): `api/validate.php` (rate-limited, audited), license service,

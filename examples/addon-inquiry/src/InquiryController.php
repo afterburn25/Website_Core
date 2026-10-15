@@ -48,6 +48,10 @@ final class InquiryController
         if ($r->string('website') !== '') {
             return Response::redirect($r->basePath . '/inquiry?sent=1');
         }
+        if (!$this->ctx->service(\Core\Security\RateLimiter::class)
+            ->attempt('inquiry:' . $r->ip(), 5, 600)) {
+            return $this->form($r, 'Too many submissions — please try again later.');
+        }
 
         $name = trim($r->string('name'));
         $email = trim($r->string('email'));

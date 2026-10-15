@@ -125,6 +125,7 @@ final class ReferenceSitesParityTest extends TestCase
             View::class => $view,
             \Core\Security\Csrf::class => new \Core\Security\Csrf(),
             \Core\Mail\SystemMail::class => new \Core\Mail\SystemMail($s->db, $s->settings),
+            \Core\Security\RateLimiter::class => new \Core\Security\RateLimiter($s->db),
             \Core\Admin\Nav::class => new \Core\Admin\Nav($s->registry, null),
             \Core\Content\ContentItems::class => new \Core\Content\ContentItems($s->db, $s->registry),
         ];

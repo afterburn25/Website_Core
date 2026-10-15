@@ -112,6 +112,7 @@ final class ReferencePackagesTest extends TestCase
             \Core\View\View::class => $view,
             \Core\Security\Csrf::class => new \Core\Security\Csrf(),
             \Core\Mail\SystemMail::class => new \Core\Mail\SystemMail($this->db, $settings),
+            \Core\Security\RateLimiter::class => new \Core\Security\RateLimiter($this->db),
             \Core\Admin\Nav::class => new \Core\Admin\Nav($this->registry, null),
             \Core\Content\ContentItems::class => new \Core\Content\ContentItems($this->db, $this->registry),
         ];
@@ -172,6 +173,21 @@ final class ReferencePackagesTest extends TestCase
         ]);
         $this->assertSame(302, $resp->status());
         $this->assertSame(1, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('inquiry_submissions') . '`'
+        ));
+
+        // Rate limit: 5 submissions per IP per window — the 6th is refused.
+        for ($i = 0; $i < 4; $i++) {
+            $this->req('POST', '/inquiry', [
+                '_csrf' => 'tok', 'name' => 'Pat', 'email' => 'pat@x.com', 'message' => 'More ' . $i,
+            ]);
+        }
+        $resp = $this->req('POST', '/inquiry', [
+            '_csrf' => 'tok', 'name' => 'Pat', 'email' => 'pat@x.com', 'message' => 'Once more',
+        ]);
+        $this->assertSame(200, $resp->status());
+        $this->assertStringContainsString('Too many submissions', $resp->body());
+        $this->assertSame(5, (int) $this->db->fetchColumn(
             'SELECT COUNT(*) FROM `' . $this->db->table('inquiry_submissions') . '`'
         ));
 

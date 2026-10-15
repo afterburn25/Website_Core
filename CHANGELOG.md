@@ -48,6 +48,90 @@
   boots trusted core only.
 - SDK scaffold tool + roundtrip test.
 
+### Added — M4 updates, backup, recovery, jobs, mail
+- `BackupService`: full backup/restore (schema + data hex-literal, per-table
+  bounded SELECTs, meta.json manifest, file-tree tarball + SHA256 map,
+  integrity check on restore, staging path validation, `.htaccess` denial
+  guards). Admin UI with list/inspect/delete/restore.
+- `CoreUpdater`: Ed25519 signature verification (sodium_compat polyfill),
+  `ArchiveInspector` reuse, `update.json` manifest (per-file SHA256, version,
+  min_core, expires), re-inspect TOCTOU guard, pre-write hash verification,
+  apply with file-system isolation (skips config/installed.lock/storage/upload/
+  installed modules/themes), per-update backup, migrations, opcache reset,
+  admin stage/apply UI with `require_window` gate (`storage/maintenance.flag`).
+- Transactional mail queue (`SystemMail`, `system_messages` table,
+  PHPMailer SMTP + capture fallback, dedupe key, SMTP host/user/password/
+  secure config), cron drain (`Runner::run()` bounded batch, at-least-once
+  idempotent handlers, expired-lease sweep).
+- Job queue (`JobQueue`, `jobs` table): at-least-once semantics, atomic
+  claim (guarded `pending/uncertain` → `running` transition, rowCount check),
+  expired-lease sweep, dedicated `Runner` with core handlers + package
+  `scheduledJob()` registration.
+- Health/audit/diagnostics pages: real versions, queue depth/age, backup state,
+  failed packages, storage writable, disk free, config key listing (values
+  withheld), audit log tail.
+- Recovery-mode flag (`storage/recovery.flag`): boots trusted core only,
+  packages skipped — broken extensions can never lock the admin out.
+
+### Added — Self-service password reset
+- `/admin/forgot` + `/admin/reset`: rate-limited (5/10min per IP on request,
+  10/10min per IP on consume), sha256 token (raw only in email link, hash stored),
+  30-min expiry, single-use, sessions revoked on completion, unknown accounts
+  silent (no enumeration). Migration 0007 adds `reset_token_hash` and
+  `reset_expires_at` columns.
+
+### Fixed — Concurrency races
+- Job queue double-claim: atomic rowCount-guarded transitions + expired-lease
+  sweep (no wedged jobs).
+- Mail flush double-send: atomic `sending` claims + 5-minute lease sweep.
+- Update apply race: exclusive `flock` on `storage/update.lock` + temp-write+rename
+  per member (no interleaved writes).
+- Migrator race: DB-level sentinel lock (`__migrate_lock__`) with 120s stale
+  reclaim (parallel installs prevented).
+- Backup restore race: exclusive `flock` on `storage/restore.lock`.
+
+### Fixed — Security correctness
+- Header injection: `Response::header()` rejects CR/LF/NUL/DEL.
+- SQL identifier injection: allowlist regex `[a-zA-Z0-9_]+` on all table/column.
+- Upload error surfacing: shared Controller helpers map every `UPLOAD_ERR_*` +
+  discarded-body detection across package/media/update uploads.
+- `e_url` scheme-obfuscation bypass: probe control-char-stripped copy before
+  scheme allowlist.
+- Slug shadow guard: reserved list + concrete-route check; unreachable-page
+  badge on Content index.
+- Cron boot: service boot + module boot so package `scheduledJob()` handlers
+  exist; CI regression assertions added.
+- Entry-point sweep: all 3 root `.php` files have correct boot/exception handling.
+- Unsigned manifests: flipped default `allow_unsigned=false`; installer writes
+  the key; real artifact dogfood proven.
+- Maintenance enforcement: `dispatch()` 503s while `storage/maintenance.flag`
+  exists; `/admin/login`/`/admin/forgot`/`/admin/reset` bypassed; cron honors
+  the flag.
+
+### Changed — Performance and integrity
+- Hot-path indexes: migration 0005 (jobs, system_messages, page_revisions,
+  menu_items, media_usage).
+- No-rewrite fallback: verified live on raw artifact (`?p=` + PATH_INFO,
+  POST + CSRF).
+
+### Changed — Hardening posture
+- MFA replay protection: persisted `mfa_last_counter`, hashed single-use
+  recovery codes.
+- Password rotation: `PASSWORD_DEFAULT` + `password_needs_rehash` on every
+  successful login.
+- CSRF: session-bound tokens, global middleware on all admin/module admin
+  POST routes.
+- Rate limiting: atomic DB buckets (login 8/10min, MFA 6/5min, inquiry 5/10min).
+- Redirect targets: reject control characters before persistence.
+- Upload validation: `finfo` MIME signature, extension allowlist, image re-
+  encoding, polyglot rejection.
+- Security headers: `X-Content-Type-Options: nosniff`, `X-Frame-Options:
+  SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`,
+  `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
+- `.htaccess` matrix: root rewrite rule forbids all private paths; per-dir
+  deny files for config/core/storage/upload/admin/controllers/admin/views/
+  vendor/etc.; mod_php `display_errors off`.
+
 ### Added — M4 operations, updates, recovery
 - BackupService (portable SQL dump; db + config keys + uploads) +
   restore + admin UI.

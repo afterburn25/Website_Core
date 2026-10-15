@@ -7,7 +7,7 @@
 | PHP | 8.4, 8.5 | CI matrix on ubuntu-latest |
 | MySQL | 8.4 | CI service job (native suite) |
 | MariaDB | 11.4 | CI service job (native suite) |
-| Web server | Apache 2.4 mod_rewrite; LiteSpeed; no-rewrite fallback (`?p=`) | .htaccess + dev router; LiteSpeed evidence pending real host |
+| Web server | Apache 2.4 mod_rewrite; LiteSpeed; no-rewrite fallback (`?p=`, PATH_INFO) | .htaccess shipped; fallback verified on the raw extracted artifact via `php -S` with NO router file — `/`, `index.php?p=/admin/login`, `/index.php/admin/login` all 200; LiteSpeed evidence pending real host |
 | Extensions | required: pdo_mysql mbstring openssl json fileinfo session ctype; recommended: gd intl zip curl | installer checks |
 
 ## Notes

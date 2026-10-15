@@ -14,8 +14,10 @@ installed through the Module Manager.
 - **Runtime**: PHP 8.4/8.5, native MySQL/MariaDB via PDO. No Node, Redis,
   Docker, daemons, or SSH required on the customer host. Ed25519
   verification runs on ext-sodium or the bundled sodium_compat polyfill.
-  Admin extras: Backups, Health + diagnostics, owner-only self-update at
-  `/admin/updates`.
+  No-rewrite fallback (Apache 2.4 mod_rewrite or LiteSpeed; hosts without
+  rewrite use `?p=/path` PATH_INFO). Admin extras: Backups, Health +
+  diagnostics, owner-only self-update at `/admin/updates`, self-service
+  password reset at `/admin/forgot`.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.

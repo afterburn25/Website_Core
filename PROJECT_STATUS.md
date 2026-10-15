@@ -39,6 +39,10 @@ items are owner-gated, not engineering.
 - Draft prerelease publish — owner approval.
 - Real-host compatibility runs outside local/CI environments.
 - PR #7 merge approval.
+- **Cajunwebpro.com licensing service implementation** — the API contract
+  is documented (`docs/LICENSING_API.md`); the actual service (key
+  generation, domain portal, validation endpoint, domain changes) needs
+  to be built on cajunwebpro.com.
 
 ## DRM / licensing (new — commercial extension)
 

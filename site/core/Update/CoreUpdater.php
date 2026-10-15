@@ -137,6 +137,27 @@ final class CoreUpdater
      */
     public function apply(string $zipPath): array
     {
+        // One apply at a time — concurrent applies would interleave
+        // member writes and leave a mixed file tree.
+        @mkdir($this->storageDir, 0777, true);
+        $lockFh = @fopen($this->storageDir . '/update.lock', 'c');
+        if ($lockFh === false) {
+            return [false, 'Cannot open the update lock file in storage — check permissions.', null];
+        }
+        if (!flock($lockFh, LOCK_EX | LOCK_NB)) {
+            fclose($lockFh);
+            return [false, 'Another update is already in progress.', null];
+        }
+        try {
+            return $this->applyLocked($zipPath);
+        } finally {
+            flock($lockFh, LOCK_UN);
+            fclose($lockFh);
+        }
+    }
+
+    private function applyLocked(string $zipPath): array
+    {
         // Re-inspect immediately before writing — the upload could have
         // been swapped between the review and confirm steps.
         [$info, $err] = $this->inspect($zipPath);
@@ -192,7 +213,14 @@ final class CoreUpdater
                 $backup->addFromString($name, (string) file_get_contents($dest));
             }
             @mkdir(dirname($dest), 0777, true);
-            if (file_put_contents($dest, $contents) === false) {
+            // Temp-write + rename keeps each member atomic — a crash
+            // mid-write never leaves a truncated file being served.
+            $tmp = $dest . '.tmp-' . getmypid();
+            if (file_put_contents($tmp, $contents) === false
+                || (!@rename($tmp, $dest)
+                    // Windows rename() cannot overwrite an existing file.
+                    && (!@unlink($dest) || !@rename($tmp, $dest)))) {
+                @unlink($tmp);
                 $zip->close();
                 $backup->close();
                 return [false, "Failed writing {$name}", $backupPath];

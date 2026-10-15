@@ -162,6 +162,25 @@ final class CoreUpdaterTest extends TestCase
         $this->assertStringContainsString('does not match', $err);
     }
 
+    public function testApplyRefusesWhileAnotherUpdateHoldsTheLock(): void
+    {
+        @mkdir($this->storage, 0777, true);
+        $lock = fopen($this->storage . '/update.lock', 'c');
+        $this->assertNotFalse($lock);
+        $this->assertTrue(flock($lock, LOCK_EX | LOCK_NB));
+
+        $members = $this->validMembers();
+        $zip = $this->updateZip($members, $this->manifestFor($members));
+        [$ok, $err] = $this->updater->apply($zip);
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('already in progress', (string) $err);
+        // The held lock must mean zero writes happened.
+        $this->assertSame('OLD-INDEX', file_get_contents($this->root . '/index.php'));
+
+        flock($lock, LOCK_UN);
+        fclose($lock);
+    }
+
     public function testManifestHashMismatchAbortsApply(): void
     {
         $members = $this->validMembers();

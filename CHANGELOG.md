@@ -145,3 +145,14 @@
   containing CR/LF are rejected at save.
 - `Connection::table()/insert()/update()` allowlist SQL identifiers —
   interpolated names can no longer carry a backtick escape.
+
+### Fixed — indexes, upload errors, inquiry rate-limit
+- Migration 0005 indexes real hot paths: jobs claim filter, mail flush,
+  page revisions, menu_items join (every public render), media_usage.
+- Upload failures surface accurate messages: post_max_size body discard,
+  INI/FORM size limits (with the configured ceiling), partial uploads,
+  and host-side errors across package/media/update paths.
+- Migrator exceptions name the failed migration id; stale "failure row"
+  docblock corrected.
+- The shared inquiry add-on rate-limits submissions (5/IP/10min) via
+  the core RateLimiter — CSRF/honeypot paths never burn the bucket.

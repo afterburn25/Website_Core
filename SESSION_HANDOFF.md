@@ -246,3 +246,25 @@ jobs green (installer acceptance runs on both database legs); draft
   non-[a-zA-Z0-9_] identifiers — no future caller can inject via keys.
 
 **Standing**: 138 tests / 538 assertions; draft refreshed.
+
+## 2026-10-14 (final pass 4) — query indexes + upload errors + public rate-limit
+
+- **Hot-path indexes (migration 0005)**: jobs(status,run_after) for
+  claim(), system_messages(status) for flush(), page_revisions(page_id),
+  menu_items(menu_id) — the join behind every public render — and
+  media_usage(media_id). Native CI legs proved CREATE INDEX on both
+  MySQL 8.4 and MariaDB 11.4.
+- **Upload error surfacing**: PHP silently empties $_POST/$_FILES past
+  post_max_size — all three upload paths (package/media/update) reported
+  it as "choose a file" or silently no-oped. Controller helpers map
+  every UPLOAD_ERR_* and the discarded-body case to accurate messages.
+- **Migrator**: exceptions now name the failed migration id; docblock
+  corrected (no failure row exists — idempotent re-run converges).
+- **Inquiry add-on rate-limit**: public POST had CSRF+honeypot but no
+  submission cap — flood could fill submissions + mail queue. Core
+  RateLimiter wired (5/IP/10min) after CSRF+honeypot; e2e proves the
+  6th submit is refused. Session expiry, cron token (hash_equals),
+  admin CSRF middleware, exception pipeline, trusted-proxy CIDR —
+  all audited clean.
+
+**Standing**: 138 tests / 538 assertions; 6/6 CI green; draft refreshed.

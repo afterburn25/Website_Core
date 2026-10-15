@@ -218,16 +218,20 @@ final class Application
         $this->container->instance(\Core\License\LicenseValidation::class, new \Core\License\LicenseValidation($db, $this->config));
         $this->container->instance(\Core\Jobs\LicenseValidationJob::class, new \Core\Jobs\LicenseValidationJob($db, $this->config));
 
-        // Enqueue license validation job if it hasn't run in the last 24 hours.
+        // Enqueue license validation job if it hasn't run recently.
         // Licensed installs only; wrapped so a missing jobs/license table can
-        // never break request handling.
+        // never break request handling. Deactivated sites re-check hourly —
+        // an owner who re-registers their domain should see the site return
+        // within an hour, not a day.
         try {
             $licenseTable = $db->table('license');
             $lastRun = $db->fetch(
                 "SELECT MAX(license_validated_at) AS last_run FROM `{$licenseTable}` WHERE license_validated_at IS NOT NULL"
             );
-            $hasLicense = (bool) $db->fetch("SELECT license_key FROM `{$licenseTable}` WHERE license_key IS NOT NULL AND license_key <> '' LIMIT 1");
-            $needsValidation = $hasLicense && (!$lastRun || strtotime((string) $lastRun['last_run']) < strtotime('-24 hours'));
+            $licenseRow = $db->fetch("SELECT license_key, license_deactivated FROM `{$licenseTable}` WHERE license_key IS NOT NULL AND license_key <> '' LIMIT 1");
+            $deactivated = (bool) ($licenseRow['license_deactivated'] ?? 0);
+            $interval = $deactivated ? '-1 hour' : '-24 hours';
+            $needsValidation = (bool) $licenseRow && (!$lastRun || strtotime((string) $lastRun['last_run']) < strtotime($interval));
             if ($needsValidation) {
                 $jobsTable = $db->table('jobs');
                 $pending = $db->fetch(

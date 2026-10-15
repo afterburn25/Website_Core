@@ -18,6 +18,11 @@ installed through the Module Manager.
   rewrite use `?p=/path` PATH_INFO). Admin extras: Backups, Health +
   diagnostics, owner-only self-update at `/admin/updates`, self-service
   password reset at `/admin/forgot`.
+- **Commercial bundles**: `tools/build-packages.php bundle` ships core +
+  an industry module as one ZIP with an embedded `license_key`; the
+  installer validates it against the licensing API (`docs/LICENSING_API.md`),
+  revalidates on schedule, and a denied license takes public pages offline
+  while `/admin` stays reachable — core-only installs need no license.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
@@ -57,6 +62,7 @@ php tools/verify-artifact.php dist/Website-Core-*-COMPLETE-UPLOAD.zip
 | `docs/INSTALLATION.md` | Installer + ownership claim model |
 | `docs/MODULE_API.md` | Supported extension API surface |
 | `docs/PACKAGE_SPEC.md` | addon.json manifest schema v1 |
+| `docs/LICENSING_API.md` | Bundle/DRM licensing contract |
 | `docs/UPGRADES.md` / `docs/BACKUP_RESTORE.md` | Update & DR design |
 | `docs/SECURITY.md` / `docs/THREAT_MODEL.md` | Security policy & model |
 | `SESSION_HANDOFF.md` | Session-to-session work log |

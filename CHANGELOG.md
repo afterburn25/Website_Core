@@ -191,7 +191,20 @@
   bundled ZIPs with embedded license_key in module manifest.
 - `license_key` field added to manifest schema v1.
 - `docs/LICENSING_API.md` documents the Cajunwebpro.com API contract.
-- `LicenseValidationTest` (4 tests) for license storage/status/binding.
+- `LicenseValidationTest` for license storage/status/binding.
+- `LicenseApiContractTest` (6 tests) — real `php -S` mock of the
+  licensing endpoint verifies the wire contract, explicit-denial vs
+  inconclusive-failure semantics, and auto-reactivation.
+- Installer registers, migrates and enables bundled modules (packages
+  row + `bundled-install` journal entry) and reports bundle detection
+  in capability checks.
+- License-gated public 503: explicit server denial takes public pages
+  offline while `/admin` stays reachable; transient API/network failures
+  never deactivate; successful validation clears `license_deactivated`.
+- Validation endpoint is the rewrite-free `{license.api_url}/validate.php`;
+  `WC_LICENSE_API_URL` env overrides the base for install-time
+  validation and generated config.
+- `license.validate` job deduplication — one pending/running job max.
 
 ### Added — release tooling
 - `tools/build-packages.php`: FULL-PROJECT / COMPLETE-UPLOAD (prod-only

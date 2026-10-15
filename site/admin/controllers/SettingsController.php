@@ -54,10 +54,19 @@ final class SettingsController extends Controller
         foreach (self::FIELDS + self::MAIL_FIELDS as $key => $meta) {
             $values[$key] = (string) $settings->get($key, '');
         }
+        // License status
+        $licenseStatus = null;
+        try {
+            $licenseValidator = $this->app->get(\Core\License\LicenseValidation::class);
+            $licenseStatus = $licenseValidator->status();
+        } catch (\Throwable $e) {
+            // License table may not exist yet
+        }
         return $this->page($r, 'settings/index', [
             'fields'    => self::FIELDS,
             'mailFields' => self::MAIL_FIELDS,
             'values'    => $values,
+            'licenseStatus' => $licenseStatus,
             'hasSmtpPassword' => $settings->get('smtp.password', '') !== '',
             'cronToken' => (string) $settings->get('system.cron_token', ''),
         ], 'Settings');

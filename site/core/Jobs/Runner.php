@@ -60,6 +60,9 @@ final class Runner
             'mail.send' => function (array $payload, Container $c): void {
                 $c->get(\Core\Mail\SystemMail::class)->flush((int) ($payload['limit'] ?? 10));
             },
+            'license.validate' => function (array $payload, Container $c): void {
+                $c->get(\Core\Jobs\LicenseValidationJob::class)->handle($payload);
+            },
         ];
     }
 }

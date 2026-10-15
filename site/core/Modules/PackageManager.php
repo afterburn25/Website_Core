@@ -5,6 +5,7 @@ namespace Core\Modules;
 
 use Core\Database\Connection;
 use Core\Events\Dispatcher;
+use Core\License\LicenseValidation;
 use Core\Routing\Router;
 
 /**
@@ -33,6 +34,7 @@ final class PackageManager
         private string $lockFile,
         private ?\Core\Update\SignatureVerifier $verifier = null,
         private ?Dispatcher $events = null,
+        private ?LicenseValidation $licenseValidator = null,
     ) {}
 
     /** Fire a lifecycle event for listeners registered via ctx->on(). */
@@ -43,6 +45,40 @@ final class PackageManager
                 error_log('[website-core] event listener error ' . $err);
             }
         }
+    }
+
+    /** Check if the module's license matches the site's license. */
+    private function checkLicense(string $packageId, array $manifest): array
+    {
+        // If no license in manifest, skip check (dev install)
+        if (!isset($manifest['license_key'])) {
+            return [true, null];
+        }
+
+        // If no license validator, skip check (dev install)
+        if ($this->licenseValidator === null) {
+            return [true, null];
+        }
+
+        // Get the site's stored license key
+        $licenseRow = $this->db->fetch(
+            'SELECT license_key FROM `' . $this->db->table('license') . '` LIMIT 1'
+        );
+        if (!$licenseRow) {
+            return [false, 'No license found on this site.'];
+        }
+
+        // Compare keys
+        if ($manifest['license_key'] !== $licenseRow['license_key']) {
+            return [false, 'Module license does not match site license.'];
+        }
+
+        // Check if license is valid
+        if (!$this->licenseValidator->isValid()) {
+            return [false, 'Site license is not valid or has been deactivated.'];
+        }
+
+        return [true, null];
     }
 
     private function journal(string $id, string $op, string $result, string $detail = ''): void
@@ -206,6 +242,14 @@ final class PackageManager
                 return [false, implode(' ', $integrityErrors)];
             }
 
+            // License verification
+            [$licenseOk, $licenseError] = $this->checkLicense($packageId, $manifest);
+            if (!$licenseOk) {
+                $this->journal($packageId, 'install', 'failed', $licenseError ?? 'License check failed');
+                $this->recordPackage($manifest, 'failed');
+                return [false, $licenseError ?? 'License check failed'];
+            }
+
             $dest = $this->destDir($manifest);
             $upgrade = is_dir($dest);
             $this->recordPackage($manifest, $upgrade ? 'upgrading' : 'installed');
@@ -276,6 +320,14 @@ final class PackageManager
             $this->journal($packageId, 'enable', 'failed', implode(' ', $info['errors']));
             return [false, implode(' ', $info['errors'])];
         }
+
+        // License check
+        [$licenseOk, $licenseError] = $this->checkLicense($packageId, $info['manifest']);
+        if (!$licenseOk) {
+            $this->journal($packageId, 'enable', 'failed', $licenseError ?? 'License check failed');
+            return [false, $licenseError ?? 'License check failed'];
+        }
+
         // Enable dependencies first (deterministic).
         foreach (array_keys($info['manifest']['dependencies'] ?? []) as $dep) {
             if ($this->registry->state($dep) !== 'enabled') {
@@ -305,6 +357,17 @@ final class PackageManager
                 return [false, "Cannot disable — {$id} depends on it."];
             }
         }
+
+        // License check (optional - allow disabling even if license invalid for recovery)
+        $info = $this->registry->all()[$packageId] ?? null;
+        if ($info !== null && isset($info['manifest']['license_key'])) {
+            [$licenseOk, $licenseError] = $this->checkLicense($packageId, $info['manifest']);
+            if (!$licenseOk) {
+                $this->journal($packageId, 'disable', 'failed', $licenseError ?? 'License check failed');
+                return [false, $licenseError ?? 'License check failed'];
+            }
+        }
+
         $this->registry->setState($packageId, 'disabled');
         $this->journal($packageId, 'disable', 'ok');
         $this->fire('package.disabled', ['package' => $packageId]);

@@ -19,11 +19,111 @@ declare(strict_types=1);
  *   SHA256SUMS.txt                           checksum manifest for all zips
  *
  * Usage: php tools/build-packages.php [outdir]
+ *        php tools/build-packages.php bundle <industry> <license_key> [outdir]
+ *                                    Create a bundled package (core + industry module
+ *                                    with license_key embedded in addon.json)
  * Run from a clean commit for release builds.
  */
 
 $root = dirname(__DIR__);
-$out = $argv[1] ?? $root . '/dist';
+$command = $argv[1] ?? null;
+$out = $argv[2] ?? $root . '/dist';
+
+if ($command === 'bundle') {
+    // php tools/build-packages.php bundle <industry> <license_key> [outdir]
+    $industry = $argv[2] ?? null;
+    $licenseKey = $argv[3] ?? null;
+    $out = $argv[4] ?? $root . '/dist';
+    @mkdir($out, 0777, true);
+    if ($industry === null || $licenseKey === null) {
+        fwrite(STDERR, "Usage: php tools/build-packages.php bundle <industry> <license_key> [outdir]\n");
+        exit(1);
+    }
+    $version = '0.0.0-dev';
+    if (is_file($root . '/site/includes/bootstrap.php')) {
+        $b = file_get_contents($root . '/site/includes/bootstrap.php');
+        if (preg_match("/define\\('WC_VERSION', '([^']+)'\\)/", $b, $m)) {
+            $version = $m[1];
+        }
+    }
+    $ver = preg_replace('/[^a-zA-Z0-9.\-]+/', '-', $version);
+    echo "Building bundle for {$industry} with license_key={$licenseKey}\n";
+    echo "version={$ver}\n";
+    // Find the industry module in examples/
+    $examples = glob($root . '/examples/industry-*', GLOB_ONLYDIR);
+    $moduleDir = null;
+    foreach ($examples as $dir) {
+        if (basename($dir) === 'industry-' . $industry) {
+            $moduleDir = $dir;
+            break;
+        }
+    }
+    if ($moduleDir === null) {
+        fwrite(STDERR, "Industry module '{$industry}' not found in examples/\n");
+        exit(1);
+    }
+    $moduleName = basename($moduleDir);
+    // Build the bundle ZIP
+    $bundleZip = "{$out}/Website-Core-{$industry}-{$ver}-BUNDLE.zip";
+    $zip = new ZipArchive();
+    if ($zip->open($bundleZip, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        fwrite(STDERR, "cannot create {$bundleZip}\n");
+        exit(1);
+    }
+    // Add core files
+    $coreBase = $root . '/site';
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($coreBase, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
+    $count = 0;
+    foreach ($iterator as $file) {
+        $path = $file->getRealPath();
+        $rel = substr($path, strlen($coreBase) + 1);
+        // Skip secrets and runtime artifacts
+        if (str_starts_with($rel, 'config/config.php')
+            || str_starts_with($rel, 'config/installed.lock')
+            || str_starts_with($rel, 'config/setup.token')
+            || str_starts_with($rel, 'storage/')
+            || str_starts_with($rel, 'upload/')
+            || str_contains($rel, '.key')
+            || str_contains($rel, '.pem')
+        ) {
+            continue;
+        }
+        if ($file->isFile()) {
+            $zip->addFile($path, 'site/' . $rel);
+            $count++;
+        }
+    }
+    // Add module files with embedded license_key
+    $moduleBase = $moduleDir;
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($moduleBase, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
+    foreach ($iterator as $file) {
+        $path = $file->getRealPath();
+        $rel = substr($path, strlen($moduleBase) + 1);
+        if ($file->isFile()) {
+            // Embed license_key in addon.json
+            if ($rel === 'addon.json') {
+                $content = file_get_contents($path);
+                $manifest = json_decode($content, true);
+                $manifest['license_key'] = $licenseKey;
+                $zip->addFromString('modules/' . $moduleName . '/addon.json',
+                    json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            } else {
+                $zip->addFile($path, 'modules/' . $moduleName . '/' . $rel);
+            }
+            $count++;
+        }
+    }
+    $zip->close();
+    echo "Bundle created: {$bundleZip} ({$count} files)\n";
+    exit(0);
+}
+
 @mkdir($out, 0777, true);
 
 $version = '0.0.0-dev';

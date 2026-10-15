@@ -67,6 +67,22 @@ final class Application
                 return;
             }
             $response = $this->dispatch($this->request);
+
+            // Check license validity after dispatch (services are booted)
+            // Show warning but allow admin access so owner can fix license issues
+            $validator = $this->container->get(\Core\License\LicenseValidation::class);
+            if (!$validator->isValid()) {
+                // Add deactivation warning to response if it's HTML
+                $body = $response->body();
+                if (str_starts_with($body, '<!doctype html') || str_starts_with($body, '<html')) {
+                    $warning = '<div style="background:#fee2e2;color:#b91c1c;padding:1rem;margin:1rem;border-radius:0.5rem">'
+                        . '<strong>License Warning:</strong> '
+                        . e($validator->status()['error'] ?? 'License is not valid.')
+                        . ' Please contact Cajunwebpro.com support.</div>';
+                    $body = str_replace('</body>', $warning . '</body>', $body);
+                    $response = Response::html($body, $response->status(), $response->headers());
+                }
+            }
         } catch (\Throwable $e) {
             $response = $this->handleException($e);
         }
@@ -197,6 +213,30 @@ final class Application
         $translator->addDir($themeDir !== '' ? $themesRoot . '/' . $themeDir : '', false);
         $this->container->instance(\Core\I18n\Translator::class, $translator);
         \Core\I18n\Translator::setInstance($translator);
+
+        // License validation service
+        $this->container->instance(\Core\License\LicenseValidation::class, new \Core\License\LicenseValidation($db, $this->config));
+        $this->container->instance(\Core\Jobs\LicenseValidationJob::class, new \Core\Jobs\LicenseValidationJob($db, $this->config));
+
+        $modulesRoot = (string) $this->config->get('paths.modules', WC_MODULES);
+        $themesRoot = (string) $this->config->get('paths.themes', WC_THEMES);
+        $registry = new ModuleRegistry($db, $modulesRoot . '/industries', $modulesRoot . '/addons', $themesRoot);
+        $registry->discover();
+        $this->container->instance(ModuleRegistry::class, $registry);
+        $this->container->instance(\Core\Content\ContentItems::class,
+            new \Core\Content\ContentItems($db, $registry));
+        $this->container->instance(\Core\Modules\PackageManager::class, new \Core\Modules\PackageManager(
+            $db, $registry, new \Core\Modules\ArchiveInspector(),
+            (string) $this->config->get('paths.upload', WC_ROOT . '/upload'),
+            $modulesRoot . '/industries', $modulesRoot . '/addons', $themesRoot,
+            (string) $this->config->get('paths.storage', WC_ROOT . '/storage') . '/package-op.lock',
+            new \Core\Update\SignatureVerifier(
+                (array) $this->config->get('trust.public_keys', []),
+                (bool) $this->config->get('trust.allow_unsigned', false)
+            ),
+            $this->container->get(Dispatcher::class),
+            $this->container->get(\Core\License\LicenseValidation::class),
+        ));
     }
 
     /**
@@ -274,6 +314,7 @@ final class Application
                 (bool) $this->config->get('trust.allow_unsigned', false)
             ),
             $this->container->get(Dispatcher::class),
+            $this->container->get(\Core\License\LicenseValidation::class),
         ));
 
         $events = $this->container->get(Dispatcher::class);

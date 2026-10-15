@@ -262,6 +262,35 @@ final class Installer
             $errors['storage_path'] = 'Storage path is not writable and could not be created.';
         }
 
+        // --- license validation (DRM) ----------------------------------------
+        $licenseKey = null;
+        $licenseModuleDir = null;
+        $moduleDirs = glob(WC_ROOT . '/*', GLOB_ONLYDIR) ?: [];
+        foreach ($moduleDirs as $dir) {
+            $manifestFile = $dir . '/addon.json';
+            if (is_file($manifestFile)) {
+                $manifest = json_decode((string) file_get_contents($manifestFile), true);
+                if (is_array($manifest) && isset($manifest['license_key'])) {
+                    $licenseKey = (string) $manifest['license_key'];
+                    $licenseModuleDir = basename($dir);
+                    break;
+                }
+            }
+        }
+
+        if ($licenseKey !== null) {
+            $domain = parse_url($baseUrl, PHP_URL_HOST);
+            if ($domain === false) {
+                $errors['base_url'] = 'Could not extract domain from base URL for license validation.';
+            } else {
+                // Attempt license validation (may fail if API is unreachable)
+                $validationResult = $this->validateLicense($licenseKey, $domain);
+                if (!$validationResult[0]) {
+                    $errors['license'] = $validationResult[1] ?? 'License validation failed.';
+                }
+            }
+        }
+
         if ($errors !== []) {
             return $this->page($checks, $errors, $request);
         }
@@ -280,6 +309,18 @@ final class Installer
                 'disabled'      => 0,
                 'created_at'    => date('Y-m-d H:i:s'),
             ]);
+
+            // Store license key if present
+            if ($licenseKey !== null) {
+                $now = date('Y-m-d H:i:s');
+                $domain = parse_url($baseUrl, PHP_URL_HOST);
+                $db->run(
+                    "INSERT INTO `" . $db->table('license') . "`
+                     (license_key, license_domain, license_valid, license_validated_at)
+                     VALUES (?, ?, 1, ?)",
+                    [$licenseKey, $domain, $now]
+                );
+            }
 
             // A fresh install must serve something at '/' — the home route
             // resolves site.home_slug (default 'home').
@@ -343,6 +384,54 @@ final class Installer
             . '<p>Sign in to the <a href="' . e_attr($baseUrl) . '/admin">administration area</a> '
             . 'and enable two-factor authentication on your profile.</p></body></html>'
         );
+    }
+
+    /**
+     * Validate a license key against the Cajunwebpro.com API.
+     *
+     * @return array{0:bool,1:?string} [valid, error_message]
+     */
+    private function validateLicense(string $licenseKey, string $domain): array
+    {
+        $endpoint = 'https://cajunwebpro.com/api/validate';
+        $payload = json_encode([
+            'license_key' => $licenseKey,
+            'domain' => $domain,
+        ]);
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => "Content-Type: application/json\r\n" .
+                            "User-Agent: Website-Core-Installer/1.0\r\n",
+                'content' => $payload,
+                'timeout' => 10,
+                'ignore_errors' => true,
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ],
+        ]);
+
+        $response = @file_get_contents($endpoint, false, $context);
+        if ($response === false) {
+            return [false, 'Could not contact license server. Please check your internet connection or proceed without license validation (dev mode).'];
+        }
+
+        $data = json_decode($response, true);
+        if (!is_array($data)) {
+            return [false, 'Invalid response from license server.'];
+        }
+
+        $valid = (bool) ($data['authorized'] ?? false);
+        $error = $data['error'] ?? null;
+
+        if (!$valid) {
+            return [false, $error ?? 'License validation failed.'];
+        }
+
+        return [true, null];
     }
 
     private function renderConfig(array $v): string

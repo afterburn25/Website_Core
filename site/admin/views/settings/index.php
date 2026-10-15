@@ -24,6 +24,35 @@ messages queue until a transport is configured — the site keeps working.</p>
 <div style="margin-top:1rem"><button class="btn" type="submit">Save settings</button></div>
 </form>
 </div>
+<?php if ($licenseStatus !== null): ?>
+<div class="card">
+<h2 style="margin-top:0">License</h2>
+<?php if ($licenseStatus['license_key'] !== null): ?>
+<dl>
+<dt><strong>License key</strong></dt>
+<dd><code><?= e(substr($licenseStatus['license_key'], 0, 8)) ?>…</code></dd>
+<dt><strong>Domain</strong></dt>
+<dd><code><?= e($licenseStatus['license_domain'] ?? '—') ?></code></dd>
+<?php if ($licenseStatus['license_valid'] !== null): ?>
+<dt><strong>Status</strong></dt>
+<dd>
+<?php if ($licenseStatus['license_valid']): ?>
+<span style="color:green">Active</span>
+<?php else: ?>
+<span style="color:red">Inactive</span>
+<?php endif; ?>
+</dd>
+<?php endif; ?>
+<?php if ($licenseStatus['license_validated_at'] !== null): ?>
+<dt><strong>Last validated</strong></dt>
+<dd><?= e(date('Y-m-d H:i', strtotime($licenseStatus['license_validated_at']))) ?></dd>
+<?php endif; ?>
+</dl>
+<?php else: ?>
+<p class="muted">Not licensed. Install a module bundle with an embedded license key.</p>
+<?php endif; ?>
+</div>
+<?php endif; ?>
 <div class="card">
 <h2 style="margin-top:0">System</h2>
 <p class="muted">Cron runner token (for <code>cron.php?token=…</code> on hosts without CLI cron):</p>

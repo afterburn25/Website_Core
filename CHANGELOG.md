@@ -135,6 +135,20 @@
   step-by-step verification for Apache/LiteSpeed/cPanel hosts (installer,
   no-rewrite fallback, cron, packages, password reset, backup/restore, updates).
 
+### Added — M6 accessibility and performance
+- Accessibility controls: aria-label on navigation regions (admin sidebar,
+  site nav), for labels on all form inputs, descriptive alt text on media
+  thumbnails, focus-visible outlines on all interactive elements,
+  prefers-reduced-motion media query support (admin layout, base theme,
+  noir theme, terra theme).
+- AccessibilityTest extended: asserts admin layout controls, theme reduced-
+  motion support across all 3 themes, media thumbnail alt text not empty.
+- Tests: 149 tests / 582 assertions.
+- Performance posture documented: intentionally simple architecture for
+  shared hosting (in-request settings cache, HTMLPurifier serializer cache,
+  opcache reset after updates, no complex caching layers, database indexes,
+  no N+1 queries).
+
 ### Added — M4 operations, updates, recovery
 - BackupService (portable SQL dump; db + config keys + uploads) +
   restore + admin UI.

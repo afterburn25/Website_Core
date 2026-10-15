@@ -112,10 +112,10 @@ if ($command === 'bundle') {
             $content = file_get_contents($path);
             $manifest = json_decode($content, true);
             $manifest['license_key'] = $licenseKey;
-            $zip->addFromString('modules/' . $moduleName . '/addon.json',
+            $zip->addFromString('site/modules/industries/' . $moduleName . '/addon.json',
                 json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         } else {
-            $zip->addFile($path, 'modules/' . $moduleName . '/' . $rel);
+            $zip->addFile($path, 'site/modules/industries/' . $moduleName . '/' . $rel);
         }
         $count++;
     }

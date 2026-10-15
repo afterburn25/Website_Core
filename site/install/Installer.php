@@ -263,10 +263,10 @@ final class Installer
         }
 
         // --- license validation (DRM) ----------------------------------------
-        // Bundled modules are extracted to modules/industry-*/
+        // Bundled modules are extracted to site/modules/industries/*/
         $licenseKey = null;
         $licenseModuleDir = null;
-        $bundledModules = glob(WC_ROOT . '/modules/*/addon.json') ?: [];
+        $bundledModules = glob(WC_ROOT . '/modules/industries/*/addon.json') ?: [];
         foreach ($bundledModules as $manifestFile) {
             $manifest = json_decode((string) file_get_contents($manifestFile), true);
             if (is_array($manifest) && isset($manifest['license_key'])) {
@@ -342,34 +342,11 @@ final class Installer
             return $this->page($checks, ['db_name' => 'Schema/owner creation failed: ' . $e->getMessage()], $request);
         }
 
-        // --- bundled module extraction (DRM) -----------------------------------
+        // --- bundled module installation (DRM) --------------------------------
+        // The bundled module is already at site/modules/industries/NAME/ —
+        // just store the license key and mark it installed.
         if ($licenseModuleDir !== null) {
             try {
-                $moduleName = basename($licenseModuleDir);
-                $targetDir = WC_ROOT . '/site/modules/industries/' . $moduleName;
-                if (!is_dir($targetDir)) {
-                    @mkdir($targetDir, 0755, true);
-                }
-                $iterator = new \RecursiveIteratorIterator(
-                    new \RecursiveDirectoryIterator($licenseModuleDir, \RecursiveDirectoryIterator::SKIP_DOTS),
-                    \RecursiveIteratorIterator::SELF_FIRST
-                );
-                foreach ($iterator as $file) {
-                    $path = $file->getRealPath();
-                    $rel = substr($path, strlen($licenseModuleDir) + 1);
-                    $dest = $targetDir . '/' . $rel;
-                    if ($file->isDir()) {
-                        if (!is_dir($dest)) {
-                            @mkdir($dest, 0755, true);
-                        }
-                    } else {
-                        if (!is_dir(dirname($dest))) {
-                            @mkdir(dirname($dest), 0755, true);
-                        }
-                        copy($path, $dest);
-                    }
-                }
-                // Store the license key in the database
                 $table = $db->table('license');
                 $db->run(
                     "INSERT INTO `{$table}` (license_key, license_domain, license_valid, license_validated_at, created_at)
@@ -377,7 +354,7 @@ final class Installer
                     [$licenseKey, $domain, 1, date('Y-m-d H:i:s'), date('Y-m-d H:i:s')]
                 );
             } catch (\Throwable $e) {
-                return $this->page($checks, ['license' => 'Module extraction failed: ' . $e->getMessage()], $request);
+                return $this->page($checks, ['license' => 'Failed to store license: ' . $e->getMessage()], $request);
             }
         }
 

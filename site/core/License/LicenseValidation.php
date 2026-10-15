@@ -62,13 +62,15 @@ final class LicenseValidation
         $response = @file_get_contents($endpoint, false, $context);
         if ($response === false) {
             $this->recordValidation($licenseKey, $domain, false, 'API request failed: ' . (error_get_last()['message'] ?? 'unknown'));
-            return [false, 'Could not contact license server. Please check your internet connection.'];
+            // Third return element: false = the server was not reached, so this
+            // failure is inconclusive and must not deactivate the site.
+            return [false, 'Could not contact license server. Please check your internet connection.', false];
         }
 
         $data = json_decode($response, true);
         if (!is_array($data)) {
             $this->recordValidation($licenseKey, $domain, false, 'Invalid API response');
-            return [false, 'Invalid response from license server.'];
+            return [false, 'Invalid response from license server.', false];
         }
 
         $valid = (bool) ($data['authorized'] ?? false);
@@ -77,10 +79,11 @@ final class LicenseValidation
         $this->recordValidation($licenseKey, $domain, $valid, $error);
 
         if (!$valid) {
-            return [false, $error ?? 'License validation failed.'];
+            // The server explicitly denied this license/domain — a real denial.
+            return [false, $error ?? 'License validation failed.', true];
         }
 
-        return [true, null];
+        return [true, null, false];
     }
 
     /**
@@ -160,9 +163,11 @@ final class LicenseValidation
             // If duplicate key, update instead
             $this->db->run(
                 "UPDATE `{$table}`
-                 SET license_valid = ?, license_validated_at = ?, license_error = ?, updated_at = CURRENT_TIMESTAMP
+                 SET license_valid = ?, license_validated_at = ?, license_error = ?,
+                     license_deactivated = CASE WHEN ? THEN 0 ELSE license_deactivated END,
+                     updated_at = CURRENT_TIMESTAMP
                  WHERE license_key = ?",
-                [$valid ? 1 : 0, $now, $error, $licenseKey]
+                [$valid ? 1 : 0, $now, $error, $valid ? 1 : 0, $licenseKey]
             );
         }
     }

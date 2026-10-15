@@ -38,15 +38,20 @@ final class LicenseValidationJob
         }
 
         $validator = new LicenseValidation($this->db, $this->config);
-        [$valid, $error] = $validator->validate(
+        [$valid, $error, $denied] = $validator->validate(
             (string) $license['license_key'],
             (string) $license['license_domain']
         );
 
         if (!$valid) {
-            // Mark as deactivated if validation fails
-            $validator->deactivate();
             error_log('[website-core] License validation failed: ' . ($error ?? 'unknown'));
+            if ($denied) {
+                // Only a definitive server denial (deactivated license or
+                // unregistered domain) deactivates the site — network
+                // failures and malformed responses leave it running and
+                // retry on the next scheduled validation.
+                $validator->deactivate();
+            }
         }
 
         return true;

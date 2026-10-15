@@ -168,6 +168,19 @@ final class Installer
         $add('HTTPS', $this->requestSecure(), 'TLS recommended for admin sessions', false);
         $add('install.php writable (self-cleanup)', is_writable(WC_ROOT . '/install.php'), 'will self-disable via lock regardless', false);
 
+        // Report bundled-product detection so the customer can confirm the
+        // package they purchased was extracted correctly. Not required —
+        // a core-only install is a valid configuration.
+        $bundledName = null;
+        foreach (glob(WC_ROOT . '/modules/industries/*/addon.json') ?: [] as $manifestFile) {
+            $m = json_decode((string) file_get_contents($manifestFile), true);
+            if (is_array($m) && isset($m['license_key'])) {
+                $bundledName = basename(dirname($manifestFile));
+                break;
+            }
+        }
+        $add('Bundled industry module', true, $bundledName !== null ? $bundledName . ' — license will be validated during install' : 'none detected — core-only install', false);
+
         return $checks;
     }
 

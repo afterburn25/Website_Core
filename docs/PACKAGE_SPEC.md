@@ -40,22 +40,32 @@ lives at `sdk/schema/addon.schema.json`.
 Commercial distributions bundle the core + industry module in one ZIP:
 
 - `site/` — Website Core
-- `modules/industry-{name}/` — module with `license_key` in `addon.json`
+- `site/modules/industries/industry-{name}/` — module with `license_key`
+  in `addon.json`
 
 **Install flow:**
-1. Installer detects bundled module (`modules/industry-*/addon.json`)
+1. Installer detects the bundled module
+   (`site/modules/industries/*/addon.json` carrying `license_key`) and
+   reports it on the checks page
 2. Reads `license_key` from the manifest
-3. Validates against the licensing service (`license.api_url`)
-4. If valid → stores the key, installs core, enables the module
-5. If invalid → shows an error, refuses to proceed
+3. Validates `{key, domain}` against the licensing service
+   (`{license.api_url}/validate.php`) — the domain must be registered to
+   the license in the customer portal first
+4. If valid → stores the license, registers the package, runs module
+   migrations, marks it `enabled`
+5. If invalid → shows the server's error inline, refuses to proceed
 
 **Module binding:** Once a site is installed with a module, that module is
-bound to the license key. Operations on other modules check the key match —
-mismatched keys are refused.
+bound to the license key. `install`/`enable` operations on licensed
+modules check the key match — mismatched keys are refused; `disable()`
+is exempt for recovery.
 
-**Domain binding:** The license key is associated with a domain in the
-licensing service. Periodic validation checks the key + domain; if the
-domain changes, the old site deactivates.
+**Domain binding:** The license key is associated with registered
+domain(s) in the licensing service (max two active — public + test;
+`www.`/apex variants count as one site). Periodic validation checks the
+key + domain — daily while valid, hourly while deactivated; if the
+domain changes, the old site deactivates on its next check (public
+503, `/admin` reachable; Settings → "Validate now" re-checks on demand).
 
 See `docs/LICENSING_API.md` for the full API contract.
 

@@ -49,6 +49,9 @@ final class RedirectService
         if ($source === '' || $source === '//' || $target === '') {
             return [false, 'Source and target are required.'];
         }
+        if (preg_match('/[\x00-\x1F\x7F]/', $target)) {
+            return [false, 'Target contains control characters.'];
+        }
         $internal = str_starts_with($target, '/');
         if (!$internal && !preg_match('#^https?://#i', $target)) {
             return [false, 'Target must be a site path (/…) or an http(s) URL.'];

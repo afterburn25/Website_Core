@@ -66,6 +66,15 @@ final class RedirectsSectionsTest extends TestCase
         $this->assertFalse($ok); // bad code
         [$ok] = $s->save(null, '/a', 'https://example.com/x', 302, null);
         $this->assertTrue($ok); // external https is fine
+        [$ok, $err] = $s->save(null, '/a2', "https://x/\r\nSet-Cookie: injected=1", 301, null);
+        $this->assertFalse($ok); // CRLF in a stored target is refused
+        $this->assertStringContainsString('control', (string) $err);
+    }
+
+    public function testHeaderRejectsControlCharacters(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        (new \Core\Http\Response())->header('Location', "https://x/\r\nSet-Cookie: bad");
     }
 
     public function testRedirectLoopRejected(): void

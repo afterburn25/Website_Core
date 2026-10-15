@@ -10,8 +10,8 @@ adapt to real dependencies; scope is preserved, not deferred silently.
 | M2 | Content + presentation | pages/sections/menus/revisions, media library, theme tokens/slots, localization, metadata/sitemap/robots |
 | M3 | Package system | versioned Module API, Module Manager upload→uninstall lifecycle, SDK scaffold + validator + compat kit |
 | M4 | Operations | verified updates (signed metadata), backup/restore/recovery mode, jobs, system mail (SMTP + capture), health/diagnostics |
-| M5 | Cross-industry proof | restaurant + salon reference modules, shared inquiry-form add-on (byte-identical ZIP on both sites), two distinct themes |
-| M6 | Release | security/a11y/perf/hosting matrix evidence, commercial docs, independently reviewed RC, verified packages |
+| M5 | Cross-industry proof | restaurant + salon reference modules (`examples/industry-restaurant`, `examples/industry-salon`), shared inquiry-form add-on (`examples/addon-inquiry`), two distinct themes (`examples/theme-noir`, `examples/theme-terra`) — verified via `ReferencePackagesTest` and `ReferenceSitesParityTest` |
+| M6 | Release | security/a11y/perf/hosting matrix evidence (`docs/SECURITY.md`, `docs/COMPATIBILITY.md`), commercial docs (`docs/COMMERCIAL_READINESS.md`), independently reviewed RC, verified packages (SDK roundtrip, parity tests, SBOM, checksums) |
 
 ## Requirement IDs (stable)
 

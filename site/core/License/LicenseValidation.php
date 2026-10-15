@@ -61,7 +61,7 @@ final class LicenseValidation
 
         $response = @file_get_contents($endpoint, false, $context);
         if ($response === false) {
-            $this->recordValidation($licenseKey, $domain, false, 'API request failed: ' . (error_get_last()['message'] ?? 'unknown'));
+            $this->recordValidation($licenseKey, $domain, null, 'API request failed: ' . (error_get_last()['message'] ?? 'unknown'));
             // Third return element: false = the server was not reached, so this
             // failure is inconclusive and must not deactivate the site.
             return [false, 'Could not contact license server. Please check your internet connection.', false];
@@ -78,13 +78,13 @@ final class LicenseValidation
             }
         }
         if ($statusCode !== 200) {
-            $this->recordValidation($licenseKey, $domain, false, 'License server returned HTTP ' . $statusCode);
+            $this->recordValidation($licenseKey, $domain, null, 'License server returned HTTP ' . $statusCode);
             return [false, 'License server returned HTTP ' . $statusCode . '. Validation will retry automatically.', false];
         }
 
         $data = json_decode($response, true);
         if (!is_array($data)) {
-            $this->recordValidation($licenseKey, $domain, false, 'Invalid API response');
+            $this->recordValidation($licenseKey, $domain, null, 'Invalid API response');
             return [false, 'Invalid response from license server.', false];
         }
 
@@ -161,7 +161,13 @@ final class LicenseValidation
     /**
      * Record a validation attempt in the database.
      */
-    private function recordValidation(string $licenseKey, string $domain, bool $valid, ?string $error): void
+    /**
+     * Record a validation attempt. `$valid === null` means the outcome was
+     * inconclusive (transport failure, non-200, malformed body) — the
+     * stored verdict must be preserved so a transient outage cannot mark
+     * an otherwise-valid license invalid and trip the public gate.
+     */
+    private function recordValidation(string $licenseKey, string $domain, ?bool $valid, ?string $error): void
     {
         $now = date('Y-m-d H:i:s');
         $table = $this->db->table('license');
@@ -172,9 +178,19 @@ final class LicenseValidation
                 "INSERT INTO `{$table}`
                  (license_key, license_domain, license_valid, license_validated_at, license_error)
                  VALUES (?, ?, ?, ?, ?)",
-                [$licenseKey, $domain, $valid ? 1 : 0, $now, $error]
+                [$licenseKey, $domain, $valid === true ? 1 : 0, $now, $error]
             );
         } catch (\Throwable $e) {
+            if ($valid === null) {
+                // Inconclusive: log the attempt + error, keep the verdict.
+                $this->db->run(
+                    "UPDATE `{$table}`
+                     SET license_validated_at = ?, license_error = ?, updated_at = CURRENT_TIMESTAMP
+                     WHERE license_key = ?",
+                    [$now, $error, $licenseKey]
+                );
+                return;
+            }
             // If duplicate key, update instead
             $this->db->run(
                 "UPDATE `{$table}`

@@ -88,13 +88,19 @@ final class LicenseApiContractTest extends TestCase
 
     private function license(): LicenseValidation
     {
+        return $this->licenseWithDb()[0];
+    }
+
+    /** @return array{0: LicenseValidation, 1: Connection} */
+    private function licenseWithDb(): array
+    {
         file_put_contents($this->configFile, sprintf(
             '<?php return ["license" => ["api_url" => "http://127.0.0.1:%d/api"]];',
             $this->port
         ));
         $db = new Connection(new \PDO('sqlite::memory:'), 'wc_');
         (new Migrator($db, WC_ROOT . '/database/migrations'))->migrate();
-        return new LicenseValidation($db, new Config($this->configFile));
+        return [new LicenseValidation($db, new Config($this->configFile)), $db];
     }
 
     private function lastRequest(): array
@@ -177,6 +183,27 @@ final class LicenseApiContractTest extends TestCase
         [$valid, , $denied] = $license->validate('GOOD-KEY-1', 'e2e.example.com');
         $this->assertFalse($valid);
         $this->assertFalse($denied, 'network failures must not deactivate the site');
+    }
+
+    public function testInconclusiveFailurePreservesStoredVerdict(): void
+    {
+        [$license, $conn] = $this->licenseWithDb();
+        $license->storeLicenseKey('ERROR-KEY', 'e2e.example.com');
+        // Simulate a previously-authorized license (installer sets valid=1).
+        $conn->run('UPDATE `' . $conn->table('license') . '` SET license_valid = 1');
+        $this->assertTrue($license->isValid());
+
+        // A transient failure must not flip license_valid to 0 — the
+        // public gate checks that column, so recording it would take the
+        // site offline exactly like an explicit denial.
+        [$valid, , $denied] = $license->validate('ERROR-KEY', 'e2e.example.com');
+        $this->assertFalse($valid);
+        $this->assertFalse($denied);
+        $status = $license->status();
+        $this->assertSame(1, (int) $status['license_valid']);
+        $this->assertSame(0, (int) $status['license_deactivated']);
+        $this->assertStringContainsString('HTTP 500', (string) $status['license_error']);
+        $this->assertTrue($license->isValid());
     }
 
     public function testSuccessfulValidationClearsDeactivatedFlag(): void

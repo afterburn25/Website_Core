@@ -33,6 +33,16 @@ tests/tool scores are evidence, not certification.
   permissions policies.
 - Installer: claim model (seeded token or bound-session), generated
   secrets, self-disable + permanent lock.
+- Licensing/DRM (bundled products): license keys are 128-bit random,
+  embedded in the module manifest at bundle build, stored in the
+  `license` table, and validated over HTTPS (peer + hostname verified,
+  10s timeout). Only `HTTP 200 + authorized:false` is a definitive
+  denial — non-200 statuses, malformed bodies and transport failures are
+  inconclusive and preserve the stored verdict so a transient outage can
+  never take a site offline. Denial gates public routes to 503 while
+  `/admin` stays reachable; module source/keys are not web-accessible
+  (rewrite + deny rules); `disable()`/uninstall/purge are exempt so
+  recovery can never be trapped.
 
 ## Accessibility
 

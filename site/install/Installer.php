@@ -278,6 +278,7 @@ final class Installer
 
         if ($licenseKey !== null) {
             $domain = parse_url($baseUrl, PHP_URL_HOST);
+            $domain = is_string($domain) ? strtolower($domain) : false;
             if ($domain === false) {
                 $errors['base_url'] = 'Could not extract domain from base URL for license validation.';
             } else {

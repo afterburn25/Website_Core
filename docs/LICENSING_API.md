@@ -81,6 +81,11 @@ site retries on the next scheduled validation.
   domain stops being reported once config changes.
 - Changing a domain deactivates the old site; the new site validates on next
   check
+- The licensing service may flag staff-only **master keys** that authorize
+  any domain without registration — an `authorized:true` verdict is always
+  authoritative regardless of how the service decided it. Master keys are
+  created in CajunWebPro admin for internal testing and are revocable like
+  any license.
 
 ## Periodic validation
 

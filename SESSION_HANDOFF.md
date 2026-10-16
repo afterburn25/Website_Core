@@ -428,16 +428,21 @@ auto-fulfilment on paid invoices (`license_fulfill_invoice`, SKU
 customers), owner-gated upgrade adoption (`license_migrate` +
 `license_ready()` guards on every entry point), license
 deactivate/reactivate, portal full-key recovery for the authenticated
-owner, and serialized mutations (`license_transaction` + license-row
+owner, serialized mutations (`license_transaction` + license-row
 `FOR UPDATE` — the 2-active cap cannot be bypassed by concurrent
-registrations and domain replace is genuinely atomic).
+registrations and domain replace is genuinely atomic), per-invoice
+fulfilment (`invoice_id` UNIQUE — a second purchase of the same product
+mints a second license), and bundle SHA-256 integrity
+(`license_bundles.sha256` recorded at generation, verified at download —
+corrupted or tampered ZIPs refused with a 404 + audit; schema v3,
+additive migrate for adopted stores).
 
 Coverage: `LicenseValidationTest` + `LicenseApiContractTest` (9 tests
 spawning a real `php -S` mock endpoint — verifies wire contract,
 denial/inconclusive semantics, verdict preservation, reactivation) +
 `BundledModuleInstallTest` + `testDisableAllowedWithInvalidLicenseForRecovery`
 + the native licensed-bundle CI leg. Cross-repo: Cajun_Web
-`tests/license_bundle_functional.php` (21 checks) builds a real bundle
+`tests/license_bundle_functional.php` (23 checks) builds a real bundle
 from this checkout and verifies it through the actual WC install path —
 ZIP extraction → WC + module migrations (sqlite) → license/packages
 rows → enable → real provider boot via `ModuleRegistry`.
@@ -455,7 +460,7 @@ tick, and the success page reports the deferred check.
 real HTTP against the shared mock fixture.
 
 Standing: 176 tests / 667 assertions; lint clean. Cajun_Web `main` at
-`1e8a13c7` — nine consecutive green 15-step application-acceptance runs
-covering every licensing commit, including per-invoice fulfilment
-(`invoice_id` UNIQUE — a second purchase of the same product mints a
-second license) and the bundle builder's config allowlist hardening.
+`490483c0` — eleven consecutive green 15-step application-acceptance
+runs covering every licensing commit, including per-invoice fulfilment,
+the bundle builder's config allowlist hardening, and bundle SHA-256
+integrity.

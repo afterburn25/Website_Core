@@ -55,6 +55,19 @@ HTTP 200
 non-200, malformed JSON, unreachable host — is inconclusive and the
 site retries on the next scheduled validation.
 
+## Install-time validation
+
+The installer applies the same contract — a definitive denial (`200 +
+authorized:false`, e.g. a key bound to another domain) **blocks
+installation**. Every inconclusive outcome — unreachable API, non-200
+status (even a 5xx body containing `{"authorized":false}`), malformed
+JSON — does **not** block: the install proceeds, the license row is
+stored with `license_validated_at = NULL` (the job scheduler treats that
+as never-validated and enqueues verification on the next cron tick), and
+the completion page tells the owner the check was deferred. A borrowed
+or invalid key therefore still self-corrects — it just cannot strand a
+paying customer during a transient license-server outage.
+
 ## License key binding
 
 - Each purchase gets a unique `license_key`

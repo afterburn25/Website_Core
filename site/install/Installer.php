@@ -279,6 +279,8 @@ final class Installer
         // Bundled modules are extracted to site/modules/industries/*/
         $licenseKey = null;
         $licenseModuleDir = null;
+        $licenseOk = true;
+        $licenseError = null;
         $bundledModules = glob(WC_ROOT . '/modules/industries/*/addon.json') ?: [];
         foreach ($bundledModules as $manifestFile) {
             $manifest = json_decode((string) file_get_contents($manifestFile), true);
@@ -295,10 +297,15 @@ final class Installer
             if ($domain === false) {
                 $errors['base_url'] = 'Could not extract domain from base URL for license validation.';
             } else {
-                // Attempt license validation (may fail if API is unreachable)
-                $validationResult = $this->validateLicense($licenseKey, $domain);
-                if (!$validationResult[0]) {
-                    $errors['license'] = $validationResult[1] ?? 'License validation failed.';
+                // Only a definitive denial (HTTP 200 + authorized:false)
+                // blocks install — e.g. a key bound to another domain.
+                // Transient outcomes (unreachable API, 429, 5xx, malformed
+                // body) must not strand a paying customer: the install
+                // proceeds and the scheduled validator enforces the license
+                // on its next run — hourly once denied.
+                [$licenseOk, $licenseError, $licenseDenied] = $this->validateLicense($licenseKey, $domain);
+                if ($licenseDenied) {
+                    $errors['license'] = $licenseError ?? 'License validation failed.';
                 }
             }
         }
@@ -352,10 +359,19 @@ final class Installer
         if ($licenseModuleDir !== null) {
             try {
                 $table = $db->table('license');
+                // On an inconclusive install check the row is stored valid
+                // with a NULL validated_at — the job scheduler treats that
+                // as "never validated" and enqueues verification on the next
+                // cron tick, so a borrowed/invalid key still self-corrects.
                 $db->run(
-                    "INSERT INTO `{$table}` (license_key, license_domain, license_valid, license_validated_at, created_at)
-                     VALUES (?, ?, ?, ?, ?)",
-                    [$licenseKey, $domain, 1, date('Y-m-d H:i:s'), date('Y-m-d H:i:s')]
+                    "INSERT INTO `{$table}` (license_key, license_domain, license_valid, license_validated_at, license_error, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?)",
+                    [
+                        $licenseKey, $domain, 1,
+                        $licenseOk ? date('Y-m-d H:i:s') : null,
+                        $licenseOk ? null : 'Install-time license check inconclusive: ' . ($licenseError ?? 'unknown'),
+                        date('Y-m-d H:i:s'),
+                    ]
                 );
 
                 $manifest = json_decode((string) file_get_contents($licenseModuleDir . '/addon.json'), true);
@@ -422,11 +438,18 @@ final class Installer
             }
         }
 
+        $licenseNote = ($licenseModuleDir !== null && !$licenseOk)
+            ? '<p><strong>License check deferred:</strong> the license server could not be reached '
+              . 'during install (' . e((string) $licenseError) . '). Your license will be verified '
+              . 'automatically — if it cannot be validated the site will go offline.</p>'
+            : '';
+
         return Response::html(
             '<!doctype html><html><head><meta charset="utf-8"><title>Installed</title>'
             . '<style>body{font-family:system-ui;max-width:40rem;margin:4rem auto;padding:0 1rem}</style>'
             . '</head><body><h1>Installation complete</h1>'
             . '<p>' . e($cleanupNote) . '</p>'
+            . $licenseNote
             . '<p>Sign in to the <a href="' . e_attr($baseUrl) . '/admin">administration area</a> '
             . 'and enable two-factor authentication on your profile.</p></body></html>'
         );
@@ -435,7 +458,11 @@ final class Installer
     /**
      * Validate a license key against the Cajunwebpro.com API.
      *
-     * @return array{0:bool,1:?string} [valid, error_message]
+     * Mirrors LicenseValidation's contract: only HTTP 200 carries a
+     * definitive verdict. A 4xx/5xx body — even one containing
+     * {"authorized":false} — is a transient failure, never a denial.
+     *
+     * @return array{0:bool,1:?string,2:bool} [valid, error, explicit-denial]
      */
     private function validateLicense(string $licenseKey, string $domain): array
     {
@@ -465,22 +492,33 @@ final class Installer
 
         $response = @file_get_contents($endpoint, false, $context);
         if ($response === false) {
-            return [false, 'Could not contact license server. Please check your internet connection.'];
+            return [false, 'Could not contact license server. Please check your internet connection.', false];
+        }
+
+        // Last status line wins (redirect chains repeat the HTTP/ line).
+        $statusCode = 0;
+        foreach (($http_response_header ?? []) as $line) {
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $line, $m)) {
+                $statusCode = (int) $m[1];
+            }
+        }
+        if ($statusCode !== 200) {
+            return [false, 'License server returned HTTP ' . $statusCode . '. Validation will retry automatically.', false];
         }
 
         $data = json_decode($response, true);
         if (!is_array($data)) {
-            return [false, 'Invalid response from license server.'];
+            return [false, 'Invalid response from license server.', false];
         }
 
         $valid = (bool) ($data['authorized'] ?? false);
         $error = $data['error'] ?? null;
 
         if (!$valid) {
-            return [false, $error ?? 'License validation failed.'];
+            return [false, is_string($error) ? $error : 'License validation failed.', true];
         }
 
-        return [true, null];
+        return [true, null, false];
     }
 
     private function renderConfig(array $v): string

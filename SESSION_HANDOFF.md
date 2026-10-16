@@ -429,7 +429,11 @@ Coverage: `LicenseValidationTest` + `LicenseApiContractTest` (9 tests
 spawning a real `php -S` mock endpoint — verifies wire contract,
 denial/inconclusive semantics, verdict preservation, reactivation) +
 `BundledModuleInstallTest` + `testDisableAllowedWithInvalidLicenseForRecovery`
-+ the native licensed-bundle CI leg.
++ the native licensed-bundle CI leg. Cross-repo: Cajun_Web
+`tests/license_bundle_functional.php` (21 checks) builds a real bundle
+from this checkout and verifies it through the actual WC install path —
+ZIP extraction → WC + module migrations (sqlite) → license/packages
+rows → enable → real provider boot via `ModuleRegistry`.
 
 Standing: 169 tests / 651 assertions; lint clean; CI green through
-`6e938c1`.
+`34f3cbb`.

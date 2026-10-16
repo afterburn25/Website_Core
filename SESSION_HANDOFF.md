@@ -442,6 +442,20 @@ from this checkout and verifies it through the actual WC install path —
 ZIP extraction → WC + module migrations (sqlite) → license/packages
 rows → enable → real provider boot via `ModuleRegistry`.
 
-Standing: 169 tests / 651 assertions; lint clean; CI green through
-`0fd8ded`. Cajun_Web `main` at `39bf3ae5` — eight consecutive green
-15-step application-acceptance runs covering every licensing commit.
+`4d48dcb` fixed the installer's license check to honor the same
+denial-vs-transient contract as the runtime validator: it previously
+never read the HTTP status line, so a non-200 body carrying
+`{"authorized":false}` (the API's own 5xx payload) was treated as a
+denial, and every inconclusive outcome hard-blocked installation. Now
+only `200 + authorized:false` blocks install; inconclusive outcomes
+defer enforcement — the license row is stored valid with
+`license_validated_at = NULL` so the scheduler verifies on the next cron
+tick, and the success page reports the deferred check.
+`InstallerLicenseContractTest` covers all seven outcome classes over
+real HTTP against the shared mock fixture.
+
+Standing: 176 tests / 667 assertions; lint clean. Cajun_Web `main` at
+`1e8a13c7` — nine consecutive green 15-step application-acceptance runs
+covering every licensing commit, including per-invoice fulfilment
+(`invoice_id` UNIQUE — a second purchase of the same product mints a
+second license) and the bundle builder's config allowlist hardening.

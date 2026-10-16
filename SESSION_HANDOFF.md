@@ -423,7 +423,14 @@ The licensing service on cajunwebpro.com IS implemented (Cajun_Web
 the same site), `license_bundles`, admin UI (`studio-licenses`), portal
 domain management + owner-only `api/bundle-download.php`,
 auto-fulfilment on paid invoices (`license_fulfill_invoice`, SKU
-`WEBSITE-{INDUSTRY}`), customer email.
+`WEBSITE-{INDUSTRY}`), customer email, master test keys
+(`is_master` — authorize any domain, revocable, never issued to
+customers), owner-gated upgrade adoption (`license_migrate` +
+`license_ready()` guards on every entry point), license
+deactivate/reactivate, portal full-key recovery for the authenticated
+owner, and serialized mutations (`license_transaction` + license-row
+`FOR UPDATE` — the 2-active cap cannot be bypassed by concurrent
+registrations and domain replace is genuinely atomic).
 
 Coverage: `LicenseValidationTest` + `LicenseApiContractTest` (9 tests
 spawning a real `php -S` mock endpoint — verifies wire contract,
@@ -436,4 +443,5 @@ ZIP extraction → WC + module migrations (sqlite) → license/packages
 rows → enable → real provider boot via `ModuleRegistry`.
 
 Standing: 169 tests / 651 assertions; lint clean; CI green through
-`34f3cbb`.
+`0fd8ded`. Cajun_Web `main` at `39bf3ae5` — eight consecutive green
+15-step application-acceptance runs covering every licensing commit.

@@ -140,6 +140,28 @@ final class ArchiveInspector
     }
 
     /**
+     * Names of members that are not regular files or directories —
+     * symlinks, hardlinks, fifos, device nodes. ZipArchive::extractTo()
+     * restores unix file types, so a member-name check alone cannot stop
+     * a crafted archive planting a symlink in the staging dir (a later
+     * member beneath it would then write through the link and escape).
+     * BackupService::inspect uses this; inspectSafety() reports the same
+     * condition per-member for uploads.
+     * @return string[] offending member names
+     */
+    public function nonRegularMembers(string $zipPath): array
+    {
+        $bad = [];
+        foreach ($this->unixModes($zipPath) as $name => $mode) {
+            $type = $mode & 0xF000;
+            if ($mode !== 0 && !in_array($type, [0x8000, 0x4000], true)) {
+                $bad[] = $name;
+            }
+        }
+        return $bad;
+    }
+
+    /**
      * Parse the ZIP central directory for unix mode bits per member —
      * libzip's statIndex does not reliably expose external_attributes.
      * @return array<string, int> member name => st_mode

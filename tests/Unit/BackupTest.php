@@ -198,4 +198,35 @@ final class BackupTest extends TestCase
         $this->assertTrue($ok);
         $this->assertFileDoesNotExist($this->siteRoot . '/core/evil.php');
     }
+
+    public function testSymlinkMemberRejected(): void
+    {
+        [$path] = $this->svc()->create();
+        $src = new \ZipArchive();
+        $src->open($path, \ZipArchive::RDONLY);
+        $sql = $src->getFromName('db.sql');
+        $meta = $src->getFromName('meta.json');
+        $src->close();
+
+        // A symlink member with an otherwise-legal name: extractTo() would
+        // recreate it in staging, and a member beneath it would then write
+        // through the link and escape the staging dir entirely.
+        $bad = $this->tmp . '/symlink.zip';
+        $zip = new \ZipArchive();
+        $zip->open($bad, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addFromString('meta.json', $meta);
+        $zip->addFromString('db.sql', $sql);
+        $zip->addFromString('files/link', '/etc');
+        $zip->setExternalAttributesName('files/link', \ZipArchive::OPSYS_UNIX, 0xA1FF << 16);
+        $zip->addFromString('files/link/evil.txt', 'owned');
+        $zip->close();
+
+        [$meta2, $err] = $this->svc()->inspect($bad);
+        $this->assertNull($meta2);
+        $this->assertStringContainsString('member type', (string) $err);
+
+        [$ok, $err2] = $this->svc()->restore($bad);
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('member type', (string) $err2);
+    }
 }

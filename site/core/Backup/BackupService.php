@@ -155,6 +155,14 @@ final class BackupService
         $metaRaw = $zip->getFromName('meta.json');
         $sqlRaw = $zip->getFromName('db.sql');
         $zip->close();
+        // extractTo() restores unix file types: a symlink/hardlink member
+        // with a legal name would be recreated in staging, and a later
+        // member beneath it would write through the link and escape the
+        // staging dir entirely. Names are checked above; types here.
+        $nonRegular = (new \Core\Modules\ArchiveInspector())->nonRegularMembers($path);
+        if ($nonRegular !== []) {
+            return [null, "Illegal member type in backup: {$nonRegular[0]}"];
+        }
         if (!is_string($metaRaw) || !is_string($sqlRaw)) {
             return [null, 'Incomplete backup: meta.json and db.sql are both required.'];
         }

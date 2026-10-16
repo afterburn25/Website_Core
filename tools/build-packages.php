@@ -76,17 +76,17 @@ if ($argv[1] === 'bundle') {
     );
     $count = 0;
     foreach ($iterator as $file) {
-        if (!$file->isFile()) {
-            continue;
+        if (!$file->isFile() || $file->isLink()) {
+            continue; // symlinks could package content outside the checkout
         }
         $path = $file->getPathname();
         $rel = str_replace('\\', '/', substr($path, strlen($coreBase) + 1));
-        // Skip secrets and runtime artifacts
-        if (str_starts_with($rel, 'config/config.php')
-            || str_starts_with($rel, 'config/installed.lock')
-            || str_starts_with($rel, 'config/setup.token')
+        // config/ ships only its two scaffolding files — runtime config,
+        // the install claim token and any future secret artifact cannot leak.
+        if ((str_starts_with($rel, 'config/') && $rel !== 'config/.htaccess' && $rel !== 'config/config.example.php')
             || str_starts_with($rel, 'storage/')
             || str_starts_with($rel, 'upload/')
+            || str_ends_with($rel, '.env')
             || str_contains($rel, '.key')
             || str_contains($rel, '.pem')
         ) {
@@ -101,11 +101,14 @@ if ($argv[1] === 'bundle') {
         new RecursiveDirectoryIterator($moduleBase, FilesystemIterator::SKIP_DOTS)
     );
     foreach ($iterator as $file) {
-        if (!$file->isFile()) {
+        if (!$file->isFile() || $file->isLink()) {
             continue;
         }
         $path = $file->getPathname();
         $rel = str_replace('\\', '/', substr($path, strlen($moduleBase) + 1));
+        if (str_ends_with($rel, '.env') || str_contains($rel, '.key') || str_contains($rel, '.pem')) {
+            continue;
+        }
         // Embed license_key in addon.json
         if ($rel === 'addon.json') {
             $content = file_get_contents($path);
@@ -154,10 +157,13 @@ function buildZip(string $zipPath, string $base, callable $map, array $extra = [
     );
     $count = 0;
     foreach ($it as $f) {
-        if (!$f->isFile()) {
-            continue;
+        if (!$f->isFile() || $f->isLink()) {
+            continue; // a symlink could package content outside the tree
         }
         $rel = str_replace('\\', '/', substr($f->getPathname(), strlen($base) + 1));
+        if (str_ends_with($rel, '.env')) {
+            continue; // dotenv is secret-shaped in every artifact type
+        }
         $target = $map($rel);
         if ($target === null) {
             continue;
@@ -174,11 +180,14 @@ function buildZip(string $zipPath, string $base, callable $map, array $extra = [
 }
 
 $skipRuntime = fn (string $rel): bool =>
-    str_starts_with($rel, 'config/config.php')
-    || str_starts_with($rel, 'config/installed.lock')
+    // config/ ships only its two scaffolding files — runtime config, the
+    // install claim token and any future secret artifact can never leak.
+    (str_starts_with($rel, 'config/') && $rel !== 'config/.htaccess' && $rel !== 'config/config.example.php')
     || str_starts_with($rel, 'storage/')      // runtime data; keep only guards
     || str_starts_with($rel, 'upload/') && !preg_match('#^upload/\.(htaccess|gitkeep|html)#', $rel)
-    || str_contains($rel, '/.git/')
+    || str_ends_with($rel, '.key')
+    || str_ends_with($rel, '.pem')
+    || str_starts_with($rel, '.git/') || str_contains($rel, '/.git/')
     || str_ends_with($rel, '.ser');           // purifier cache
 
 // --- production vendor: clean `composer install --no-dev` in a temp dir --
@@ -269,10 +278,11 @@ $n = buildZip($full, $root, function (string $rel) {
     if (str_starts_with($rel, '.git/')
         || str_starts_with($rel, 'vendor/')
         || str_starts_with($rel, 'dist/')
-        || str_starts_with($rel, 'site/config/config.php')
-        || str_starts_with($rel, 'site/config/installed.lock')
+        // site/config ships only its scaffolding files (see $skipRuntime).
+        || str_starts_with($rel, 'site/config/') && $rel !== 'site/config/.htaccess' && $rel !== 'site/config/config.example.php'
         || str_starts_with($rel, 'site/storage/') && !str_ends_with($rel, '.gitkeep') && !str_ends_with($rel, '.htaccess')
         || str_starts_with($rel, 'site/upload/') && !preg_match('#^site/upload/\.(htaccess|gitkeep|html)#', $rel)
+        || str_ends_with($rel, '.key') || str_ends_with($rel, '.pem')
     ) {
         return null;
     }

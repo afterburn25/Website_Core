@@ -20,6 +20,8 @@ final class ModuleRegistry
     private array $dirs = [];
     /** @var array<string, string> id => state from DB */
     private array $states = [];
+    /** @var list<ModuleContext> one context per booted package */
+    private array $contexts = [];
 
     public function __construct(
         private Connection $db,
@@ -41,8 +43,9 @@ final class ModuleRegistry
                 continue;
             }
             foreach (glob($dir . '/*', GLOB_ONLYDIR) ?: [] as $packageDir) {
-                $file = $packageDir . '/addon.json';
-                if (!is_file($file)) {
+                $file = is_file($packageDir . '/addon.json') ? $packageDir . '/addon.json'
+                    : (is_file($packageDir . '/theme.json') ? $packageDir . '/theme.json' : null);
+                if ($file === null) {
                     continue;
                 }
                 $decoded = json_decode((string) file_get_contents($file), true);
@@ -110,8 +113,10 @@ final class ModuleRegistry
         $this->states[$id] = $state;
     }
 
-    /** Boot every enabled+compatible package provider in dependency order. */
-    public function bootEnabled(callable $registerPsr4, object $context): array
+    /** Boot every enabled+compatible package provider in dependency order.
+     * Each package gets its own ModuleContext (its packageId is stamped on
+     * everything it registers); contexts() returns them for aggregation. */
+    public function bootEnabled(callable $registerPsr4, callable $contextFactory): array
     {
         $booted = [];
         $ordered = $this->dependencyOrder();
@@ -136,7 +141,9 @@ final class ModuleRegistry
                 }
                 $provider = $manifest['provider'] ?? null;
                 if (is_string($provider) && class_exists($provider)) {
+                    $context = $contextFactory($id);
                     (new $provider())->register($context);
+                    $this->contexts[] = $context;
                 }
                 $booted[] = $id;
             } catch (\Throwable $e) {
@@ -152,6 +159,47 @@ final class ModuleRegistry
             }
         }
         return $booted;
+    }
+
+    /** @return list<ModuleContext> contexts of successfully booted packages */
+    public function contexts(): array
+    {
+        return $this->contexts;
+    }
+
+    /** @return array<string, callable> merged scheduled-job handlers */
+    public function jobHandlers(): array
+    {
+        $handlers = [];
+        foreach ($this->contexts as $ctx) {
+            $handlers += $ctx->jobHandlers();
+        }
+        return $handlers;
+    }
+
+    /** @return list<array{label:string,route:string,capability:string,package:string}> */
+    public function adminNavItems(): array
+    {
+        $items = [];
+        foreach ($this->contexts as $ctx) {
+            $items = array_merge($items, $ctx->adminNavItems());
+        }
+        return $items;
+    }
+
+    /**
+     * Package-declared content types, keyed packageId => [type => def].
+     * @return array<string, array<string, array{label:string,fields:list<array>}>>
+     */
+    public function contentTypes(): array
+    {
+        $out = [];
+        foreach ($this->contexts as $ctx) {
+            if ($ctx->contentTypes() !== []) {
+                $out[$ctx->packageId()] = $ctx->contentTypes();
+            }
+        }
+        return $out;
     }
 
     /** Deterministic load order: dependencies before dependents. */

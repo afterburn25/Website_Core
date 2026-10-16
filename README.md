@@ -12,7 +12,17 @@ add-ons (e.g. inquiry forms), and themes are separately versioned packages
 installed through the Module Manager.
 
 - **Runtime**: PHP 8.4/8.5, native MySQL/MariaDB via PDO. No Node, Redis,
-  Docker, daemons, or SSH required on the customer host.
+  Docker, daemons, or SSH required on the customer host. Ed25519
+  verification runs on ext-sodium or the bundled sodium_compat polyfill.
+  No-rewrite fallback (Apache 2.4 mod_rewrite or LiteSpeed; hosts without
+  rewrite use `?p=/path` PATH_INFO). Admin extras: Backups, Health +
+  diagnostics, owner-only self-update at `/admin/updates`, self-service
+  password reset at `/admin/forgot`.
+- **Commercial bundles**: `tools/build-packages.php bundle` ships core +
+  an industry module as one ZIP with an embedded `license_key`; the
+  installer validates it against the licensing API (`docs/LICENSING_API.md`),
+  revalidates on schedule, and a denied license takes public pages offline
+  while `/admin` stays reachable — core-only installs need no license.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
@@ -35,6 +45,12 @@ vendor/bin/phpunit --testsuite native
 # Dev server (uses tools/dev-router.php, an .htaccess mimic):
 cd site && php -S 127.0.0.1:8000 ../tools/dev-router.php
 # then open http://127.0.0.1:8000/ → redirects to the installer
+
+# Release artifacts + verification:
+php tools/build-packages.php          # dist/: FULL-PROJECT / COMPLETE-UPLOAD /
+                                      # UPDATE / package zips / SHA256SUMS
+php tools/verify-artifact.php dist/Website-Core-*-COMPLETE-UPLOAD.zip
+# extracts the artifact to a clean dir, provisions it, prints serve steps
 ```
 
 ## Key documents
@@ -46,6 +62,7 @@ cd site && php -S 127.0.0.1:8000 ../tools/dev-router.php
 | `docs/INSTALLATION.md` | Installer + ownership claim model |
 | `docs/MODULE_API.md` | Supported extension API surface |
 | `docs/PACKAGE_SPEC.md` | addon.json manifest schema v1 |
+| `docs/LICENSING_API.md` | Bundle/DRM licensing contract |
 | `docs/UPGRADES.md` / `docs/BACKUP_RESTORE.md` | Update & DR design |
 | `docs/SECURITY.md` / `docs/THREAT_MODEL.md` | Security policy & model |
 | `SESSION_HANDOFF.md` | Session-to-session work log |

@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "id": "wcref/terra",
+  "type": "theme",
+  "name": "Terra",
+  "version": "1.0.0",
+  "license": "UNLICENSED-INTERNAL",
+  "requires": { "core": ">=0.0.1", "api": 1 },
+  "tokens": {
+    "font": "Georgia, 'Times New Roman', serif",
+    "color-bg": "#faf6f0",
+    "color-text": "#3b2f2a",
+    "color-accent": "#b45309",
+    "radius": "0.25rem",
+    "max-width": "46rem"
+  },
+  "assets": { "css": ["assets/css/style.css"], "js": [] },
+  "templates": ["layout", "page", "404"]
+}

@@ -78,7 +78,7 @@ final class RouterTest extends TestCase
         $this->assertSame(['before', 'handler', 'after'], $log);
     }
 
-    public function testFirstMatchWinsSoCatchAllMustBeLast(): void
+    public function testSpecificRoutesBeatCatchAll(): void
     {
         $r = new Router();
         $r->get('/admin/login', fn (Request $q) => Response::text('login'));
@@ -88,5 +88,40 @@ final class RouterTest extends TestCase
         // 'adminanything' is not under /admin — a legitimate public slug.
         $this->assertSame('page:adminanything/deep', $r->dispatch($this->request('GET', '/adminanything/deep'))->body());
         $this->assertSame(404, $r->dispatch($this->request('GET', '/admin/nonexistent'))->status());
+    }
+
+    /**
+     * Regression: the slug catch-all used to shadow module public routes
+     * because it registered first and dispatch was first-match-wins.
+     * Specificity, not order, must decide overlapping matches.
+     */
+    public function testLaterSpecificRouteStillBeatsEarlierCatchAll(): void
+    {
+        $r = new Router();
+        // Catch-all registered FIRST — the old dispatch order.
+        $r->get('/{slug:(?!admin\b)[a-z0-9][a-z0-9\-\/]*}', fn (Request $q) => Response::text('page:' . $q->attributes['slug']));
+        // Module route registered AFTER.
+        $r->get('/inquiry', fn (Request $q) => Response::text('module-form'));
+        $this->assertSame('module-form', $r->dispatch($this->request('GET', '/inquiry'))->body());
+        $this->assertSame('page:about', $r->dispatch($this->request('GET', '/about'))->body());
+    }
+
+    /**
+     * Slug-shadow detection for page saves: any GET-capable route other
+     * than the page catch-all that matches a slug makes it unreachable.
+     */
+    public function testIsConcreteMatch(): void
+    {
+        $r = new Router();
+        $r->get('/inquiry', fn (Request $q) => Response::text('form'));
+        $r->get('/menu/{cat}', fn (Request $q) => Response::text('menu'));
+        $r->post('/only-post', fn (Request $q) => Response::text('no'));
+        $r->get('/{slug:(?!admin\b)[a-z0-9][a-z0-9\-\/]*}', fn (Request $q) => Response::text('page'));
+
+        $this->assertTrue($r->isConcreteMatch('/inquiry'));      // literal module route
+        $this->assertTrue($r->isConcreteMatch('/menu/mains'));   // param module route
+        $this->assertFalse($r->isConcreteMatch('/about'));       // only catch-all matches
+        $this->assertFalse($r->isConcreteMatch('/only-post'));   // POST-only cannot shadow GET pages
+        $this->assertFalse($r->isConcreteMatch('/'));            // nothing matches
     }
 }

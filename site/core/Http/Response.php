@@ -41,6 +41,12 @@ final class Response
 
     public function header(string $name, string $value): self
     {
+        // PHP's header() already refuses multi-line values, but fail loudly
+        // here so a smuggled CR/LF/NUL surfaces as an application error
+        // instead of a silent SAPI warning and a broken response.
+        if (preg_match('/[\x00-\x1F\x7F]/', $name . $value)) {
+            throw new \InvalidArgumentException('Header name/value contains control characters.');
+        }
         $this->headers[$name] = $value;
         return $this;
     }

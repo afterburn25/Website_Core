@@ -15,7 +15,7 @@ final class Permissions
         'owner'  => ['*'],
         'admin'  => [
             'content.manage', 'media.manage', 'navigation.manage',
-            'appearance.manage', 'settings.manage', 'modules.view',
+            'appearance.manage', 'settings.manage', 'modules.view', 'modules.install',
             'system.view', 'audit.view', 'backups.manage',
             'admins.view', 'admins.manage_nonowner',
         ],

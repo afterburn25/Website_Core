@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "id": "wcref/salon",
+  "type": "industry",
+  "name": "Salon Services & Staff",
+  "version": "1.0.0",
+  "license": "UNLICENSED-INTERNAL",
+  "requires": { "core": ">=0.0.1", "api": 1 },
+  "provider": "Wcref\\Salon\\Provider",
+  "psr4": { "Wcref\\Salon\\": "src/" },
+  "migrations": "migrations",
+  "capabilities": ["salon.manage"]
+}

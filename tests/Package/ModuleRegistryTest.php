@@ -137,7 +137,7 @@ final class ModuleRegistryTest extends TestCase
             function (string $prefix, string $dir) {
                 \CoreAutoload::register($prefix, $dir);
             },
-            new \Core\Modules\ModuleContext('acme/boom', new \Core\Routing\Router(), new \Core\Events\Dispatcher())
+            fn (string $id) => new \Core\Modules\ModuleContext($id, new \Core\Routing\Router(), new \Core\Events\Dispatcher())
         );
         $this->assertSame([], $booted);
         $this->assertSame('failed', $r->state('acme/boom'));
@@ -161,9 +161,42 @@ final class ModuleRegistryTest extends TestCase
         $r->setState('acme/ok', 'enabled');
         $booted = $r->bootEnabled(
             fn (string $p, string $d) => \CoreAutoload::register($p, $d),
-            new \Core\Modules\ModuleContext('acme/ok', new \Core\Routing\Router(), new \Core\Events\Dispatcher())
+            fn (string $id) => new \Core\Modules\ModuleContext($id, new \Core\Routing\Router(), new \Core\Events\Dispatcher())
         );
         $this->assertSame(['acme/ok'], $booted);
         $this->assertTrue(\AcmeOk\Provider::$called);
+        $this->assertSame('acme/ok', $r->contexts()[0]->packageId());
+    }
+
+    public function testThemeOverrideWinsOverPackageView(): void
+    {
+        $pkgDir = $this->tmp . '/addons/demo';
+        mkdir($pkgDir . '/views', 0777, true);
+        file_put_contents($pkgDir . '/views/panel.php', '<?php echo "PACKAGE";');
+        $themesRoot = $this->tmp . '/themes';
+        mkdir($themesRoot . '/terra/templates/modules/acme/demo', 0777, true);
+        file_put_contents(
+            $themesRoot . '/terra/templates/modules/acme/demo/panel.php',
+            '<?php echo "OVERRIDE";'
+        );
+
+        $mk = function (?string $theme): array {
+            $view = new \Core\View\View();
+            $ctx = new \Core\Modules\ModuleContext(
+                'acme/demo', new \Core\Routing\Router(), new \Core\Events\Dispatcher(),
+                view: $view,
+                activeTheme: fn () => $theme,
+                themesRoot: $this->tmp . '/themes',
+            );
+            return [$view, $ctx->views($this->tmp . '/addons/demo/views')];
+        };
+
+        [$view, $ns] = $mk('terra');
+        $this->assertSame('mod-acme-demo', $ns);
+        $this->assertSame('OVERRIDE', $view->render($ns . ':panel'));
+
+        // A theme with no override falls back to the package's own view.
+        [$view2, $ns2] = $mk('noir');
+        $this->assertSame('PACKAGE', $view2->render($ns2 . ':panel'));
     }
 }

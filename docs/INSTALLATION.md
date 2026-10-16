@@ -12,7 +12,42 @@
    writes `installed.lock`, and self-disables.
 5. Sign in at `/admin`, enable MFA in **Profile**.
 
-No license keys, unlock files, wizards, or merchant credentials.
+No license keys, unlock files, wizards, or merchant credentials for a
+core-only install. **Bundled products** (core + industry module purchased
+from Cajunwebpro.com) carry an embedded license key — see below.
+
+## Bundled products (license-validated)
+
+Bundles ship the industry module pre-extracted at
+`site/modules/industries/<name>/` with a `license_key` in `addon.json`.
+
+- The checks page reports the detected bundle (informational — a core-only
+  install remains valid).
+- On submit the installer extracts the domain from the Base URL,
+  validates `{key, domain}` against the licensing API
+  (`{license.api_url}/validate.php`, default
+  `https://cajunwebpro.com/api`), and blocks installation when the server
+  denies it. The domain must be registered to the license in the
+  Cajunwebpro client portal first.
+- On success the installer stores the license, registers the package,
+  runs the module's migrations, and marks it enabled — no manual
+  activation step.
+- The `WC_LICENSE_API_URL` environment variable overrides the API base
+  for install-time validation and the generated `license.api_url`
+  config (used by tests/mocks).
+- The installed site re-validates via the cron job runner — daily while
+  valid, hourly while deactivated (schedule `cron.php` per Post-install
+  below). Explicit server denial takes public pages offline (503) while
+  `/admin` stays reachable for correction; transient outages never
+  deactivate and never clear the stored verdict. Settings → License →
+  "Validate now" re-checks on demand and reactivates a fixed site
+  immediately without waiting for cron.
+- **Moving a licensed site**: the site reports the domain it actually
+  serves (its `app.url`, not the raw request host). To move it, replace
+  the domain in the Cajunwebpro client portal (the old site
+  auto-deactivates at its next check), then set **Settings → Base URL**
+  on the new install and run "Validate now" — no `config.php` edit
+  needed. The site refuses to run on an unregistered domain.
 
 ## Ownership claim model (no install key)
 

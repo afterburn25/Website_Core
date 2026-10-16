@@ -45,6 +45,9 @@ final class Manifest
         if (!is_string($m['license'] ?? null) || trim($m['license']) === '') {
             $errors[] = 'license identifier is required';
         }
+        if (isset($m['license_key']) && (!is_string($m['license_key']) || strlen($m['license_key']) < 8)) {
+            $errors[] = 'license_key must be a string of at least 8 characters';
+        }
 
         $requires = $m['requires'] ?? [];
         if (!is_array($requires)) {

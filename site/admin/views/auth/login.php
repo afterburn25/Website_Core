@@ -26,6 +26,7 @@ button{width:100%;margin-top:1.25rem;background:#38bdf8;color:#082f49;border:0;b
 <input id="password" name="password" type="password" autocomplete="current-password" required>
 <button type="submit">Sign in</button>
 </form>
+<a href="<?= e_attr($basePath) ?>/admin/forgot" style="color:#38bdf8;font-size:.85rem;display:inline-block;margin-top:1rem">Forgot password?</a>
 </div>
 </body>
 </html>

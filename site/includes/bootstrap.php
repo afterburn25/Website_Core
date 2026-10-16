@@ -21,6 +21,15 @@ define('WC_API_VERSION', 1);
 require __DIR__ . '/autoload.php';
 require __DIR__ . '/helpers.php';
 
+// Composer dependencies — bundled at site/vendor in deployment packages,
+// repo-root vendor during development. Both locations stay non-public.
+foreach ([WC_ROOT . '/vendor/autoload.php', dirname(WC_ROOT) . '/vendor/autoload.php'] as $autoload) {
+    if (is_file($autoload)) {
+        require_once $autoload;
+        break;
+    }
+}
+
 use Core\Application;
 use Core\Config;
 

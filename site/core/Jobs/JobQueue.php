@@ -34,7 +34,16 @@ final class JobQueue
         $now = time();
         $expiry = $now + $leaseSeconds;
 
-        $rows = $this->db->fetchAll(
+        // Reap dead leases first: a worker that crashed mid-job leaves the
+        // row 'running' forever without this — invisible, never retried.
+        // It returns to 'uncertain' (retryable under at-least-once).
+        $this->db->run(
+            "UPDATE `{$table}` SET status = 'uncertain', leased_by = NULL
+             WHERE status = 'running' AND leased_until IS NOT NULL AND leased_until < ?",
+            [$now]
+        );
+
+        $candidates = $this->db->fetchAll(
             "SELECT * FROM `{$table}`
              WHERE status IN ('pending','uncertain')
                AND run_after <= ?
@@ -42,12 +51,22 @@ final class JobQueue
              ORDER BY id LIMIT " . (int) $limit,
             [$now, $now]
         );
-        foreach ($rows as $row) {
-            $this->db->run(
+        // Atomic claim: the UPDATE only transitions unclaimed states, so a
+        // second concurrent worker can never lease the same job — an
+        // already-'running' row matches zero rows and is skipped.
+        $rows = [];
+        foreach ($candidates as $row) {
+            $claimed = $this->db->run(
                 "UPDATE `{$table}` SET leased_by = ?, leased_until = ?, status = 'running',
-                    attempts = attempts + 1 WHERE id = ? AND status IN ('pending','uncertain','running')",
-                [$workerId, $expiry, (int) $row['id']]
+                    attempts = attempts + 1
+                 WHERE id = ?
+                   AND status IN ('pending','uncertain')
+                   AND (leased_until IS NULL OR leased_until < ?)",
+                [$workerId, $expiry, (int) $row['id'], $now]
             );
+            if ($claimed->rowCount() > 0) {
+                $rows[] = $row;
+            }
         }
         return $rows;
     }

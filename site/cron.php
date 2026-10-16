@@ -15,6 +15,20 @@ if (!$app->installed()) {
 }
 
 $cli = PHP_SAPI === 'cli';
+// Honor maintenance.flag like the request path — jobs and mail must not
+// run against a mid-swap tree during an update/restore window.
+$storage = (string) $app->container()->get(\Core\Config::class)
+    ->get('paths.storage', WC_ROOT . '/storage');
+if (is_file($storage . '/maintenance.flag')) {
+    if (PHP_SAPI !== 'cli') {
+        http_response_code(503);
+    }
+    exit("maintenance\n");
+}
+// Non-HTTP entry points must boot explicitly — dispatch() does it for web
+// requests, cron never dispatches. bootJobs() also boots enabled packages
+// so their scheduledJob() handlers are registered before the runner claims.
+$app->bootJobs();
 if (!$cli) {
     $token = (string) ($_GET['token'] ?? '');
     $db = $app->container()->get(\Core\Database\Connection::class);
@@ -28,7 +42,9 @@ if (!$cli) {
 
 $runner = new \Core\Jobs\Runner($app->container());
 $processed = $runner->run(10, 25);
+// Drain the transactional queue every pass — no separate cron entry needed.
+$mailed = $app->container()->get(\Core\Mail\SystemMail::class)->flush(10);
 if (!$cli) {
     header('Content-Type: text/plain');
 }
-echo "processed={$processed}\n";
+echo "processed={$processed} mailed={$mailed}\n";

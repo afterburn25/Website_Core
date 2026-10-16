@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "id": "wcref/inquiry",
+  "type": "addon",
+  "name": "Inquiry Form",
+  "version": "1.0.0",
+  "license": "UNLICENSED-INTERNAL",
+  "requires": { "core": ">=0.0.1", "api": 1 },
+  "provider": "Wcref\\Inquiry\\Provider",
+  "psr4": { "Wcref\\Inquiry\\": "src/" },
+  "migrations": "migrations",
+  "capabilities": ["inquiry.view"]
+}

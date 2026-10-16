@@ -39,6 +39,8 @@ textarea{min-height:14rem}
 .badge.ok{background:#dcfce7;color:var(--ok)} .badge.bad{background:#fee2e2;color:var(--bad)} .badge.warn{background:#fef9c3;color:#854d0e}
 .muted{color:var(--muted);font-size:.85rem}
 .err{color:var(--bad);font-size:.82rem}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 @media(max-width:800px){body{flex-direction:column}aside{width:auto}main{padding:1rem}}
 </style>
 </head>

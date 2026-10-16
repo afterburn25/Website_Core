@@ -33,7 +33,7 @@ backups; job queue contents; audit trail integrity.
 | Threat | Control |
 |--------|---------|
 | SQL injection | prepared statements only (`Connection`) |
-| XSS | `e()`/`e_attr()`/`e_url()`; rich-text sanitize (planned, maintained lib) |
+| XSS | `e()`/`e_attr()`/`e_url()`; rich-text sanitize via bundled HTMLPurifier |
 | Session theft/replay | rotation, idle+absolute expiry, DB revocation, secure cookies |
 | MFA replay | last-counter check + burned recovery codes |
 | Brute force | bounded DB rate limits, finite error text |
@@ -42,8 +42,8 @@ backups; job queue contents; audit trail integrity.
 | Malicious package | manifest+integrity validation pre-load, staged extraction, quarantine, lifecycle journal |
 | Host-header abuse | validated configured URL; trusted-proxies explicit |
 | Secrets in artifacts | config.php gitignored, deny rules, redacted audit/support bundles |
-| Update tampering | signed metadata + hashes + expiry + rollback floor (M4) |
-| Backup exfiltration | encrypted archives, private storage, separate recovery credentials (M4) |
+| Update tampering | optional Ed25519 signature on update.json + per-file sha256 verified before any write + manifest expiry + min_core gate + rollback floor (older archives refused) + replaced-file backups |
+| Backup exfiltration | archives stored under private `storage/`; path-validated members + integrity manifest on restore. Archives are NOT encrypted — see BACKUP_RESTORE.md for limits |
 
 ## Explicit non-claims
 

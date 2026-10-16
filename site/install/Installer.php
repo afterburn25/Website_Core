@@ -156,12 +156,30 @@ final class Installer
         foreach (['gd', 'intl', 'zip', 'curl'] as $ext) {
             $add("ext-{$ext} (recommended)", extension_loaded($ext), extension_loaded($ext) ? 'present' : 'absent', false);
         }
+        // Signature verification works with ext-sodium OR the bundled
+        // sodium_compat polyfill — report which one is live.
+        $sodiumOk = function_exists('sodium_crypto_sign_verify_detached');
+        $add('signature verification (sodium or polyfill)', $sodiumOk,
+            extension_loaded('sodium') ? 'ext-sodium' : ($sodiumOk ? 'sodium_compat polyfill' : 'absent'), false);
 
         $add('config/ writable', $this->writable($this->configDir), $this->configDir);
         $storageDefault = WC_ROOT . '/storage';
         $add('storage writable', $this->writable($storageDefault), $storageDefault);
         $add('HTTPS', $this->requestSecure(), 'TLS recommended for admin sessions', false);
         $add('install.php writable (self-cleanup)', is_writable(WC_ROOT . '/install.php'), 'will self-disable via lock regardless', false);
+
+        // Report bundled-product detection so the customer can confirm the
+        // package they purchased was extracted correctly. Not required —
+        // a core-only install is a valid configuration.
+        $bundledName = null;
+        foreach (glob(WC_ROOT . '/modules/industries/*/addon.json') ?: [] as $manifestFile) {
+            $m = json_decode((string) file_get_contents($manifestFile), true);
+            if (is_array($m) && isset($m['license_key'])) {
+                $bundledName = basename(dirname($manifestFile));
+                break;
+            }
+        }
+        $add('Bundled industry module', true, $bundledName !== null ? $bundledName . ' — license will be validated during install' : 'none detected — core-only install', false);
 
         return $checks;
     }
@@ -257,6 +275,41 @@ final class Installer
             $errors['storage_path'] = 'Storage path is not writable and could not be created.';
         }
 
+        // --- license validation (DRM) ----------------------------------------
+        // Bundled modules are extracted to site/modules/industries/*/
+        $licenseKey = null;
+        $licenseModuleDir = null;
+        $licenseOk = true;
+        $licenseError = null;
+        $bundledModules = glob(WC_ROOT . '/modules/industries/*/addon.json') ?: [];
+        foreach ($bundledModules as $manifestFile) {
+            $manifest = json_decode((string) file_get_contents($manifestFile), true);
+            if (is_array($manifest) && isset($manifest['license_key'])) {
+                $licenseKey = (string) $manifest['license_key'];
+                $licenseModuleDir = dirname($manifestFile);
+                break;
+            }
+        }
+
+        if ($licenseKey !== null) {
+            $domain = parse_url($baseUrl, PHP_URL_HOST);
+            $domain = is_string($domain) ? strtolower($domain) : false;
+            if ($domain === false) {
+                $errors['base_url'] = 'Could not extract domain from base URL for license validation.';
+            } else {
+                // Only a definitive denial (HTTP 200 + authorized:false)
+                // blocks install — e.g. a key bound to another domain.
+                // Transient outcomes (unreachable API, 429, 5xx, malformed
+                // body) must not strand a paying customer: the install
+                // proceeds and the scheduled validator enforces the license
+                // on its next run — hourly once denied.
+                [$licenseOk, $licenseError, $licenseDenied] = $this->validateLicense($licenseKey, $domain);
+                if ($licenseDenied) {
+                    $errors['license'] = $licenseError ?? 'License validation failed.';
+                }
+            }
+        }
+
         if ($errors !== []) {
             return $this->page($checks, $errors, $request);
         }
@@ -275,8 +328,81 @@ final class Installer
                 'disabled'      => 0,
                 'created_at'    => date('Y-m-d H:i:s'),
             ]);
+
+            // A fresh install must serve something at '/' — the home route
+            // resolves site.home_slug (default 'home').
+            $now = date('Y-m-d H:i:s');
+            $db->insert('pages', [
+                'slug' => 'home', 'title' => 'Welcome',
+                'body' => '<p>Your new site is ready. Sign in to the administration area to edit this page.</p>',
+                'status' => 'published',
+                'created_at' => $now, 'updated_at' => $now,
+            ]);
+
+            // Themes render site.name — seed it from the install form so the
+            // site does not greet visitors as "Website Core".
+            $settings = new \Core\Settings\SettingsRepository($db);
+            $settings->set('site.name', $siteName);
+            $settings->set('site.tagline', '');
+            // Web-triggered cron requires this token — generate it here so
+            // it exists before the first settings save.
+            $settings->set('system.cron_token', bin2hex(random_bytes(24)));
         } catch (\Throwable $e) {
             return $this->page($checks, ['db_name' => 'Schema/owner creation failed: ' . $e->getMessage()], $request);
+        }
+
+        // --- bundled module installation (DRM) --------------------------------
+        // The bundled module ships extracted at site/modules/industries/NAME/.
+        // Store the license, then register the package, run its migrations and
+        // mark it enabled — a bundled product must work out of the box without
+        // the customer manually enabling anything.
+        if ($licenseModuleDir !== null) {
+            try {
+                $table = $db->table('license');
+                // On an inconclusive install check the row is stored valid
+                // with a NULL validated_at — the job scheduler treats that
+                // as "never validated" and enqueues verification on the next
+                // cron tick, so a borrowed/invalid key still self-corrects.
+                $db->run(
+                    "INSERT INTO `{$table}` (license_key, license_domain, license_valid, license_validated_at, license_error, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?)",
+                    [
+                        $licenseKey, $domain, 1,
+                        $licenseOk ? date('Y-m-d H:i:s') : null,
+                        $licenseOk ? null : 'Install-time license check inconclusive: ' . ($licenseError ?? 'unknown'),
+                        date('Y-m-d H:i:s'),
+                    ]
+                );
+
+                $manifest = json_decode((string) file_get_contents($licenseModuleDir . '/addon.json'), true);
+                $packageId = (string) ($manifest['id'] ?? basename($licenseModuleDir));
+                $packagesTable = $db->table('packages');
+                $db->run(
+                    "INSERT INTO `{$packagesTable}` (package_id, state, version, manifest, updated_at)
+                     VALUES (?, 'installed', ?, ?, ?)"
+                    . ($db->driver() === 'sqlite'
+                        ? ' ON CONFLICT(package_id) DO UPDATE SET state=excluded.state, version=excluded.version, manifest=excluded.manifest, updated_at=excluded.updated_at'
+                        : ' ON DUPLICATE KEY UPDATE state=VALUES(state), version=VALUES(version), manifest=VALUES(manifest), updated_at=VALUES(updated_at)'),
+                    [$packageId, (string) ($manifest['version'] ?? ''), json_encode($manifest), date('Y-m-d H:i:s')]
+                );
+
+                $migDir = trim((string) ($manifest['migrations'] ?? ''), '/');
+                if ($migDir !== '' && is_dir($licenseModuleDir . '/' . $migDir)) {
+                    (new Migrator($db, $licenseModuleDir . '/' . $migDir))->migrate();
+                }
+
+                $db->run(
+                    "UPDATE `{$packagesTable}` SET state = 'enabled', updated_at = ? WHERE package_id = ?",
+                    [date('Y-m-d H:i:s'), $packageId]
+                );
+                $db->insert('package_journal', [
+                    'package_id' => $packageId, 'operation' => 'bundled-install',
+                    'result' => 'ok', 'detail' => 'Bundled module enabled during install',
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
+            } catch (\Throwable $e) {
+                return $this->page($checks, ['license' => 'Failed to install bundled module: ' . $e->getMessage()], $request);
+            }
         }
 
         // --- write config -----------------------------------------------------
@@ -287,6 +413,7 @@ final class Installer
             'dbUser' => $dbUser, 'dbPass' => $dbPass, 'dbPrefix' => $dbPrefix,
             'storage' => $storagePath, 'appKey' => $appKey,
             'https' => $this->requestSecure(),
+            'licenseApiUrl' => rtrim((string) (getenv('WC_LICENSE_API_URL') ?: 'https://cajunwebpro.com/api'), '/'),
         ]);
         if (@file_put_contents($this->configDir . '/config.php', $configPhp, LOCK_EX) === false) {
             return $this->page($checks, ['site_name' => 'Could not write config/config.php — check permissions.'], $request);
@@ -311,14 +438,87 @@ final class Installer
             }
         }
 
+        $licenseNote = ($licenseModuleDir !== null && !$licenseOk)
+            ? '<p><strong>License check deferred:</strong> the license server could not be reached '
+              . 'during install (' . e((string) $licenseError) . '). Your license will be verified '
+              . 'automatically — if it cannot be validated the site will go offline.</p>'
+            : '';
+
         return Response::html(
             '<!doctype html><html><head><meta charset="utf-8"><title>Installed</title>'
             . '<style>body{font-family:system-ui;max-width:40rem;margin:4rem auto;padding:0 1rem}</style>'
             . '</head><body><h1>Installation complete</h1>'
             . '<p>' . e($cleanupNote) . '</p>'
+            . $licenseNote
             . '<p>Sign in to the <a href="' . e_attr($baseUrl) . '/admin">administration area</a> '
             . 'and enable two-factor authentication on your profile.</p></body></html>'
         );
+    }
+
+    /**
+     * Validate a license key against the Cajunwebpro.com API.
+     *
+     * Mirrors LicenseValidation's contract: only HTTP 200 carries a
+     * definitive verdict. A 4xx/5xx body — even one containing
+     * {"authorized":false} — is a transient failure, never a denial.
+     *
+     * @return array{0:bool,1:?string,2:bool} [valid, error, explicit-denial]
+     */
+    private function validateLicense(string $licenseKey, string $domain): array
+    {
+        // WC_LICENSE_API_URL lets tests/dev point at a local mock. Production
+        // uses the canonical PHP route — it works without mod_rewrite.
+        $apiBase = getenv('WC_LICENSE_API_URL') ?: 'https://cajunwebpro.com/api';
+        $endpoint = rtrim($apiBase, '/') . '/validate.php';
+        $payload = json_encode([
+            'license_key' => $licenseKey,
+            'domain' => $domain,
+        ]);
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => "Content-Type: application/json\r\n" .
+                            "User-Agent: Website-Core-Installer/1.0\r\n",
+                'content' => $payload,
+                'timeout' => 10,
+                'ignore_errors' => true,
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ],
+        ]);
+
+        $response = @file_get_contents($endpoint, false, $context);
+        if ($response === false) {
+            return [false, 'Could not contact license server. Please check your internet connection.', false];
+        }
+
+        // Last status line wins (redirect chains repeat the HTTP/ line).
+        $statusCode = 0;
+        foreach (($http_response_header ?? []) as $line) {
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $line, $m)) {
+                $statusCode = (int) $m[1];
+            }
+        }
+        if ($statusCode !== 200) {
+            return [false, 'License server returned HTTP ' . $statusCode . '. Validation will retry automatically.', false];
+        }
+
+        $data = json_decode($response, true);
+        if (!is_array($data)) {
+            return [false, 'Invalid response from license server.', false];
+        }
+
+        $valid = (bool) ($data['authorized'] ?? false);
+        $error = $data['error'] ?? null;
+
+        if (!$valid) {
+            return [false, is_string($error) ? $error : 'License validation failed.', true];
+        }
+
+        return [true, null, false];
     }
 
     private function renderConfig(array $v): string
@@ -366,7 +566,11 @@ final class Installer
                 'smtp_host' => '', 'smtp_port' => 587, 'smtp_user' => '', 'smtp_pass' => '',
                 'smtp_secure' => 'tls', 'from' => 'no-reply@example.com', 'from_name' => {$s($v['siteName'])},
             ],
-            'updates' => ['trust_roots' => [], 'channel' => 'stable'],
+            'license' => [
+                'api_url' => {$s($v['licenseApiUrl'])},
+            ],
+            'trust' => ['public_keys' => [], 'allow_unsigned' => false],
+            'updates' => ['channel' => 'stable', 'require_window' => false],
         ];
         PHP;
     }

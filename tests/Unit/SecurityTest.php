@@ -56,6 +56,12 @@ final class SecurityTest extends TestCase
     {
         $this->assertSame('#', e_url('javascript:alert(1)'));
         $this->assertSame('#', e_url('data:text/html;base64,x'));
+        // Browsers strip tabs/newlines inside schemes and leading
+        // whitespace before parsing — obfuscated payloads must not pass.
+        $this->assertSame('#', e_url("java\tscript:alert(1)"));
+        $this->assertSame('#', e_url("java\nscript:alert(1)"));
+        $this->assertSame('#', e_url('  javascript:alert(1)'));
+        $this->assertSame('#', e_url("\x01javascript:alert(1)"));
         $this->assertSame('https://ok.test/', e_url('https://ok.test/'));
         $this->assertSame('/relative/path', e_url('/relative/path'));
     }

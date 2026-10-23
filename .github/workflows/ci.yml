@@ -367,11 +367,8 @@ jobs:
           $manifest=$z->getFromName("modules/industries/industry-restaurant/addon.json");
           $m=json_decode((string)$manifest,true);
           if(!is_array($m)||isset($m["license_key"])){fwrite(STDERR,"TEST-BUNDLE contains license_key\n");exit(1);}
-          foreach(["core/Install/Installer.php","core/Install/views/installer.php","vendor/autoload.php"] as $need){
+          foreach(["install.php","install/index.php","core/Install/Installer.php","core/Install/views/installer.php","vendor/autoload.php"] as $need){
             if($z->locateName($need)===false){fwrite(STDERR,"TEST-BUNDLE missing $need\n");exit(1);}
-          }
-          if($z->locateName("install.php")!==false||$z->locateName("install/Installer.php")!==false){
-            fwrite(STDERR,"TEST-BUNDLE contains a public installer artifact\n");exit(1);
           }
           echo "keyless TEST-BUNDLE contract OK\n";'
       - name: Build and inspect catering TEST-BUNDLE
@@ -388,6 +385,8 @@ jobs:
             fwrite(STDERR,"catering TEST-BUNDLE manifest invalid\n");exit(1);
           }
           foreach([
+            "install.php",
+            "install/index.php",
             "core/Install/Installer.php",
             "core/Install/views/installer.php",
             "includes/install-cleanup-gate.php",
@@ -407,9 +406,6 @@ jobs:
           $logo=$z->getFromName("assets/images/cajunwebpro-logo.png");
           if(!is_string($logo)||strlen($logo)<26||ord($logo[25])!==6){
             fwrite(STDERR,"CajunWebPro logo is not a transparent-capable RGBA PNG\n");exit(1);
-          }
-          if($z->locateName("install.php")!==false||$z->locateName("install/Installer.php")!==false){
-            fwrite(STDERR,"catering TEST-BUNDLE contains a public installer artifact\n");exit(1);
           }
           $installerView=$z->getFromName("core/Install/views/installer.php");
           if(!is_string($installerView)||!str_contains($installerView,"href=\"https://cajunwebpro.com\"")){
@@ -448,14 +444,11 @@ jobs:
           // COMPLETE-UPLOAD: deployable members at root, prod vendor only.
           $z = new ZipArchive();
           $z->open(glob("/tmp/dist/*COMPLETE-UPLOAD.zip")[0]);
-          $need = ["index.php","includes/bootstrap.php","vendor/autoload.php","themes/base/theme.json","cron.php","core/Install/Installer.php","core/Install/views/installer.php"];
+          $need = ["index.php","install.php","install/index.php","includes/bootstrap.php","vendor/autoload.php","themes/base/theme.json","cron.php","core/Install/Installer.php","core/Install/views/installer.php"];
           $names = [];
           for ($i=0;$i<$z->numFiles;$i++) $names[] = $z->getNameIndex($i);
           foreach ($need as $n) {
               if (!in_array($n,$names,true)) { fwrite(STDERR,"missing $n\n"); exit(1); }
-          }
-          if (in_array("install.php",$names,true)||in_array("install/Installer.php",$names,true)) {
-              fwrite(STDERR,"public installer artifact shipped\n"); exit(1);
           }
           foreach ($names as $n) {
               if (str_starts_with($n,"config/config.php")||str_contains($n,"/phpunit/")||str_starts_with($n,"tests/")) {

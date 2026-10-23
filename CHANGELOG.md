@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0-dev (unreleased)
+
+### Added — administration platform
+- Added capability-aware global search across pages, media, and installed packages.
+- Added durable, dismissible administrator notifications with optional actions and expiry.
+- Rebuilt the dashboard around published content, package, queue, and integrity status.
+- Added responsive admin metrics, notification surfaces, and compact header search.
+
 ## 0.1.15-dev (unreleased)
 
 ### Added — stabilization and integrity inventory

@@ -56,6 +56,9 @@ abstract class Controller
         $versions = $this->c->get(\Core\System\Version::class);
         $v->share('coreVersion', $versions->core());
         $v->share('industryVersions', $versions->industries());
+        $u = $this->user();
+        $v->share('noticeCount', $u && $this->c->has(\Core\Admin\NoticeCenter::class)
+            ? $this->c->get(\Core\Admin\NoticeCenter::class)->countFor($u->id) : 0);
         $v->share('flash', $_SESSION['_wc_flash'] ?? null);
         unset($_SESSION['_wc_flash']);
         return Response::html($v->renderInLayout('admin:' . $view, 'admin:layouts/admin', $data));

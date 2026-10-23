@@ -25,6 +25,8 @@ final class Nav
     {
         $nav = [
             $this->core('/admin',            'Dashboard',      null,                    'Overview',       'core-overview'),
+            $this->core('/admin/search',     'Search',         null,                    'Overview',       'core-overview'),
+            $this->core('/admin/notices',    'Notifications',  null,                    'Overview',       'core-overview'),
             $this->core('/admin/pages',      'Content',        'content.manage',        'Website',        'core-website'),
             $this->core('/admin/navigation', 'Navigation',     'navigation.manage',     'Website',        'core-website'),
             $this->core('/admin/media',      'Media',          'media.manage',          'Website',        'core-website'),

@@ -17,11 +17,19 @@ final class DashboardController extends Controller
         $jobs = $this->c->get(JobQueue::class)->counts();
         $registry = $this->c->get(ModuleRegistry::class);
         $packages = $registry->all();
+        $integrity = $this->c->get(\Core\System\Integrity::class)->summary();
+        $notices = $this->c->get(\Core\Admin\NoticeCenter::class)->openFor($this->user()->id, 5);
+        $published = (int) $db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $db->table('pages') . '` WHERE status = ?', ['published']
+        );
 
         return $this->page($r, 'dashboard/index', [
             'pageCount' => $pageCount,
             'jobs'      => $jobs,
             'packages'  => $packages,
+            'published' => $published,
+            'integrity' => $integrity,
+            'notices'   => $notices,
             'php'       => PHP_VERSION,
             'dbVersion' => $db->driver() === 'sqlite'
                 ? 'sqlite ' . $db->pdo()->query('SELECT sqlite_version()')->fetchColumn()

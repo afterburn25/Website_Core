@@ -168,6 +168,7 @@ final class Application
         $this->container->instance(Csrf::class, new Csrf());
         $this->container->instance(SettingsRepository::class, new SettingsRepository($db));
         $this->container->instance(AuditLog::class, new AuditLog($db));
+        $this->container->instance(\Core\Admin\NoticeCenter::class, new \Core\Admin\NoticeCenter($db));
         $this->container->instance(JobQueue::class, new JobQueue($db));
         $this->container->instance(RateLimiter::class, new RateLimiter($db));
         $this->container->instance(Permissions::class, new Permissions());
@@ -450,6 +451,9 @@ final class Application
             $r->post('/logout', fn (Request $req) => (new \Admin\Controllers\AuthController($c))->logout($req), [$csrfCheck]);
 
             $r->get('/', fn (Request $req) => (new \Admin\Controllers\DashboardController($c))->index($req), [$auth]);
+            $r->get('/search', fn (Request $req) => (new \Admin\Controllers\SearchController($c))->index($req), [$auth]);
+            $r->get('/notices', fn (Request $req) => (new \Admin\Controllers\NoticesController($c))->index($req), [$auth]);
+            $r->post('/notices/{id:\d+}/dismiss', fn (Request $req) => (new \Admin\Controllers\NoticesController($c))->dismiss($req), [$auth, $csrfCheck]);
             $r->any('/settings', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->index($req), [$auth, $csrfCheck]);
             $r->post('/settings/license-validate', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->validateLicense($req), [$auth, $csrfCheck]);
             $r->any('/profile', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->index($req), [$auth, $csrfCheck]);

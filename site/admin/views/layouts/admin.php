@@ -2,7 +2,7 @@
 /** @var string $content @var array $nav @var string $currentPath @var string $basePath
   * @var \Core\Auth\AdminUser|null $user @var \Core\Security\Csrf $csrf
   * @var string $pageTitle @var string $siteName @var string $coreVersion
-  * @var list<array{name:string,version:string}> $industryVersions @var array|null $flash */
+  * @var list<array{name:string,version:string}> $industryVersions @var int $noticeCount @var array|null $flash */
 $navGroups = [];
 $activeRoute = null;
 $activeLength = -1;
@@ -63,9 +63,11 @@ textarea{min-height:14rem}
 .badge.ok{background:#dcfce7;color:var(--ok)} .badge.bad{background:#fee2e2;color:var(--bad)} .badge.warn{background:#fef9c3;color:#854d0e}
 .muted{color:var(--muted);font-size:.85rem}
 .err{color:var(--bad);font-size:.82rem}
+.metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;margin-bottom:1rem}.metric{background:linear-gradient(145deg,#fff,#f8fbfe);border:1px solid var(--border);border-radius:.7rem;padding:1rem}.metric span,.metric small{display:block;color:var(--muted);font-size:.78rem}.metric strong{display:block;font-size:1.55rem;margin:.35rem 0}.text-ok{color:var(--ok)}.text-bad{color:var(--bad)}
+.inline-fields{display:flex;align-items:center;gap:.6rem}.inline-fields input{flex:1}.card-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem}.card-heading h2{margin:0}.result-list{display:grid}.result-row{display:flex;align-items:center;gap:.8rem;padding:.85rem .2rem;border-bottom:1px solid var(--border);color:var(--text);text-decoration:none}.result-row:hover strong{color:var(--accent)}.result-row small{display:block;color:var(--muted);margin-top:.2rem}.notice-row{display:flex;justify-content:space-between;gap:1rem;padding:1rem;border-left:4px solid var(--accent);border-bottom:1px solid var(--border)}.notice-warning{border-left-color:#ca8a04}.notice-error{border-left-color:var(--bad)}.notice-success{border-left-color:var(--ok)}.notice-row h2{font-size:1rem;margin:0 0 .25rem}.notice-row p{margin:.25rem 0}.notice-actions{display:flex;align-items:center;gap:.5rem}.empty-state{text-align:center;padding:2rem;color:var(--muted)}
 a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
-@media(max-width:800px){body{flex-direction:column}aside{position:relative;width:100%;height:auto;max-height:none}main{padding:1rem}header{align-items:flex-start;gap:.75rem;flex-direction:column}.header-actions{justify-content:flex-start}}
+@media(max-width:1000px){.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:800px){body{flex-direction:column}aside{position:relative;width:100%;height:auto;max-height:none}main{padding:1rem}header{align-items:flex-start;gap:.75rem;flex-direction:column}.header-actions{justify-content:flex-start}.metric-grid{grid-template-columns:1fr}.notice-row{flex-direction:column}}
 </style>
 </head>
 <body>
@@ -95,6 +97,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <header>
 <h1><?= e($pageTitle) ?></h1>
 <div class="header-actions">
+<form method="get" action="<?= e_attr($basePath) ?>/admin/search" class="header-search"><input type="search" name="q" placeholder="Search admin…" aria-label="Search admin"></form>
+<a class="btn secondary small" href="<?= e_attr($basePath) ?>/admin/notices">Notifications<?= $noticeCount ? ' (' . (int) $noticeCount . ')' : '' ?></a>
 <a class="btn small" href="<?= e_attr(rtrim($basePath, '/') . '/') ?>" target="_blank" rel="noopener">Open site ↗</a>
 <span class="muted"><?= e($user?->username ?? '') ?></span>
 <a class="btn secondary small" href="<?= e_attr($basePath) ?>/admin/profile">Profile</a>

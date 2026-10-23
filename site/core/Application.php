@@ -204,7 +204,10 @@ final class Application
         $themeDir = (string) ($this->container->get(SettingsRepository::class)->get('theme.active', 'base'));
         $themesRoot = (string) $this->config->get('paths.themes', WC_THEMES);
         $view->addResolver('theme', function (string $v) use ($themeDir, $themesRoot): ?string {
-            foreach ([$themeDir, 'base'] as $theme) {
+            $manifest = is_file($themesRoot . '/' . $themeDir . '/theme.json')
+                ? json_decode((string) file_get_contents($themesRoot . '/' . $themeDir . '/theme.json'), true) : [];
+            $parent = is_array($manifest) ? basename((string) ($manifest['extends'] ?? '')) : '';
+            foreach (array_values(array_unique(array_filter([$themeDir, $parent, 'base']))) as $theme) {
                 $path = $themesRoot . '/' . $theme . '/templates/' . $v . '.php';
                 if (is_file($path)) {
                     return $path;
@@ -531,6 +534,7 @@ final class Application
             $r->any('/pages', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/pages/edit', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->edit($req), [$auth, $csrfCheck]);
             $r->any('/pages/edit/{id:\d+}', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->edit($req), [$auth, $csrfCheck]);
+            $r->any('/patterns', fn (Request $req) => (new \Admin\Controllers\PatternsController($c))->index($req), [$auth, $csrfCheck]);
             $r->get('/forms', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->index($req), [$auth]);
             $r->post('/forms/save', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->save($req), [$auth, $csrfCheck]);
             $r->post('/forms/{id:\d+}/archive', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->archive($req), [$auth, $csrfCheck]);

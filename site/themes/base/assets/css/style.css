@@ -23,6 +23,7 @@ main { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1rem; }
     padding: 1rem max(1rem, calc(50% - var(--max-width) / 2));
     border-bottom: 1px solid #e2e8f0;
 }
+.header-centered .site-header{justify-content:center;text-align:center;flex-direction:column}.header-compact .site-header{padding-block:.65rem}.footer-split .site-footer{display:flex;justify-content:space-between;text-align:left}.footer-minimal .site-footer{padding-block:.8rem;border-top:1px solid #e2e8f0;background:transparent}
 .site-brand { font-weight: 700; font-size: 1.15rem; color: var(--color-text); text-decoration: none; }
 .site-brand img { display: block; max-width: 12rem; max-height: 3.5rem; width: auto; height: auto; }
 .site-tagline { color: var(--color-muted); font-size: 0.9rem; }

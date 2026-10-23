@@ -126,7 +126,7 @@ final class MediaService
     {
         if (!$this->find($id)) return false;
         $folder = trim(preg_replace('/[^A-Za-z0-9 _\/-]/', '', $folder) ?? '', " /\t\n\r\0\x0B");
-        $rawTags = is_array($tags) ? $tags : preg_split('/[,\n]+/', $tags) ?: [];
+        $rawTags = is_array($tags) ? $tags : (preg_split('/[,\n]+/', $tags) ?: []);
         $clean = [];
         foreach ($rawTags as $tag) {
             $tag = mb_strtolower(trim(strip_tags((string) $tag)));

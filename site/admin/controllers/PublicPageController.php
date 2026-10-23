@@ -165,6 +165,8 @@ final class PublicPageController extends Controller
             'primary' => preg_match('/^#[0-9a-fA-F]{6}$/', $primary) ? $primary : '#0369a1',
             'accent' => preg_match('/^#[0-9a-fA-F]{6}$/', $accent) ? $accent : '#0ea5e9',
             'radius' => $radius,
+            'header_layout' => (string) $this->settings()->get('design.header_layout', 'classic'),
+            'footer_layout' => (string) $this->settings()->get('design.footer_layout', 'centered'),
         ]);
     }
 

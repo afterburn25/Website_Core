@@ -38,6 +38,8 @@ final class AppearanceController extends Controller
                 'primary_color' => (string) $this->settings()->get('design.primary_color', '#0369a1'),
                 'accent_color' => (string) $this->settings()->get('design.accent_color', '#0ea5e9'),
                 'radius' => (string) $this->settings()->get('design.radius', '8'),
+                'header_layout' => (string) $this->settings()->get('design.header_layout', 'classic'),
+                'footer_layout' => (string) $this->settings()->get('design.footer_layout', 'centered'),
             ],
             'mediaItems' => $this->db()->fetchAll(
                 'SELECT id, original_name FROM `' . $this->db()->table('media')
@@ -90,6 +92,10 @@ final class AppearanceController extends Controller
         $this->settings()->set('design.primary_color', $primary);
         $this->settings()->set('design.accent_color', $accent);
         $this->settings()->set('design.radius', $radius);
+        $header = in_array($r->string('header_layout'), ['classic', 'centered', 'compact'], true) ? $r->string('header_layout') : 'classic';
+        $footer = in_array($r->string('footer_layout'), ['centered', 'split', 'minimal'], true) ? $r->string('footer_layout') : 'centered';
+        $this->settings()->set('design.header_layout', $header);
+        $this->settings()->set('design.footer_layout', $footer);
 
         $this->db()->run('DELETE FROM `' . $this->db()->table('media_usage') . '` WHERE context = ?', ['core.branding']);
         foreach (array_filter($ids) as $id) {

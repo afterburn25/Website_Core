@@ -44,7 +44,7 @@ if (!empty($brandLogoUrl)) $schema['logo'] = $brandLogoUrl;
 ?>
 <script type="application/ld+json"><?= json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
 </head>
-<body>
+<body class="header-<?= e_attr($designTokens['header_layout'] ?? 'classic') ?> footer-<?= e_attr($designTokens['footer_layout'] ?? 'centered') ?>">
 <header class="site-header">
 <a class="site-brand" href="<?= e_attr($basePath) ?>/"><?php if (!empty($brandLogoUrl)): ?><img src="<?= e_attr($brandLogoUrl) ?>" alt="<?= e_attr($siteName) ?>"><?php else: ?><?= e($siteName) ?><?php endif; ?></a>
 <?php if ($tagline !== ''): ?><span class="site-tagline"><?= e($tagline) ?></span><?php endif; ?>

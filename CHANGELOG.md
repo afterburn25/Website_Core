@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.0 — 2026-10-23
+
+- Added reusable layout patterns with revision-safe application.
+- Added selectable header/footer layouts and parent-theme template fallback.
+
 ## 1.3.0 — 2026-10-23
 
 - Added searchable media folders and tags, bulk organization, focal points,

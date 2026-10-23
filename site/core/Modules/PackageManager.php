@@ -107,6 +107,14 @@ final class PackageManager
 
     private mixed $lockHandle = null;
 
+    /** @return array{0:bool,1:string}|null */
+    private function protectedOperation(string $packageId): ?array
+    {
+        return ModuleRegistry::isProtectedPackage($packageId)
+            ? [false, 'core/base is a required Website Core component and cannot be installed, disabled, removed, or purged.']
+            : null;
+    }
+
     private function unlock(): void
     {
         if ($this->lockHandle) {
@@ -156,6 +164,10 @@ final class PackageManager
                 }
             }
             $id = (string) $manifest['id'];
+            if (($blocked = $this->protectedOperation($id)) !== null) {
+                $this->journal($id, 'stage', 'rejected', $blocked[1]);
+                return [null, $blocked[1]];
+            }
             $this->recordPackage($manifest, 'staged');
             $this->journal($id, 'stage', 'ok', dirname($manifestPath));
             return [dirname($manifestPath), null];
@@ -212,6 +224,9 @@ final class PackageManager
      */
     public function install(string $packageId): array
     {
+        if (($blocked = $this->protectedOperation($packageId)) !== null) {
+            return $blocked;
+        }
         if (!$this->lock()) {
             return [false, 'Another package operation is in progress.'];
         }
@@ -311,6 +326,9 @@ final class PackageManager
     /** Enable: dependency order + compatibility gate; provider boots next request. */
     public function enable(string $packageId): array
     {
+        if (($blocked = $this->protectedOperation($packageId)) !== null) {
+            return $blocked;
+        }
         $this->registry->discover();
         $info = $this->registry->all()[$packageId] ?? null;
         if ($info === null) {
@@ -350,6 +368,9 @@ final class PackageManager
     /** Disable: blocked when enabled dependents exist. */
     public function disable(string $packageId): array
     {
+        if (($blocked = $this->protectedOperation($packageId)) !== null) {
+            return $blocked;
+        }
         $this->registry->discover();
         foreach ($this->registry->all() as $id => $info) {
             if ($this->registry->state($id) === 'enabled'
@@ -374,6 +395,9 @@ final class PackageManager
      */
     public function uninstall(string $packageId): array
     {
+        if (($blocked = $this->protectedOperation($packageId)) !== null) {
+            return $blocked;
+        }
         if (!$this->lock()) {
             return [false, 'Another package operation is in progress.'];
         }
@@ -402,6 +426,9 @@ final class PackageManager
     /** Irreversible data purge — only for 'removed' packages, journaled loudly. */
     public function purgeData(string $packageId): array
     {
+        if (($blocked = $this->protectedOperation($packageId)) !== null) {
+            return $blocked;
+        }
         if ($this->registry->state($packageId) !== 'removed') {
             return [false, 'Purge requires the package to be uninstalled first.'];
         }

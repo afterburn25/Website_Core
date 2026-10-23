@@ -44,16 +44,20 @@ no package code runs — so you can log in and remove it. You can also create
 <?php else: ?>
 <table>
 <tr><th>Package</th><th>Type</th><th>Version</th><th>State</th><th>Issues</th><th>Actions</th></tr>
-<?php foreach ($packages as $id => $info): $m = $info['manifest']; $state = $info['state']; ?>
+<?php foreach ($packages as $id => $info):
+    $m = $info['manifest'];
+    $protected = \Core\Modules\ModuleRegistry::isProtectedPackage((string) $id);
+    $state = $protected ? 'built-in' : $info['state'];
+?>
 <tr>
-<td><strong><?= e($id) ?></strong><br><span class="muted"><?= e($m['name'] ?? '') ?></span></td>
-<td><?= e($m['type'] ?? '?') ?></td>
-<td><?= e($m['version'] ?? '?') ?></td>
-<td><span class="badge <?= $state === 'enabled' ? 'ok' : ($state === 'failed' ? 'bad' : 'warn') ?>"><?= e($state) ?></span></td>
+<td><strong><?= e($id) ?></strong><br><span class="muted"><?= e($protected ? 'Website Core base theme' : ($m['name'] ?? '')) ?></span></td>
+<td><?= e($protected ? 'core' : ($m['type'] ?? '?')) ?></td>
+<td><?= e($protected && defined('WC_VERSION') ? WC_VERSION : ($m['version'] ?? '?')) ?></td>
+<td><span class="badge <?= in_array($state, ['enabled', 'built-in'], true) ? 'ok' : ($state === 'failed' ? 'bad' : 'warn') ?>"><?= e($state) ?></span></td>
 <td class="err"><?= e(implode('; ', $info['errors'])) ?></td>
 <td>
 <?php
-$buttons = match ($state) {
+$buttons = $protected ? [] : match ($state) {
     'staged'    => [['install', 'Install']],
     'installed' => [['enable', 'Enable'], ['uninstall', 'Uninstall']],
     'enabled'   => [['disable', 'Disable']],
@@ -63,7 +67,9 @@ $buttons = match ($state) {
     default     => [],
 };
 ?>
-<?php if ($state === 'removed'): ?>
+<?php if ($protected): ?>
+<span class="muted">Required system component</span>
+<?php elseif ($state === 'removed'): ?>
 <form method="post" action="<?= e_attr($basePath . '/admin/modules/' . $id . '/purge') ?>">
 <?= $csrf->field() ?>
 <input name="confirm" placeholder="type <?= e_attr($id) ?> to purge" style="max-width:12rem" required>

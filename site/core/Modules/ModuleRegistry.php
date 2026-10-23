@@ -14,6 +14,12 @@ use Core\Support\Semver;
  */
 final class ModuleRegistry
 {
+    /** Core-owned packages ship with the runtime and are never lifecycle-managed. */
+    public static function isProtectedPackage(string $packageId): bool
+    {
+        return $packageId === 'core/base';
+    }
+
     /** @var array<string, array> id => manifest */
     private array $manifests = [];
     /** @var array<string, string> id => absolute dir */
@@ -67,6 +73,13 @@ final class ModuleRegistry
         foreach ($this->db->fetchAll('SELECT package_id, state FROM `' . $this->db->table('packages') . '`') as $row) {
             $this->states[$row['package_id']] = (string) $row['state'];
         }
+        // Built-in packages exist because the core is already running. A
+        // stale database row must never make them appear staged or disabled.
+        foreach (array_keys($this->manifests) as $id) {
+            if (self::isProtectedPackage($id)) {
+                $this->states[$id] = 'enabled';
+            }
+        }
     }
 
     /** @return array<string, array{manifest:array,dir:string,state:string,errors:list<string>}> */
@@ -87,7 +100,9 @@ final class ModuleRegistry
             $out[$id] = [
                 'manifest' => $manifest,
                 'dir'      => $this->dirs[$id],
-                'state'    => $this->states[$id] ?? 'staged',
+                'state'    => self::isProtectedPackage($id)
+                    ? 'enabled'
+                    : ($this->states[$id] ?? 'staged'),
                 'errors'   => $errors,
             ];
         }
@@ -96,11 +111,18 @@ final class ModuleRegistry
 
     public function state(string $id): string
     {
+        if (self::isProtectedPackage($id)) {
+            return 'enabled';
+        }
         return $this->states[$id] ?? 'staged';
     }
 
     public function setState(string $id, string $state): void
     {
+        if (self::isProtectedPackage($id)) {
+            $this->states[$id] = 'enabled';
+            return;
+        }
         $this->db->run(
             'INSERT INTO `' . $this->db->table('packages')
             . '` (package_id, state, updated_at) VALUES (?,?,?) '

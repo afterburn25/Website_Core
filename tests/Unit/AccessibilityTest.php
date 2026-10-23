@@ -73,8 +73,64 @@ final class AccessibilityTest extends TestCase
         $this->assertStringContainsString(' data-nav-group=', $adminLayout, 'admin categories have persistent identities');
         $this->assertStringContainsString(' open>', $adminLayout, 'admin categories default expanded');
         $this->assertStringContainsString('wc-admin-nav-state-v1', $adminLayout, 'admin category state persists');
+        $this->assertStringContainsString('target="_blank"', $adminLayout, 'public site opens in a new tab');
+        $this->assertStringContainsString('rel="noopener"', $adminLayout, 'new tab cannot control admin tab');
+        $this->assertStringContainsString('aria-label="Installed versions"', $adminLayout, 'version summary is labelled');
         $this->assertStringContainsString('focus-visible', $adminLayout, 'focus-visible outlines present');
         $this->assertStringContainsString('prefers-reduced-motion', $adminLayout, 'reduced-motion support present');
+    }
+
+    public function testAdminLayoutRendersLaunchActionAndVersions(): void
+    {
+        $_SESSION = [];
+        $view = new View();
+        $view->addResolver('admin', fn (string $name): ?string =>
+            is_file(WC_ROOT . '/admin/views/' . $name . '.php')
+                ? WC_ROOT . '/admin/views/' . $name . '.php'
+                : null
+        );
+        $html = $view->render('admin:layouts/admin', [
+            'content' => '<p>Admin content</p>',
+            'nav' => [[
+                'route' => '/admin', 'label' => 'Dashboard', 'cap' => null,
+                'group' => 'Overview', 'group_key' => 'core-overview', 'package' => null,
+            ]],
+            'currentPath' => '/admin', 'basePath' => '/catering',
+            'user' => null, 'csrf' => new \Core\Security\Csrf(),
+            'pageTitle' => 'Dashboard', 'siteName' => 'Catering Test',
+            'coreVersion' => '0.1.14-dev',
+            'industryVersions' => [['name' => 'Catering Website', 'version' => '0.1.14']],
+            'flash' => null,
+        ]);
+
+        $this->assertStringContainsString('href="/catering/" target="_blank" rel="noopener"', $html);
+        $this->assertStringContainsString('Website Core</strong><span>0.1.14-dev', $html);
+        $this->assertStringContainsString('Catering Website</strong><span>0.1.14', $html);
+    }
+
+    public function testCoreBaseModuleRendersAsProtectedBuiltInComponent(): void
+    {
+        $_SESSION = [];
+        $view = new View();
+        $view->addResolver('admin', fn (string $name): ?string =>
+            is_file(WC_ROOT . '/admin/views/' . $name . '.php')
+                ? WC_ROOT . '/admin/views/' . $name . '.php'
+                : null
+        );
+        $html = $view->render('admin:modules/index', [
+            'packages' => ['core/base' => [
+                'manifest' => ['name' => 'Base', 'type' => 'theme', 'version' => '0.1.14'],
+                'state' => 'staged', 'errors' => [],
+            ]],
+            'journal' => [], 'csrf' => new \Core\Security\Csrf(),
+            'basePath' => '/catering', 'canInstall' => false,
+            'user' => null, 'recovery' => false,
+        ]);
+
+        $this->assertStringContainsString('built-in', $html);
+        $this->assertStringContainsString('Required system component', $html);
+        $this->assertStringNotContainsString('/core/base/install', $html);
+        $this->assertStringNotContainsString('/core/base/disable', $html);
     }
 
     public function testThemeReducedMotionSupport(): void

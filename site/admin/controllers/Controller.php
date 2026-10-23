@@ -53,6 +53,8 @@ abstract class Controller
         $v->share('nav', $this->visibleNav());
         $v->share('pageTitle', $title);
         $v->share('siteName', $this->settings()->get('site.name', 'Website Core'));
+        $v->share('coreVersion', defined('WC_VERSION') ? WC_VERSION : 'development');
+        $v->share('industryVersions', $this->industryVersions());
         $v->share('flash', $_SESSION['_wc_flash'] ?? null);
         unset($_SESSION['_wc_flash']);
         return Response::html($v->renderInLayout('admin:' . $view, 'admin:layouts/admin', $data));
@@ -86,6 +88,26 @@ abstract class Controller
             $this->c->has(\Core\Modules\ModuleRegistry::class) ? $this->c->get(\Core\Modules\ModuleRegistry::class) : null,
             $this->c->has(AuthService::class) ? $this->auth() : null,
         );
+    }
+
+    /** @return list<array{name:string,version:string}> */
+    private function industryVersions(): array
+    {
+        if (!$this->c->has(\Core\Modules\ModuleRegistry::class)) {
+            return [];
+        }
+        $versions = [];
+        foreach ($this->c->get(\Core\Modules\ModuleRegistry::class)->all() as $id => $info) {
+            $manifest = $info['manifest'] ?? [];
+            if (($manifest['type'] ?? null) !== 'industry' || ($info['state'] ?? null) !== 'enabled') {
+                continue;
+            }
+            $versions[] = [
+                'name' => (string) ($manifest['name'] ?? $id),
+                'version' => (string) ($manifest['version'] ?? 'unknown'),
+            ];
+        }
+        return $versions;
     }
 
     /** 403 helper for capability failures. */

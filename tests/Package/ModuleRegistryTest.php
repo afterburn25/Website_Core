@@ -86,6 +86,19 @@ final class ModuleRegistryTest extends TestCase
         $this->assertSame([], $all['acme/thing']['errors']);
     }
 
+    public function testCoreBaseIsAlwaysBuiltInAndEnabled(): void
+    {
+        $this->makePackage('themes', 'base', $this->manifest([
+            'id' => 'core/base', 'type' => 'theme', 'name' => 'Base',
+        ]));
+        $registry = $this->registry();
+        $registry->discover();
+
+        $this->assertSame('enabled', $registry->all()['core/base']['state']);
+        $registry->setState('core/base', 'disabled');
+        $this->assertSame('enabled', $registry->state('core/base'));
+    }
+
     public function testInvalidManifestReportedNotFatal(): void
     {
         $this->makePackage('addons', 'bad', ['schema' => 99, 'id' => 'BAD']);

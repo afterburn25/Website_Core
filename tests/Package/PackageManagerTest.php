@@ -117,6 +117,24 @@ final class PackageManagerTest extends TestCase
         $this->assertNotEmpty((new ArchiveInspector())->inspect($zip));
     }
 
+    public function testCoreBaseLifecycleIsProtected(): void
+    {
+        $zip = $this->zip([
+            'base/addon.json' => $this->manifest([
+                'id' => 'core/base', 'type' => 'theme', 'name' => 'Base',
+            ]),
+        ], 'core-base.zip');
+        [$staged, $error] = $this->pm->stage($zip);
+        $this->assertNull($staged);
+        $this->assertStringContainsString('required Website Core component', (string) $error);
+
+        foreach (['install', 'enable', 'disable', 'uninstall', 'purgeData'] as $operation) {
+            [$ok, $error] = $this->pm->{$operation}('core/base');
+            $this->assertFalse($ok, $operation);
+            $this->assertStringContainsString('required Website Core component', (string) $error);
+        }
+    }
+
     public function testFullLifecycle(): void
     {
         $zip = $this->zip([

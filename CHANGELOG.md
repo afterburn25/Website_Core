@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.14-dev (unreleased)
+
+### Fixed — protected core package and admin launch controls
+- `core/base` is now always reported as a built-in, enabled system component.
+  It can no longer be staged, installed, disabled, uninstalled, or purged by
+  either the administration screen or a forged lifecycle request.
+- Added an **Open site** admin action that launches the public website in a
+  new tab while preserving subfolder installations.
+- Added the running Website Core version and every enabled industry module's
+  version to the persistent administration sidebar.
+- Incremented the core base theme and catering module to `0.1.14`.
+
 ## 0.1.13-dev (unreleased)
 
 ### Added — grouped persistent administration navigation

@@ -151,6 +151,24 @@ final class AuthServiceTest extends TestCase
         $this->assertNull($this->auth->user());
     }
 
+    public function testOtherSessionCanBeListedAndRevokedWithoutRevokingCurrent(): void
+    {
+        $id = $this->makeAdmin();
+        $this->auth->attemptPassword($this->request(), 'owner1', 'correct-horse-12');
+        $otherId = (int) $this->db->insert('admin_sessions', [
+            'admin_id' => $id, 'session_hash' => hash('sha256', 'other-device'),
+            'ip' => '203.0.113.4', 'user_agent' => 'Other browser',
+            'created_at' => date('Y-m-d H:i:s'), 'last_seen' => date('Y-m-d H:i:s'),
+        ]);
+        $sessions = $this->auth->sessionsFor($id);
+        $this->assertCount(2, $sessions);
+        $current = array_values(array_filter($sessions, fn (array $s) => $s['current']));
+        $this->assertCount(1, $current);
+        $this->assertFalse($this->auth->revokeSession($id, (int) $current[0]['id']));
+        $this->assertTrue($this->auth->revokeSession($id, $otherId));
+        $this->assertCount(1, $this->auth->sessionsFor($id));
+    }
+
     public function testLastOwnerProtectionData(): void
     {
         $this->makeAdmin();

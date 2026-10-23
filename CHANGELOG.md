@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0-dev (unreleased)
+
+### Added — administrator security
+- Added active-session identification, last-seen updates, individual revocation, and sign-out-all-other-devices.
+- Added an administrator security dashboard with MFA coverage and active session counts.
+- Added owner-safe mandatory MFA policy enforcement and protected MFA-disable behavior.
+- Added HSTS on HTTPS, no-store admin responses, and additional cross-origin security headers.
+
 ## 0.5.0-dev (unreleased)
 
 ### Added — package integration platform

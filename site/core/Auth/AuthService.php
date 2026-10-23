@@ -170,11 +170,16 @@ final class AuthService
 
     private function sessionValid(int $adminId): bool
     {
-        return (bool) $this->db->fetchColumn(
-            'SELECT COUNT(*) FROM `' . $this->db->table('admin_sessions')
+        $row = $this->db->fetch(
+            'SELECT id, last_seen FROM `' . $this->db->table('admin_sessions')
             . '` WHERE admin_id = ? AND session_hash = ? AND revoked_at IS NULL',
-            [$adminId, hash('sha256', session_id())]
+            [$adminId, $this->sessionHash()]
         );
+        if (!$row) return false;
+        if (empty($row['last_seen']) || strtotime((string) $row['last_seen']) < time() - 300) {
+            $this->db->update('admin_sessions', ['last_seen' => date('Y-m-d H:i:s')], 'id = ?', [(int) $row['id']]);
+        }
+        return true;
     }
 
     public function has(AdminUser $user, string $capability): bool
@@ -189,7 +194,7 @@ final class AuthService
             $this->db->run(
                 'UPDATE `' . $this->db->table('admin_sessions')
                 . '` SET revoked_at = ? WHERE admin_id = ? AND session_hash = ?',
-                [date('Y-m-d H:i:s'), $id, hash('sha256', session_id())]
+                [date('Y-m-d H:i:s'), $id, $this->sessionHash()]
             );
             $this->audit?->record('auth.logout', $id);
         }
@@ -203,8 +208,41 @@ final class AuthService
         $this->db->run(
             'UPDATE `' . $this->db->table('admin_sessions')
             . '` SET revoked_at = ? WHERE admin_id = ? AND session_hash != ? AND revoked_at IS NULL',
-            [date('Y-m-d H:i:s'), $adminId, hash('sha256', session_id())]
+            [date('Y-m-d H:i:s'), $adminId, $this->sessionHash()]
         );
+    }
+
+    /** @return list<array> */
+    public function sessionsFor(int $adminId): array
+    {
+        $rows = $this->db->fetchAll(
+            'SELECT id, ip, user_agent, created_at, last_seen, session_hash FROM `'
+            . $this->db->table('admin_sessions')
+            . '` WHERE admin_id = ? AND revoked_at IS NULL ORDER BY last_seen DESC', [$adminId]
+        );
+        return array_map(function (array $row): array {
+            $row['current'] = hash_equals((string) $row['session_hash'], $this->sessionHash());
+            unset($row['session_hash']);
+            return $row;
+        }, $rows);
+    }
+
+    public function revokeSession(int $adminId, int $sessionId): bool
+    {
+        $row = $this->db->fetch(
+            'SELECT session_hash FROM `' . $this->db->table('admin_sessions')
+            . '` WHERE id = ? AND admin_id = ? AND revoked_at IS NULL', [$sessionId, $adminId]
+        );
+        if (!$row || hash_equals((string) $row['session_hash'], $this->sessionHash())) return false;
+        $changed = $this->db->update('admin_sessions', ['revoked_at' => date('Y-m-d H:i:s')],
+            'id = ? AND admin_id = ?', [$sessionId, $adminId]);
+        if ($changed) $this->audit?->record('auth.session_revoked', $adminId, ['session_id' => $sessionId]);
+        return $changed > 0;
+    }
+
+    private function sessionHash(): string
+    {
+        return hash('sha256', session_id());
     }
 
     /**

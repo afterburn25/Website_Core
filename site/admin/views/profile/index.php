@@ -62,15 +62,16 @@
 <?php unset($_SESSION['_wc_show_recovery']); endif; ?>
 
 <div class="card">
-<h2 style="margin-top:0">Active sessions</h2>
+<div class="card-heading"><h2>Active sessions</h2><form method="post" action="<?= e_attr($basePath) ?>/admin/profile/sessions/revoke-others"><?= $csrf->field() ?><button class="btn small secondary" type="submit">Sign out other sessions</button></form></div>
 <table>
-<tr><th>IP</th><th>User agent</th><th>Started</th><th>Last seen</th></tr>
+<tr><th>IP</th><th>User agent</th><th>Started</th><th>Last seen</th><th></th></tr>
 <?php foreach ($sessions as $s): ?>
 <tr>
-<td><?= e($s['ip'] ?? '') ?></td>
+<td><?= e($s['ip'] ?? '') ?> <?= !empty($s['current']) ? '<span class="badge ok">current</span>' : '' ?></td>
 <td><?= e(substr((string) $s['user_agent'], 0, 60)) ?></td>
 <td><?= e($s['created_at'] ?? '') ?></td>
 <td><?= e($s['last_seen'] ?? '') ?></td>
+<td><?php if (empty($s['current'])): ?><form method="post" action="<?= e_attr($basePath) ?>/admin/profile/sessions/<?= (int) $s['id'] ?>/revoke"><?= $csrf->field() ?><button class="btn small danger" type="submit">Sign out</button></form><?php endif; ?></td>
 </tr>
 <?php endforeach; ?>
 </table>

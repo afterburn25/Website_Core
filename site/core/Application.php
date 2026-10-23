@@ -438,8 +438,16 @@ final class Application
         // Admin routes must be registered before the public slug catch-all.
         $auth = function (Request $r, callable $next) use ($c): Response {
             $auth = $c->get(AuthService::class);
-            if ($auth->user() === null) {
+            $user = $auth->user();
+            if ($user === null) {
                 return Response::redirect($r->routeUrl('/admin/login'));
+            }
+            $settings = $c->get(SettingsRepository::class);
+            $path = rtrim($r->path, '/') ?: '/';
+            if ((bool) $settings->get('security.require_mfa', false) && !$user->mfaEnabled
+                && !str_starts_with($path, '/admin/profile') && $path !== '/admin/logout') {
+                $_SESSION['_wc_flash'] = ['type' => 'error', 'message' => 'MFA enrollment is required before continuing.'];
+                return Response::redirect($r->routeUrl('/admin/profile'));
             }
             return $next($r);
         };
@@ -471,7 +479,10 @@ final class Application
             $r->any('/profile', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->index($req), [$auth, $csrfCheck]);
             $r->post('/profile/mfa/enable', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->enableMfa($req), [$auth, $csrfCheck]);
             $r->post('/profile/mfa/disable', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->disableMfa($req), [$auth, $csrfCheck]);
+            $r->post('/profile/sessions/revoke-others', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->revokeOtherSessions($req), [$auth, $csrfCheck]);
+            $r->post('/profile/sessions/{id:\d+}/revoke', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->revokeSession($req), [$auth, $csrfCheck]);
             $r->get('/users', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->index($req), [$auth]);
+            $r->any('/security', fn (Request $req) => (new \Admin\Controllers\SecurityController($c))->index($req), [$auth, $csrfCheck]);
             $r->post('/users/create', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->create($req), [$auth, $csrfCheck]);
             $r->post('/users/{id:\d+}/role', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->changeRole($req), [$auth, $csrfCheck]);
             $r->post('/users/{id:\d+}/disable', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->toggleDisable($req), [$auth, $csrfCheck]);
@@ -560,11 +571,20 @@ final class Application
 
     private function withSecurityHeaders(Response $response): Response
     {
-        return $response
+        $response = $response
             ->header('X-Content-Type-Options', 'nosniff')
             ->header('X-Frame-Options', 'SAMEORIGIN')
             ->header('Referrer-Policy', 'strict-origin-when-cross-origin')
-            ->header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+            ->header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+            ->header('Cross-Origin-Opener-Policy', 'same-origin')
+            ->header('X-Permitted-Cross-Domain-Policies', 'none');
+        if ($this->request?->isSecure()) {
+            $response->header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+        }
+        if ($this->request && str_starts_with($this->request->path, '/admin')) {
+            $response->header('Cache-Control', 'private, no-store');
+        }
+        return $response;
     }
 
     private function handleException(\Throwable $e): Response

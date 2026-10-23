@@ -4,7 +4,7 @@
 industry implementation: `examples/industry-catering`. The catering package
 contains a complete editorial public site, menu/package management, a secure
 multi-step quote workflow, and catering lead administration. Pre-1.0 — version
-`0.5.0-dev`; PHP 8.4/8.5, MySQL 8.4, MariaDB 11.4, core-only boot,
+`0.6.0-dev`; PHP 8.4/8.5, MySQL 8.4, MariaDB 11.4, core-only boot,
 and release-artifact CI are green.
 
 ## Baseline

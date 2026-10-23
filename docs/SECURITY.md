@@ -15,6 +15,19 @@ tests/tool scores are evidence, not certification.
 
 ## Current controls (implemented)
 
+Administrator session and MFA policy controls:
+
+- Each login creates a hashed, server-side session record with IP, user agent,
+  creation time, and a throttled last-seen timestamp.
+- Administrators can identify the current device, revoke another device, or
+  sign out every other device from My Profile. Password resets revoke all sessions.
+- A settings manager may require MFA only after protecting their own account.
+  Unprotected administrators are then restricted to My Profile until enrollment;
+  MFA cannot be disabled while the policy is active.
+- HTTPS responses receive HSTS. Admin responses are private/no-store and all
+  responses include framing, MIME-sniffing, referrer, permissions, opener, and
+  cross-domain-policy headers.
+
 - Passwords: `password_hash`/`password_verify`/`password_needs_rehash`.
 - Self-service reset: emailed link carries a single-use token (sha256
   stored, 30-minute expiry); completing a reset revokes all sessions.

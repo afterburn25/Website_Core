@@ -734,6 +734,7 @@ final class Installer
     private function renderConfig(array $v): string
     {
         $s = fn (string $x) => var_export($x, true);
+        $coreVersion = defined('WC_VERSION') ? WC_VERSION : '0.0.0-dev';
         return <<<PHP
         <?php
         declare(strict_types=1);
@@ -746,7 +747,7 @@ final class Installer
                 'timezone' => {$s($v['timezone'])},
                 'locale' => 'en',
                 'debug' => false,
-                'version' => '0.1.0-dev',
+                'version' => {$s($coreVersion)},
                 'api_version' => 1,
             ],
             'database' => [

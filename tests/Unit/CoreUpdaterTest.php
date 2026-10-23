@@ -25,7 +25,7 @@ final class CoreUpdaterTest extends TestCase
             @mkdir($this->root . '/' . $d, 0777, true);
         }
         file_put_contents($this->root . '/includes/bootstrap.php',
-            "<?php define('WC_VERSION', '0.1.0-dev');");
+            "<?php define('WC_VERSION', '0.1.1-dev');");
         file_put_contents($this->root . '/config/config.php', 'SITE-OWNED-CONFIG');
         file_put_contents($this->root . '/index.php', 'OLD-INDEX');
         file_put_contents($this->root . '/upload/existing.jpg', 'UPLOAD');
@@ -112,7 +112,7 @@ final class CoreUpdaterTest extends TestCase
         $bz = new ZipArchive();
         $bz->open($backup, ZipArchive::RDONLY);
         $this->assertSame('OLD-INDEX', $bz->getFromName('index.php'));
-        $this->assertStringContainsString('0.1.0-dev', $bz->getFromName('includes/bootstrap.php'));
+        $this->assertStringContainsString('0.1.1-dev', $bz->getFromName('includes/bootstrap.php'));
         $bz->close();
 
         // Journal recorded the operation.

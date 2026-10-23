@@ -1,8 +1,11 @@
 # Changelog
 
-## 0.1.0-dev (unreleased)
+## 0.1.1-dev (unreleased)
 
 ### Changed — secure branded installer
+- Incremented Website Core to `0.1.1-dev` and the catering module to `0.1.1`;
+  newly generated test bundles now carry the new version in their filenames
+  and installed configuration.
 - Reworked setup into a polished responsive CajunWebPro-branded experience
   using the approved primary logo, readable wrapped server paths, clear
   readiness states, and a live MySQL/MariaDB **Test connection** action.

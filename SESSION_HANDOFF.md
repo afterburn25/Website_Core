@@ -5,7 +5,7 @@
 - The approved concept is an elegant editorial catering site: ivory and deep
   forest green, restrained gold, large event/food photography, serif display
   typography, and varied full-page layouts.
-- Added `examples/industry-catering` (`cajunwebpro/catering` 0.1.0). It owns
+- Added `examples/industry-catering` (`cajunwebpro/catering` 0.1.1). It owns
   menu categories/items, packages, and catering inquiries and accesses core
   only through `ModuleContext` services.
 - Public routes cover the homepage, services plus wedding/corporate/private/

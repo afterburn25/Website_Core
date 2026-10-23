@@ -1,4 +1,15 @@
-<?php /** @var string $content @var string $siteName @var string $tagline @var string $basePath @var array $pages @var array|null $page @var string|null $brandLogoUrl @var string|null $faviconUrl @var string|null $socialImageUrl @var array $designTokens @var string $siteUrl @var string $currentUrl @var array $organization */ ?>
+<?php
+/** @var string $content @var string $siteName @var string $tagline @var string $basePath @var array $pages @var array|null $page */
+$brandLogoUrl = $brandLogoUrl ?? null;
+$faviconUrl = $faviconUrl ?? null;
+$socialImageUrl = $socialImageUrl ?? null;
+$currentUrl = $currentUrl ?? '';
+$organization = is_array($organization ?? null) ? $organization : [];
+$designTokens = array_replace(
+    ['primary' => '#0369a1', 'accent' => '#d97706', 'radius' => 8],
+    is_array($designTokens ?? null) ? $designTokens : []
+);
+?>
 <!doctype html>
 <html lang="<?= e_attr(\Core\I18n\Translator::instance()->langTag()) ?>">
 <head>

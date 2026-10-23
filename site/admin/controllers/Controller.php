@@ -53,9 +53,20 @@ abstract class Controller
         $v->share('nav', $this->visibleNav());
         $v->share('pageTitle', $title);
         $v->share('siteName', $this->settings()->get('site.name', 'Website Core'));
-        $versions = $this->c->get(\Core\System\Version::class);
-        $v->share('coreVersion', $versions->core());
-        $v->share('industryVersions', $versions->industries());
+        $coreVersion = defined('WC_VERSION') ? WC_VERSION : 'development';
+        $industryVersions = [];
+        try {
+            // During an upgrade or an isolated controller render the module
+            // registry may not be bound yet. Admin must still render with the
+            // authoritative core constant instead of failing the whole page.
+            $versions = $this->c->get(\Core\System\Version::class);
+            $coreVersion = $versions->core();
+            $industryVersions = $versions->industries();
+        } catch (\Throwable) {
+            // The full application binds Version; this is a safe degraded view.
+        }
+        $v->share('coreVersion', $coreVersion);
+        $v->share('industryVersions', $industryVersions);
         $u = $this->user();
         $v->share('noticeCount', $u && $this->c->has(\Core\Admin\NoticeCenter::class)
             ? $this->c->get(\Core\Admin\NoticeCenter::class)->countFor($u->id) : 0);

@@ -1,6 +1,23 @@
 # Changelog
 
-## 0.1.4-dev (unreleased)
+## 0.1.5-dev (unreleased)
+
+### Fixed — shared-host same-parent installer retirement
+- Ported the proven same-parent retirement fallback from earlier CajunWebPro
+  installers into shared Website Core cleanup. When a hosting panel permits
+  PHP to rename entries in the site root but rejects a move into a different
+  storage parent, `install/` and `install.php` are atomically renamed out of
+  their canonical public paths and then physically erased where permissions
+  allow.
+- Retired names are randomized and dot-prefixed, the retired entry point loses
+  its PHP extension, and Apache/LiteSpeed deny rules are safely added while
+  preserving existing root rules. Protected ownership residue is retried on
+  every later site load.
+- Cleanup now applies safe writable modes before recursive erasure and still
+  never uses FTP, shell ownership changes, or mode 0777.
+- Incremented the catering module to `0.1.5`.
+
+## 0.1.4-dev
 
 ### Fixed — installer self-removal and recovery page
 - Replaced in-place recursive cleanup with an exact, allow-listed installer

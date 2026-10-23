@@ -25,7 +25,10 @@ final class InstallerCleanupTest extends TestCase
     protected function tearDown(): void
     {
         $_SERVER['SCRIPT_NAME'] = $this->scriptName;
-        foreach (['install/views/installer.php', 'install/Installer.php', 'install.php', 'index.php', 'broken-config.php', 'config/config.php', 'config/installed.lock'] as $file) {
+        foreach (glob($this->root . '/.wc-private-installer-*') ?: [] as $path) {
+            is_dir($path) ? wc_remove_installer_tree($path) : @unlink($path);
+        }
+        foreach (['install/views/installer.php', 'install/Installer.php', 'install.php', 'index.php', '.htaccess', 'broken-config.php', 'config/config.php', 'config/installed.lock'] as $file) {
             @unlink($this->root . '/' . $file);
         }
         @rmdir($this->root . '/install/views');
@@ -40,6 +43,32 @@ final class InstallerCleanupTest extends TestCase
         self::assertDirectoryDoesNotExist($this->root . '/install');
         self::assertFileDoesNotExist($this->root . '/install.php');
         self::assertFileExists($this->root . '/index.php');
+    }
+
+    public function testSameParentRetirementRemovesCanonicalPathAndProtectsResidues(): void
+    {
+        file_put_contents($this->root . '/.htaccess', "# existing application rules\n");
+
+        self::assertTrue(wc_retire_installer_artifact_same_parent(
+            $this->root . '/install',
+            $this->root,
+            true
+        ));
+        self::assertDirectoryDoesNotExist($this->root . '/install');
+        $protection = (string) file_get_contents($this->root . '/.htaccess');
+        self::assertStringContainsString('# existing application rules', $protection);
+        self::assertStringContainsString('# Website Core private installer residues', $protection);
+        self::assertStringContainsString('RewriteRule ^\\.wc-private-installer-', $protection);
+    }
+
+    public function testRetiredSameParentResiduesAreSweptOnLaterLoads(): void
+    {
+        $residue = $this->root . '/.wc-private-installer-entry-0123456789abcdefabcd.disabled';
+        file_put_contents($residue, '<?php');
+
+        wc_sweep_retired_installer_artifacts($this->root);
+
+        self::assertFileDoesNotExist($residue);
     }
 
     public function testCleanupPageIsStyledAndUsesSubfolderLinks(): void

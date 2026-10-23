@@ -1,5 +1,20 @@
 # Session Handoff
 
+## 2026-10-23 — same-parent installer retirement (`0.1.5-dev`)
+
+- Ported the proven shared-host cleanup path from the earlier Velvet Vixxen
+  installer into the shared Website Core. Cleanup still tries direct deletion
+  and protected private-runtime retirement first, then renames blocked
+  `install/` and `install.php` entries inside the site-root parent when a
+  cross-parent move is rejected by hosting ownership rules.
+- Same-parent retirement removes the canonical public URLs atomically. Hidden
+  names are randomized, `install.php` becomes a non-PHP `.disabled` file,
+  Apache/LiteSpeed deny rules preserve existing `.htaccess` content, and every
+  later site load retries physical deletion of any protected residue.
+- Safe chmod retries are limited to 0775 directories and 0664 files; no FTP,
+  chown, shell requirement, or 0777 mode was introduced.
+- Bumped Website Core to `0.1.5-dev` and catering to `0.1.5`.
+
 ## 2026-10-23 — installer cleanup retry and launch UI (`0.1.4-dev`)
 
 - Centralized automatic cleanup in `site/includes/installer-cleanup.php`,

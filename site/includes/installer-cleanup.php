@@ -62,15 +62,16 @@ function wc_remaining_installer_artifacts(string $root): array
 {
     clearstatcache();
     return array_values(array_filter([
-        is_dir($root . '/install') ? 'install/' : null,
-        is_file($root . '/install.php') ? 'install.php' : null,
+        (is_dir($root . '/install') || is_link($root . '/install')) ? 'install/' : null,
+        (is_file($root . '/install.php') || is_link($root . '/install.php')) ? 'install.php' : null,
     ]));
 }
 
 /**
  * Remove only the two shipped installer artifacts. Direct deletion is tried
  * first. On split-ownership hosts, the exact artifact is atomically retired
- * into the protected runtime outside the document root and erased there.
+ * into protected retirement storage and erased there. If the host refuses a
+ * cross-parent move, the proven same-parent retirement fallback is used.
  *
  * @return list<string> Canonical public installer artifacts that still exist.
  */
@@ -80,15 +81,23 @@ function wc_remove_installer_artifacts(string $root): array
     $runtime = null;
 
     $entry = $root . '/install.php';
-    if (is_file($entry) && !@unlink($entry)) {
+    if ((is_file($entry) || is_link($entry)) && !@unlink($entry)) {
+        @chmod($entry, 0664);
+        @unlink($entry);
+    }
+    if (is_file($entry) || is_link($entry)) {
         $runtime = wc_private_runtime_dir($root, true);
-        wc_retire_installer_artifact($entry, $runtime, false);
+        if (!wc_retire_installer_artifact($entry, $runtime, false)) {
+            wc_retire_installer_artifact_same_parent($entry, $root, false);
+        }
     }
 
     $directory = $root . '/install';
-    if (is_dir($directory) && !wc_remove_installer_tree($directory)) {
+    if ((is_dir($directory) || is_link($directory)) && !wc_remove_installer_tree($directory)) {
         $runtime ??= wc_private_runtime_dir($root, true);
-        wc_retire_installer_artifact($directory, $runtime, true);
+        if (!wc_retire_installer_artifact($directory, $runtime, true)) {
+            wc_retire_installer_artifact_same_parent($directory, $root, true);
+        }
     }
 
     return wc_remaining_installer_artifacts($root);
@@ -128,27 +137,160 @@ function wc_retire_installer_artifact(string $path, ?string $runtime, bool $dire
     return true;
 }
 
+/**
+ * Shared-host fallback used when moving an ownership-mismatched artifact to a
+ * different parent is denied. Renaming inside the document-root parent only
+ * changes that parent's directory entry, so it succeeds on common panel/PHP
+ * split-owner deployments where a cross-parent rename does not.
+ *
+ * The canonical public installer path disappears atomically. Any residue is
+ * randomized, dot-prefixed, explicitly denied by Apache/LiteSpeed, and retried
+ * on every later site load. The retired entry point also loses its PHP suffix.
+ */
+function wc_retire_installer_artifact_same_parent(
+    string $path,
+    string $root,
+    bool $directory
+): bool {
+    if (!is_dir($path) && !is_file($path) && !is_link($path)) {
+        return true;
+    }
+    if (!wc_prepare_installer_root_protection($root)) {
+        return false;
+    }
+
+    try {
+        $suffix = bin2hex(random_bytes(10));
+    } catch (Throwable) {
+        return false;
+    }
+    $name = $directory ? '.wc-private-installer-directory-' : '.wc-private-installer-entry-';
+    $destination = $root . DIRECTORY_SEPARATOR . $name . $suffix;
+    if (!$directory) {
+        $destination .= '.disabled';
+    }
+    if (!@rename($path, $destination)) {
+        return false;
+    }
+
+    if ($directory && !is_link($destination)) {
+        wc_make_installer_tree_writable($destination);
+        wc_remove_installer_tree($destination);
+    } else {
+        @chmod($destination, 0664);
+        @unlink($destination);
+    }
+    if (is_dir($destination) || is_file($destination) || is_link($destination)) {
+        error_log('[website-core install] protected same-parent installer residue remains: ' . $destination);
+    }
+
+    clearstatcache(true, $path);
+    return !is_dir($path) && !is_file($path) && !is_link($path);
+}
+
+/** Ensure hidden retirement names cannot be served by Apache or LiteSpeed. */
+function wc_prepare_installer_root_protection(string $root): bool
+{
+    $path = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '.htaccess';
+    $existing = is_file($path) ? @file_get_contents($path) : '';
+    if (!is_string($existing)) {
+        $existing = '';
+    }
+    $marker = '# Website Core private installer residues (managed rules)';
+    if (str_contains($existing, $marker)) {
+        return true;
+    }
+
+    $protection = "\n{$marker}\n"
+        . "<IfModule mod_rewrite.c>\n"
+        . "    RewriteEngine On\n"
+        . "    RewriteRule ^\\.wc-private-installer- - [F,L,NC]\n"
+        . "    RewriteRule ^\\.wc-htaccess-original- - [F,L,NC]\n"
+        . "</IfModule>\n"
+        . "<FilesMatch \"^\\.wc-(?:private-installer|htaccess-original)-\">\n"
+        . "    Require all denied\n"
+        . "</FilesMatch>\n";
+    $payload = rtrim($existing) . "\n" . $protection;
+
+    if (@file_put_contents($path, $payload, LOCK_EX) !== false) {
+        @chmod($path, 0644);
+        return true;
+    }
+
+    // A panel-owned .htaccess may not be writable even though PHP may rename
+    // entries in the site root. Rotate it in place and recreate it under the
+    // PHP user, restoring the original if the replacement cannot be written.
+    try {
+        $suffix = bin2hex(random_bytes(10));
+    } catch (Throwable) {
+        return false;
+    }
+    $backup = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
+        . '.wc-htaccess-original-' . $suffix;
+    if (is_file($path) && !@rename($path, $backup)) {
+        return false;
+    }
+    if (@file_put_contents($path, $payload, LOCK_EX) === false) {
+        @unlink($path);
+        if (is_file($backup)) {
+            @rename($backup, $path);
+        }
+        return false;
+    }
+    @chmod($path, 0644);
+    return true;
+}
+
 /** Retry physical erasure of previously retired artifacts on later loads. */
 function wc_sweep_retired_installer_artifacts(string $root): void
 {
     $runtime = wc_private_runtime_dir($root, false);
-    if ($runtime === null) {
-        return;
+    if ($runtime !== null) {
+        $retiredRoot = $runtime . DIRECTORY_SEPARATOR . 'retired-installers';
+        if (is_dir($retiredRoot) && !is_link($retiredRoot)) {
+            foreach (glob($retiredRoot . DIRECTORY_SEPARATOR . 'install-*') ?: [] as $path) {
+                $name = basename($path);
+                if (!preg_match('/^install-(?:directory|entry)-[a-f0-9]{16}$/', $name)) {
+                    continue;
+                }
+                is_dir($path) && !is_link($path)
+                    ? wc_remove_installer_tree($path)
+                    : @unlink($path);
+            }
+            @rmdir($retiredRoot);
+        }
     }
-    $retiredRoot = $runtime . DIRECTORY_SEPARATOR . 'retired-installers';
-    if (!is_dir($retiredRoot) || is_link($retiredRoot)) {
-        return;
-    }
-    foreach (glob($retiredRoot . DIRECTORY_SEPARATOR . 'install-*') ?: [] as $path) {
+
+    // Same-parent residues are already outside the canonical installer URLs
+    // and access-denied. Keep erasing them as ownership/ACLs change over time.
+    foreach (glob(rtrim($root, DIRECTORY_SEPARATOR) . '/.wc-private-installer-*') ?: [] as $path) {
         $name = basename($path);
-        if (!preg_match('/^install-(?:directory|entry)-[a-f0-9]{16}$/', $name)) {
+        if (!preg_match('/^\.wc-private-installer-(?:directory-[a-f0-9]{20}|entry-[a-f0-9]{20}\.disabled)$/', $name)) {
             continue;
         }
         is_dir($path) && !is_link($path)
             ? wc_remove_installer_tree($path)
             : @unlink($path);
     }
-    @rmdir($retiredRoot);
+}
+
+function wc_make_installer_tree_writable(string $path): void
+{
+    if (!is_dir($path) || is_link($path)) {
+        return;
+    }
+    @chmod($path, 0775);
+    try {
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($iterator as $item) {
+            @chmod($item->getPathname(), $item->isDir() && !$item->isLink() ? 0775 : 0664);
+        }
+    } catch (UnexpectedValueException) {
+        // Deletion below remains best-effort and reports failure to the gate.
+    }
 }
 
 function wc_remove_installer_tree(string $directory): bool
@@ -159,6 +301,8 @@ function wc_remove_installer_tree(string $directory): bool
     if (!is_dir($directory)) {
         return true;
     }
+
+    wc_make_installer_tree_writable($directory);
 
     try {
         $iterator = new RecursiveIteratorIterator(

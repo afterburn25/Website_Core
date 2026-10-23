@@ -57,7 +57,7 @@ return [
     'app' => [
         'name' => 'Artifact Verification Site', 'env' => 'development',
         'url' => '__BASEURL__', 'timezone' => 'UTC', 'locale' => 'en',
-        'debug' => true, 'version' => '0.1.3-dev', 'api_version' => 1,
+        'debug' => true, 'version' => '0.1.4-dev', 'api_version' => 1,
     ],
     'database' => [
         'driver' => 'sqlite',
@@ -85,7 +85,7 @@ $config = strtr($config, [
     '__APPKEY__' => bin2hex(random_bytes(32)),
 ]);
 file_put_contents($outDir . '/config/config.php', $config);
-file_put_contents($outDir . '/config/installed.lock', date('c'));
+file_put_contents($outDir . '/config/installed.lock', date('c') . " install complete\n");
 echo "config written (dev sqlite driver)\n";
 
 // --- migrate + seed using the EXTRACTED code ------------------------------

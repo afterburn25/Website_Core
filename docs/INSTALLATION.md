@@ -12,7 +12,9 @@
    runtime directory without asking the customer for hosting credentials.
 4. The installer verifies checks, connects to MySQL, runs migrations,
    creates the owner, writes `config/config.php` with generated secrets,
-   writes `installed.lock`, then removes `install/` and `install.php`.
+   writes `installed.lock`, then removes `install/` and `install.php`. The
+   completion screen provides separate **Visit website** and **Open admin**
+   actions.
 5. Sign in at `/admin`, enable MFA in **Profile**.
 
 No license keys, unlock files, wizards, or merchant credentials for a
@@ -108,6 +110,13 @@ that fail real create/read/rename/delete probes are rejected. No FTP or hosting
 credentials are requested, and chmod 0777 is never used. Long absolute paths
 wrap inside readiness cards rather than overflowing the setup panel.
 
+An existing Website Core database is supported for reinstall/recovery. The
+installer applies only pending migrations, creates or refreshes the submitted
+owner login, preserves an existing home page and cron token, and idempotently
+updates bundled package/license state. Existing database tables alone never
+mark the files as installed; completion requires both a structurally valid
+generated `config.php` and `installed.lock`.
+
 ## Deployment variants
 
 - **Root domain** and **subfolder** are both supported — the request layer
@@ -122,14 +131,24 @@ wrap inside readiness cards rather than overflowing the setup panel.
 - Failed setup is resumable: re-open the page, fix inputs, resubmit. No
   destructive reinstall; `installed.lock` + config are only written on
   success.
-- After successful setup, the installer recursively removes only the shipped
-  `install/` directory and the root `install.php` entry file. It never deletes
+- After successful setup, the installer removes only the shipped `install/`
+  directory and root `install.php` entry file. It first performs physical
+  deletion. When split ownership blocks deletion but permits a parent rename,
+  the exact artifact is atomically moved out of the public document root into
+  the protected private runtime and erased there. It never scans or deletes
   unrelated files.
+- The same exact cleanup runs on every later public or admin site load after a
+  valid `config.php` plus `installed.lock` confirms successful installation.
+  This automatically removes installer artifacts accidentally restored by a
+  later upload and retries protected retired remnants until physical erasure
+  succeeds. It never runs from a database check or marker file alone.
 - Cleanup is fail-closed. If PHP cannot remove either installer artifact, all
-  public, admin, and cron entry points return 503. Open DirectAdmin File
-  Manager, delete `install/` and `install.php` from the website root,
-  then reload; the site unlocks automatically. Do not delete
-  `config/installed.lock` or `config/cleanup-required.lock`.
+  public, admin, and cron entry points return a styled 503 screen. Open the
+  hosting File Manager, delete `install/` and `install.php` from the website
+  root, then select **Recheck cleanup**; it opens the website automatically
+  after both are gone. Separate **Visit website** and **Open admin** actions
+  are also provided. Do not delete `installed.lock` or
+  `cleanup-required.lock` from the active configuration directory.
 - `config.php`, `claim.*`, `cleanup-required.lock`, and `installed.lock` are
   gitignored and excluded from release packages.
 

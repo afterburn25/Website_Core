@@ -1,5 +1,27 @@
 # Session Handoff
 
+## 2026-10-23 — installer cleanup retry and launch UI (`0.1.4-dev`)
+
+- Centralized automatic cleanup in `site/includes/installer-cleanup.php`,
+  outside the directory it removes. Cleanup targets only root `install.php`
+  and `install/`, tries physical deletion first, and uses an atomic move into
+  the protected private runtime when split ownership blocks child deletion.
+- The shared public/admin cleanup gate repeats that exact cleanup on every
+  later site load, but only when a valid generated config and `installed.lock`
+  jointly prove installation completed. A database or marker alone is not
+  sufficient authorization to delete installer files.
+- Root `install.php` now detects the installed marker before loading the
+  removable installer class. Partial cleanup therefore renders the full
+  branded recovery screen instead of an unstyled missing-class error.
+- The fail-closed screen has inline styling, subfolder-safe branding, and
+  **Recheck cleanup**, **Visit website**, and **Open admin** actions. Recheck
+  naturally enters the website once both canonical artifacts are gone.
+- The completion screen now has separate public-site and admin actions.
+- Reinstalling against an existing Website Core database now migrates in
+  place, creates or refreshes the requested owner, preserves an existing home
+  page and cron token, and upserts bundled license/package state.
+- Bumped Website Core to `0.1.4-dev` and catering to `0.1.4`.
+
 ## 2026-10-23 — credential-free installer repair (`0.1.3-dev`)
 
 - Removed the local FTP provisioner, FTP fields, and hosting-access test.

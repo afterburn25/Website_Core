@@ -44,9 +44,16 @@ Confirm that:
    - Create the owner.
    - Write `config/config.php`.
    - Write `config/installed.lock`.
-   - Self-disable (delete or rename `install.php`).
+   - Self-disable by removing both `install.php` and `install/` (or atomically
+     retiring a split-owned artifact outside the public document root).
+   - Show separate **Visit website** and **Open admin** actions.
 6. Browse to `/admin/login` → should 200 (login page renders).
 7. Sign in with the owner credentials → should redirect to `/admin/dashboard`.
+
+Recovery check: re-upload `install.php` and `install/` from the same package,
+then load the website. With a valid generated config and completed-install
+marker, core should automatically remove them again. With either proof
+missing, it must preserve the files and offer installation/reinstallation.
 
 **Expected result**: clean install, no errors, admin dashboard accessible.
 

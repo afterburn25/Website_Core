@@ -71,7 +71,7 @@ final class Installer
 
     private function handle(Request $request): Response
     {
-        if (is_file($this->installedLock)) {
+        if (wc_completed_installation($this->configDir)) {
             if (is_file($this->configDir . '/cleanup-required.lock')
                 || is_dir(WC_ROOT . '/install')
                 || is_file(WC_ROOT . '/install.php')
@@ -348,6 +348,7 @@ final class Installer
             if ((int) $db->fetchColumn('SELECT 1') !== 1) {
                 throw new \RuntimeException('The database did not answer the verification query.');
             }
+            $existingInstall = $db->tableExists('migrations');
         } catch (\Throwable $e) {
             $message = preg_replace('/[\r\n\t]+/', ' ', $e->getMessage()) ?: 'Connection failed.';
             return Response::json([
@@ -358,7 +359,9 @@ final class Installer
 
         return Response::json([
             'ok' => true,
-            'message' => 'Connection successful. The database is ready for installation.',
+            'message' => $existingInstall
+                ? 'Connection successful. Existing Website Core tables will be reused and migrated safely.'
+                : 'Connection successful. The database is ready for installation.',
         ]);
     }
 
@@ -510,34 +513,62 @@ final class Installer
             $migrator = new Migrator($db, WC_ROOT . '/database/migrations');
             $migrator->migrate();
 
-            $db->insert('admins', [
-                'username'      => $owner,
+            $ownerData = [
                 'email'         => $ownerEmail,
                 'password_hash' => password_hash($pass1, PASSWORD_DEFAULT),
                 'role'          => 'owner',
                 'mfa_enabled'   => 0,
+                'mfa_secret'    => null,
+                'mfa_last_counter' => -1,
                 'disabled'      => 0,
-                'created_at'    => date('Y-m-d H:i:s'),
-            ]);
+            ];
+            $existingOwner = $db->fetch(
+                'SELECT id FROM `' . $db->table('admins') . '` WHERE username = ?',
+                [$owner]
+            );
+            if ($existingOwner !== null) {
+                $ownerId = (int) $existingOwner['id'];
+                $db->update('admins', $ownerData, 'id = ?', [$ownerId]);
+                $db->run(
+                    'UPDATE `' . $db->table('admin_sessions') . '` SET revoked_at = ? WHERE admin_id = ? AND revoked_at IS NULL',
+                    [date('Y-m-d H:i:s'), $ownerId]
+                );
+                $db->run(
+                    'DELETE FROM `' . $db->table('recovery_codes') . '` WHERE admin_id = ?',
+                    [$ownerId]
+                );
+            } else {
+                $db->insert('admins', [
+                    'username' => $owner,
+                    ...$ownerData,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
+            }
 
             // A fresh install must serve something at '/' — the home route
             // resolves site.home_slug (default 'home').
             $now = date('Y-m-d H:i:s');
-            $db->insert('pages', [
-                'slug' => 'home', 'title' => 'Welcome',
-                'body' => '<p>Your new site is ready. Sign in to the administration area to edit this page.</p>',
-                'status' => 'published',
-                'created_at' => $now, 'updated_at' => $now,
-            ]);
+            if (!$db->fetch('SELECT id FROM `' . $db->table('pages') . '` WHERE slug = ?', ['home'])) {
+                $db->insert('pages', [
+                    'slug' => 'home', 'title' => 'Welcome',
+                    'body' => '<p>Your new site is ready. Sign in to the administration area to edit this page.</p>',
+                    'status' => 'published',
+                    'created_at' => $now, 'updated_at' => $now,
+                ]);
+            }
 
             // Themes render site.name — seed it from the install form so the
             // site does not greet visitors as "Website Core".
             $settings = new \Core\Settings\SettingsRepository($db);
             $settings->set('site.name', $siteName);
-            $settings->set('site.tagline', '');
+            if ($settings->get('site.tagline', null) === null) {
+                $settings->set('site.tagline', '');
+            }
             // Web-triggered cron requires this token — generate it here so
             // it exists before the first settings save.
-            $settings->set('system.cron_token', bin2hex(random_bytes(24)));
+            if ((string) $settings->get('system.cron_token', '') === '') {
+                $settings->set('system.cron_token', bin2hex(random_bytes(24)));
+            }
         } catch (\Throwable $e) {
             return $this->page($checks, ['db_name' => 'Schema/owner creation failed: ' . $e->getMessage()], $request);
         }
@@ -555,16 +586,24 @@ final class Installer
                     // with a NULL validated_at — the job scheduler treats that
                     // as "never validated" and enqueues verification on the next
                     // cron tick, so a borrowed/invalid key still self-corrects.
-                    $db->run(
-                        "INSERT INTO `{$table}` (license_key, license_domain, license_valid, license_validated_at, license_error, created_at)
-                         VALUES (?, ?, ?, ?, ?, ?)",
-                        [
-                            $licenseKey, $domain, 1,
-                            $licenseOk ? date('Y-m-d H:i:s') : null,
-                            $licenseOk ? null : 'Install-time license check inconclusive: ' . ($licenseError ?? 'unknown'),
-                            date('Y-m-d H:i:s'),
-                        ]
-                    );
+                    $licenseData = [
+                        $domain, 1,
+                        $licenseOk ? date('Y-m-d H:i:s') : null,
+                        $licenseOk ? null : 'Install-time license check inconclusive: ' . ($licenseError ?? 'unknown'),
+                    ];
+                    if ($db->fetch("SELECT id FROM `{$table}` WHERE license_key = ?", [$licenseKey])) {
+                        $db->run(
+                            "UPDATE `{$table}` SET license_domain = ?, license_valid = ?, license_validated_at = ?,
+                             license_error = ?, license_deactivated = 0 WHERE license_key = ?",
+                            [...$licenseData, $licenseKey]
+                        );
+                    } else {
+                        $db->run(
+                            "INSERT INTO `{$table}` (license_key, license_domain, license_valid, license_validated_at, license_error, created_at)
+                             VALUES (?, ?, ?, ?, ?, ?)",
+                            [$licenseKey, ...$licenseData, date('Y-m-d H:i:s')]
+                        );
+                    }
                 }
 
                 $manifest = json_decode((string) file_get_contents($bundledModuleDir . '/addon.json'), true);
@@ -647,7 +686,7 @@ final class Installer
                 @unlink($f);
             }
         }
-        $remainingInstallerArtifacts = $this->removeInstallerArtifacts();
+        $remainingInstallerArtifacts = wc_remove_installer_artifacts(WC_ROOT);
         if ($remainingInstallerArtifacts === []) {
             @unlink($cleanupLock);
         }
@@ -677,93 +716,24 @@ final class Installer
             . 'border-radius:24px;background:linear-gradient(145deg,#10233a,#091525);box-shadow:0 28px 80px #0008}.mark{width:58px;height:58px;'
             . 'display:grid;place-items:center;border-radius:50%;background:#1b8f66;color:white;font-size:30px}h1{font-size:clamp(2rem,5vw,3.2rem);'
             . 'margin:.7rem 0}.logo{display:block;width:min(390px,88%);height:auto;margin-bottom:28px;filter:drop-shadow(0 12px 24px #0007)}'
-            . 'p{color:#b9c9dc;line-height:1.7}strong{color:#fff}.logo-link{display:block;width:fit-content;max-width:100%}.admin-link{display:inline-flex;margin-top:14px;padding:14px 22px;'
-            . 'border-radius:12px;background:#d6a94f;color:#07111f;text-decoration:none;font-weight:800}</style>'
+            . 'p{color:#b9c9dc;line-height:1.7}strong{color:#fff}.logo-link{display:block;width:fit-content;max-width:100%}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}.launch-link{display:inline-flex;padding:14px 22px;'
+            . 'border:1px solid #48627f;border-radius:12px;color:#eef5ff;text-decoration:none;font-weight:800}.launch-link.primary{border-color:#d6a94f;background:#d6a94f;color:#07111f}</style>'
             . '</head><body><main class="done"><a class="logo-link" href="https://cajunwebpro.com" target="_blank" rel="noopener noreferrer" aria-label="Visit CajunWebPro">'
             . '<img class="logo" src="' . e_attr($logoUrl) . '" alt="CajunWebPro — Web Design &amp; Development"></a>'
             . '<div class="mark">✓</div><p>CAJUNWEBPRO DEPLOYMENT</p><h1>Installation complete</h1>'
             . '<p>The installer files and folders were removed successfully. Your site is secured and ready.</p>'
             . $licenseNote
             . '<p>Sign in and enable two-factor authentication for the owner account.</p>'
-            . '<a class="admin-link" href="' . e_attr($baseUrl) . '/admin">Open administration area</a></main></body></html>'
+            . '<div class="actions"><a class="launch-link primary" href="' . e_attr(rtrim($baseUrl, '/')) . '/">Visit website</a>'
+            . '<a class="launch-link" href="' . e_attr(rtrim($baseUrl, '/')) . '/admin">Open admin</a></div></main></body></html>'
         );
-    }
-
-    /** @return list<string> */
-    private function removeInstallerArtifacts(): array
-    {
-        $directory = WC_ROOT . '/install';
-        if (is_dir($directory) && !$this->removeTree($directory)) {
-            // Keep going so the root entry can still be removed when possible.
-        }
-        if (is_file(WC_ROOT . '/install.php')) {
-            @unlink(WC_ROOT . '/install.php');
-        }
-
-        $remaining = [];
-        if (is_dir($directory)) {
-            $remaining[] = 'install/';
-        }
-        if (is_file(WC_ROOT . '/install.php')) {
-            $remaining[] = 'install.php';
-        }
-        return $remaining;
-    }
-
-    private function removeTree(string $directory): bool
-    {
-        if (!is_dir($directory)) {
-            return true;
-        }
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::CHILD_FIRST
-        );
-        foreach ($iterator as $item) {
-            $path = $item->getPathname();
-            if ($item->isLink() || $item->isFile()) {
-                @unlink($path);
-            } elseif ($item->isDir()) {
-                @rmdir($path);
-            }
-        }
-        @rmdir($directory);
-        return !is_dir($directory);
     }
 
     /** @param list<string>|null $remaining */
     private function cleanupRequiredPage(?array $remaining = null): Response
     {
-        $remaining ??= array_values(array_filter([
-            is_dir(WC_ROOT . '/install') ? 'install/' : null,
-            is_file(WC_ROOT . '/install.php') ? 'install.php' : null,
-        ]));
-        $items = $remaining === [] ? 'installer files' : implode(' and ', array_map('e', $remaining));
-        $basePath = rtrim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/install.php'))), '/');
-        $logoUrl = ($basePath === '' ? '' : $basePath) . '/assets/images/cajunwebpro-logo.png';
-        return Response::html(
-            '<!doctype html><html lang="en"><head><meta charset="utf-8">'
-            . '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            . '<title>Installer cleanup required</title>'
-            . '<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#07111f;color:#eef5ff;'
-            . 'font-family:Inter,system-ui,sans-serif;padding:24px}.box{width:min(680px,100%);box-sizing:border-box;padding:38px;border-radius:22px;'
-            . 'border:1px solid #6f5423;background:linear-gradient(145deg,#172333,#0b1523);box-shadow:0 30px 90px #0009}h1{margin:.4rem 0 1rem;'
-            . 'font-size:clamp(2rem,5vw,3rem)}.flag{display:inline-block;padding:7px 11px;border-radius:999px;background:#4b3513;color:#ffd98a;'
-            . 'font-weight:800;font-size:.76rem;letter-spacing:.08em}p,li{color:#c7d3e2;line-height:1.7}code{overflow-wrap:anywhere;color:#ffe0a0}strong{color:white}'
-            . '.logo{display:block;width:min(390px,88%);height:auto;margin-bottom:26px;filter:drop-shadow(0 12px 24px #0007)}'
-            . '.logo-link{display:block;width:fit-content;max-width:100%}'
-            . '</style></head><body><main class="box"><a class="logo-link" href="https://cajunwebpro.com" target="_blank" rel="noopener noreferrer" aria-label="Visit CajunWebPro">'
-            . '<img class="logo" src="' . e_attr($logoUrl) . '" alt="CajunWebPro — Web Design &amp; Development"></a>'
-            . '<span class="flag">SITE SAFELY LOCKED</span>'
-            . '<h1>One cleanup step remains</h1><p>The website was installed, but PHP could not remove <strong>' . $items . '</strong>. '
-            . 'For security, the public site and administration area will remain unavailable.</p>'
-            . '<ol><li>Open your hosting File Manager.</li><li>Go to <code>' . e(WC_ROOT) . '</code>.</li>'
-            . '<li>Delete the <code>install</code> folder and the root <code>install.php</code> file.</li>'
-            . '<li>Reload your website. Access will unlock automatically after both are gone.</li></ol>'
-            . '<p><strong>Do not delete</strong> <code>config/installed.lock</code> or <code>config/cleanup-required.lock</code>.</p>'
-            . '</main></body></html>',
-            503
-        );
+        $remaining ??= wc_remaining_installer_artifacts(WC_ROOT);
+        return Response::html(wc_installer_cleanup_page(WC_ROOT, $remaining), 503);
     }
 
     /**

@@ -32,8 +32,11 @@ tests/tool scores are evidence, not certification.
 - Transport/security headers: nosniff, SAMEORIGIN framing, referrer and
   permissions policies.
 - Installer: claim model (seeded token or bound-session), required SSL,
-  generated secrets, complete setup-file deletion, and a fail-closed cleanup
-  gate that returns 503 until manual removal if automatic cleanup fails.
+  generated secrets, exact allow-listed setup-file deletion/retirement, and a
+  fail-closed styled cleanup gate with recheck controls. Cleanup repeats on
+  later site loads only when a structurally valid generated config plus the
+  completed-install marker prove the install succeeded; database tables or a
+  marker alone never authorize automatic file deletion.
 - Licensing/DRM (bundled products): license keys are 128-bit random,
   embedded in the module manifest at bundle build, stored in the
   `license` table, and validated over HTTPS (peer + hostname verified,

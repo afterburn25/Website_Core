@@ -383,6 +383,7 @@ jobs:
           foreach([
             "install.php",
             "includes/install-cleanup-gate.php",
+            "includes/installer-cleanup.php",
             "includes/runtime-paths.php",
             "assets/images/cajunwebpro-logo.png",
             "vendor/autoload.php",
@@ -409,6 +410,16 @@ jobs:
           $runtimePaths=$z->getFromName("includes/runtime-paths.php");
           if(!is_string($runtimePaths)||!str_contains($runtimePaths,".website-core-")||str_contains($runtimePaths,"0777")){
             fwrite(STDERR,"private runtime ownership repair contract invalid\n");exit(1);
+          }
+          $cleanup=$z->getFromName("includes/installer-cleanup.php");
+          if(!is_string($cleanup)
+            || !str_contains($cleanup,"wc_completed_installation")
+            || !str_contains($cleanup,"wc_remove_installer_artifacts")
+            || !str_contains($cleanup,"wc_sweep_retired_installer_artifacts")
+            || !str_contains($cleanup,"Recheck cleanup")
+            || !str_contains($cleanup,"Visit website")
+            || !str_contains($cleanup,"Open admin")){
+            fwrite(STDERR,"installer cleanup/recheck contract invalid\n");exit(1);
           }
           echo "catering TEST-BUNDLE contract OK: ".basename($path)."\n";'
       - name: Upload catering TEST-BUNDLE

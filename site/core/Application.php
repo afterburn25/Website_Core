@@ -55,7 +55,7 @@ final class Application
 
     public function installed(): bool
     {
-        return $this->config->loaded() && is_file(WC_INSTALLED_LOCK);
+        return $this->config->loaded() && wc_completed_installation(WC_CONFIG);
     }
 
     public function run(): void

@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.1.4-dev (unreleased)
+
+### Fixed — installer self-removal and recovery page
+- Replaced in-place recursive cleanup with an exact, allow-listed installer
+  cleanup routine. It deletes `install.php` and `install/` directly, then
+  atomically retires only a blocked artifact into the protected private
+  runtime before erasing it there. This works on split-ownership hosts when
+  the web-root parent permits rename, without FTP credentials or 0777 modes.
+- Every public/admin site load now repeats this cleanup when both a valid
+  generated configuration and the permanent installation marker confirm a
+  completed installation. Installer files re-uploaded long after deployment
+  are removed automatically; a marker without a valid config never authorizes
+  deletion. Protected retired remnants are also retried on later loads until
+  the filesystem permits physical erasure.
+- Moved the cleanup screen outside the removable `install/` directory. A
+  partially removed installer can no longer fall through to an unstyled PHP
+  error when `install.php` is opened directly.
+- Added a fully inline-styled, responsive cleanup screen with correctly
+  resolved root/subfolder logo links, **Recheck cleanup**, **Visit website**,
+  and **Open admin** actions. Recheck opens the public site automatically as
+  soon as both public installer artifacts are gone.
+- Added separate **Visit website** and **Open admin** actions to the successful
+  installation screen.
+- Reinstallation can safely target an existing Website Core database. Pending
+  migrations run, the selected owner is created or refreshed, existing home
+  content and cron tokens are preserved, and bundled license/package records
+  are updated idempotently. Database tables alone do not mark a site installed.
+- Incremented the catering module to `0.1.4`.
+
 ## 0.1.3-dev (unreleased)
 
 ### Changed — credential-free ownership repair

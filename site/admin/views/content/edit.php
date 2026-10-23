@@ -59,7 +59,7 @@ $qs = 'pkg=' . rawurlencode($def['package']) . '&amp;type=' . rawurlencode($def[
 </div>
 <p>
 <button class="btn">Save</button>
-<a href="<?= e_attr($basePath) ?>/admin/content/list?<?= $qs ?>">Cancel</a>
+<a href="<?= e_attr($basePath) ?>/admin/content/list&amp;<?= $qs ?>">Cancel</a>
 </p>
 </form>
 </div>

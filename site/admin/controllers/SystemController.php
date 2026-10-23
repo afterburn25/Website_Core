@@ -176,7 +176,7 @@ final class SystemController extends Controller
         }
         if (($err = $this->uploadError($r, 'update')) !== null) {
             $this->flash('error', $err);
-            return Response::redirect($r->basePath . '/admin/updates');
+            return Response::redirect($r->routeUrl('/admin/updates'));
         }
         $file = $r->files['update'];
         $staged = $this->stagedPath();
@@ -184,7 +184,7 @@ final class SystemController extends Controller
         if (!move_uploaded_file((string) $file['tmp_name'], $staged)
             && !rename((string) $file['tmp_name'], $staged)) {
             $this->flash('error', 'Could not stage the upload.');
-            return Response::redirect($r->basePath . '/admin/updates');
+            return Response::redirect($r->routeUrl('/admin/updates'));
         }
         [, $err] = $this->updater()->inspect($staged);
         if ($err !== null) {
@@ -193,7 +193,7 @@ final class SystemController extends Controller
         } else {
             $this->flash('ok', 'Update staged — review and apply.');
         }
-        return Response::redirect($r->basePath . '/admin/updates');
+        return Response::redirect($r->routeUrl('/admin/updates'));
     }
 
     public function applyUpdate(Request $r): Response
@@ -205,7 +205,7 @@ final class SystemController extends Controller
         $staged = $this->stagedPath();
         if (!is_file($staged)) {
             $this->flash('error', 'No staged update — upload first.');
-            return Response::redirect($r->basePath . '/admin/updates');
+            return Response::redirect($r->routeUrl('/admin/updates'));
         }
         // Optional maintenance window: when updates.require_window is set,
         // apply refuses unless the owner created storage/maintenance.flag.
@@ -215,13 +215,13 @@ final class SystemController extends Controller
             && !is_file($storage . '/maintenance.flag')) {
             $this->flash('error',
                 'Maintenance window required — create ' . $storage . '/maintenance.flag first.');
-            return Response::redirect($r->basePath . '/admin/updates');
+            return Response::redirect($r->routeUrl('/admin/updates'));
         }
         [$ok, $err, $backup] = $this->updater()->apply($staged);
         if (!$ok) {
             $this->flash('error', 'Update failed: ' . $err
                 . ($backup ? ' Replaced files were backed up to ' . basename($backup) : ''));
-            return Response::redirect($r->basePath . '/admin/updates');
+            return Response::redirect($r->routeUrl('/admin/updates'));
         }
         @unlink($staged);
         // New files are live — flush opcache so the next request can't run
@@ -239,7 +239,7 @@ final class SystemController extends Controller
             'by' => $u->id, 'backup' => $backup ? basename($backup) : null,
         ]);
         $this->flash('ok', 'Update applied; migrations run; replaced files backed up.');
-        return Response::redirect($r->basePath . '/admin/updates');
+        return Response::redirect($r->routeUrl('/admin/updates'));
     }
 
     private function updater(): \Core\Update\CoreUpdater

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.10-dev (unreleased)
+
+### Fixed — subfolder admin routing and physical installer deletion
+- Admin authentication, navigation, forms, media links, module screens, and
+  redirects now use the rewrite-independent `index.php?p=` route. A site
+  installed under `/catering` therefore remains under `/catering` even when
+  nginx ignores `.htaccess` and the physical `admin/` source directory blocks
+  clean `/admin` URLs.
+- Added a thin `admin/index.php` directory entry that safely redirects
+  `/catering/admin/` to `/catering/index.php?p=/admin` without losing the
+  installation subfolder.
+- Installer cleanup no longer treats renaming an undeletable installer to a
+  hidden filename as successful deletion. The website remains locked until
+  `install.php` and `install/` are physically gone.
+- Readiness now probes mutation access inside every directory in the shipped
+  `install/` tree, catching split ownership before database installation.
+- Incremented the catering module to `0.1.10`.
+
 ## 0.1.9-dev (unreleased)
 
 ### Fixed — images and fonts in routed stylesheets

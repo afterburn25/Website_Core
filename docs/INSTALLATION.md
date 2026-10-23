@@ -18,6 +18,10 @@
    separate **Visit website** and **Open admin** actions.
 5. Sign in through `/index.php?p=/admin`, enable MFA in **Profile**.
 
+The friendly `/admin/` directory entry redirects to that rewrite-independent
+route while preserving a subfolder such as `/catering`. All admin links and
+forms continue using `index.php?p=` so nginx hosts do not require rewrite rules.
+
 No license keys, unlock files, wizards, or merchant credentials for a
 core-only install. **Bundled products** (core + industry module purchased
 from Cajunwebpro.com) carry an embedded license key — see below.
@@ -144,6 +148,8 @@ generated `config.php` and `installed.lock`.
 - Every later request repeats exact cleanup when a valid generated config plus
   `installed.lock` prove installation completed. If hosting ownership blocks
   deletion, the site remains fail-closed and displays the recheck instructions.
+- Renaming or hiding installer artifacts never counts as cleanup success;
+  completion requires physical deletion of both public installer paths.
 - Cleanup never scans or deletes unrelated files, never uses FTP or 0777, and
   never runs based on database tables alone.
 - `config.php`, `claim.*`, `cleanup-required.lock`, and `installed.lock` are

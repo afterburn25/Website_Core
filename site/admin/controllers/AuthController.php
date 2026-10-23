@@ -134,7 +134,7 @@ final class AuthController extends Controller
     {
         $v = $this->c->get(View::class);
         $v->share('csrf', $this->csrf());
-        $v->share('basePath', $r->basePath);
+        $v->share('basePath', $r->routeBase());
         return Response::html($v->render('admin:' . $view, $data));
     }
 }

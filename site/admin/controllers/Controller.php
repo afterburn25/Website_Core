@@ -48,7 +48,7 @@ abstract class Controller
         $v = $this->c->get(View::class);
         $v->share('user', $this->user());
         $v->share('csrf', $this->csrf());
-        $v->share('basePath', $r->basePath);
+        $v->share('basePath', $r->routeBase());
         $v->share('currentPath', $r->path);
         $v->share('nav', $this->visibleNav());
         $v->share('pageTitle', $title);
@@ -65,7 +65,7 @@ abstract class Controller
 
     protected function redirect(Request $r, string $path): Response
     {
-        return Response::redirect($r->basePath . $path);
+        return Response::redirect($r->routeUrl($path));
     }
 
     /** Core admin navigation; module pages are merged in by the registry. */

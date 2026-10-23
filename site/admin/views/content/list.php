@@ -3,7 +3,7 @@ $qs = 'pkg=' . rawurlencode($def['package']) . '&amp;type=' . rawurlencode($def[
 ?>
 <div class="card">
 <h2 style="margin-top:0"><?= e($def['label']) ?> <span class="muted">— <?= e($def['package']) ?>/<?= e($def['type']) ?></span></h2>
-<p><a class="btn" href="<?= e_attr($basePath) ?>/admin/content/edit?<?= $qs ?>">New item</a>
+<p><a class="btn" href="<?= e_attr($basePath) ?>/admin/content/edit&amp;<?= $qs ?>">New item</a>
 <a href="<?= e_attr($basePath) ?>/admin/content">All content types</a></p>
 <?php if ($items === []): ?>
 <p class="muted">No items yet.</p>
@@ -17,7 +17,7 @@ $qs = 'pkg=' . rawurlencode($def['package']) . '&amp;type=' . rawurlencode($def[
 <td><?= (int) $item['sort'] ?></td>
 <td class="muted"><?= e($item['updated_at']) ?></td>
 <td>
-<a class="btn small" href="<?= e_attr($basePath) ?>/admin/content/edit?<?= $qs ?>&amp;id=<?= (int) $item['id'] ?>">Edit</a>
+<a class="btn small" href="<?= e_attr($basePath) ?>/admin/content/edit&amp;<?= $qs ?>&amp;id=<?= (int) $item['id'] ?>">Edit</a>
 <form method="post" action="<?= e_attr($basePath) ?>/admin/content/delete" style="display:inline"
  onsubmit="return confirm('Delete this item?')">
 <?= $csrf->field() ?>

@@ -18,7 +18,7 @@
 <div style="display:flex;gap:1rem;align-items:center;margin-bottom:.75rem">
 <span class="muted"><?= count($items) ?> file(s)</span>
 <?php foreach ($folders as $f): ?>
-<a href="<?= e_attr($basePath) ?>/admin/media?folder=<?= e_attr($f) ?>"><?= e($f) ?></a>
+<a href="<?= e_attr($basePath) ?>/admin/media&amp;folder=<?= e_attr($f) ?>"><?= e($f) ?></a>
 <?php endforeach; ?>
 <a href="<?= e_attr($basePath) ?>/admin/media">all</a>
 </div>

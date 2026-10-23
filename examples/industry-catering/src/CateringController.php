@@ -265,7 +265,7 @@ final class CateringController
         } elseif ($action === 'delete_item') {
             $db->run('DELETE FROM `' . $db->table('catering_menu_items') . '` WHERE id = ?', [(int) $request->string('id')]);
         }
-        return Response::redirect($request->basePath . '/admin/catering/menus?saved=1');
+        return Response::redirect($request->routeUrl('/admin/catering/menus', ['saved' => 1]));
     }
 
     public function adminPackages(Request $request): Response
@@ -311,7 +311,7 @@ final class CateringController
         } elseif ($action === 'delete_package') {
             $db->run('DELETE FROM `' . $db->table('catering_packages') . '` WHERE id = ?', [(int) $request->string('id')]);
         }
-        return Response::redirect($request->basePath . '/admin/catering/packages?saved=1');
+        return Response::redirect($request->routeUrl('/admin/catering/packages', ['saved' => 1]));
     }
 
     public function adminInquiries(Request $request): Response
@@ -347,7 +347,7 @@ final class CateringController
                 'updated_at' => date('Y-m-d H:i:s'),
             ], 'id = ?', [(int) $request->string('id')]);
         }
-        return Response::redirect($request->basePath . '/admin/catering/inquiries?saved=1');
+        return Response::redirect($request->routeUrl('/admin/catering/inquiries', ['saved' => 1]));
     }
 
     public function adminSettings(Request $request): Response
@@ -381,7 +381,7 @@ final class CateringController
         $settings->set('catering.minimum_guests', max(1, (int) $request->string('minimum_guests', '20')));
         $settings->set('catering.lead_time', max(0, (int) $request->string('lead_time', '14')));
         $settings->set('catering.quote_expiry', max(1, (int) $request->string('quote_expiry', '14')));
-        return Response::redirect($request->basePath . '/admin/catering/settings?saved=1');
+        return Response::redirect($request->routeUrl('/admin/catering/settings', ['saved' => 1]));
     }
 
     private function page(
@@ -422,7 +422,8 @@ final class CateringController
         $view = $this->ctx->service(View::class);
         $view->share('user', $auth->user());
         $view->share('csrf', $this->ctx->service(Csrf::class));
-        $view->share('basePath', $request->basePath);
+        $view->share('basePath', $request->routeBase());
+        $view->share('frontController', rtrim($request->basePath, '/') . '/index.php');
         $view->share('currentPath', $request->path);
         $view->share('nav', $this->ctx->service(Nav::class)->visible($auth->user()));
         $view->share('siteName', $this->settings()->get('site.name', 'Website Core'));

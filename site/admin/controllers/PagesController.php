@@ -124,7 +124,7 @@ final class PagesController extends Controller
         $id = (int) $r->attributes['id'];
         $tokens = new \Core\Content\PreviewTokens($this->db());
         $token = $tokens->issue($id, $this->user()->id);
-        $this->flash('ok', 'Preview link (24h, single-purpose): ' . $r->basePath . '/preview/' . $token);
+        $this->flash('ok', 'Preview link (24h, single-purpose): ' . $r->routeUrl('/preview/' . $token));
         return $this->redirect($r, '/admin/pages/edit/' . $id);
     }
 

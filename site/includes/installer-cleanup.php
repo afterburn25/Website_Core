@@ -127,40 +127,81 @@ function wc_probe_installer_cleanup_access(string $root): bool
     @rmdir($renamedDirectory);
     clearstatcache();
 
-    return $ok;
+    if (!$ok) {
+        return false;
+    }
+
+    // The root probe proves install.php can be removed. Every real directory
+    // inside install/ must also allow entry creation/removal, otherwise PHP
+    // could rename the folder yet still be unable to physically erase it.
+    $installerDirectory = $root . DIRECTORY_SEPARATOR . 'install';
+    if (is_dir($installerDirectory) && !is_link($installerDirectory)) {
+        $directories = [$installerDirectory];
+        try {
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($installerDirectory, FilesystemIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::SELF_FIRST
+            );
+            foreach ($iterator as $item) {
+                if ($item->isDir() && !$item->isLink()) {
+                    $directories[] = $item->getPathname();
+                }
+            }
+        } catch (UnexpectedValueException) {
+            return false;
+        }
+        foreach ($directories as $directoryPath) {
+            if (!wc_probe_installer_directory_access($directoryPath)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+function wc_probe_installer_directory_access(string $directory): bool
+{
+    try {
+        $suffix = bin2hex(random_bytes(8));
+    } catch (Throwable) {
+        return false;
+    }
+    $first = rtrim($directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
+        . '.wc-cleanup-entry-probe-' . $suffix;
+    $second = $first . '.renamed';
+    $handle = @fopen($first, 'x');
+    if ($handle === false) {
+        return false;
+    }
+    $written = fwrite($handle, 'probe') === 5;
+    fclose($handle);
+    $renamed = $written && @rename($first, $second);
+    $removed = $renamed && @unlink($second);
+    @unlink($first);
+    @unlink($second);
+    clearstatcache();
+    return $removed;
 }
 
 /**
- * Remove only the two shipped installer artifacts. Direct deletion is tried
- * first. On split-ownership hosts, the exact artifact is atomically retired
- * into protected retirement storage and erased there. If the host refuses a
- * cross-parent move, the proven same-parent retirement fallback is used.
+ * Remove only the two shipped installer artifacts. Completion means physical
+ * deletion: renaming or hiding an ownership-blocked artifact is not success.
  *
  * @return list<string> Canonical public installer artifacts that still exist.
  */
 function wc_remove_installer_artifacts(string $root): array
 {
     $root = rtrim($root, DIRECTORY_SEPARATOR);
-    $runtime = null;
-
     $entry = $root . '/install.php';
     if ((is_file($entry) || is_link($entry)) && !@unlink($entry)) {
         @chmod($entry, 0664);
         @unlink($entry);
     }
-    if (is_file($entry) || is_link($entry)) {
-        $runtime = wc_private_runtime_dir($root, true);
-        if (!wc_retire_installer_artifact($entry, $runtime, false)) {
-            wc_retire_installer_artifact_same_parent($entry, $root, false);
-        }
-    }
 
     $directory = $root . '/install';
-    if ((is_dir($directory) || is_link($directory)) && !wc_remove_installer_tree($directory)) {
-        $runtime ??= wc_private_runtime_dir($root, true);
-        if (!wc_retire_installer_artifact($directory, $runtime, true)) {
-            wc_retire_installer_artifact_same_parent($directory, $root, true);
-        }
+    if (is_dir($directory) || is_link($directory)) {
+        wc_remove_installer_tree($directory);
     }
 
     return wc_remaining_installer_artifacts($root);

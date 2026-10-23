@@ -49,6 +49,7 @@ final class InstallerCleanupTest extends TestCase
     {
         self::assertTrue(wc_probe_installer_cleanup_access($this->root));
         self::assertSame([], glob($this->root . '/.wc-cleanup-probe-*') ?: []);
+        self::assertSame([], glob($this->root . '/install/.wc-cleanup-entry-probe-*') ?: []);
     }
 
     public function testSameParentRetirementRemovesCanonicalPathAndProtectsResidues(): void

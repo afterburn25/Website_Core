@@ -418,7 +418,7 @@ final class Application
         $auth = function (Request $r, callable $next) use ($c): Response {
             $auth = $c->get(AuthService::class);
             if ($auth->user() === null) {
-                return Response::redirect($r->basePath . '/admin/login');
+                return Response::redirect($r->routeUrl('/admin/login'));
             }
             return $next($r);
         };

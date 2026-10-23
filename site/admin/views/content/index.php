@@ -15,8 +15,8 @@ edit form here.</p>
 <td class="muted"><?= e(implode(', ', array_column($def['fields'], 'name'))) ?></td>
 <td><?= count($def['items']) ?></td>
 <td>
-<a class="btn small" href="<?= e_attr($basePath) ?>/admin/content/list?pkg=<?= rawurlencode($def['package']) ?>&amp;type=<?= rawurlencode($def['type']) ?>">Manage</a>
-<a class="btn small" href="<?= e_attr($basePath) ?>/admin/content/edit?pkg=<?= rawurlencode($def['package']) ?>&amp;type=<?= rawurlencode($def['type']) ?>">New</a>
+<a class="btn small" href="<?= e_attr($basePath) ?>/admin/content/list&amp;pkg=<?= rawurlencode($def['package']) ?>&amp;type=<?= rawurlencode($def['type']) ?>">Manage</a>
+<a class="btn small" href="<?= e_attr($basePath) ?>/admin/content/edit&amp;pkg=<?= rawurlencode($def['package']) ?>&amp;type=<?= rawurlencode($def['type']) ?>">New</a>
 </td>
 </tr>
 <?php endforeach; ?>

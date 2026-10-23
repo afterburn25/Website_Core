@@ -23,6 +23,22 @@ final class RouterTest extends TestCase
         $this->assertSame('dash', $res->body());
     }
 
+    public function testRewriteIndependentUrlsPreserveSubfolderAndQuery(): void
+    {
+        $request = new Request('GET', '/admin', '/catering', [], [], [], [], []);
+
+        $this->assertSame('/catering/index.php?p=', $request->routeBase());
+        $this->assertSame('/catering/index.php?p=/admin/login', $request->routeUrl('/admin/login'));
+        $this->assertSame(
+            '/catering/index.php?p=/admin/media&folder=events',
+            $request->routeUrl('/admin/media', ['folder' => 'events'])
+        );
+        $this->assertSame(
+            '/catering/index.php?p=/admin/media&confirm=4',
+            $request->routeUrl('/admin/media?confirm=4')
+        );
+    }
+
     public function testParamExtraction(): void
     {
         $r = new Router();

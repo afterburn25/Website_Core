@@ -55,6 +55,12 @@ final class Translator
         return $this->locale;
     }
 
+    public function useLocale(string $locale): void
+    {
+        $locale = strtolower(str_replace('-', '_', trim($locale)));
+        if (preg_match('/^[a-z]{2}(?:_[a-z]{2})?$/', $locale)) $this->locale = $locale;
+    }
+
     /** BCP-47-ish primary subtag for <html lang> (en_US → en). */
     public function langTag(): string
     {

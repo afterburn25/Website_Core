@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.0 — 2026-10-23
+
+- Added multilingual page variants, localized URLs and navigation,
+  language-switch links and hreflang metadata.
+
 ## 1.6.0 — 2026-10-23
 
 - Added search previews, page schema markup, automated content checks and

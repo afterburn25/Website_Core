@@ -541,6 +541,7 @@ final class Application
             $r->any('/pages/edit', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->edit($req), [$auth, $csrfCheck]);
             $r->any('/pages/edit/{id:\d+}', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->edit($req), [$auth, $csrfCheck]);
             $r->any('/patterns', fn (Request $req) => (new \Admin\Controllers\PatternsController($c))->index($req), [$auth, $csrfCheck]);
+            $r->any('/translations', fn (Request $req) => (new \Admin\Controllers\TranslationsController($c))->index($req), [$auth, $csrfCheck]);
             $r->get('/forms', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->index($req), [$auth]);
             $r->post('/forms/save', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->save($req), [$auth, $csrfCheck]);
             $r->post('/forms/{id:\d+}/archive', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->archive($req), [$auth, $csrfCheck]);
@@ -613,7 +614,7 @@ final class Application
      */
     public const RESERVED_SLUGS = [
         'admin', '_a', 'media', 'preview', 'sitemap.xml', 'robots.txt',
-        'install.php', 'cron.php', 'api', 'forms', 'privacy', 'storage', 'upload',
+        'install.php', 'cron.php', 'api', 'forms', 'privacy', 'l', 'storage', 'upload',
     ];
 
     private function registerPublicRoutes(): void
@@ -625,6 +626,9 @@ final class Application
         ));
         $this->router->get('/', function (Request $r) use ($c): Response {
             return (new \Admin\Controllers\PublicPageController($c))->home($r);
+        });
+        $this->router->get('/l/{locale:[a-z][a-z](?:-[a-z][a-z])?}/{slug:[a-z0-9][a-z0-9\-\/]*}', function (Request $r) use ($c): Response {
+            return (new \Admin\Controllers\PublicPageController($c))->localized($r);
         });
         $this->router->get('/{slug:(?!' . $reserved . ')[a-z0-9][a-z0-9\-\/]*}', function (Request $r) use ($c): Response {
             return (new \Admin\Controllers\PublicPageController($c))->show($r);

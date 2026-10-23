@@ -24,6 +24,7 @@ adapt to real dependencies; scope is preserved, not deferred silently.
 | 1.4 | reusable page patterns, layout variants and parent-theme overrides | complete | commit “Add the 1.4 layout pattern system” |
 | 1.5 | consent manager, gated analytics and privacy request operations | complete | commit “Add the 1.5 privacy and consent platform” |
 | 1.6 | SEO previews, schema editor, redirect portability and content checks | complete | commit “Build the 1.6 SEO and accessibility toolkit” |
+| 1.7 | multilingual pages, localized URLs, language navigation and metadata | complete | commit “Add the 1.7 multilingual content system” |
 
 The immutable footer is core code, not an editable setting or theme field.
 Every public HTML response receives both required links to

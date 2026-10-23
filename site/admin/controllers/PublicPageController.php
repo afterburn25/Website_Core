@@ -26,6 +26,16 @@ final class PublicPageController extends Controller
         return $this->renderPage($r, $slug, isHome: false);
     }
 
+    public function localized(Request $r): Response
+    {
+        $locale=\Core\I18n\ContentTranslations::locale((string)($r->attributes['locale']??''));
+        $slug=trim((string)($r->attributes['slug']??''),'/');
+        $service=new \Core\I18n\ContentTranslations($this->db());
+        $page=$locale!==''?$service->findPublished($locale,$slug):null;
+        if(!$page)return Response::notFound($this->renderNotFound($r));
+        return $this->renderRecord($r,$page,false,$locale);
+    }
+
     /** Purpose-bound draft preview — noindex, no-store, token-redeemed. */
     public function preview(Request $r): Response
     {
@@ -42,7 +52,7 @@ final class PublicPageController extends Controller
             return Response::notFound();
         }
         $v = $this->c->get(View::class);
-        $this->shareGlobals($v, $r);
+        $this->shareGlobals($v, $r, $page, null);
         $page['rendered_blocks'] = (new \Core\Content\PageBlocks(
             $this->db(), $this->c->get(\Core\Modules\ModuleRegistry::class), $this->csrf()
         ))->render($page['blocks_json'] ?? null, $r->basePath);
@@ -75,8 +85,14 @@ final class PublicPageController extends Controller
             return Response::notFound($this->renderNotFound($r));
         }
 
+        return $this->renderRecord($r,$page,$isHome,null);
+    }
+
+    private function renderRecord(Request $r,array $page,bool $isHome,?string $locale): Response
+    {
+        if($locale!==null)$this->c->get(\Core\I18n\Translator::class)->useLocale($locale);
         $v = $this->c->get(View::class);
-        $this->shareGlobals($v, $r);
+        $this->shareGlobals($v, $r, $page, $locale);
         $sections = new \Core\Content\SectionService($this->db());
         $v->share('section', fn (string $key): string => $sections->render($key));
 
@@ -97,7 +113,7 @@ final class PublicPageController extends Controller
         $body = $v->renderInLayout('theme:page', 'theme:layout', [
             'page'    => $page,
             'isHome'  => $isHome,
-            'pages'   => $this->publishedNav(),
+            'pages'   => $this->publishedNav($locale),
         ]);
         // Core-managed published pages contain no session-bound form state,
         // so Application may add an ETag and a short shared-cache policy.
@@ -111,8 +127,9 @@ final class PublicPageController extends Controller
      * Theme navigation: the 'primary' menu tree when items exist, else a
      * fallback list of published pages so a fresh install still navigates.
      */
-    private function publishedNav(): array
+    private function publishedNav(?string $locale=null): array
     {
+        if($locale!==null){return array_map(fn(array $p)=>['slug'=>$p['slug'],'title'=>$p['title'],'url'=>'/l/'.$locale.'/'.$p['slug'],'children'=>[]],(new \Core\I18n\ContentTranslations($this->db()))->translatedNav($locale));}
         $menu = new \Core\Content\MenuService($this->db());
         $tree = $menu->tree('primary');
         if ($tree !== []) {
@@ -139,7 +156,7 @@ final class PublicPageController extends Controller
         );
     }
 
-    private function shareGlobals(View $v, Request $r): void
+    private function shareGlobals(View $v, Request $r, ?array $currentPage=null, ?string $locale=null): void
     {
         $v->share('basePath', $r->basePath);
         $v->share('siteName', $this->settings()->get('site.name', 'Website Core'));
@@ -168,6 +185,9 @@ final class PublicPageController extends Controller
             'header_layout' => (string) $this->settings()->get('design.header_layout', 'classic'),
             'footer_layout' => (string) $this->settings()->get('design.footer_layout', 'centered'),
         ]);
+        $translations=new \Core\I18n\ContentTranslations($this->db());
+        $v->share('languageLinks',$currentPage?array_map(fn(array $x)=>$x+['url'=>$r->routeUrl('/l/'.$x['locale'].'/'.$x['slug'])],$translations->alternates((int)$currentPage['id'])):[]);
+        $v->share('currentLocale',$locale);
     }
 
     private function brandMediaUrl(Request $r, string $setting, ?int $width = null): ?string

@@ -36,6 +36,7 @@ $designTokens = array_replace(
 <meta property="og:image" content="<?= e_attr($socialImageUrl) ?>">
 <?php endif; ?>
 <?php if (!empty($faviconUrl)): ?><link rel="icon" href="<?= e_attr($faviconUrl) ?>"><?php endif; ?>
+<?php foreach (($languageLinks ?? []) as $language): ?><link rel="alternate" hreflang="<?= e_attr($language['locale']) ?>" href="<?= e_attr($language['url']) ?>"><?php endforeach; ?>
 <link rel="stylesheet" href="<?= e_attr($basePath . '/index.php?p=/_a/themes/base/assets/css/style.css&v=' . rawurlencode(defined('WC_VERSION') ? WC_VERSION : 'development')) ?>">
 <style>:root{--color-accent:<?= e_attr($designTokens['primary']) ?>;--color-highlight:<?= e_attr($designTokens['accent']) ?>;--radius:<?= (int) $designTokens['radius'] ?>px}</style>
 <?php
@@ -66,6 +67,7 @@ $renderMenu = function (array $items, bool $child = false) use (&$renderMenu, $b
 $renderMenu($pages ?? []);
 ?>
 </nav>
+<?php if (!empty($languageLinks)): ?><nav class="language-switcher" aria-label="Languages"><?php foreach($languageLinks as $language): ?><a href="<?= e_attr($language['url']) ?>" lang="<?= e_attr($language['locale']) ?>" <?= ($currentLocale??null)===$language['locale']?'aria-current="page"':'' ?>><?= e($language['name']) ?></a><?php endforeach; ?></nav><?php endif; ?>
 </header>
 <main<?= !empty($page['rendered_blocks']) ? ' class="builder-main"' : '' ?>>
 <?= $content ?>

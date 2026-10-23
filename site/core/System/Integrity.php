@@ -16,6 +16,7 @@ final class Integrity
         'menus', 'menu_items', 'system_messages', 'admin_notices',
         'not_found_log', 'forms', 'form_submissions', 'page_patterns',
         'privacy_requests', 'migrations',
+        'site_languages', 'page_translations',
     ];
 
     public function __construct(

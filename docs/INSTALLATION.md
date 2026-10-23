@@ -2,8 +2,20 @@
 
 ## Flow
 
-1. Extract COMPLETE-UPLOAD into the website directory (contents land at the
-   web root; `site/` internal layout is the deployment layout).
+1. For shared hosting, place the generated CajunWebPro web-installer PHP file
+   by itself in the empty destination directory and open it through HTTPS.
+   The launcher verifies and extracts the embedded COMPLETE-UPLOAD payload as
+   the PHP worker, then removes itself. Direct control-panel ZIP extraction is
+   still supported when the panel and PHP worker use the same filesystem owner.
+
+Build the ownership-safe launcher from a completed testing bundle with:
+
+```bash
+php tools/build-web-installer.php \
+  dist/Website-Core-catering-VERSION-TEST-BUNDLE.zip \
+  dist/CajunWebPro-Catering-VERSION-Web-Installer.php
+```
+
 2. Browse to `/install.php` (or `/`) → the protected-core installer opens.
 3. The branded one-page setup checks PHP/extensions, writable paths, and
    required SSL/HTTPS. Enter MySQL/MariaDB credentials and use **Test

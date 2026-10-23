@@ -51,6 +51,9 @@ php tools/build-packages.php          # dist/: FULL-PROJECT / COMPLETE-UPLOAD /
                                       # UPDATE / package zips / SHA256SUMS
 php tools/verify-artifact.php dist/Website-Core-*-COMPLETE-UPLOAD.zip
 # extracts the artifact to a clean dir, provisions it, prints serve steps
+php tools/build-web-installer.php \
+  dist/Website-Core-catering-VERSION-TEST-BUNDLE.zip \
+  dist/CajunWebPro-Catering-VERSION-Web-Installer.php
 ```
 
 ## Key documents

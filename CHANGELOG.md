@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.12-dev (unreleased)
+
+### Added — PHP-owned browser deployment
+- Added a self-extracting, branded web-installer build that deploys the full
+  catering bundle through the PHP worker. Fresh installations no longer rely
+  on control-panel ZIP extraction ownership, allowing `install.php` and
+  `install/` to be physically removed after setup on shared hosting.
+- The deployer requires HTTPS, PHP 8.4, an empty destination folder, and the
+  ZIP extension; validates the embedded bundle checksum and archive paths;
+  rejects symlinks; and removes or disables itself before opening setup.
+- Incremented the catering module to `0.1.12`.
+
 ## 0.1.11-dev (unreleased)
 
 ### Fixed — Settings exception and shared-host installer retirement

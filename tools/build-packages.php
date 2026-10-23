@@ -189,6 +189,18 @@ if (in_array($argv[1] ?? null, ['bundle', 'test-bundle'], true)) {
     }
     $zip->close();
     echo "Bundle created: {$bundleZip} ({$count} files)\n";
+    if ($testingBundle) {
+        $webInstaller = "{$out}/CajunWebPro-" . ucfirst($industry)
+            . "-{$ver}-Web-Installer.php";
+        $command = escapeshellarg(PHP_BINARY) . ' '
+            . escapeshellarg($root . '/tools/build-web-installer.php') . ' '
+            . escapeshellarg($bundleZip) . ' ' . escapeshellarg($webInstaller);
+        passthru($command, $webInstallerCode);
+        if ($webInstallerCode !== 0) {
+            fwrite(STDERR, "web-installer build failed\n");
+            exit(1);
+        }
+    }
     exit(0);
 }
 

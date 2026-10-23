@@ -1,0 +1,197 @@
+<?php
+declare(strict_types=1);
+
+const WC_DEPLOY_VERSION = __WC_VERSION__;
+const WC_DEPLOY_PAYLOAD_BYTES = __WC_PAYLOAD_BYTES__;
+const WC_DEPLOY_PAYLOAD_SHA256 = __WC_PAYLOAD_SHA256__;
+const WC_DEPLOY_LOGO = __WC_LOGO_DATA_URI__;
+
+function wc_deploy_page(string $title, string $message, bool $ready, ?string $token = null): never
+{
+    http_response_code($ready ? 200 : 500);
+    header('Content-Type: text/html; charset=utf-8');
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('Referrer-Policy: no-referrer');
+    $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $action = $token === null ? '' : '<form method="post"><input type="hidden" name="_token" value="'
+        . $e($token) . '"><button type="submit">Deploy catering website</button></form>';
+    echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        . '<title>' . $e($title) . '</title><style>*{box-sizing:border-box}html{min-height:100%;background:#07111f}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;'
+        . 'background:radial-gradient(circle at 12% 8%,#183653 0,transparent 34%),radial-gradient(circle at 90% 90%,#3a2a10 0,transparent 30%),#07111f;color:#eef5ff;font-family:Inter,system-ui,sans-serif}'
+        . '.box{width:min(760px,100%);padding:clamp(28px,6vw,52px);border:1px solid #725627;border-radius:28px;background:linear-gradient(145deg,#172638f5,#0a1422f7);box-shadow:0 32px 100px #000a}'
+        . 'img{display:block;width:min(390px,88%);height:auto;margin:0 0 30px;filter:drop-shadow(0 12px 24px #0008)}.tag{display:inline-flex;padding:8px 12px;border:1px solid #805f26;border-radius:999px;background:#4b3513;color:#ffd98a;font-weight:850;font-size:.74rem;letter-spacing:.1em}'
+        . 'h1{margin:18px 0 12px;font-family:Georgia,serif;font-size:clamp(2.15rem,6vw,3.8rem);line-height:1.02}p{color:#c7d3e2;line-height:1.72}.notice{margin:24px 0;padding:16px 18px;border-left:3px solid #d6a94f;background:#d6a94f12;border-radius:0 12px 12px 0}'
+        . 'button{min-height:50px;padding:13px 22px;border:0;border-radius:12px;background:#d6a94f;color:#07111f;font:inherit;font-weight:850;cursor:pointer}button:hover{background:#e5bd67}code{color:#ffe0a0;overflow-wrap:anywhere}</style></head><body><main class="box">'
+        . '<a href="https://cajunwebpro.com" target="_blank" rel="noopener noreferrer"><img src="' . $e(WC_DEPLOY_LOGO) . '" alt="CajunWebPro"></a>'
+        . '<span class="tag">PHP-OWNED DEPLOYMENT · ' . $e(WC_DEPLOY_VERSION) . '</span><h1>' . $e($title) . '</h1><div class="notice"><p>' . $e($message) . '</p></div>'
+        . $action . '</main></body></html>';
+    exit;
+}
+
+function wc_deploy_remove_tree(string $path): void
+{
+    if (is_link($path) || is_file($path)) {
+        @unlink($path);
+        return;
+    }
+    if (!is_dir($path)) {
+        return;
+    }
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($iterator as $item) {
+        $item->isDir() && !$item->isLink() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+    }
+    @rmdir($path);
+}
+
+function wc_deploy_secure_request(): bool
+{
+    $https = strtolower((string) ($_SERVER['HTTPS'] ?? ''));
+    return in_array($https, ['on', '1', 'https'], true)
+        || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443
+        || strtolower((string) ($_SERVER['REQUEST_SCHEME'] ?? '')) === 'https';
+}
+
+session_name('CWPDEPLOY');
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => rtrim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/'))), '/') . '/',
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'Strict',
+]);
+session_start();
+$root = __DIR__;
+$self = __FILE__;
+$entries = array_values(array_filter(
+    scandir($root) ?: [],
+    static fn (string $name): bool => !in_array($name, ['.', '..', basename($self)], true)
+));
+
+if (!wc_deploy_secure_request()) {
+    wc_deploy_page('HTTPS required', 'Open this installer through a valid https:// address before deployment.', false);
+}
+if (version_compare(PHP_VERSION, '8.4.0', '<')) {
+    wc_deploy_page('PHP 8.4 required', 'Select PHP 8.4 or newer in the hosting control panel, then reload this page.', false);
+}
+if (!class_exists('ZipArchive')) {
+    wc_deploy_page('PHP ZIP extension required', 'Enable the PHP zip extension in the hosting control panel, then reload this page.', false);
+}
+if ($entries !== []) {
+    wc_deploy_page(
+        'Empty deployment folder required',
+        'For ownership-safe deployment, place only this installer in the destination folder. Existing entry: ' . $entries[0],
+        false
+    );
+}
+
+$_SESSION['_wc_deploy_token'] ??= bin2hex(random_bytes(24));
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+    wc_deploy_page(
+        'Ready to deploy',
+        'This installer extracts the complete catering website through PHP so the installer files have the same owner as the PHP worker and can remove themselves after setup.',
+        true,
+        (string) $_SESSION['_wc_deploy_token']
+    );
+}
+if (!is_string($_POST['_token'] ?? null)
+    || !hash_equals((string) $_SESSION['_wc_deploy_token'], (string) $_POST['_token'])
+) {
+    wc_deploy_page('Request expired', 'Reload this page and try the deployment again.', false);
+}
+unset($_SESSION['_wc_deploy_token']);
+
+try {
+    $suffix = bin2hex(random_bytes(8));
+    $payloadFile = $root . '/.wc-deploy-payload-' . $suffix . '.zip';
+    $stage = $root . '/.wc-deploy-stage-' . $suffix;
+    if (!mkdir($stage, 0700)) {
+        throw new RuntimeException('PHP could not create the deployment workspace in this folder.');
+    }
+
+    $source = fopen($self, 'rb');
+    $target = fopen($payloadFile, 'xb');
+    if ($source === false || $target === false || fseek($source, __COMPILER_HALT_OFFSET__) !== 0) {
+        throw new RuntimeException('The embedded website payload could not be opened.');
+    }
+    $copied = stream_copy_to_stream($source, $target, WC_DEPLOY_PAYLOAD_BYTES);
+    fclose($source);
+    fclose($target);
+    if ($copied !== WC_DEPLOY_PAYLOAD_BYTES
+        || !hash_equals(WC_DEPLOY_PAYLOAD_SHA256, (string) hash_file('sha256', $payloadFile))
+    ) {
+        throw new RuntimeException('The embedded website payload failed its integrity check.');
+    }
+
+    $zip = new ZipArchive();
+    if ($zip->open($payloadFile, ZipArchive::RDONLY) !== true) {
+        throw new RuntimeException('The embedded website payload is not a readable ZIP archive.');
+    }
+    for ($i = 0; $i < $zip->numFiles; $i++) {
+        $name = (string) $zip->getNameIndex($i);
+        $normalized = str_replace('\\', '/', $name);
+        if ($normalized === '' || str_starts_with($normalized, '/')
+            || preg_match('#(^|/)\.\.(/|$)#', $normalized)
+            || str_contains($name, "\0")
+        ) {
+            throw new RuntimeException('The website payload contains an unsafe archive path.');
+        }
+        $opsys = 0;
+        $attributes = 0;
+        if ($zip->getExternalAttributesIndex($i, $opsys, $attributes)
+            && $opsys === ZipArchive::OPSYS_UNIX
+            && (($attributes >> 16) & 0170000) === 0120000
+        ) {
+            throw new RuntimeException('The website payload contains a symbolic link.');
+        }
+    }
+    if (!$zip->extractTo($stage)) {
+        throw new RuntimeException('The website payload could not be extracted.');
+    }
+    $zip->close();
+    @unlink($payloadFile);
+
+    foreach (['install.php', 'install/index.php', 'includes/bootstrap.php'] as $required) {
+        if (!is_file($stage . '/' . $required)) {
+            throw new RuntimeException('The extracted website is incomplete: ' . $required . ' is missing.');
+        }
+    }
+    $activated = [];
+    foreach (array_diff(scandir($stage) ?: [], ['.', '..']) as $name) {
+        if (!@rename($stage . '/' . $name, $root . '/' . $name)) {
+            throw new RuntimeException('Could not activate deployed entry: ' . $name);
+        }
+        $activated[] = $name;
+    }
+    @rmdir($stage);
+
+    if (!@unlink($self)) {
+        $retired = $root . '/.wc-private-deployer-' . $suffix . '.disabled';
+        if (!@rename($self, $retired)) {
+            throw new RuntimeException('Website files were deployed, but this deployment launcher could not remove itself. Delete ' . basename($self) . ' manually before continuing.');
+        }
+    }
+    session_write_close();
+    header('Location: ./install.php', true, 303);
+    exit;
+} catch (Throwable $error) {
+    if (isset($zip) && $zip instanceof ZipArchive) {
+        @$zip->close();
+    }
+    foreach ($activated ?? [] as $name) {
+        wc_deploy_remove_tree($root . '/' . $name);
+    }
+    if (isset($payloadFile)) {
+        @unlink($payloadFile);
+    }
+    if (isset($stage)) {
+        wc_deploy_remove_tree($stage);
+    }
+    wc_deploy_page('Deployment stopped safely', $error->getMessage(), false);
+}
+
+__halt_compiler();

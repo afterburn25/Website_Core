@@ -15,7 +15,7 @@ use Core\View\View;
  */
 final class ModuleContext
 {
-    /** @var list<array{label:string,route:string,capability:string,package:string}> */
+    /** @var list<array{label:string,route:string,capability:string,package:string,category:?string}> */
     private array $adminNav = [];
     /** @var array<string, callable> */
     private array $jobHandlers = [];
@@ -106,11 +106,17 @@ final class ModuleContext
         $this->events->listen($event, $listener);
     }
 
-    public function adminPage(string $label, string $route, string $capability): void
+    public function adminPage(
+        string $label,
+        string $route,
+        string $capability,
+        ?string $category = null
+    ): void
     {
         $this->adminNav[] = [
             'label' => $label, 'route' => $route,
             'capability' => $capability, 'package' => $this->packageId,
+            'category' => $category === null || trim($category) === '' ? null : trim($category),
         ];
     }
 

@@ -177,7 +177,7 @@ final class ModuleRegistry
         return $handlers;
     }
 
-    /** @return list<array{label:string,route:string,capability:string,package:string}> */
+    /** @return list<array{label:string,route:string,capability:string,package:string,category:?string}> */
     public function adminNavItems(): array
     {
         $items = [];

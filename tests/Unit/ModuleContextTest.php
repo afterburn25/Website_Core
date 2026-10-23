@@ -29,4 +29,18 @@ final class ModuleContextTest extends TestCase
             $context->url('/catering', '/menus/plated', ['guest_count' => 40])
         );
     }
+
+    public function testAdminPagesCarryTheirPackageCategory(): void
+    {
+        $context = new ModuleContext(
+            'cajunwebpro/catering',
+            new Router(),
+            new Dispatcher(),
+        );
+        $context->adminPage('Menus', '/admin/catering/menus', 'catering.manage', 'Catering');
+
+        $items = $context->adminNavItems();
+        $this->assertSame('Catering', $items[0]['category']);
+        $this->assertSame('cajunwebpro/catering', $items[0]['package']);
+    }
 }

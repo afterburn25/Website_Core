@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.13-dev (unreleased)
+
+### Added — grouped persistent administration navigation
+- Reworked the core admin sidebar into polished, collapsible Overview,
+  Website, Design, Administration, and System categories.
+- Categories default expanded and remember their open/closed state and sidebar
+  scroll position across navigation and page refreshes. Active-page selection
+  uses the most specific matching route and remains on the current URL.
+- Extended the module API so installed industries register their admin pages
+  inside a dedicated package category. Catering now contributes Dashboard,
+  Menus, Packages, Leads & inquiries, and Catering settings.
+- Incremented the catering module to `0.1.13`.
+
 ## 0.1.12-dev (unreleased)
 
 ### Added — PHP-owned browser deployment

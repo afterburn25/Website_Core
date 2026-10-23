@@ -68,6 +68,11 @@ final class AccessibilityTest extends TestCase
     {
         $adminLayout = (string) file_get_contents(WC_ROOT . '/admin/views/layouts/admin.php');
         $this->assertStringContainsString('aria-label="Admin"', $adminLayout, 'admin nav labelled');
+        $this->assertStringContainsString('aria-current="page"', $adminLayout, 'active page is exposed to assistive technology');
+        $this->assertStringContainsString('<details class="nav-group"', $adminLayout, 'admin categories are collapsible');
+        $this->assertStringContainsString(' data-nav-group=', $adminLayout, 'admin categories have persistent identities');
+        $this->assertStringContainsString(' open>', $adminLayout, 'admin categories default expanded');
+        $this->assertStringContainsString('wc-admin-nav-state-v1', $adminLayout, 'admin category state persists');
         $this->assertStringContainsString('focus-visible', $adminLayout, 'focus-visible outlines present');
         $this->assertStringContainsString('prefers-reduced-motion', $adminLayout, 'reduced-motion support present');
     }

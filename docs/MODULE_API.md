@@ -17,7 +17,7 @@ breaking changes bump the major and ship with a migration guide.
 | `route($methods, $pattern, $handler, $middleware = [])` | Register HTTP routes (`{param:regex}` syntax). Module routes register before the public slug catch-all. |
 | `adminRoute($methods, $pattern, $handler)` | Register a route inside the same authenticated-session + CSRF pipeline as every core admin screen. The handler must still check its own declared capability. |
 | `on($event, $listener)` | Subscribe to core lifecycle events (fault-isolated). |
-| `adminPage($label, $route, $capability)` | Add an admin nav item; authorization is still checked server-side per route. |
+| `adminPage($label, $route, $capability, $category = null)` | Add an admin nav item inside the package's own collapsible category; authorization is still checked server-side per route. |
 | `scheduledJob($type, $handler)` | Register an idempotent job handler executed by the queue runner. |
 | `contentType($type, $label, $fields)` | Register a structured content type — validated storage in `content_items` plus generated admin CRUD under `/admin/content`. |
 | `permission($capability, $description)` | Declare a package capability. Owner always holds it; `admin` does by default. Packages can never grant core capabilities. |

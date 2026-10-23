@@ -41,7 +41,10 @@ final class Provider
 
         $ctx->permission('catering.manage', 'Manage catering menus, packages, and settings');
         $ctx->permission('catering.inquiries', 'View and manage catering inquiries');
-        $ctx->adminPage('Catering', '/admin/catering', 'catering.manage');
-        $ctx->adminPage('Catering Leads', '/admin/catering/inquiries', 'catering.inquiries');
+        $ctx->adminPage('Dashboard', '/admin/catering', 'catering.manage', 'Catering');
+        $ctx->adminPage('Menus', '/admin/catering/menus', 'catering.manage', 'Catering');
+        $ctx->adminPage('Packages', '/admin/catering/packages', 'catering.manage', 'Catering');
+        $ctx->adminPage('Leads & inquiries', '/admin/catering/inquiries', 'catering.inquiries', 'Catering');
+        $ctx->adminPage('Catering settings', '/admin/catering/settings', 'catering.manage', 'Catering');
     }
 }

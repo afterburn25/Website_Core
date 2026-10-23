@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.0 — 2026-10-23
+
+- Added scoped, revocable API keys and authenticated health/content endpoints.
+- Added durable HTTPS webhooks with encrypted signing secrets, HMAC payloads
+  and delivery history.
+- Added portable site-content export/import and optional HTTPS WebDAV backup
+  replication configured outside the database.
+
 ## 1.8.0 — 2026-10-23
 
 - Added owner-managed custom roles backed by the core capability registry.

@@ -180,6 +180,12 @@ final class Application
         $this->container->instance(\Core\Admin\NoticeCenter::class, new \Core\Admin\NoticeCenter($db));
         $this->container->instance(\Core\Seo\NotFoundLog::class, new \Core\Seo\NotFoundLog($db));
         $this->container->instance(JobQueue::class, new JobQueue($db));
+        $this->container->instance(\Core\Api\ApiKeyService::class, new \Core\Api\ApiKeyService($db));
+        $webhooks = new \Core\Api\WebhookService($db, $this->container->get(JobQueue::class), $this->config);
+        $this->container->instance(\Core\Api\WebhookService::class, $webhooks);
+        foreach (\Core\Api\WebhookService::EVENTS as $event) {
+            $this->container->get(Dispatcher::class)->listen($event, fn (array $payload) => $webhooks->queue($event, $payload));
+        }
         $this->container->instance(RateLimiter::class, new RateLimiter($db));
         $this->container->instance(Permissions::class, new Permissions($db));
         $this->container->instance(AdminRepository::class, new AdminRepository($db));
@@ -523,6 +529,8 @@ final class Application
             $r->post('/notices/{id:\d+}/dismiss', fn (Request $req) => (new \Admin\Controllers\NoticesController($c))->dismiss($req), [$auth, $csrfCheck]);
             $r->any('/settings', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/privacy', fn (Request $req) => (new \Admin\Controllers\PrivacyController($c))->index($req), [$auth, $csrfCheck]);
+            $r->any('/integrations', fn (Request $req) => (new \Admin\Controllers\IntegrationsController($c))->index($req), [$auth, $csrfCheck]);
+            $r->get('/integrations/export', fn (Request $req) => (new \Admin\Controllers\IntegrationsController($c))->export($req), [$auth]);
             $r->get('/privacy/export', fn (Request $req) => (new \Admin\Controllers\PrivacyController($c))->export($req), [$auth]);
             $r->post('/settings/license-validate', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->validateLicense($req), [$auth, $csrfCheck]);
             $r->any('/profile', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->index($req), [$auth, $csrfCheck]);
@@ -596,6 +604,9 @@ final class Application
         $this->router->get('/preview/{token:[a-f0-9]{48}}', fn (Request $r) => (new \Admin\Controllers\PublicPageController($c))->preview($r));
         $this->router->post('/forms/{id:\d+}/submit', fn (Request $r) => (new \Admin\Controllers\FormsController($c))->submit($r));
         $this->router->any('/privacy/request', fn (Request $r) => (new \Admin\Controllers\PrivacyController($c))->request($r));
+        $this->router->get('/api/v1/health', fn (Request $r) => (new \Admin\Controllers\ApiController($c))->health($r));
+        $this->router->get('/api/v1/pages', fn (Request $r) => (new \Admin\Controllers\ApiController($c))->pages($r));
+        $this->router->get('/api/v1/pages/{id:\d+}', fn (Request $r) => (new \Admin\Controllers\ApiController($c))->page($r));
 
         // Namespaced asset resolver (theme/module assets, allowlisted types).
         $this->router->get('/_a/{path:.*}', function (Request $r) use ($c): Response {

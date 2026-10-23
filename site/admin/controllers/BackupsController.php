@@ -35,6 +35,10 @@ final class BackupsController extends Controller
             return $this->forbidden();
         }
         [$path, $err] = $this->svc()->create();
+        if ($err === null) {
+            $remoteError = (new \Core\Backup\RemoteBackup($this->c->get(\Core\Config::class)))->upload((string) $path);
+            if ($remoteError !== null) $err = 'Local backup created, but remote replication failed: ' . $remoteError;
+        }
         if (!$err) {
             $this->c->get(\Core\Events\Dispatcher::class)->dispatch(
                 'backup.created', ['file' => basename((string) $path), 'by' => $u->id]);

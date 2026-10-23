@@ -14,7 +14,7 @@ return [
         'timezone'    => 'UTC',
         'locale'      => 'en',
         'debug'       => false,
-        'version'     => '1.8.0',
+        'version'     => '1.9.0',
         'api_version' => 1,                     // extension API major version
     ],
     'database' => [
@@ -59,6 +59,11 @@ return [
         // <paths.storage>/maintenance.flag — the maintenance-window gate.
         'require_window' => false,
     ],
+    // Optional HTTPS WebDAV replication. Keep these credentials in this
+    // protected configuration file; the admin database never stores them.
+    'backups' => ['remote' => [
+        'webdav_url' => '', 'webdav_user' => '', 'webdav_password' => '',
+    ]],
     'trust' => [
         // Ed25519 public keys (base64) trusted to sign package/update
         // manifests. Package PHP never executes before this check.

@@ -63,6 +63,9 @@ final class Runner
             'license.validate' => function (array $payload, Container $c): void {
                 $c->get(\Core\Jobs\LicenseValidationJob::class)->handle($payload);
             },
+            'webhook.deliver' => function (array $payload, Container $c): void {
+                $c->get(\Core\Api\WebhookService::class)->deliver((int) ($payload['delivery_id'] ?? 0));
+            },
             'core.backup' => function (array $payload, Container $c): void {
                 $config = $c->get(\Core\Config::class);
                 $storage = (string) $config->get('paths.storage', WC_ROOT . '/storage');
@@ -70,6 +73,8 @@ final class Runner
                     $c->get(Connection::class), $storage . '/backups', $storage . '/staging', WC_ROOT, $storage
                 ))->create();
                 if ($error !== null) throw new \RuntimeException($error);
+                $remoteError = (new \Core\Backup\RemoteBackup($config))->upload((string) $path);
+                if ($remoteError !== null) throw new \RuntimeException($remoteError);
             },
         ];
     }

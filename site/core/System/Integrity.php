@@ -18,6 +18,7 @@ final class Integrity
         'privacy_requests', 'migrations',
         'site_languages', 'page_translations',
         'custom_roles',
+        'api_keys', 'webhooks', 'webhook_deliveries',
     ];
 
     public function __construct(

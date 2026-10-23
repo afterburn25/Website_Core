@@ -74,11 +74,44 @@ final class MenuService
         if (!$this->urlOk($url)) {
             return [null, 'URL must be an internal path or http(s)/mailto link.'];
         }
+        if ($parentId !== null && !$this->validParent($menuId, $parentId)) {
+            return [null, 'Parent item does not belong to this menu.'];
+        }
         return [(int) $this->db->insert('menu_items', [
             'menu_id' => $menuId, 'parent_id' => $parentId,
             'label' => trim($label), 'url' => $url, 'sort_order' => $order,
             'created_at' => date('Y-m-d H:i:s'),
         ]), null];
+    }
+
+    /** @return array{0:bool,1:?string} */
+    public function updateItem(int $id, string $label, string $url, ?int $parentId, int $order): array
+    {
+        $item = $this->db->fetch(
+            'SELECT * FROM `' . $this->db->table('menu_items') . '` WHERE id = ?', [$id]
+        );
+        if (!$item) return [false, 'Menu item not found.'];
+        if (trim($label) === '') return [false, 'Label is required.'];
+        if (!$this->urlOk($url)) return [false, 'URL must be an internal path or http(s)/mailto link.'];
+        if ($parentId === $id) return [false, 'An item cannot be its own parent.'];
+        if ($parentId !== null) {
+            if (!$this->validParent((int) $item['menu_id'], $parentId)) {
+                return [false, 'Parent item does not belong to this menu.'];
+            }
+            $cursor = $parentId;
+            while ($cursor > 0) {
+                if ($cursor === $id) return [false, 'That submenu choice would create a loop.'];
+                $cursor = (int) ($this->db->fetchColumn(
+                    'SELECT COALESCE(parent_id, 0) FROM `' . $this->db->table('menu_items') . '` WHERE id = ?',
+                    [$cursor]
+                ) ?: 0);
+            }
+        }
+        $this->db->update('menu_items', [
+            'label' => trim($label), 'url' => trim($url),
+            'parent_id' => $parentId, 'sort_order' => $order,
+        ], 'id = ?', [$id]);
+        return [true, null];
     }
 
     public function deleteItem(int $id): void
@@ -102,5 +135,13 @@ final class MenuService
         }
         $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
         return in_array($scheme, ['http', 'https', 'mailto'], true);
+    }
+
+    private function validParent(int $menuId, int $parentId): bool
+    {
+        return (bool) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('menu_items') . '` WHERE id = ? AND menu_id = ?',
+            [$parentId, $menuId]
+        );
     }
 }

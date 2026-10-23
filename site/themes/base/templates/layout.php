@@ -25,19 +25,21 @@
 <a class="site-brand" href="<?= e_attr($basePath) ?>/"><?= e($siteName) ?></a>
 <?php if ($tagline !== ''): ?><span class="site-tagline"><?= e($tagline) ?></span><?php endif; ?>
 <nav class="site-nav" aria-label="Primary">
-<?php foreach ($pages ?? [] as $nav): ?>
-<?php $href = ($nav['url'] ?? '') !== '' && $nav['url'][0] !== '/' ? $nav['url'] : ($basePath . ($nav['url'] ?? '/' . ($nav['slug'] ?? ''))); ?>
-<span class="nav-item">
-<a href="<?= e_url($href) ?>"><?= e($nav['title']) ?></a>
-<?php if (!empty($nav['children'])): ?>
-<span class="nav-children">
-<?php foreach ($nav['children'] as $child): ?>
-<a href="<?= e_url($child['url'][0] === '/' ? $basePath . $child['url'] : $child['url']) ?>"><?= e($child['label']) ?></a>
-<?php endforeach; ?>
-</span>
-<?php endif; ?>
-</span>
-<?php endforeach; ?>
+<?php
+$renderMenu = function (array $items, bool $child = false) use (&$renderMenu, $basePath): void {
+    echo '<ul class="' . ($child ? 'nav-children' : 'nav-root') . '">';
+    foreach ($items as $nav) {
+        $url = (string) ($nav['url'] ?? '/' . ($nav['slug'] ?? ''));
+        $href = str_starts_with($url, '/') ? $basePath . $url : $url;
+        $label = (string) ($nav['label'] ?? $nav['title'] ?? '');
+        echo '<li class="nav-item"><a href="' . e_url($href) . '">' . e($label) . '</a>';
+        if (!empty($nav['children'])) $renderMenu($nav['children'], true);
+        echo '</li>';
+    }
+    echo '</ul>';
+};
+$renderMenu($pages ?? []);
+?>
 </nav>
 </header>
 <main>

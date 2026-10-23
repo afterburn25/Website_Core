@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0-dev (unreleased)
+
+### Added — content workflow
+- Added scheduled publishing and unpublishing with idempotent request/cron-safe transitions.
+- Added page duplication, soft-delete trash, restore, and clearer active/trash views.
+- Expanded the core menu editor to edit labels, URLs, sort order, and nested submenu parents.
+- Added circular-menu protection and recursively rendered accessible dropdown navigation.
+
 ## 0.2.0-dev (unreleased)
 
 ### Added — administration platform

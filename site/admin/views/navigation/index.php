@@ -1,15 +1,26 @@
-<?php /** @var array $items @var array $redirects @var int $menuId @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
+<?php /** @var array $items @var array $depths @var array $redirects @var int $menuId @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
 <div class="card">
 <h2 style="margin-top:0">Primary navigation</h2>
+<p class="muted">Top-level items build the main menu. Choose a parent to create a submenu item; labels, links, parent, and order can be changed at any time.</p>
 <table>
 <tr><th>Label</th><th>URL</th><th>Parent</th><th>Order</th><th></th></tr>
 <?php foreach ($items as $item): ?>
 <tr>
-<td><?= e($item['label']) ?></td>
+<td><?= str_repeat('<span aria-hidden="true">↳&nbsp;</span>', (int) ($depths[(int) $item['id']] ?? 0)) ?><?= e($item['label']) ?></td>
 <td><code><?= e($item['url']) ?></code></td>
-<td><?= e((string) ($item['parent_id'] ?? '')) ?></td>
+<td><?php if ($item['parent_id']): ?><?= e((string) ($items[array_search($item['parent_id'], array_column($items, 'id'))]['label'] ?? 'Submenu')) ?><?php else: ?>Top level<?php endif; ?></td>
 <td><?= (int) $item['sort_order'] ?></td>
 <td>
+<details><summary class="btn small secondary">Edit</summary>
+<form method="post" class="menu-edit-form">
+<?= $csrf->field() ?><input type="hidden" name="action" value="save"><input type="hidden" name="id" value="<?= (int) $item['id'] ?>">
+<label>Label</label><input name="label" value="<?= e_attr($item['label']) ?>" required>
+<label>URL</label><input name="url" value="<?= e_attr($item['url']) ?>" required>
+<label>Parent / submenu</label><select name="parent_id"><option value="">— top level —</option><?php foreach ($items as $candidate): ?><?php if ((int) $candidate['id'] !== (int) $item['id']): ?><option value="<?= (int) $candidate['id'] ?>" <?= (int) ($item['parent_id'] ?? 0) === (int) $candidate['id'] ? 'selected' : '' ?>><?= e($candidate['label']) ?></option><?php endif; ?><?php endforeach; ?></select>
+<label>Sort order</label><input name="sort_order" type="number" value="<?= (int) $item['sort_order'] ?>">
+<button class="btn small" type="submit">Save item</button>
+</form>
+</details>
 <form method="post" style="display:inline">
 <?= $csrf->field() ?><input type="hidden" name="action" value="delete">
 <input type="hidden" name="id" value="<?= (int) $item['id'] ?>">
@@ -39,7 +50,7 @@
 </div>
 <div><label>Sort order</label><input name="sort_order" type="number" value="0"></div>
 </div>
-<div style="margin-top:1rem"><button class="btn" type="submit">Add item</button></div>
+<div style="margin-top:1rem"><button class="btn" type="submit">Add menu item</button></div>
 </form>
 </div>
 

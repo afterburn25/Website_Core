@@ -137,6 +137,23 @@ final class ContentMediaTest extends TestCase
         $this->assertSame('About', $tree[0]['label']);
     }
 
+    public function testMenuItemsCanBeEditedAndCircularParentsAreRejected(): void
+    {
+        $menu = new MenuService($this->db);
+        $menuId = $menu->ensureLocation('primary', 'Primary');
+        [$parent] = $menu->addItem($menuId, 'Services', '/services', null, 0);
+        [$child] = $menu->addItem($menuId, 'Catering', '/catering', $parent, 1);
+
+        [$ok, $error] = $menu->updateItem($child, 'Event catering', '/events', $parent, 3);
+        $this->assertTrue($ok);
+        $this->assertNull($error);
+        $this->assertSame('Event catering', $menu->tree('primary')[0]['children'][0]['label']);
+
+        [$ok, $error] = $menu->updateItem($parent, 'Services', '/services', $child, 0);
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('loop', (string) $error);
+    }
+
     public function testPreviewTokens(): void
     {
         $db = $this->db;

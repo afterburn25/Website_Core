@@ -185,6 +185,7 @@ final class Application
         ));
         $this->container->instance(\Core\Media\MediaService::class, new \Core\Media\MediaService($db, $this->config));
         $this->container->instance(\Core\Content\MenuService::class, new \Core\Content\MenuService($db));
+        $this->container->instance(\Core\Content\PublishingService::class, new \Core\Content\PublishingService($db));
 
         $view = new View();
         $view->addResolver('admin', fn (string $v): ?string =>
@@ -284,6 +285,11 @@ final class Application
     public function dispatch(Request $request): Response
     {
         $this->bootServices($request);
+        try {
+            $this->container->get(\Core\Content\PublishingService::class)->runDue();
+        } catch (\Throwable) {
+            // An upgrade request may reach this code before its migration runs.
+        }
         if ($this->inMaintenance($request)) {
             return $this->withSecurityHeaders(
                 Response::html(
@@ -469,6 +475,10 @@ final class Application
             $r->any('/pages/edit', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->edit($req), [$auth, $csrfCheck]);
             $r->any('/pages/edit/{id:\d+}', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->edit($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/publish', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->publish($req), [$auth, $csrfCheck]);
+            $r->post('/pages/{id:\d+}/schedule', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->schedule($req), [$auth, $csrfCheck]);
+            $r->post('/pages/{id:\d+}/duplicate', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->duplicate($req), [$auth, $csrfCheck]);
+            $r->post('/pages/{id:\d+}/trash', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->trash($req), [$auth, $csrfCheck]);
+            $r->post('/pages/{id:\d+}/restore', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->restore($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/preview', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->previewLink($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/restore/{rid:\d+}', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->restoreRevision($req), [$auth, $csrfCheck]);
             $r->any('/navigation', fn (Request $req) => (new \Admin\Controllers\NavigationController($c))->index($req), [$auth, $csrfCheck]);

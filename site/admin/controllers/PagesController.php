@@ -28,8 +28,10 @@ final class PagesController extends Controller
             }
             return $this->redirect($r, '/admin/pages');
         }
+        $trash = $r->string('view') === 'trash';
         $pages = $this->db()->fetchAll(
-            'SELECT * FROM `' . $this->db()->table('pages') . '` ORDER BY slug'
+            'SELECT * FROM `' . $this->db()->table('pages') . '` WHERE deleted_at '
+            . ($trash ? 'IS NOT NULL' : 'IS NULL') . ' ORDER BY slug'
         );
         // Flag slugs the router can never serve — pre-existing data and
         // pages shadowed when a module route appeared after the save.
@@ -41,6 +43,7 @@ final class PagesController extends Controller
         }
         return $this->page($r, 'pages/index', [
             'pages' => $pages, 'sections' => $sections->all(), 'shadowed' => $shadowed,
+            'trash' => $trash,
         ], 'Content');
     }
 
@@ -170,7 +173,10 @@ final class PagesController extends Controller
             'unpublish' => 'draft',
             default     => 'published',
         };
-        $data = ['status' => $status, 'updated_at' => date('Y-m-d H:i:s')];
+        $data = [
+            'status' => $status, 'updated_at' => date('Y-m-d H:i:s'),
+            'publish_at' => null, 'unpublish_at' => null,
+        ];
         if ($status === 'published') {
             $data['published_at'] = date('Y-m-d H:i:s');
         }
@@ -180,6 +186,83 @@ final class PagesController extends Controller
             'page.' . $status, ['page' => $id, 'by' => $this->user()->id]);
         $this->flash('ok', $status === 'published' ? 'Page published.' : 'Page unpublished.');
         return $this->redirect($r, '/admin/pages');
+    }
+
+    public function schedule(Request $r): Response
+    {
+        if (!$this->can()) return $this->forbidden();
+        $id = (int) $r->attributes['id'];
+        $publishAt = $this->dateTime($r->string('publish_at'));
+        $unpublishAt = $this->dateTime($r->string('unpublish_at'));
+        if ($publishAt && $unpublishAt && strtotime($unpublishAt) <= strtotime($publishAt)) {
+            $this->flash('error', 'Unpublish time must be after the publish time.');
+            return $this->redirect($r, '/admin/pages/edit/' . $id);
+        }
+        $this->db()->update('pages', [
+            'publish_at' => $publishAt,
+            'unpublish_at' => $unpublishAt,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ], 'id = ? AND deleted_at IS NULL', [$id]);
+        $this->c->get(\Core\Audit\AuditLog::class)->record('page.schedule', $this->user()->id, [
+            'page' => $id, 'publish_at' => $publishAt, 'unpublish_at' => $unpublishAt,
+        ]);
+        $this->flash('ok', ($publishAt || $unpublishAt) ? 'Publishing schedule saved.' : 'Publishing schedule cleared.');
+        return $this->redirect($r, '/admin/pages/edit/' . $id);
+    }
+
+    public function duplicate(Request $r): Response
+    {
+        if (!$this->can()) return $this->forbidden();
+        $id = (int) $r->attributes['id'];
+        $db = $this->db();
+        $page = $db->fetch('SELECT * FROM `' . $db->table('pages') . '` WHERE id = ? AND deleted_at IS NULL', [$id]);
+        if (!$page) return Response::notFound();
+        $slug = (string) $page['slug'] . '-copy';
+        $suffix = 2;
+        while ($this->slugTaken($slug, 0)) $slug = (string) $page['slug'] . '-copy-' . $suffix++;
+        $copy = [
+            'slug' => $slug, 'title' => $page['title'] . ' (Copy)', 'body' => $page['body'],
+            'status' => 'draft', 'meta_title' => $page['meta_title'],
+            'meta_description' => $page['meta_description'], 'updated_by' => $this->user()->id,
+            'published_at' => null, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+            'noindex' => $page['noindex'] ?? 0, 'canonical' => $page['canonical'] ?? null,
+            'og_media_id' => $page['og_media_id'] ?? null, 'parent_id' => $page['parent_id'] ?? null,
+            'publish_at' => null, 'unpublish_at' => null, 'deleted_at' => null,
+        ];
+        $newId = (int) $db->insert('pages', $copy);
+        $this->flash('ok', 'Page duplicated as a draft.');
+        return $this->redirect($r, '/admin/pages/edit/' . $newId);
+    }
+
+    public function trash(Request $r): Response
+    {
+        if (!$this->can()) return $this->forbidden();
+        $id = (int) $r->attributes['id'];
+        $this->db()->update('pages', [
+            'deleted_at' => date('Y-m-d H:i:s'), 'status' => 'draft',
+            'publish_at' => null, 'unpublish_at' => null, 'updated_at' => date('Y-m-d H:i:s'),
+        ], 'id = ?', [$id]);
+        $this->c->get(\Core\Audit\AuditLog::class)->record('page.trashed', $this->user()->id, ['page' => $id]);
+        $this->flash('ok', 'Page moved to trash.');
+        return $this->redirect($r, '/admin/pages');
+    }
+
+    public function restore(Request $r): Response
+    {
+        if (!$this->can()) return $this->forbidden();
+        $id = (int) $r->attributes['id'];
+        $this->db()->update('pages', [
+            'deleted_at' => null, 'updated_at' => date('Y-m-d H:i:s'),
+        ], 'id = ?', [$id]);
+        $this->flash('ok', 'Page restored as a draft.');
+        return $this->redirect($r, '/admin/pages?view=trash');
+    }
+
+    private function dateTime(string $value): ?string
+    {
+        if ($value === '') return null;
+        $timestamp = strtotime($value);
+        return $timestamp === false ? null : date('Y-m-d H:i:s', $timestamp);
     }
 
     private function slugTaken(string $slug, int $excludeId): bool

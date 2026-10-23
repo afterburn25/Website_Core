@@ -1,8 +1,10 @@
-<?php /** @var array $pages @var array $sections @var array $shadowed @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
+<?php /** @var array $pages @var array $sections @var array $shadowed @var bool $trash @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
 <div class="card">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-<span class="muted"><?= count($pages) ?> page(s)</span>
+<span><a class="btn small <?= !$trash ? '' : 'secondary' ?>" href="<?= e_attr($basePath) ?>/admin/pages">Active pages</a> <a class="btn small <?= $trash ? '' : 'secondary' ?>" href="<?= e_attr($basePath) ?>/admin/pages?view=trash">Trash</a> <span class="muted"><?= count($pages) ?> page(s)</span></span>
+<?php if (!$trash): ?>
 <a class="btn" href="<?= e_attr($basePath) ?>/admin/pages/edit">New page</a>
+<?php endif; ?>
 </div>
 <?php if ($pages === []): ?>
 <p class="muted">No pages yet — create your first one.</p>
@@ -16,6 +18,9 @@
 <td><span class="badge <?= $p['status'] === 'published' ? 'ok' : 'warn' ?>"><?= e($p['status']) ?></span></td>
 <td><?= e($p['updated_at'] ?? '') ?></td>
 <td>
+<?php if ($trash): ?>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/pages/<?= (int) $p['id'] ?>/restore" style="display:inline"><?= $csrf->field() ?><button class="btn small">Restore</button></form>
+<?php else: ?>
 <a class="btn small" href="<?= e_attr($basePath) ?>/admin/pages/edit/<?= (int) $p['id'] ?>">Edit</a>
 <form method="post" action="<?= e_attr($basePath) ?>/admin/pages/<?= (int) $p['id'] ?>/publish" style="display:inline">
 <?= $csrf->field() ?>
@@ -25,6 +30,9 @@
 <input type="hidden" name="do" value="publish"><button class="btn small">Publish</button>
 <?php endif; ?>
 </form>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/pages/<?= (int) $p['id'] ?>/duplicate" style="display:inline"><?= $csrf->field() ?><button class="btn small secondary">Duplicate</button></form>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/pages/<?= (int) $p['id'] ?>/trash" style="display:inline"><?= $csrf->field() ?><button class="btn small danger">Trash</button></form>
+<?php endif; ?>
 </td>
 </tr>
 <?php endforeach; ?>
@@ -32,7 +40,7 @@
 <?php endif; ?>
 </div>
 
-<div class="card">
+<?php if (!$trash): ?><div class="card">
 <h2 style="margin-top:0">Reusable sections</h2>
 <p class="muted">Keyed HTML blocks rendered by themes via <code>section('key')</code>. Bodies are sanitized on save.</p>
 <?php if ($sections !== []): ?>
@@ -79,3 +87,4 @@
 testimonials, …) get a generated admin UI.</p>
 <p><a class="btn small" href="<?= e_attr($basePath) ?>/admin/content">Manage content types</a></p>
 </div>
+<?php endif; ?>

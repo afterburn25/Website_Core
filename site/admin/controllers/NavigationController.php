@@ -31,6 +31,15 @@ final class NavigationController extends Controller
                     (int) $r->string('sort_order', '0')
                 );
                 $this->flash($err ? 'error' : 'ok', $err ?? 'Menu item added.');
+            } elseif ($action === 'save') {
+                [$ok, $err] = $menus->updateItem(
+                    (int) $r->string('id'),
+                    $r->string('label'),
+                    $r->string('url'),
+                    ($p = $r->string('parent_id')) !== '' ? (int) $p : null,
+                    (int) $r->string('sort_order', '0')
+                );
+                $this->flash($ok ? 'ok' : 'error', $err ?? 'Menu item updated.');
             } elseif ($action === 'delete') {
                 $menus->deleteItem((int) $r->string('id'));
                 $this->flash('ok', 'Menu item removed.');
@@ -50,8 +59,21 @@ final class NavigationController extends Controller
             return $this->redirect($r, '/admin/navigation');
         }
 
+        $items = $menus->itemsFor($location);
+        $depths = [];
+        $byId = array_column($items, null, 'id');
+        foreach ($items as $item) {
+            $depth = 0;
+            $parent = (int) ($item['parent_id'] ?? 0);
+            while ($parent > 0 && isset($byId[$parent]) && $depth < 5) {
+                $depth++;
+                $parent = (int) ($byId[$parent]['parent_id'] ?? 0);
+            }
+            $depths[(int) $item['id']] = $depth;
+        }
         return $this->page($r, 'navigation/index', [
-            'items'     => $menus->itemsFor($location),
+            'items'     => $items,
+            'depths'    => $depths,
             'menuId'    => $menuId,
             'redirects' => $redirects->all(),
         ], 'Navigation');

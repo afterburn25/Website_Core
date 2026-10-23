@@ -24,6 +24,7 @@
 <input name="og_media_id" type="number" min="0" value="<?= e_attr((string) ($page['og_media_id'] ?? '')) ?>">
 </div>
 </div>
+
 <label style="display:block;margin-top:.5rem">
 <input type="checkbox" name="noindex" value="1" <?= !empty($page['noindex']) ? 'checked' : '' ?>>
 Exclude this page from indexing (noindex, nofollow)
@@ -38,6 +39,21 @@ Exclude this page from indexing (noindex, nofollow)
 <?php endif; ?>
 </div>
 </div>
+
+<?php if ($page): ?>
+<div class="card">
+<h2 style="margin-top:0">Publishing schedule</h2>
+<p class="muted">Times use the site/server timezone. Leave either field blank when no automatic transition is needed.</p>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/pages/<?= (int) $page['id'] ?>/schedule">
+<?= $csrf->field() ?>
+<div class="inline-fields">
+<div><label>Publish at</label><input type="datetime-local" name="publish_at" value="<?= e_attr(!empty($page['publish_at']) ? date('Y-m-d\TH:i', strtotime($page['publish_at'])) : '') ?>"></div>
+<div><label>Unpublish at</label><input type="datetime-local" name="unpublish_at" value="<?= e_attr(!empty($page['unpublish_at']) ? date('Y-m-d\TH:i', strtotime($page['unpublish_at'])) : '') ?>"></div>
+<button class="btn" type="submit" style="align-self:end">Save schedule</button>
+</div>
+</form>
+</div>
+<?php endif; ?>
 
 <?php if ($revisions !== []): ?>
 <div class="card">

@@ -56,7 +56,7 @@ final class PublicPageController extends Controller
     {
         $page = $this->db()->fetch(
             'SELECT * FROM `' . $this->db()->table('pages')
-            . "` WHERE slug = ? AND status = 'published'",
+            . "` WHERE slug = ? AND status = 'published' AND deleted_at IS NULL",
             [$slug]
         );
         if (!$page) {
@@ -115,7 +115,7 @@ final class PublicPageController extends Controller
             'url' => '/' . $p['slug'], 'children' => [],
         ], $this->db()->fetchAll(
             'SELECT slug, title FROM `' . $this->db()->table('pages')
-            . "` WHERE status = 'published' ORDER BY title LIMIT 20"
+            . "` WHERE status = 'published' AND deleted_at IS NULL ORDER BY title LIMIT 20"
         ));
     }
 

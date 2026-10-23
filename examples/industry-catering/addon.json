@@ -5,7 +5,7 @@
   "name": "Catering Website",
   "version": "0.1.0",
   "license": "PROPRIETARY",
-  "requires": { "core": ">=0.1.0", "api": 1 },
+  "requires": { "core": ">=0.0.1", "api": 1 },
   "provider": "CajunWebPro\\Catering\\Provider",
   "psr4": { "CajunWebPro\\Catering\\": "src/" },
   "migrations": "migrations",

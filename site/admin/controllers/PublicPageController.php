@@ -44,7 +44,7 @@ final class PublicPageController extends Controller
         $v = $this->c->get(View::class);
         $this->shareGlobals($v, $r);
         $page['rendered_blocks'] = (new \Core\Content\PageBlocks(
-            $this->db(), $this->c->get(\Core\Modules\ModuleRegistry::class)
+            $this->db(), $this->c->get(\Core\Modules\ModuleRegistry::class), $this->csrf()
         ))->render($page['blocks_json'] ?? null, $r->basePath);
         $body = $v->renderInLayout('theme:page', 'theme:layout', [
             'page' => $page, 'isHome' => false, 'pages' => $this->publishedNav(),
@@ -91,7 +91,7 @@ final class PublicPageController extends Controller
             }
         }
         $page['rendered_blocks'] = (new \Core\Content\PageBlocks(
-            $this->db(), $this->c->get(\Core\Modules\ModuleRegistry::class)
+            $this->db(), $this->c->get(\Core\Modules\ModuleRegistry::class), $this->csrf()
         ))->render($page['blocks_json'] ?? null, $r->basePath);
 
         $body = $v->renderInLayout('theme:page', 'theme:layout', [
@@ -101,7 +101,10 @@ final class PublicPageController extends Controller
         ]);
         // Core-managed published pages contain no session-bound form state,
         // so Application may add an ETag and a short shared-cache policy.
-        return Response::html($body)->header('X-WC-Cacheable', 'public');
+        $response = Response::html($body);
+        return str_contains((string) ($page['rendered_blocks'] ?? ''), 'wc-public-form')
+            ? $response->header('Cache-Control', 'private, no-store')
+            : $response->header('X-WC-Cacheable', 'public');
     }
 
     /**

@@ -80,7 +80,7 @@ Exclude this page from indexing (noindex, nofollow)
         let control;
         if(field.type==='select') { control=document.createElement('select'); (field.options||[]).forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;control.appendChild(o);}); }
         else if(['richtext','lines'].includes(field.type)) { control=document.createElement('textarea'); control.rows=field.type==='richtext'?5:4; }
-        else { control=document.createElement('input'); control.type=field.type==='media'?'number':'text'; if(field.type==='media')control.min='0'; }
+        else { control=document.createElement('input'); control.type=['media','number'].includes(field.type)?'number':'text'; if(['media','number'].includes(field.type))control.min='0'; }
         control.value=block.data[key]||''; control.addEventListener('input',()=>{block.data[key]=control.value;sync();});
         wrap.appendChild(control); fields.appendChild(wrap);
       });

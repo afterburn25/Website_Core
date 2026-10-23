@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `1.1.0`. The planned 0.1.15 through 1.1 core milestones
+**Current**: `1.2.0`. The planned 0.1.15 through 1.2 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -16,6 +16,10 @@ The 1.1 release adds a schema-backed visual page composer with eleven core
 blocks, drag ordering, hide/show controls, full-width theme rendering,
 revision/duplication support, server-side sanitization, and a Module API hook
 for industry-owned blocks.
+
+The 1.2 release adds reusable form definitions, a visual field editor, a Form
+page block, CSRF and honeypot protection, IP-scoped rate limiting, validation,
+consent evidence, a submission inbox, CSV export and queued notifications.
 
 The first industry implementation remains `examples/industry-catering`: a
 complete editorial public site, menu/package management, secure multi-step

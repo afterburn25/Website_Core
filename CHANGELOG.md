@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0 — 2026-10-23
+
+- Added reusable form definitions and a visual field editor with text, email,
+  telephone, numeric, date, textarea, select and consent-checkbox fields.
+- Added a Form page block, session CSRF validation, honeypot handling,
+  IP-scoped rate limiting, server validation and consent evidence.
+- Added a submissions inbox, read state, CSV export and deduplicated queued
+  notification emails. Archiving a form preserves its prior submissions.
+
 ## 1.1.0 — 2026-10-23
 
 - Added a visual, drag-order page composer with eleven responsive core block

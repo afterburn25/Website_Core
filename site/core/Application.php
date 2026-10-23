@@ -181,6 +181,8 @@ final class Application
         $this->container->instance(RateLimiter::class, new RateLimiter($db));
         $this->container->instance(Permissions::class, new Permissions());
         $this->container->instance(AdminRepository::class, new AdminRepository($db));
+        $systemMail = new \Core\Mail\SystemMail($db, $this->container->get(SettingsRepository::class));
+        $this->container->instance(\Core\Mail\SystemMail::class, $systemMail);
         $this->container->instance(AuthService::class, new AuthService(
             $db,
             $this->container->get(AdminRepository::class),
@@ -189,7 +191,7 @@ final class Application
             $this->container->get(RateLimiter::class),
             $this->container->get(AuditLog::class),
             $this->config,
-            new \Core\Mail\SystemMail($db, $this->container->get(SettingsRepository::class)),
+            $systemMail,
         ));
         $this->container->instance(\Core\Media\MediaService::class, new \Core\Media\MediaService($db, $this->config));
         $this->container->instance(\Core\Content\MenuService::class, new \Core\Content\MenuService($db));
@@ -526,6 +528,12 @@ final class Application
             $r->any('/pages', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/pages/edit', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->edit($req), [$auth, $csrfCheck]);
             $r->any('/pages/edit/{id:\d+}', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->edit($req), [$auth, $csrfCheck]);
+            $r->get('/forms', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->index($req), [$auth]);
+            $r->post('/forms/save', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->save($req), [$auth, $csrfCheck]);
+            $r->post('/forms/{id:\d+}/archive', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->archive($req), [$auth, $csrfCheck]);
+            $r->get('/forms/submissions', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->submissions($req), [$auth]);
+            $r->post('/forms/submissions/{id:\d+}/read', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->markRead($req), [$auth, $csrfCheck]);
+            $r->get('/forms/export', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->export($req), [$auth]);
             $r->post('/pages/{id:\d+}/publish', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->publish($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/schedule', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->schedule($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/duplicate', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->duplicate($req), [$auth, $csrfCheck]);
@@ -567,6 +575,7 @@ final class Application
         $this->router->get('/media/{id:\d+}/w/{width:\d+}/{name:.*}', fn (Request $r) => (new \Admin\Controllers\MediaController($c))->serveVariant($r));
         $this->router->get('/media/{id:\d+}/{name:.*}', fn (Request $r) => (new \Admin\Controllers\MediaController($c))->serve($r));
         $this->router->get('/preview/{token:[a-f0-9]{48}}', fn (Request $r) => (new \Admin\Controllers\PublicPageController($c))->preview($r));
+        $this->router->post('/forms/{id:\d+}/submit', fn (Request $r) => (new \Admin\Controllers\FormsController($c))->submit($r));
 
         // Namespaced asset resolver (theme/module assets, allowlisted types).
         $this->router->get('/_a/{path:.*}', function (Request $r) use ($c): Response {
@@ -588,7 +597,7 @@ final class Application
      */
     public const RESERVED_SLUGS = [
         'admin', '_a', 'media', 'preview', 'sitemap.xml', 'robots.txt',
-        'install.php', 'cron.php', 'api', 'storage', 'upload',
+        'install.php', 'cron.php', 'api', 'forms', 'storage', 'upload',
     ];
 
     private function registerPublicRoutes(): void

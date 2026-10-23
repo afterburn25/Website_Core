@@ -5,11 +5,16 @@ namespace Core\Content;
 
 use Core\Database\Connection;
 use Core\Modules\ModuleRegistry;
+use Core\Security\Csrf;
 
 /** Validates and renders the portable structured page-block document. */
 final class PageBlocks
 {
-    public function __construct(private Connection $db, private ?ModuleRegistry $registry = null) {}
+    public function __construct(
+        private Connection $db,
+        private ?ModuleRegistry $registry = null,
+        private ?Csrf $csrf = null,
+    ) {}
 
     /** @return array<string,array{label:string,fields:array,renderer:?callable,package:string}> */
     public function definitions(): array
@@ -51,6 +56,9 @@ final class PageBlocks
             ]],
             'contact' => ['label' => 'Contact details', 'fields' => [
                 'heading' => $text('Heading'), 'body' => $text('Intro', 'richtext'),
+            ]],
+            'form' => ['label' => 'Form', 'fields' => [
+                'heading' => $text('Heading'), 'form_id' => $text('Form ID', 'number'),
             ]],
             'spacer' => ['label' => 'Spacer / divider', 'fields' => [
                 'size' => ['label' => 'Size', 'type' => 'select', 'options' => ['small','medium','large']],
@@ -119,7 +127,7 @@ final class PageBlocks
         return match ($type) {
             'richtext' => (new Sanitizer())->html($value),
             'url' => $this->safeUrl($value),
-            'media' => (string) max(0, (int) $value),
+            'media', 'number' => (string) max(0, (int) $value),
             'media_list' => implode(',', array_slice(array_values(array_unique(array_filter(array_map(
                 fn ($v) => (int) trim($v), explode(',', $value)
             )))), 0, 40)),
@@ -172,6 +180,8 @@ final class PageBlocks
             return '<section class="wc-block wc-' . e_attr($type) . '">' . $heading . '<div class="wc-item-grid">' . $items . '</div></section>';
         }
         if ($type === 'contact') return '<section class="wc-block wc-contact">' . $heading . $body . '</section>';
+        if ($type === 'form') return '<section class="wc-block wc-form-block">' . $heading
+            . (new \Core\Forms\FormService($this->db))->render((int) ($d['form_id'] ?? 0), $basePath, $this->csrf) . '</section>';
         return '';
     }
 

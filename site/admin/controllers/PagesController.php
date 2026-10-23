@@ -125,7 +125,7 @@ final class PagesController extends Controller
             'error'     => $error,
             'revisions' => $revisions,
             'blockDefinitions' => (new \Core\Content\PageBlocks(
-                $db, $this->c->get(\Core\Modules\ModuleRegistry::class)
+                $db, $this->c->get(\Core\Modules\ModuleRegistry::class), $this->csrf()
             ))->definitions(),
         ], $page ? 'Edit page' : 'New page');
     }

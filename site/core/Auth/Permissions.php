@@ -14,13 +14,13 @@ final class Permissions
     private const ROLES = [
         'owner'  => ['*'],
         'admin'  => [
-            'content.manage', 'media.manage', 'navigation.manage',
+            'content.manage', 'forms.manage', 'media.manage', 'navigation.manage',
             'appearance.manage', 'settings.manage', 'modules.view', 'modules.install',
             'system.view', 'audit.view', 'backups.manage',
             'admins.view', 'admins.manage_nonowner',
         ],
         'editor' => [
-            'content.manage', 'media.manage',
+            'content.manage', 'forms.manage', 'media.manage',
         ],
     ];
 

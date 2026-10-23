@@ -129,9 +129,91 @@ final class MediaService
             return false;
         }
         @unlink($this->pathFor($media));
+        $this->clearVariants($id);
         $this->db->run('DELETE FROM `' . $this->db->table('media_usage') . '` WHERE media_id = ?', [$id]);
         $this->db->run('DELETE FROM `' . $this->db->table('media') . '` WHERE id = ?', [$id]);
         return true;
+    }
+
+    /** Replace file bytes while preserving the media id, metadata, and every usage reference. */
+    public function replace(int $id, array $file, ?int $adminId): ?string
+    {
+        $old = $this->find($id);
+        if (!$old) return 'Media item not found.';
+        [$temporaryId, $error] = $this->store(
+            $file, $adminId, (bool) $old['is_private'], (string) $old['folder']
+        );
+        if ($error !== null || $temporaryId === null) return $error ?? 'Replacement failed.';
+        $replacement = $this->find($temporaryId);
+        if (!$replacement) return 'Replacement could not be read after upload.';
+
+        $this->db->transaction(function () use ($id, $temporaryId, $replacement): void {
+            $this->db->update('media', [
+                'filename' => $replacement['filename'],
+                'original_name' => $replacement['original_name'],
+                'mime' => $replacement['mime'],
+                'size_bytes' => $replacement['size_bytes'],
+                'width' => $replacement['width'],
+                'height' => $replacement['height'],
+                'uploaded_by' => $replacement['uploaded_by'],
+            ], 'id = ?', [$id]);
+            $this->db->run('DELETE FROM `' . $this->db->table('media') . '` WHERE id = ?', [$temporaryId]);
+        });
+        @unlink($this->pathFor($old));
+        $this->clearVariants($id);
+        return null;
+    }
+
+    /**
+     * Return a cached, aspect-preserving image derivative or the original
+     * path when GD/type support is unavailable. Never upscales.
+     * @return array{0:string,1:string}
+     */
+    public function variant(array $media, int $maxWidth): array
+    {
+        $source = $this->pathFor($media);
+        $mime = (string) $media['mime'];
+        $maxWidth = max(64, min(2400, $maxWidth));
+        if (!str_starts_with($mime, 'image/') || !is_file($source)
+            || (int) ($media['width'] ?? 0) <= $maxWidth || !function_exists('imagecreatetruecolor')) {
+            return [$source, $mime];
+        }
+        $loader = match ($mime) {
+            'image/jpeg' => 'imagecreatefromjpeg',
+            'image/png' => 'imagecreatefrompng',
+            'image/gif' => 'imagecreatefromgif',
+            'image/webp' => 'imagecreatefromwebp',
+            default => null,
+        };
+        $writer = match ($mime) {
+            'image/jpeg' => 'imagejpeg', 'image/png' => 'imagepng',
+            'image/gif' => 'imagegif', 'image/webp' => 'imagewebp', default => null,
+        };
+        if ($loader === null || $writer === null || !function_exists($loader) || !function_exists($writer)) {
+            return [$source, $mime];
+        }
+        $ext = strtolower(pathinfo($source, PATHINFO_EXTENSION));
+        $dir = $this->storageDir() . '/variants';
+        if (!is_dir($dir)) mkdir($dir, 0750, true);
+        $stamp = substr(hash('sha256', (string) filemtime($source) . ':' . (string) filesize($source)), 0, 12);
+        $target = $dir . '/' . (int) $media['id'] . '-' . $maxWidth . '-' . $stamp . '.' . $ext;
+        if (is_file($target)) return [$target, $mime];
+
+        $src = @$loader($source);
+        if (!$src) return [$source, $mime];
+        $width = imagesx($src); $height = imagesy($src);
+        $newHeight = max(1, (int) round($height * ($maxWidth / $width)));
+        $dest = imagecreatetruecolor($maxWidth, $newHeight);
+        if (in_array($mime, ['image/png', 'image/gif', 'image/webp'], true)) {
+            imagealphablending($dest, false); imagesavealpha($dest, true);
+        }
+        imagecopyresampled($dest, $src, 0, 0, 0, 0, $maxWidth, $newHeight, $width, $height);
+        $ok = $mime === 'image/jpeg' ? @$writer($dest, $target, 86)
+            : ($mime === 'image/webp' ? @$writer($dest, $target, 84) : @$writer($dest, $target));
+        imagedestroy($src); imagedestroy($dest);
+        if (!$ok) return [$source, $mime];
+        @chmod($target, 0640);
+        return [$target, $mime];
     }
 
     /** @return list<array> */
@@ -145,5 +227,12 @@ final class MediaService
             "SELECT * FROM `{$table}` WHERE folder = ? ORDER BY id DESC LIMIT " . (int) $limit,
             [$folder]
         );
+    }
+
+    private function clearVariants(int $id): void
+    {
+        foreach (glob($this->storageDir() . '/variants/' . $id . '-*') ?: [] as $file) {
+            if (is_file($file)) @unlink($file);
+        }
     }
 }

@@ -76,6 +76,22 @@ final class ContentMediaTest extends TestCase
         $this->assertTrue(is_file($this->media()->pathFor($m)));
     }
 
+    public function testReplacementPreservesMediaIdAndMetadata(): void
+    {
+        $service = $this->media();
+        [$id] = $service->store($this->fakeUpload($this->pngBytes(), 'first.png'), 1);
+        $this->db->update('media', ['alt_text' => 'Brand mark'], 'id = ?', [$id]);
+        $oldPath = $service->pathFor($service->find($id));
+
+        $error = $service->replace($id, $this->fakeUpload($this->pngBytes(), 'replacement.png'), 2);
+        $this->assertNull($error);
+        $item = $service->find($id);
+        $this->assertSame('replacement.png', $item['original_name']);
+        $this->assertSame('Brand mark', $item['alt_text']);
+        $this->assertFileDoesNotExist($oldPath);
+        $this->assertFileExists($service->pathFor($item));
+    }
+
     public function testRejectsDisallowedExtension(): void
     {
         [, $err] = $this->media()->store($this->fakeUpload('MZ exe', 'virus.exe'), 1);

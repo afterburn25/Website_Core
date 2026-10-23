@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0-dev (unreleased)
+
+### Added — media and design system
+- Added in-place media replacement that preserves IDs, metadata, and usage references.
+- Added bounded, cached image derivatives with safe original-image fallback when GD is unavailable.
+- Added core-owned logo, favicon, social-image, color, and radius controls for compatible themes.
+- Added branding usage tracking and public base-theme rendering for those shared design tokens.
+
 ## 0.3.0-dev (unreleased)
 
 ### Added — content workflow

@@ -55,6 +55,11 @@ final class MediaController extends Controller
                     'caption'  => $r->string('caption'),
                 ], 'id = ?', [(int) $r->string('id')]);
                 $this->flash('ok', 'Metadata saved.');
+            } elseif ($action === 'replace') {
+                if (($err = $this->uploadError($r, 'replacement')) === null) {
+                    $err = $media->replace((int) $r->string('id'), $r->files['replacement'], $u->id);
+                }
+                $this->flash($err ? 'error' : 'ok', $err ?? 'File replaced; links and usages were preserved.');
             }
             return $this->redirect($r, '/admin/media');
         }
@@ -103,6 +108,19 @@ final class MediaController extends Controller
             ->header('X-Content-Type-Options', 'nosniff')
             ->header('Content-Disposition', 'inline; filename="' . preg_replace('/[^A-Za-z0-9._-]/', '_', $media['original_name']) . '"')
             ->header('Cache-Control', $media['is_private'] ? 'private, no-store' : 'public, max-age=86400')
+            ->setBody((string) file_get_contents($path));
+    }
+
+    public function serveVariant(Request $r): Response
+    {
+        $id = (int) ($r->attributes['id'] ?? 0);
+        $media = $this->svc()->find($id);
+        if (!$media || (int) $media['is_private'] === 1) return Response::notFound();
+        [$path, $mime] = $this->svc()->variant($media, (int) ($r->attributes['width'] ?? 640));
+        if (!is_file($path)) return Response::notFound();
+        return Response::html('')->header('Content-Type', $mime)
+            ->header('Content-Length', (string) filesize($path))
+            ->header('Cache-Control', 'public, max-age=604800, immutable')
             ->setBody((string) file_get_contents($path));
     }
 }

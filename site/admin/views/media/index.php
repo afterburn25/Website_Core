@@ -38,6 +38,14 @@
 <td><?= e($m['mime']) ?><?= $m['width'] ? '<br><span class="muted">' . (int) $m['width'] . '×' . (int) $m['height'] . '</span>' : '' ?></td>
 <td><?= number_format(((int) $m['size_bytes']) / 1024, 1) ?> KB</td>
 <td>
+<details><summary class="btn small secondary">Replace</summary>
+<form method="post" enctype="multipart/form-data" style="min-width:18rem;padding:.5rem 0">
+<?= $csrf->field() ?><input type="hidden" name="action" value="replace"><input type="hidden" name="id" value="<?= (int) $m['id'] ?>">
+<label>New file</label><input type="file" name="replacement" required>
+<p class="muted">Keeps this media ID, alt text, caption, and all existing references.</p>
+<button class="btn small" type="submit">Replace file</button>
+</form>
+</details>
 <form method="post">
 <?= $csrf->field() ?><input type="hidden" name="action" value="meta">
 <input type="hidden" name="id" value="<?= (int) $m['id'] ?>">

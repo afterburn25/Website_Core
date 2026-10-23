@@ -1,4 +1,16 @@
-<?php /** @var array $themes @var string $active @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
+<?php /** @var array $themes @var string $active @var array $branding @var array $mediaItems @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
+<div class="card">
+<h2 style="margin-top:0">Brand identity</h2>
+<p class="muted">These core values are available to every compatible theme. Industry modules can use them without owning or duplicating brand settings.</p>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/appearance/branding">
+<?= $csrf->field() ?>
+<?php foreach (['logo_media_id' => 'Site logo', 'favicon_media_id' => 'Favicon', 'social_media_id' => 'Default social image'] as $field => $label): ?>
+<label><?= e($label) ?></label><select name="<?= e_attr($field) ?>"><option value="">— none —</option><?php foreach ($mediaItems as $media): ?><option value="<?= (int) $media['id'] ?>" <?= (int) $branding[$field] === (int) $media['id'] ? 'selected' : '' ?>>#<?= (int) $media['id'] ?> — <?= e($media['original_name']) ?></option><?php endforeach; ?></select>
+<?php endforeach; ?>
+<div class="inline-fields"><div><label>Primary color</label><input type="color" name="primary_color" value="<?= e_attr($branding['primary_color']) ?>"></div><div><label>Accent color</label><input type="color" name="accent_color" value="<?= e_attr($branding['accent_color']) ?>"></div><div><label>Corner radius (px)</label><input type="number" min="0" max="24" name="radius" value="<?= e_attr($branding['radius']) ?>"></div></div>
+<div style="margin-top:1rem"><button class="btn" type="submit">Save branding</button></div>
+</form>
+</div>
 <div class="card">
 <h2 style="margin-top:0">Themes</h2>
 <p class="muted">Switching themes changes presentation only — pages, media,

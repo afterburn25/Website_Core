@@ -490,6 +490,7 @@ final class Application
             $r->any('/media', fn (Request $req) => (new \Admin\Controllers\MediaController($c))->index($req), [$auth, $csrfCheck]);
             $r->get('/appearance', fn (Request $req) => (new \Admin\Controllers\AppearanceController($c))->index($req), [$auth]);
             $r->post('/appearance/activate', fn (Request $req) => (new \Admin\Controllers\AppearanceController($c))->activate($req), [$auth, $csrfCheck]);
+            $r->post('/appearance/branding', fn (Request $req) => (new \Admin\Controllers\AppearanceController($c))->saveBranding($req), [$auth, $csrfCheck]);
             $r->post('/modules/upload', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->upload($req), [$auth, $csrfCheck]);
             $r->post('/modules/recovery', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->recovery($req), [$auth, $csrfCheck]);
             $r->post('/modules/{id:.+}/{op:[a-z]+}', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->action($req), [$auth, $csrfCheck]);
@@ -509,6 +510,7 @@ final class Application
         // page catch-all so they always win.
         $this->router->get('/sitemap.xml', fn (Request $r) => (new \Admin\Controllers\SitemapController($c))->sitemap($r));
         $this->router->get('/robots.txt', fn (Request $r) => (new \Admin\Controllers\SitemapController($c))->robots($r));
+        $this->router->get('/media/{id:\d+}/w/{width:\d+}/{name:.*}', fn (Request $r) => (new \Admin\Controllers\MediaController($c))->serveVariant($r));
         $this->router->get('/media/{id:\d+}/{name:.*}', fn (Request $r) => (new \Admin\Controllers\MediaController($c))->serve($r));
         $this->router->get('/preview/{token:[a-f0-9]{48}}', fn (Request $r) => (new \Admin\Controllers\PublicPageController($c))->preview($r));
 

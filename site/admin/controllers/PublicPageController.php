@@ -131,5 +131,28 @@ final class PublicPageController extends Controller
         $v->share('basePath', $r->basePath);
         $v->share('siteName', $this->settings()->get('site.name', 'Website Core'));
         $v->share('tagline', $this->settings()->get('site.tagline', ''));
+        $v->share('brandLogoUrl', $this->brandMediaUrl($r, 'brand.logo_media_id', 480));
+        $v->share('faviconUrl', $this->brandMediaUrl($r, 'brand.favicon_media_id'));
+        $v->share('socialImageUrl', $this->brandMediaUrl($r, 'brand.social_media_id', 1200));
+        $primary = (string) $this->settings()->get('design.primary_color', '#0369a1');
+        $accent = (string) $this->settings()->get('design.accent_color', '#0ea5e9');
+        $radius = max(0, min(24, (int) $this->settings()->get('design.radius', 8)));
+        $v->share('designTokens', [
+            'primary' => preg_match('/^#[0-9a-fA-F]{6}$/', $primary) ? $primary : '#0369a1',
+            'accent' => preg_match('/^#[0-9a-fA-F]{6}$/', $accent) ? $accent : '#0ea5e9',
+            'radius' => $radius,
+        ]);
+    }
+
+    private function brandMediaUrl(Request $r, string $setting, ?int $width = null): ?string
+    {
+        $id = (int) $this->settings()->get($setting, 0);
+        if ($id < 1) return null;
+        $media = $this->db()->fetch(
+            'SELECT id, original_name FROM `' . $this->db()->table('media') . '` WHERE id = ? AND is_private = 0', [$id]
+        );
+        if (!$media) return null;
+        return $r->basePath . '/media/' . $id
+            . ($width ? '/w/' . $width : '') . '/' . rawurlencode((string) $media['original_name']);
     }
 }

@@ -15,6 +15,9 @@
   installation/licensing documentation. CI now performs a real HTTP install
   on both MySQL and MariaDB, verifies no license row/API warning is created,
   and inspects the generated TEST-BUNDLE archive contract.
+- CI verification caught and fixed an incomplete ModuleRegistry test harness
+  call; the production MySQL/MariaDB keyless installation paths had already
+  passed before that test-only correction.
 
 ## 2026-10-15 — M6 accessibility and performance controls
 

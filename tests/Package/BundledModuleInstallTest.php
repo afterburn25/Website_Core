@@ -200,7 +200,9 @@ final class BundledModuleInstallTest extends TestCase
         $this->assertTrue($this->db->tableExists('restaurant_items'));
 
         $registry = new ModuleRegistry($this->db, $this->tmp . '/industries', $this->tmp . '/addons', $this->tmp . '/themes');
+        $registry->discover();
         $booted = $registry->bootEnabled(
+            fn (string $p, string $d) => \CoreAutoload::register($p, $d),
             fn (string $id) => new ModuleContext($id, new Router(), new Dispatcher())
         );
         $this->assertSame(['wcref/restaurant'], $booted);

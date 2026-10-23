@@ -35,7 +35,7 @@ a{color:var(--gold-2)}
 .brand-panel{position:relative;padding:38px;min-width:0;background:linear-gradient(165deg,rgba(17,47,76,.97),rgba(7,18,32,.98));border-right:1px solid var(--line)}
 .brand-panel:after{content:"";position:absolute;inset:auto -70px -110px auto;width:280px;height:280px;border-radius:50%;border:52px solid rgba(215,170,80,.06)}
 .brand-sticky{position:sticky;top:32px;z-index:1}
-.logo-card{display:flex;align-items:center;justify-content:flex-start;min-height:96px;padding:0;background:transparent}
+.logo-card{display:flex;align-items:center;justify-content:flex-start;width:fit-content;max-width:100%;min-height:96px;padding:0;background:transparent;text-decoration:none}
 .brand-logo{display:block;width:min(100%,390px);height:auto;max-height:100px;object-fit:contain;object-position:left center;filter:drop-shadow(0 12px 24px rgba(0,0,0,.28))}
 .eyebrow{margin:28px 0 8px;color:var(--gold-2);font-size:.75rem;font-weight:850;letter-spacing:.14em;text-transform:uppercase}
 .brand-panel h1{margin:0;font:700 clamp(2.25rem,4vw,4.4rem)/.98 Georgia,"Times New Roman",serif;letter-spacing:-.045em}
@@ -83,7 +83,9 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
 <main class="installer-shell">
     <aside class="brand-panel" aria-label="Installer overview">
         <div class="brand-sticky">
-            <div class="logo-card"><img class="brand-logo" src="<?= e_attr($logoUrl) ?>" alt="CajunWebPro — Web Design &amp; Development"></div>
+            <a class="logo-card" href="https://cajunwebpro.com" target="_blank" rel="noopener noreferrer" aria-label="Visit CajunWebPro">
+                <img class="brand-logo" src="<?= e_attr($logoUrl) ?>" alt="CajunWebPro — Web Design &amp; Development">
+            </a>
             <p class="eyebrow">Secure deployment system</p>
             <h1><?= e($packageName) ?></h1>
             <p class="brand-copy">A guided setup for your new website. Verify the server, connect the database, create the owner account, and launch securely.</p>

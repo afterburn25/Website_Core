@@ -11,7 +11,8 @@
   readiness states, and a live MySQL/MariaDB **Test connection** action.
 - Kept the approved logo fully transparent across setup, success, and cleanup
   screens, and separated readiness labels from their path/details for clean
-  wrapping and copy/paste output.
+  wrapping and copy/paste output. Every installer logo links back to
+  `https://cajunwebpro.com` in a new tab.
 - SSL/HTTPS is now a required installer check and Base URLs must use
   `https://`. Common shared-host and reverse-proxy SSL indicators are
   recognized.

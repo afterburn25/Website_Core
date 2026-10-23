@@ -398,6 +398,10 @@ jobs:
           if(!is_string($logo)||strlen($logo)<26||ord($logo[25])!==6){
             fwrite(STDERR,"CajunWebPro logo is not a transparent-capable RGBA PNG\n");exit(1);
           }
+          $installerView=$z->getFromName("install/views/installer.php");
+          if(!is_string($installerView)||!str_contains($installerView,"href=\"https://cajunwebpro.com\"")){
+            fwrite(STDERR,"installer logo is not linked to CajunWebPro\n");exit(1);
+          }
           echo "catering TEST-BUNDLE contract OK: ".basename($path)."\n";'
       - name: Upload catering TEST-BUNDLE
         uses: actions/upload-artifact@v4

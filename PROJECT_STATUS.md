@@ -4,7 +4,8 @@
 industry implementation: `examples/industry-catering`. The catering package
 contains a complete editorial public site, menu/package management, a secure
 multi-step quote workflow, and catering lead administration. Pre-1.0 — version
-`0.1.0-dev`; final test counts will be refreshed after CI verification.
+`0.1.0-dev`; PHP 8.4/8.5, MySQL 8.4, MariaDB 11.4, core-only boot,
+and release-artifact CI are green.
 
 ## Baseline
 
@@ -31,7 +32,7 @@ multi-step quote workflow, and catering lead administration. Pre-1.0 — version
 | M4 | Updates/backup/recovery/jobs/mail/diagnostics | implemented | BackupService roundtrip + admin UI; health + audit pages; diagnostics bundle download; PHPMailer queue + cron drain + recent-messages health table; Ed25519 signature verifier (sodium_compat polyfill); recovery-mode flag; CoreUpdater + /admin/updates (manifest-hash-verified apply, expires/min_core, maintenance-window gate, pre-update backup, journal, migrations, opcache reset) |
 | M5 | Cross-industry proof | implemented + tested | `examples/industry-restaurant` + `examples/industry-salon` (reference modules), `examples/addon-inquiry` (shared add-on), `examples/theme-noir` + `examples/theme-terra` (distinct themes) — verified via `ReferencePackagesTest` and `ReferenceSitesParityTest` (byte-identical add-on ZIP on both sites, parity preserved, theme switch preserves data) |
 | M6 | Release | implemented + tested | `docs/SECURITY.md` (passwords, MFA, sessions, CSRF, rate limits, input, headers, accessibility controls), `docs/COMPATIBILITY.md` (PHP 8.4/8.5, MySQL 8.4/MariaDB 11.4, Apache 2.4 mod_rewrite, LiteSpeed pending, no-rewrite fallback), `docs/COMMERCIAL_READINESS.md` (runtime deps, signing trust root, public repo policy, accessibility, performance posture), `docs/RELEASE_CHECKLIST.md` (release steps, verification, signing), AccessibilityTest (7 tests, 31 assertions) — aria-label, for labels, alt text, focus-visible, reduced-motion; release artifacts (FULL-PROJECT/COMPLETE-UPLOAD/UPDATE/packages + SHA256SUMS) built + CI-gated; `tools/verify-artifact.php` fresh-install dogfood; draft GitHub prerelease with 9 assets (unpublished — owner approval) |
-| Industry 1 | Catering website | implemented, CI pending | `examples/industry-catering`, `docs/CATERING_INDUSTRY.md`, `ReferencePackagesTest::testCateringIndustryInstallsRendersAndCapturesQuote` |
+| Industry 1 | Catering website | implemented + tested | `examples/industry-catering`, `docs/CATERING_INDUSTRY.md`, `ReferencePackagesTest::testCateringIndustryInstallsRendersAndCapturesQuote`; PHP 8.4/8.5 + MySQL 8.4 + MariaDB 11.4 CI green |
 
 ## Remaining gaps (owner-gated)
 
@@ -89,7 +90,7 @@ Website Core now supports a DRM licensing model for bundled products:
 
 ## Test status
 
-- `unit`+`package`: 169 tests / 651 assertions green locally (PHP 8.4.25);
+- `unit`+`package`: 179 tests / 714 assertions green in CI (PHP 8.4.27);
   3 skips are native-DB gated. Sodium tests run via `sodium_compat`.
   AccessibilityTest (7 tests) asserts aria-label, for labels, alt text,
   focus-visible, reduced-motion across admin layout and all 3 themes.

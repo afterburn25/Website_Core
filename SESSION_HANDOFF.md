@@ -17,9 +17,9 @@
   updates, and catering settings. Contact and quote submissions are CSRF-
   checked, honeypot-protected, rate-limited, stored in module-owned tables,
   and optionally queued to core mail.
-- Added package regression coverage. Local PHP execution was unavailable in
-  the current workspace, so PHP lint, PHPUnit, native databases, and the
-  generated TEST-BUNDLE must be confirmed by CI before release.
+- Added package regression coverage. CI confirms 187 PHP files lint clean,
+  179 unit/package tests with 714 assertions, both MySQL 8.4 and MariaDB 11.4
+  native/install acceptance, core-only boot, and release-artifact contracts.
 
 ## 2026-10-23 — keyless test-bundle installation
 

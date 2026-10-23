@@ -381,6 +381,7 @@ final class Application
             fn (string $id) => $this->container->get($id),
             fn () => (string) $this->container->get(SettingsRepository::class)->get('theme.active', 'base'),
             $themesRoot,
+            basename((string) ($registry->all()[$packageId]['dir'] ?? '')),
         );
 
         // Recovery mode: a flag file in storage (created from the Modules

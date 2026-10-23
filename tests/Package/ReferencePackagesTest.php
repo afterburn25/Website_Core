@@ -262,7 +262,7 @@ final class ReferencePackagesTest extends TestCase
         $this->assertSame(200, $home->status());
         $this->assertStringContainsString('Gather', $home->body());
         $this->assertStringContainsString('Request a Quote', $home->body());
-        $this->assertStringContainsString('/_a/modules/catering/assets/css/catering.css', $home->body());
+        $this->assertStringContainsString('/_a/modules/industry-catering/assets/css/catering.css', $home->body());
 
         foreach (['/services', '/menus', '/packages', '/gallery', '/about', '/service-area', '/faq', '/contact', '/request-a-quote'] as $route) {
             $response = $this->req('GET', $route);

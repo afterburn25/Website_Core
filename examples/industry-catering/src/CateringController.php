@@ -396,6 +396,7 @@ final class CateringController
         $settings = $this->settings();
         $shared = [
             'basePath' => $request->basePath,
+            'assetBase' => $this->ctx->assetBase($request->basePath),
             'currentPath' => rtrim($request->path, '/') ?: '/',
             'siteName' => (string) $settings->get('site.name', 'Maison & Meadow Catering'),
             'tagline' => (string) $settings->get('site.tagline', 'Gather beautifully.'),

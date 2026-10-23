@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.7-dev (unreleased)
+
+### Fixed — package-owned public assets
+- Added `ModuleContext::assetBase()` so every extension receives the correct
+  public asset URL for its installed directory. This prevents manifest ids,
+  display names, or guessed short names from producing broken asset routes.
+- Updated the catering site to use the core-supplied asset base for its CSS,
+  JavaScript, and service images. Subfolder installs now request assets from
+  `industry-catering`, matching the bundled module directory.
+- Incremented the catering module to `0.1.7`.
+
 ## 0.1.6-dev (unreleased)
 
 ### Changed — ownership-independent installer architecture

@@ -1,7 +1,7 @@
 <?php
-/** @var string $content @var string $siteName @var string $tagline @var string $basePath
+/** @var string $content @var string $siteName @var string $tagline @var string $basePath @var string $assetBase
  * @var string $currentPath @var string $phone @var string $contactEmail @var array $page */
-$asset = $basePath . '/_a/modules/catering';
+$asset = $assetBase;
 $nav = [
     ['Our Story', '/about'], ['Menus', '/menus'], ['Services', '/services'],
     ['Packages', '/packages'], ['Gallery', '/gallery'], ['Contact', '/contact'],

@@ -38,6 +38,7 @@ final class ModuleContext
         private $serviceResolver = null,
         private $activeTheme = null,
         private ?string $themesRoot = null,
+        private ?string $assetNamespace = null,
     ) {}
 
     private function themesRoot(): string
@@ -48,6 +49,21 @@ final class ModuleContext
     public function packageId(): string
     {
         return $this->packageId;
+    }
+
+    /**
+     * Public URL prefix for this package's assets. The namespace is the
+     * installed package directory, not the manifest id (which may contain a
+     * slash and therefore cannot safely occupy one route segment).
+     */
+    public function assetBase(string $basePath = ''): string
+    {
+        $namespace = $this->assetNamespace;
+        if ($namespace === null || $namespace === '') {
+            $namespace = basename(str_replace('\\', '/', $this->packageId));
+        }
+
+        return rtrim($basePath, '/') . '/_a/modules/' . rawurlencode($namespace);
     }
 
     /** Register a public route. Module routes register before the slug catch-all. */

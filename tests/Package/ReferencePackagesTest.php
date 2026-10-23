@@ -245,6 +245,62 @@ final class ReferencePackagesTest extends TestCase
         $this->assertStringContainsString('60.00', $resp->body());
     }
 
+    public function testCateringIndustryInstallsRendersAndCapturesQuote(): void
+    {
+        $this->installEnable('industry-catering', 'catering', 'cajunwebpro/catering');
+        $this->boot();
+
+        $this->assertTrue($this->db->tableExists('catering_menu_categories'));
+        $this->assertTrue($this->db->tableExists('catering_menu_items'));
+        $this->assertTrue($this->db->tableExists('catering_packages'));
+        $this->assertTrue($this->db->tableExists('catering_inquiries'));
+        $this->assertGreaterThan(0, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('catering_menu_items') . '`'
+        ));
+
+        $home = $this->req('GET', '/');
+        $this->assertSame(200, $home->status());
+        $this->assertStringContainsString('Gather', $home->body());
+        $this->assertStringContainsString('Request a Quote', $home->body());
+        $this->assertStringContainsString('/_a/modules/catering/assets/css/catering.css', $home->body());
+
+        foreach (['/services', '/menus', '/packages', '/gallery', '/about', '/service-area', '/faq', '/contact', '/request-a-quote'] as $route) {
+            $response = $this->req('GET', $route);
+            $this->assertSame(200, $response->status(), $route);
+            $this->assertStringContainsString('<main id="main-content">', $response->body(), $route);
+        }
+
+        $menu = $this->req('GET', '/menus/plated-entrees');
+        $this->assertSame(200, $menu->status());
+        $this->assertStringContainsString('Herb-Crusted Salmon', $menu->body());
+
+        $_SESSION['_wc_csrf'] = 'catering-test-token';
+        $quote = $this->req('POST', '/request-a-quote', [
+            '_csrf' => 'catering-test-token',
+            'name' => 'Taylor Client',
+            'email' => 'taylor@example.com',
+            'phone' => '555-0100',
+            'event_type' => 'Wedding',
+            'event_date' => '2027-05-15',
+            'event_time' => '17:30',
+            'guest_count' => '120',
+            'venue' => 'Garden Hall',
+            'service_style' => 'Plated dinner',
+            'menu_interest' => 'Plated Entrées',
+            'budget' => '$10,000–$20,000',
+            'dietary' => 'Two gluten-free meals',
+            'message' => 'Outdoor cocktail hour.',
+        ]);
+        $this->assertSame(302, $quote->status());
+        $row = $this->db->fetch(
+            'SELECT * FROM `' . $this->db->table('catering_inquiries') . '` WHERE email = ?',
+            ['taylor@example.com']
+        );
+        $this->assertNotNull($row);
+        $this->assertSame('new', $row['status']);
+        $this->assertSame(120, (int) $row['guest_count']);
+    }
+
     public function testThemesValidateAsPackages(): void
     {
         foreach (['theme-terra' => 'terra', 'theme-noir' => 'noir'] as $dir => $inner) {

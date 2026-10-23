@@ -1,10 +1,10 @@
 # Project Status
 
-**Current**: M0–M6 implemented and hardened — installer, identities/security,
-content, packages, ops/updates, reference packages + parity proof, accessibility
-and performance controls, with release artifacts and CI gating. 149 tests /
-582 assertions; all layers audited. Pre-1.0 — version `0.1.0-dev`; remaining
-items are owner-gated, not engineering.
+**Current**: M0–M6 implemented and hardened, plus the first commercial
+industry implementation: `examples/industry-catering`. The catering package
+contains a complete editorial public site, menu/package management, a secure
+multi-step quote workflow, and catering lead administration. Pre-1.0 — version
+`0.1.0-dev`; final test counts will be refreshed after CI verification.
 
 ## Baseline
 
@@ -31,6 +31,7 @@ items are owner-gated, not engineering.
 | M4 | Updates/backup/recovery/jobs/mail/diagnostics | implemented | BackupService roundtrip + admin UI; health + audit pages; diagnostics bundle download; PHPMailer queue + cron drain + recent-messages health table; Ed25519 signature verifier (sodium_compat polyfill); recovery-mode flag; CoreUpdater + /admin/updates (manifest-hash-verified apply, expires/min_core, maintenance-window gate, pre-update backup, journal, migrations, opcache reset) |
 | M5 | Cross-industry proof | implemented + tested | `examples/industry-restaurant` + `examples/industry-salon` (reference modules), `examples/addon-inquiry` (shared add-on), `examples/theme-noir` + `examples/theme-terra` (distinct themes) — verified via `ReferencePackagesTest` and `ReferenceSitesParityTest` (byte-identical add-on ZIP on both sites, parity preserved, theme switch preserves data) |
 | M6 | Release | implemented + tested | `docs/SECURITY.md` (passwords, MFA, sessions, CSRF, rate limits, input, headers, accessibility controls), `docs/COMPATIBILITY.md` (PHP 8.4/8.5, MySQL 8.4/MariaDB 11.4, Apache 2.4 mod_rewrite, LiteSpeed pending, no-rewrite fallback), `docs/COMMERCIAL_READINESS.md` (runtime deps, signing trust root, public repo policy, accessibility, performance posture), `docs/RELEASE_CHECKLIST.md` (release steps, verification, signing), AccessibilityTest (7 tests, 31 assertions) — aria-label, for labels, alt text, focus-visible, reduced-motion; release artifacts (FULL-PROJECT/COMPLETE-UPLOAD/UPDATE/packages + SHA256SUMS) built + CI-gated; `tools/verify-artifact.php` fresh-install dogfood; draft GitHub prerelease with 9 assets (unpublished — owner approval) |
+| Industry 1 | Catering website | implemented, CI pending | `examples/industry-catering`, `docs/CATERING_INDUSTRY.md`, `ReferencePackagesTest::testCateringIndustryInstallsRendersAndCapturesQuote` |
 
 ## Remaining gaps (owner-gated)
 

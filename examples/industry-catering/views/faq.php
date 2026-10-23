@@ -1,0 +1,3 @@
+<?php /** @var array $faqs @var string $basePath */ ?>
+<section class="c-page-title c-page-title-centered"><p class="c-eyebrow">Good to know</p><h1>Frequently asked questions.</h1><p>Helpful details for planning your catering experience.</p></section>
+<section class="c-faq c-wrap c-section"><?php foreach ($faqs as $i => [$question, $answer]): ?><details<?= $i === 0 ? ' open' : '' ?>><summary><span><?= e($question) ?></span><i></i></summary><p><?= e($answer) ?></p></details><?php endforeach; ?><div class="c-faq-help"><h2>Still have a question?</h2><p>Tell us what you’re planning and we’ll help with the details.</p><a class="c-text-link" href="<?= e_attr($basePath) ?>/contact">Contact the catering team <span>→</span></a></div></section>

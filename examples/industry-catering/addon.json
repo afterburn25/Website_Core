@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "id": "cajunwebpro/catering",
+  "type": "industry",
+  "name": "Catering Website",
+  "version": "0.1.0",
+  "license": "PROPRIETARY",
+  "requires": { "core": ">=0.1.0", "api": 1 },
+  "provider": "CajunWebPro\\Catering\\Provider",
+  "psr4": { "CajunWebPro\\Catering\\": "src/" },
+  "migrations": "migrations",
+  "assets": {
+    "css": ["assets/css/catering.css"],
+    "js": ["assets/js/catering.js"],
+    "images": [
+      "assets/images/hero.webp",
+      "assets/images/plated-dinner.webp",
+      "assets/images/wedding-table.webp",
+      "assets/images/corporate-service.webp"
+    ]
+  },
+  "capabilities": ["catering.manage", "catering.inquiries"]
+}

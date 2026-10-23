@@ -2,6 +2,23 @@
 
 ## 0.1.0-dev (unreleased)
 
+### Added — first commercial industry package
+- Added `examples/industry-catering`, a self-contained catering website
+  package based on the approved ivory/forest/gold editorial concept. It
+  supplies distinct full-size pages for the home, services and four service
+  details, menus and category details, packages and package details, gallery,
+  story, service area, FAQ, contact, and quote-request experience.
+- Added module-owned menu, package, and inquiry tables with editable seeded
+  demonstration content. The four-step quote planner uses CSRF protection,
+  honeypot and database rate limiting, persists leads, and queues an optional
+  notification through core system mail.
+- Added Catering and Catering Leads administration screens for dashboard
+  metrics, menus, packages, inquiry status workflow, and business defaults.
+- Added four project-owned, generated event/food photographs optimized as
+  WebP assets; the finished package has no third-party image hotlinks.
+- Added package coverage for installation, migrations, public page rendering,
+  menu detail routing, and end-to-end quote capture.
+
 ### Added — keyless testing bundles
 - `tools/build-packages.php test-bundle <industry> [outdir]` creates a clearly
   labeled industry bundle without `license_key` for development and customer

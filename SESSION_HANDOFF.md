@@ -1,5 +1,26 @@
 # Session Handoff
 
+## 2026-10-23 — catering industry package
+
+- The approved concept is an elegant editorial catering site: ivory and deep
+  forest green, restrained gold, large event/food photography, serif display
+  typography, and varied full-page layouts.
+- Added `examples/industry-catering` (`cajunwebpro/catering` 0.1.0). It owns
+  menu categories/items, packages, and catering inquiries and accesses core
+  only through `ModuleContext` services.
+- Public routes cover the homepage, services plus wedding/corporate/private/
+  drop-off detail pages, menus and category detail, packages and package
+  detail, gallery, story, service area, FAQ, contact, and a four-step quote
+  planner. The module includes responsive navigation, accessibility controls,
+  reduced-motion handling, and four optimized project-owned WebP photographs.
+- Admin routes provide a dashboard, menu/package tools, lead pipeline status
+  updates, and catering settings. Contact and quote submissions are CSRF-
+  checked, honeypot-protected, rate-limited, stored in module-owned tables,
+  and optionally queued to core mail.
+- Added package regression coverage. Local PHP execution was unavailable in
+  the current workspace, so PHP lint, PHPUnit, native databases, and the
+  generated TEST-BUNDLE must be confirmed by CI before release.
+
 ## 2026-10-23 — keyless test-bundle installation
 
 - Added `test-bundle <industry> [outdir]` packaging mode. Output is visibly

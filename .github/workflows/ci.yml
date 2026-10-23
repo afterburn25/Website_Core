@@ -357,6 +357,9 @@ jobs:
           foreach([
             "install.php",
             "vendor/autoload.php",
+            "storage/.htaccess",
+            "storage/tmp/.gitkeep",
+            "upload/.htaccess",
             "modules/industries/industry-catering/src/Provider.php",
             "modules/industries/industry-catering/assets/css/catering.css",
             "modules/industries/industry-catering/assets/images/hero.webp"

@@ -129,8 +129,10 @@ if (in_array($argv[1] ?? null, ['bundle', 'test-bundle'], true)) {
         // config/ ships only its two scaffolding files — runtime config,
         // the install claim token and any future secret artifact cannot leak.
         if ((str_starts_with($rel, 'config/') && $rel !== 'config/.htaccess' && $rel !== 'config/config.example.php')
-            || str_starts_with($rel, 'storage/')
-            || str_starts_with($rel, 'upload/')
+            || (str_starts_with($rel, 'storage/')
+                && !preg_match('#^storage(?:/[^/]+)?/\.(?:htaccess|gitkeep)$#', $rel))
+            || (str_starts_with($rel, 'upload/')
+                && !preg_match('#^upload/\.(?:htaccess|gitkeep|html)$#', $rel))
             || str_ends_with($rel, '.env')
             || str_contains($rel, '.key')
             || str_contains($rel, '.pem')
@@ -247,7 +249,8 @@ $skipRuntime = fn (string $rel): bool =>
     // config/ ships only its two scaffolding files — runtime config, the
     // install claim token and any future secret artifact can never leak.
     (str_starts_with($rel, 'config/') && $rel !== 'config/.htaccess' && $rel !== 'config/config.example.php')
-    || str_starts_with($rel, 'storage/')      // runtime data; keep only guards
+    || (str_starts_with($rel, 'storage/')     // runtime data; keep only guards
+        && !preg_match('#^storage(?:/[^/]+)?/\.(?:htaccess|gitkeep)$#', $rel))
     || str_starts_with($rel, 'upload/') && !preg_match('#^upload/\.(htaccess|gitkeep|html)#', $rel)
     || str_ends_with($rel, '.key')
     || str_ends_with($rel, '.pem')

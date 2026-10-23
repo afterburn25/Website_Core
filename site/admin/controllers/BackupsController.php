@@ -13,7 +13,7 @@ final class BackupsController extends Controller
     {
         $storage = (string) $this->c->get(\Core\Config::class)->get('paths.storage', WC_ROOT . '/storage');
         return new BackupService(
-            $this->db(), $storage . '/backups', $storage . '/staging', WC_ROOT
+            $this->db(), $storage . '/backups', $storage . '/staging', WC_ROOT, $storage
         );
     }
 
@@ -57,13 +57,32 @@ final class BackupsController extends Controller
             $this->flash('error', 'Backup not found.');
             return $this->redirect($r, '/admin/backups');
         }
-        [$ok, $err] = $this->svc()->restore($path);
+        // Always capture the current state first and pause cron/public traffic
+        // during restore. A failed restore must still leave a rollback point.
+        [$safety, $safetyError] = $this->svc()->create();
+        if ($safetyError !== null) {
+            $this->flash('error', 'Restore stopped because the pre-restore safety backup failed: ' . $safetyError);
+            return $this->redirect($r, '/admin/backups');
+        }
+        $flag = $storage . '/maintenance.flag';
+        $alreadyMaintenance = is_file($flag);
+        if (!$alreadyMaintenance) file_put_contents($flag, date('c') . ' pre-restore');
+        $ok = false;
+        $err = 'Restore did not complete.';
+        try {
+            [$ok, $err] = $this->svc()->restore($path);
+            if ($ok && function_exists('opcache_reset')) @opcache_reset();
+        } finally {
+            if (!$alreadyMaintenance) @unlink($flag);
+        }
         $this->c->get(\Core\Audit\AuditLog::class)->record('backup.restore', $u->id, ['file' => $name, 'ok' => $ok]);
         if ($ok) {
             $this->c->get(\Core\Events\Dispatcher::class)->dispatch(
                 'backup.restored', ['file' => $name, 'by' => $u->id]);
         }
-        $this->flash($ok ? 'ok' : 'error', $ok ? 'Backup restored.' : (string) $err);
+        $this->flash($ok ? 'ok' : 'error', $ok
+            ? 'Backup restored. Pre-restore safety snapshot: ' . basename((string) $safety)
+            : (string) $err . ' Safety snapshot: ' . basename((string) $safety));
         return $this->redirect($r, '/admin/backups');
     }
 

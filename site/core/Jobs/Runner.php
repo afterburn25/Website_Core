@@ -63,6 +63,14 @@ final class Runner
             'license.validate' => function (array $payload, Container $c): void {
                 $c->get(\Core\Jobs\LicenseValidationJob::class)->handle($payload);
             },
+            'core.backup' => function (array $payload, Container $c): void {
+                $config = $c->get(\Core\Config::class);
+                $storage = (string) $config->get('paths.storage', WC_ROOT . '/storage');
+                [$path, $error] = (new \Core\Backup\BackupService(
+                    $c->get(Connection::class), $storage . '/backups', $storage . '/staging', WC_ROOT, $storage
+                ))->create();
+                if ($error !== null) throw new \RuntimeException($error);
+            },
         ];
     }
 }

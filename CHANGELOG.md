@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0-dev (unreleased)
+
+### Added — operations and recovery
+- Added an owner operations console for maintenance mode, queue retry/pruning, cache cleanup, mail processing, and queued backups.
+- Added daily, weekly, and 30-day automatic backup scheduling through the bounded cron queue.
+- Added protected media to backup/restore coverage and automatic pre-restore safety snapshots.
+- Restore now pauses public/cron activity, preserves the prior maintenance state, and resets OPcache after success.
+
 ## 0.6.0-dev (unreleased)
 
 ### Added — administrator security

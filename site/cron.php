@@ -45,6 +45,22 @@ if (!$cli) {
     }
 }
 
+// Optional shared-host backup schedule. Cron remains the only trigger; a
+// front-end visit never performs heavy backup work.
+$settings = $app->container()->get(\Core\Settings\SettingsRepository::class);
+$autoDays = (int) $settings->get('backup.auto_days', 0);
+if ($autoDays > 0) {
+    $backups = glob($storage . '/backups/backup-*.zip') ?: [];
+    $latest = $backups === [] ? 0 : max(array_map('filemtime', $backups));
+    $db = $app->container()->get(\Core\Database\Connection::class);
+    $pendingBackup = (int) $db->fetchColumn(
+        'SELECT COUNT(*) FROM `' . $db->table('jobs') . "` WHERE type = 'core.backup' AND status IN ('pending','running','uncertain')"
+    );
+    if (!$pendingBackup && $latest < time() - ($autoDays * 86400)) {
+        $app->container()->get(\Core\Jobs\JobQueue::class)->dispatch('core.backup', ['automatic' => true]);
+    }
+}
+
 $runner = new \Core\Jobs\Runner($app->container());
 $processed = $runner->run(10, 25);
 // Drain the transactional queue every pass — no separate cron entry needed.

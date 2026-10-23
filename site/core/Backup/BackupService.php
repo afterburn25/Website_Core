@@ -28,14 +28,17 @@ final class BackupService
         private string $backupDir,
         private string $stagingDir,
         private string $siteRoot,
-    ) {}
+        private ?string $storageRoot = null,
+    ) {
+        $this->storageRoot ??= $this->siteRoot . '/storage';
+    }
 
     /**
      * File roots a backup may embed and a restore may write back. Kept as
      * one constant so the two directions can never drift; storage/ is
      * deliberately absent (backups must never contain backups).
      */
-    private const RESTORABLE_ROOTS = ['config', 'upload', 'modules', 'themes'];
+    private const RESTORABLE_ROOTS = ['config', 'upload', 'modules', 'themes', 'storage/media'];
 
     /**
      * Create a backup. $includeDirs are site-root-relative paths whose trees
@@ -65,7 +68,9 @@ final class BackupService
             $filesBase = $tmp . '/files';
             @mkdir($filesBase, 0750, true);
             foreach ($includeDirs as $rel) {
-                $src = $this->siteRoot . '/' . trim($rel, '/');
+                $src = $rel === 'storage/media'
+                    ? rtrim((string) $this->storageRoot, '/\\') . '/media'
+                    : $this->siteRoot . '/' . trim($rel, '/');
                 if (!is_dir($src)) {
                     continue;
                 }
@@ -246,7 +251,9 @@ final class BackupService
 
             if ($restoreFiles) {
                 foreach (($meta['files'] ?? []) as $rel => $hash) {
-                    $dest = $this->siteRoot . '/' . $rel;
+                    $dest = str_starts_with($rel, 'storage/media/')
+                        ? rtrim((string) $this->storageRoot, '/\\') . substr($rel, strlen('storage'))
+                        : $this->siteRoot . '/' . $rel;
                     // Only restore into the declared include roots — a
                     // tampered manifest cannot write outside them. '..' or
                     // backslash segments would defeat the prefix check, so

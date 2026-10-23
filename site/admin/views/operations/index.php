@@ -1,0 +1,19 @@
+<?php /** @var array $jobs @var array $counts @var bool $maintenance @var bool $canOperate @var int $autoDays */ ?>
+<div class="metric-grid">
+<div class="metric"><span>Public site</span><strong class="<?= $maintenance ? 'text-bad' : 'text-ok' ?>"><?= $maintenance ? 'Maintenance' : 'Live' ?></strong><small>administrator access remains available</small></div>
+<div class="metric"><span>Pending jobs</span><strong><?= (int) $counts['pending'] + (int) $counts['uncertain'] ?></strong><small><?= (int) $counts['failed'] ?> failed</small></div>
+<div class="metric"><span>Automatic backup</span><strong><?= $autoDays ? 'Every ' . $autoDays . 'd' : 'Off' ?></strong><small>runs through cron</small></div>
+</div>
+<?php if ($canOperate): ?>
+<div class="card"><h2 style="margin-top:0">Operations</h2><div class="button-row">
+<form method="post"><?= $csrf->field() ?><input type="hidden" name="action" value="maintenance"><input type="hidden" name="mode" value="<?= $maintenance ? 'off' : 'on' ?>"><button class="btn <?= $maintenance ? '' : 'danger' ?>" type="submit"><?= $maintenance ? 'Take site live' : 'Enable maintenance' ?></button></form>
+<form method="post"><?= $csrf->field() ?><input type="hidden" name="action" value="clear_cache"><button class="btn secondary" type="submit">Clear caches</button></form>
+<form method="post"><?= $csrf->field() ?><input type="hidden" name="action" value="flush_mail"><button class="btn secondary" type="submit">Process mail queue</button></form>
+<form method="post"><?= $csrf->field() ?><input type="hidden" name="action" value="queue_backup"><button class="btn secondary" type="submit">Queue backup</button></form>
+<form method="post"><?= $csrf->field() ?><input type="hidden" name="action" value="prune"><button class="btn secondary" type="submit">Prune old completed jobs</button></form>
+</div><form method="post" class="inline-fields" style="margin-top:1rem"><?= $csrf->field() ?><input type="hidden" name="action" value="backup_schedule"><div><label>Automatic backup interval</label><select name="days"><option value="0" <?= $autoDays === 0 ? 'selected' : '' ?>>Off</option><option value="1" <?= $autoDays === 1 ? 'selected' : '' ?>>Daily</option><option value="7" <?= $autoDays === 7 ? 'selected' : '' ?>>Weekly</option><option value="30" <?= $autoDays === 30 ? 'selected' : '' ?>>Every 30 days</option></select></div><button class="btn" type="submit" style="align-self:end">Save schedule</button></form></div>
+<?php endif; ?>
+<div class="card"><div class="card-heading"><h2>Recent jobs</h2><span class="muted">At-least-once queue; uncertain jobs are safe to retry.</span></div>
+<table><tr><th>ID</th><th>Type</th><th>Status</th><th>Attempts</th><th>Run after</th><th>Error</th><th></th></tr>
+<?php foreach ($jobs as $job): ?><tr><td><?= (int) $job['id'] ?></td><td><?= e($job['type']) ?></td><td><span class="badge <?= $job['status'] === 'done' ? 'ok' : ($job['status'] === 'failed' ? 'bad' : 'warn') ?>"><?= e($job['status']) ?></span></td><td><?= (int) $job['attempts'] ?></td><td><?= e(date('Y-m-d H:i:s', (int) $job['run_after'])) ?></td><td class="err"><?= e(substr((string) ($job['last_error'] ?? ''), 0, 120)) ?></td><td><?php if ($canOperate && in_array($job['status'], ['failed','uncertain'], true)): ?><form method="post"><?= $csrf->field() ?><input type="hidden" name="action" value="retry"><input type="hidden" name="id" value="<?= (int) $job['id'] ?>"><button class="btn small" type="submit">Retry</button></form><?php endif; ?></td></tr><?php endforeach; ?>
+</table></div>

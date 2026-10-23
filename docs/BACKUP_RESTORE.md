@@ -8,9 +8,10 @@ A backup is a single ZIP in `storage/backups/` containing:
   package tables alike; statement-bounded, hex-encoded values so user
   data cannot forge delimiters).
 - `files/…` — the trees under the restorable roots: `config/` (settings,
-  keys), `upload/` (media), `modules/` and `themes/` (installed
-  packages). `storage/` is deliberately excluded — backups never contain
-  backups.
+  keys), `upload/`, protected `storage/media`, `modules/`, and `themes/`.
+  `storage/media` follows configured `paths.storage`, including a protected
+  directory outside the public deployment root. Other storage paths are deliberately excluded — backups never contain
+  backups, locks, caches, or staged updates.
 - `meta.json` — format version, DB driver, table prefix, `db_sha256`,
   per-file SHA-256 manifest, table inventory.
 
@@ -26,8 +27,11 @@ normalized at backup time so archives are portable across OSes.
 ## Constraints (shared hosting)
 
 - No `mysqldump`, shell, or unbounded request timeouts: the dump is a
-  bounded per-table SELECT loop; backups/restores run inside a normal
-  admin request and stay modest by design.
+  bounded per-table SELECT loop. Manual backups/restores run in an admin
+  request; automatic backups run as bounded cron jobs.
+- Restore automatically creates a pre-restore safety snapshot, enables
+  maintenance mode for the restore window, resets OPcache, and then returns
+  the site to its prior maintenance state.
 - Private staging under `paths.storage`; unsupported or incomplete
   snapshots are rejected loudly — never a green check on partial data.
 - Backups are protected runtime artifacts — never release assets and

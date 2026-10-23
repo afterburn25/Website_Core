@@ -61,4 +61,20 @@ final class JobQueueTest extends TestCase
         );
         $this->assertSame('done', $row['status']);
     }
+
+    public function testFailedJobCanBeRetriedAndOldCompletedJobsPruned(): void
+    {
+        $failed = $this->q->dispatch('demo.failed');
+        $this->db->update('jobs', ['status' => 'failed', 'attempts' => 5], 'id = ?', [$failed]);
+        $this->assertTrue($this->q->retry($failed));
+        $row = $this->db->fetch('SELECT status, attempts FROM `' . $this->db->table('jobs') . '` WHERE id = ?', [$failed]);
+        $this->assertSame('pending', $row['status']);
+        $this->assertSame(0, (int) $row['attempts']);
+
+        $done = $this->q->dispatch('demo.done');
+        $this->db->update('jobs', [
+            'status' => 'done', 'finished_at' => date('Y-m-d H:i:s', time() - 40 * 86400),
+        ], 'id = ?', [$done]);
+        $this->assertSame(1, $this->q->pruneCompleted(30));
+    }
 }

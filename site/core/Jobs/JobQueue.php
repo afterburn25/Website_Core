@@ -111,4 +111,28 @@ final class JobQueue
         }
         return $out;
     }
+
+    /** @return list<array> */
+    public function recent(int $limit = 50): array
+    {
+        return $this->db->fetchAll(
+            'SELECT * FROM `' . $this->db->table('jobs') . '` ORDER BY id DESC LIMIT ' . max(1, min(200, $limit))
+        );
+    }
+
+    public function retry(int $id): bool
+    {
+        return $this->db->update('jobs', [
+            'status' => 'pending', 'attempts' => 0, 'run_after' => time(),
+            'leased_by' => null, 'leased_until' => null, 'last_error' => null, 'finished_at' => null,
+        ], "id = ? AND status IN ('failed','uncertain')", [$id]) > 0;
+    }
+
+    public function pruneCompleted(int $olderThanDays = 30): int
+    {
+        return $this->db->run(
+            'DELETE FROM `' . $this->db->table('jobs') . '` WHERE status = ? AND finished_at < ?',
+            ['done', date('Y-m-d H:i:s', time() - max(1, $olderThanDays) * 86400)]
+        )->rowCount();
+    }
 }

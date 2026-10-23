@@ -108,6 +108,24 @@ final class BackupTest extends TestCase
         $this->assertStringContainsString('integrity', (string) $err);
     }
 
+    public function testConfiguredExternalMediaStorageRoundtrips(): void
+    {
+        $external = $this->tmp . '/private-runtime';
+        mkdir($external . '/media/public', 0777, true);
+        file_put_contents($external . '/media/public/logo.png', 'image-bytes');
+        $service = new BackupService(
+            $this->db, $this->tmp . '/backups', $this->tmp . '/staging', $this->siteRoot, $external
+        );
+        [$path, $error] = $service->create();
+        $this->assertNull($error);
+        [$meta] = $service->inspect($path);
+        $this->assertArrayHasKey('storage/media/public/logo.png', $meta['files']);
+        unlink($external . '/media/public/logo.png');
+        [$ok, $error] = $service->restore($path);
+        $this->assertTrue($ok, (string) $error);
+        $this->assertSame('image-bytes', file_get_contents($external . '/media/public/logo.png'));
+    }
+
     public function testMissingMembersRejected(): void
     {
         $bad = $this->tmp . '/empty.zip';

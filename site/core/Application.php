@@ -515,6 +515,7 @@ final class Application
             $r->post('/backups/create', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->create($req), [$auth, $csrfCheck]);
             $r->post('/backups/restore', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->restore($req), [$auth, $csrfCheck]);
             $r->post('/backups/delete', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->delete($req), [$auth, $csrfCheck]);
+            $r->any('/operations', fn (Request $req) => (new \Admin\Controllers\OperationsController($c))->index($req), [$auth, $csrfCheck]);
             $r->get('/health', fn (Request $req) => (new \Admin\Controllers\SystemController($c))->health($req), [$auth]);
             $r->get('/system/diagnostics', fn (Request $req) => (new \Admin\Controllers\SystemController($c))->diagnostics($req), [$auth]);
             $r->get('/audit', fn (Request $req) => (new \Admin\Controllers\SystemController($c))->audit($req), [$auth]);

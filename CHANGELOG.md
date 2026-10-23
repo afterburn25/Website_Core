@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.0 — 2026-10-23
+
+- Added search previews, page schema markup, automated content checks and
+  validated redirect CSV import/export.
+
 ## 1.5.0 — 2026-10-23
 
 - Added consent-gated analytics, public privacy requests, the private request

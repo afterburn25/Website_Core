@@ -23,6 +23,7 @@ adapt to real dependencies; scope is preserved, not deferred silently.
 | 1.3 | media folders/tags, bulk organization, focal crops, usage inspection and branded status pages | complete | commit “Build the 1.3 media and status experience” |
 | 1.4 | reusable page patterns, layout variants and parent-theme overrides | complete | commit “Add the 1.4 layout pattern system” |
 | 1.5 | consent manager, gated analytics and privacy request operations | complete | commit “Add the 1.5 privacy and consent platform” |
+| 1.6 | SEO previews, schema editor, redirect portability and content checks | complete | commit “Build the 1.6 SEO and accessibility toolkit” |
 
 The immutable footer is core code, not an editable setting or theme field.
 Every public HTML response receives both required links to

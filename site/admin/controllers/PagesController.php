@@ -86,6 +86,7 @@ final class PagesController extends Controller
                     'noindex' => $r->string('noindex') !== '' ? 1 : 0,
                     'canonical' => $r->string('canonical'),
                     'og_media_id' => ($og = $r->string('og_media_id')) !== '' ? (int) $og : null,
+                    'schema_json' => $this->schemaJson($r->string('schema_json')),
                 ];
                 if ($page) {
                     // Save a revision before overwriting (revision recovery).
@@ -127,6 +128,7 @@ final class PagesController extends Controller
             'blockDefinitions' => (new \Core\Content\PageBlocks(
                 $db, $this->c->get(\Core\Modules\ModuleRegistry::class), $this->csrf()
             ))->definitions(),
+            'seoAudit' => (new \Core\Seo\AccessibilityAuditor())->audit($page ?? []),
         ], $page ? 'Edit page' : 'New page');
     }
 
@@ -241,6 +243,7 @@ final class PagesController extends Controller
             'published_at' => null, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
             'noindex' => $page['noindex'] ?? 0, 'canonical' => $page['canonical'] ?? null,
             'og_media_id' => $page['og_media_id'] ?? null, 'parent_id' => $page['parent_id'] ?? null,
+            'schema_json' => $page['schema_json'] ?? null,
             'publish_at' => null, 'unpublish_at' => null, 'deleted_at' => null,
         ];
         $newId = (int) $db->insert('pages', $copy);
@@ -305,5 +308,14 @@ final class PagesController extends Controller
     {
         $u = $this->user();
         return $u !== null && $this->auth()->has($u, 'content.manage');
+    }
+
+    private function schemaJson(string $json): ?string
+    {
+        if(trim($json)==='')return null;
+        try{$data=json_decode($json,true,32,JSON_THROW_ON_ERROR);}catch(\JsonException){return null;}
+        if(!is_array($data)||array_is_list($data))return null;
+        unset($data['@context']);
+        return json_encode(['@context'=>'https://schema.org']+$data,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
     }
 }

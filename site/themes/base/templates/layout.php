@@ -43,6 +43,7 @@ $schema = ['@context' => 'https://schema.org', '@type' => 'Organization'] + arra
 if (!empty($brandLogoUrl)) $schema['logo'] = $brandLogoUrl;
 ?>
 <script type="application/ld+json"><?= json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
+<?php if (!empty($page['schema_json']) && is_array($pageSchema = json_decode((string) $page['schema_json'], true))): ?><script type="application/ld+json"><?= json_encode($pageSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script><?php endif; ?>
 </head>
 <body class="header-<?= e_attr($designTokens['header_layout'] ?? 'classic') ?> footer-<?= e_attr($designTokens['footer_layout'] ?? 'centered') ?>">
 <header class="site-header">

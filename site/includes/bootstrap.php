@@ -17,12 +17,12 @@ define('WC_CORE', WC_ROOT . '/core');
 define('WC_THEMES', WC_ROOT . '/themes');
 define('WC_MODULES', WC_ROOT . '/modules');
 define('WC_INSTALLED_LOCK', WC_CONFIG . '/installed.lock');
-define('WC_VERSION', '1.5.0');
+define('WC_VERSION', '1.6.0');
 define('WC_API_VERSION', 1);
 // Latest core migration bundled with this code. Installed sites compare this
 // marker with the migration journal during boot so a manual shared-hosting
 // file update cannot leave newer PHP running against an older schema.
-define('WC_SCHEMA_VERSION', '2026_10_23_0016');
+define('WC_SCHEMA_VERSION', '2026_10_23_0017');
 
 require __DIR__ . '/autoload.php';
 require __DIR__ . '/helpers.php';

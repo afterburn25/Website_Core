@@ -1,4 +1,4 @@
-<?php /** @var array|null $page @var string|null $error @var array $revisions @var array $blockDefinitions
+<?php /** @var array|null $page @var string|null $error @var array $revisions @var array $blockDefinitions @var array $seoAudit
   * @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
 <div class="card">
 <?php if ($error): ?><div class="flash-error"><?= e($error) ?></div><?php endif; ?>
@@ -23,11 +23,15 @@
 <input name="meta_title" value="<?= e_attr($page['meta_title'] ?? '') ?>">
 <label>Meta description</label>
 <input name="meta_description" value="<?= e_attr($page['meta_description'] ?? '') ?>">
+<div class="card" style="background:#f8fafc"><h3 style="margin-top:0">Search preview</h3><div style="max-width:38rem"><div style="color:#1a0dab;font-size:1.25rem" id="seo-preview-title"><?= e($page['meta_title'] ?? $page['title'] ?? 'Page title') ?></div><div style="color:#15803d;font-size:.85rem">/<?= e($page['slug'] ?? 'page-url') ?></div><div class="muted" id="seo-preview-description"><?= e($page['meta_description'] ?? 'Add a meta description to control this preview.') ?></div></div></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 1rem;max-width:40rem">
 <div>
 <label>Canonical URL <span class="muted">(optional absolute URL)</span></label>
 <input name="canonical" value="<?= e_attr($page['canonical'] ?? '') ?>">
 </div>
+<label>Schema.org JSON <span class="muted">(optional object; @context is supplied)</span></label><textarea name="schema_json" rows="6" placeholder='{"@type":"Service","name":"Catering"}'><?= e($page['schema_json'] ?? '') ?></textarea>
+<?php if($seoAudit): ?><div class="card"><h3 style="margin-top:0">Content checks</h3><?php foreach($seoAudit as $issue): ?><p><span class="badge <?= $issue['level']==='error'?'warn':'' ?>"><?= e($issue['level']) ?></span> <strong><?= e($issue['title']) ?></strong> — <?= e($issue['help']) ?></p><?php endforeach; ?></div><?php endif; ?>
+<script>(()=>{const t=document.querySelector('[name="meta_title"]'),d=document.querySelector('[name="meta_description"]'),title=document.getElementById('seo-preview-title'),description=document.getElementById('seo-preview-description');t?.addEventListener('input',()=>title.textContent=t.value||document.querySelector('[name="title"]').value||'Page title');d?.addEventListener('input',()=>description.textContent=d.value||'Add a meta description to control this preview.');})();</script>
 <div>
 <label>OG image media id <span class="muted">(from Media library)</span></label>
 <input name="og_media_id" type="number" min="0" value="<?= e_attr((string) ($page['og_media_id'] ?? '')) ?>">

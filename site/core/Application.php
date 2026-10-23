@@ -556,6 +556,7 @@ final class Application
             $r->post('/pages/{id:\d+}/restore/{rid:\d+}', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->restoreRevision($req), [$auth, $csrfCheck]);
             $r->any('/navigation', fn (Request $req) => (new \Admin\Controllers\NavigationController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/seo', fn (Request $req) => (new \Admin\Controllers\SeoController($c))->index($req), [$auth, $csrfCheck]);
+            $r->get('/seo/redirects.csv', fn (Request $req) => (new \Admin\Controllers\SeoController($c))->export($req), [$auth]);
             $r->get('/content', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->index($req), [$auth]);
             $r->get('/content/list', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->list($req), [$auth]);
             $r->get('/content/edit', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->edit($req), [$auth]);

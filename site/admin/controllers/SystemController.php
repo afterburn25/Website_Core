@@ -43,6 +43,7 @@ final class SystemController extends Controller
         return $this->page($r, 'system/health', [
             'mailRows' => $mailRows,
             'integrity' => $this->c->get(\Core\System\Integrity::class)->report(),
+            'moduleHealth' => $this->c->get(\Core\Modules\ModuleRegistry::class)->healthChecks(),
             'checks' => [
                 'Core version'     => defined('WC_VERSION') ? WC_VERSION : '?',
                 'PHP'              => PHP_VERSION,

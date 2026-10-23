@@ -28,15 +28,25 @@ final class ModulesController extends Controller
         foreach ($this->db()->fetchAll(
             'SELECT package_id, state, manifest FROM `' . $this->db()->table('packages') . '`'
         ) as $row) {
+            $storedManifest = json_decode((string) $row['manifest'], true) ?: [];
             if (!isset($packages[$row['package_id']])) {
                 $packages[$row['package_id']] = [
-                    'manifest' => json_decode((string) $row['manifest'], true) ?: [],
+                    'manifest' => $storedManifest,
                     'dir'      => null,
                     'state'    => $row['state'],
                     'errors'   => [],
                 ];
+            } elseif ($row['state'] === 'staged') {
+                // A staged update has a newer manifest in the DB while the
+                // currently installed package still supplies the disk manifest.
+                $packages[$row['package_id']]['manifest'] = $storedManifest;
+                $packages[$row['package_id']]['state'] = 'staged';
             }
         }
+        foreach ($packages as &$package) {
+            $package['upgrade'] = $package['state'] === 'staged' && is_string($package['dir']) && is_dir($package['dir']);
+        }
+        unset($package);
         $journal = $this->db()->fetchAll(
             'SELECT * FROM `' . $this->db()->table('package_journal') . '` ORDER BY id DESC LIMIT 30'
         );

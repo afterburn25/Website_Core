@@ -21,6 +21,12 @@ final class ModuleContext
     private array $jobHandlers = [];
     /** @var array<string, array{label:string,fields:list<array>}> */
     private array $contentTypes = [];
+    /** @var list<array{key:string,label:string,provider:callable,capability:?string,url:?string}> */
+    private array $dashboardWidgets = [];
+    /** @var list<array{provider:callable,capability:?string}> */
+    private array $searchProviders = [];
+    /** @var list<array{key:string,label:string,provider:callable}> */
+    private array $healthChecks = [];
 
     /**
      * @param callable|null $adminMiddleware combined auth+CSRF pipeline for
@@ -130,6 +136,29 @@ final class ModuleContext
         $this->contentTypes[$type] = ['label' => $label, 'fields' => $fields];
     }
 
+    /** Add a small live metric to the core dashboard. Provider returns a scalar or {value,detail}. */
+    public function dashboardWidget(
+        string $key,
+        string $label,
+        callable $provider,
+        ?string $capability = null,
+        ?string $url = null,
+    ): void {
+        $this->dashboardWidgets[] = compact('key', 'label', 'provider', 'capability', 'url');
+    }
+
+    /** Provider receives the query and returns standard search result arrays. */
+    public function adminSearchProvider(callable $provider, ?string $capability = null): void
+    {
+        $this->searchProviders[] = compact('provider', 'capability');
+    }
+
+    /** Provider returns ok|warn|error or {status,detail}. */
+    public function healthCheck(string $key, string $label, callable $provider): void
+    {
+        $this->healthChecks[] = compact('key', 'label', 'provider');
+    }
+
     /** Declare a capability this package adds; owner always holds it and
      * admin does by default — a package can never grant itself core caps. */
     public function permission(string $capability, string $description = ''): void
@@ -199,4 +228,8 @@ final class ModuleContext
     {
         return $this->contentTypes;
     }
+
+    public function dashboardWidgets(): array { return $this->dashboardWidgets; }
+    public function searchProviders(): array { return $this->searchProviders; }
+    public function healthChecks(): array { return $this->healthChecks; }
 }

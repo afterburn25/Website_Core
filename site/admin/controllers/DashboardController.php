@@ -17,6 +17,11 @@ final class DashboardController extends Controller
         $jobs = $this->c->get(JobQueue::class)->counts();
         $registry = $this->c->get(ModuleRegistry::class);
         $packages = $registry->all();
+        $moduleWidgets = array_values(array_filter(
+            $registry->dashboardWidgets(),
+            fn (array $widget): bool => empty($widget['capability'])
+                || $this->auth()->has($this->user(), (string) $widget['capability'])
+        ));
         $integrity = $this->c->get(\Core\System\Integrity::class)->summary();
         $notices = $this->c->get(\Core\Admin\NoticeCenter::class)->openFor($this->user()->id, 5);
         $published = (int) $db->fetchColumn(
@@ -30,6 +35,7 @@ final class DashboardController extends Controller
             'published' => $published,
             'integrity' => $integrity,
             'notices'   => $notices,
+            'moduleWidgets' => $moduleWidgets,
             'php'       => PHP_VERSION,
             'dbVersion' => $db->driver() === 'sqlite'
                 ? 'sqlite ' . $db->pdo()->query('SELECT sqlite_version()')->fetchColumn()

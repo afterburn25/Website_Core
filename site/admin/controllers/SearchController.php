@@ -56,6 +56,16 @@ final class SearchController extends Controller
                     }
                 }
             }
+            foreach ($this->c->get(ModuleRegistry::class)->search($query) as $result) {
+                if (empty($result['capability']) || $this->auth()->has($u, (string) $result['capability'])) {
+                    $results[] = [
+                        'type' => substr((string) ($result['type'] ?? 'Package'), 0, 40),
+                        'title' => substr((string) $result['title'], 0, 190),
+                        'detail' => substr((string) ($result['detail'] ?? ''), 0, 300),
+                        'url' => (string) $result['url'],
+                    ];
+                }
+            }
         }
         return $this->page($r, 'search/index', compact('query', 'results'), 'Search');
     }

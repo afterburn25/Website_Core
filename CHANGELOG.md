@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0-dev (unreleased)
+
+### Added — package integration platform
+- Added stable package hooks for dashboard widgets, global admin search, and system-health checks.
+- Added capability filtering and fault isolation around package-provided admin data.
+- Added explicit staged-upgrade detection and Upgrade labeling in the package lifecycle UI.
+- Added a code-owned Cajun Web Pro LLC attribution footer to every public HTML response.
+
 ## 0.4.0-dev (unreleased)
 
 ### Added — media and design system

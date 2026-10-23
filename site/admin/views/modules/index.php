@@ -58,7 +58,7 @@ no package code runs — so you can log in and remove it. You can also create
 <td>
 <?php
 $buttons = $protected ? [] : match ($state) {
-    'staged'    => [['install', 'Install']],
+    'staged'    => [['install', !empty($info['upgrade']) ? 'Upgrade' : 'Install']],
     'installed' => [['enable', 'Enable'], ['uninstall', 'Uninstall']],
     'enabled'   => [['disable', 'Disable']],
     'disabled'  => [['enable', 'Enable'], ['uninstall', 'Uninstall']],

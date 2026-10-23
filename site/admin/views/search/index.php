@@ -11,7 +11,7 @@
 <?php if ($results === []): ?><p class="muted">No matching items.</p><?php else: ?>
 <div class="result-list">
 <?php foreach ($results as $result): ?>
-<a class="result-row" href="<?= e_attr($basePath . $result['url']) ?>"><span class="badge"><?= e($result['type']) ?></span><span><strong><?= e($result['title']) ?></strong><small><?= e($result['detail']) ?></small></span></a>
+<a class="result-row" href="<?= e_url($basePath . $result['url']) ?>"><span class="badge"><?= e($result['type']) ?></span><span><strong><?= e($result['title']) ?></strong><small><?= e($result['detail']) ?></small></span></a>
 <?php endforeach; ?>
 </div>
 <?php endif; ?>

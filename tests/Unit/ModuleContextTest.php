@@ -43,4 +43,16 @@ final class ModuleContextTest extends TestCase
         $this->assertSame('Catering', $items[0]['category']);
         $this->assertSame('cajunwebpro/catering', $items[0]['package']);
     }
+
+    public function testSharedAdminHooksRemainPackageAttributed(): void
+    {
+        $context = new ModuleContext('acme/demo', new Router(), new Dispatcher());
+        $context->dashboardWidget('open', 'Open records', fn () => 3, 'demo.view', '/admin/demo');
+        $context->adminSearchProvider(fn (string $q) => [['title' => $q, 'url' => '/admin/demo']], 'demo.view');
+        $context->healthCheck('tables', 'Tables', fn () => ['status' => 'ok']);
+
+        $this->assertSame('open', $context->dashboardWidgets()[0]['key']);
+        $this->assertSame('demo.view', $context->searchProviders()[0]['capability']);
+        $this->assertSame('tables', $context->healthChecks()[0]['key']);
+    }
 }

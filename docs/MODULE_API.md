@@ -20,6 +20,9 @@ breaking changes bump the major and ship with a migration guide.
 | `adminPage($label, $route, $capability, $category = null)` | Add an admin nav item inside the package's own collapsible category; authorization is still checked server-side per route. |
 | `scheduledJob($type, $handler)` | Register an idempotent job handler executed by the queue runner. |
 | `contentType($type, $label, $fields)` | Register a structured content type — validated storage in `content_items` plus generated admin CRUD under `/admin/content`. |
+| `dashboardWidget($key, $label, $provider, $capability = null, $url = null)` | Contribute a capability-filtered live metric to the Core dashboard. |
+| `adminSearchProvider($provider, $capability = null)` | Contribute capability-filtered results to Core global search. |
+| `healthCheck($key, $label, $provider)` | Contribute an isolated `ok`, `warn`, or `error` check to System Health. |
 | `permission($capability, $description)` | Declare a package capability. Owner always holds it; `admin` does by default. Packages can never grant core capabilities. |
 | `views($dir)` | Register a view directory, resolving as `mod-<slug>:<name>`; active-theme overrides at `templates/modules/<pkg-id>/<name>.php` win, package views fall back. Returns the namespace. |
 | `service($id)` | Resolve a core service (`View`, `SettingsRepository`, `JobQueue`, `SystemMail`, `ContentItems`, …). Packages are trusted in-process code — this is the supported way to reach shared infrastructure. |
@@ -34,6 +37,28 @@ rebased onto the rewrite-independent asset route by the core asset server.
 Each enabled package receives its **own** `ModuleContext` stamped with its
 packageId — registrations are attributed to the package and aggregated by
 the `ModuleRegistry` (`adminNavItems()`, `jobHandlers()`, `contexts()`).
+
+### Shared admin surfaces
+
+```php
+$ctx->dashboardWidget(
+    'open-items', 'Open items',
+    fn () => ['value' => 12, 'detail' => 'Needs attention'],
+    'vendor.items.view', '/admin/vendor/items'
+);
+
+$ctx->adminSearchProvider(fn (string $query) => [[
+    'type' => 'Vendor item', 'title' => 'Matching record',
+    'detail' => 'Optional context', 'url' => '/admin/vendor/items',
+]], 'vendor.items.view');
+
+$ctx->healthCheck('storage', 'Package storage',
+    fn () => ['status' => 'ok', 'detail' => 'Ready']);
+```
+
+Provider exceptions are isolated and logged. Dashboard and search entries
+are filtered by capability; health checks appear only on the protected
+System Health screen.
 
 ## Events fired by core
 

@@ -311,6 +311,12 @@ final class Application
         $this->bootModules();
         $this->registerPublicRoutes();
         $response = $this->router->dispatch($request);
+        if (!str_starts_with(rtrim($request->path, '/') ?: '/', '/admin')) {
+            $contentType = strtolower((string) ($response->headers()['Content-Type'] ?? 'text/html'));
+            if (str_contains($contentType, 'text/html')) {
+                $response->setBody((new \Core\Branding\Attribution())->apply($response->body()));
+            }
+        }
         return $this->withSecurityHeaders($response);
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace CajunWebPro\Catering;
 
 use Core\Modules\ModuleContext;
+use Core\Database\Connection;
 
 final class Provider
 {
@@ -46,5 +47,35 @@ final class Provider
         $ctx->adminPage('Packages', '/admin/catering/packages', 'catering.manage', 'Catering');
         $ctx->adminPage('Leads & inquiries', '/admin/catering/inquiries', 'catering.inquiries', 'Catering');
         $ctx->adminPage('Catering settings', '/admin/catering/settings', 'catering.manage', 'Catering');
+
+        // Package data joins shared Core admin surfaces through stable API
+        // hooks; the industry module never patches Core controllers/views.
+        $ctx->dashboardWidget('new-inquiries', 'New catering inquiries', function () use ($ctx): array {
+            $db = $ctx->service(Connection::class);
+            return [
+                'value' => (int) $db->fetchColumn(
+                    'SELECT COUNT(*) FROM `' . $db->table('catering_inquiries') . '` WHERE status = ?', ['new']
+                ),
+                'detail' => 'Awaiting review',
+            ];
+        }, 'catering.inquiries', '/admin/catering/inquiries');
+        $ctx->adminSearchProvider(function (string $query) use ($ctx): array {
+            $db = $ctx->service(Connection::class);
+            $like = '%' . $query . '%';
+            return array_map(fn (array $row): array => [
+                'type' => 'Catering lead', 'title' => $row['name'],
+                'detail' => $row['email'] . ' · ' . $row['status'],
+                'url' => '/admin/catering/inquiries',
+            ], $db->fetchAll(
+                'SELECT name, email, status FROM `' . $db->table('catering_inquiries')
+                . '` WHERE name LIKE ? OR email LIKE ? ORDER BY id DESC LIMIT 10', [$like, $like]
+            ));
+        }, 'catering.inquiries');
+        $ctx->healthCheck('inquiries-table', 'Inquiry storage', function () use ($ctx): array {
+            $db = $ctx->service(Connection::class);
+            return $db->tableExists('catering_inquiries')
+                ? ['status' => 'ok', 'detail' => 'Ready']
+                : ['status' => 'error', 'detail' => 'Required table is missing'];
+        });
     }
 }

@@ -1,4 +1,4 @@
-<?php /** @var array $checks @var array $mailRows @var array $integrity */ ?>
+<?php /** @var array $checks @var array $mailRows @var array $integrity @var array $moduleHealth */ ?>
 <div class="card">
 <h2 style="margin-top:0">System health</h2>
 <p><a href="<?= e_attr($basePath) ?>/admin/system/diagnostics" download>Download diagnostics bundle</a>
@@ -9,6 +9,12 @@
 <?php endforeach; ?>
 </table>
 </div>
+
+<?php if ($moduleHealth !== []): ?>
+<div class="card"><h2 style="margin-top:0">Package health</h2><table><tr><th>Package</th><th>Check</th><th>Status</th><th>Detail</th></tr>
+<?php foreach ($moduleHealth as $check): ?><tr><td><?= e($check['package']) ?></td><td><?= e($check['label']) ?></td><td><span class="badge <?= $check['status'] === 'ok' ? 'ok' : ($check['status'] === 'error' ? 'bad' : 'warn') ?>"><?= e($check['status']) ?></span></td><td><?= e($check['detail']) ?></td></tr><?php endforeach; ?>
+</table></div>
+<?php endif; ?>
 
 <div class="card">
 <h2 style="margin-top:0">Installation integrity</h2>

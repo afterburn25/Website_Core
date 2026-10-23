@@ -237,6 +237,77 @@ final class ModuleRegistry
         return $out;
     }
 
+    /** @return list<array> evaluated package dashboard widgets */
+    public function dashboardWidgets(): array
+    {
+        $out = [];
+        foreach ($this->contexts as $ctx) {
+            foreach ($ctx->dashboardWidgets() as $widget) {
+                try {
+                    $value = ($widget['provider'])();
+                    $data = is_array($value) ? $value : ['value' => $value, 'detail' => ''];
+                    $out[] = array_merge($data, [
+                        'key' => $widget['key'], 'label' => $widget['label'],
+                        'capability' => $widget['capability'], 'url' => $widget['url'],
+                        'package' => $ctx->packageId(),
+                    ]);
+                } catch (\Throwable $e) {
+                    error_log('[website-core] dashboard widget failed: ' . $ctx->packageId() . '/' . $widget['key'] . ': ' . $e->getMessage());
+                }
+            }
+        }
+        return $out;
+    }
+
+    /** @return list<array> standard package search results */
+    public function search(string $query): array
+    {
+        $out = [];
+        foreach ($this->contexts as $ctx) {
+            foreach ($ctx->searchProviders() as $registration) {
+                try {
+                    foreach ((array) ($registration['provider'])($query) as $result) {
+                        if (is_array($result) && isset($result['title'], $result['url'])) {
+                            $out[] = array_merge(
+                                ['type' => 'Package', 'detail' => ''],
+                                $result,
+                                [
+                                'capability' => $registration['capability'],
+                                'package' => $ctx->packageId(),
+                                ]
+                            );
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    error_log('[website-core] search provider failed: ' . $ctx->packageId() . ': ' . $e->getMessage());
+                }
+            }
+        }
+        return $out;
+    }
+
+    /** @return list<array{key:string,label:string,status:string,detail:string,package:string}> */
+    public function healthChecks(): array
+    {
+        $out = [];
+        foreach ($this->contexts as $ctx) {
+            foreach ($ctx->healthChecks() as $check) {
+                try {
+                    $value = ($check['provider'])();
+                    $data = is_array($value) ? $value : ['status' => (string) $value, 'detail' => ''];
+                } catch (\Throwable $e) {
+                    $data = ['status' => 'error', 'detail' => $e->getMessage()];
+                }
+                $status = in_array($data['status'] ?? '', ['ok', 'warn', 'error'], true) ? $data['status'] : 'warn';
+                $out[] = [
+                    'key' => $check['key'], 'label' => $check['label'], 'status' => $status,
+                    'detail' => (string) ($data['detail'] ?? ''), 'package' => $ctx->packageId(),
+                ];
+            }
+        }
+        return $out;
+    }
+
     /** Deterministic load order: dependencies before dependents. */
     public function dependencyOrder(): array
     {

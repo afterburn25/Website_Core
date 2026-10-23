@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `1.7.0`. The planned 0.1.15 through 1.7 core milestones
+**Current**: `1.8.0`. The planned 0.1.15 through 1.8 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -36,6 +36,9 @@ portability and automated SEO/accessibility content checks.
 
 The 1.7 release adds translated page variants, localized public URLs,
 language-aware navigation and alternate-language metadata.
+
+The 1.8 release adds custom roles, a strict editorial publish capability,
+review requests and notes, and side-by-side revision comparison.
 
 The first industry implementation remains `examples/industry-catering`: a
 complete editorial public site, menu/package management, secure multi-step

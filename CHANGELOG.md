@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.0 — 2026-10-23
+
+- Added owner-managed custom roles backed by the core capability registry.
+- Added draft review requests, publish approval boundaries, review notes and
+  side-by-side revision comparison.
+
 ## 1.7.0 — 2026-10-23
 
 - Added multilingual page variants, localized URLs and navigation,

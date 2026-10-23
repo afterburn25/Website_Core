@@ -1,4 +1,4 @@
-<?php /** @var array|null $page @var string|null $error @var array $revisions @var array $blockDefinitions @var array $seoAudit
+<?php /** @var array|null $page @var string|null $error @var array $revisions @var array $blockDefinitions @var array $seoAudit @var bool $canPublish
   * @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
 <div class="card">
 <?php if ($error): ?><div class="flash-error"><?= e($error) ?></div><?php endif; ?>
@@ -104,7 +104,12 @@ Exclude this page from indexing (noindex, nofollow)
 
 <?php if ($page): ?>
 <div class="card">
-<h2 style="margin-top:0">Publishing schedule</h2>
+<h2 style="margin-top:0">Editorial workflow</h2>
+<p>Status: <span class="badge <?= ($page['review_status'] ?? 'draft') === 'approved' ? 'ok' : 'warn' ?>"><?= e($page['review_status'] ?? 'draft') ?></span></p>
+<?php if (!empty($page['review_note'])): ?><p><strong>Review note:</strong> <?= e($page['review_note']) ?></p><?php endif; ?>
+<?php if ($canPublish): ?>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/pages/<?= (int) $page['id'] ?>/publish" class="button-row"><?= $csrf->field() ?><input type="hidden" name="do" value="<?= ($page['status'] ?? '') === 'published' ? 'unpublish' : 'publish' ?>"><button class="btn"><?= ($page['status'] ?? '') === 'published' ? 'Unpublish' : 'Approve and publish' ?></button></form>
+<h3>Publishing schedule</h3>
 <p class="muted">Times use the site/server timezone. Leave either field blank when no automatic transition is needed.</p>
 <form method="post" action="<?= e_attr($basePath) ?>/admin/pages/<?= (int) $page['id'] ?>/schedule">
 <?= $csrf->field() ?>
@@ -114,6 +119,9 @@ Exclude this page from indexing (noindex, nofollow)
 <button class="btn" type="submit" style="align-self:end">Save schedule</button>
 </div>
 </form>
+<?php else: ?>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/pages/<?= (int) $page['id'] ?>/review"><?= $csrf->field() ?><label>Note for reviewer <span class="muted">(optional)</span></label><textarea name="review_note" rows="3"><?= e($page['review_note'] ?? '') ?></textarea><button class="btn">Submit for review</button></form>
+<?php endif; ?>
 </div>
 <?php endif; ?>
 
@@ -122,10 +130,11 @@ Exclude this page from indexing (noindex, nofollow)
 <h2 style="margin-top:0">Recent revisions</h2>
 <table>
 <tr><th>Saved</th><th>By</th><th>Title</th><th></th></tr>
-<?php foreach ($revisions as $rev): ?>
+<?php foreach ($revisions as $index => $rev): ?>
 <tr>
 <td><?= e($rev['created_at']) ?></td><td><?= e((string) $rev['saved_by']) ?></td><td><?= e($rev['title']) ?></td>
 <td>
+<?php if (isset($revisions[$index + 1])): ?><a class="btn small" href="<?= e_attr($basePath) ?>/admin/pages/<?= (int) $page['id'] ?>/compare/<?= (int) $revisions[$index + 1]['id'] ?>/<?= (int) $rev['id'] ?>">Compare</a><?php endif; ?>
 <form method="post" action="<?= e_attr($basePath) ?>/admin/pages/<?= (int) $page['id'] ?>/restore/<?= (int) $rev['id'] ?>">
 <?= $csrf->field() ?><button class="btn small secondary">Restore as draft</button>
 </form>

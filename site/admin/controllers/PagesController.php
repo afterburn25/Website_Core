@@ -43,7 +43,7 @@ final class PagesController extends Controller
         }
         return $this->page($r, 'pages/index', [
             'pages' => $pages, 'sections' => $sections->all(), 'shadowed' => $shadowed,
-            'trash' => $trash,
+            'trash' => $trash, 'canPublish' => $this->canPublish(),
         ], 'Content');
     }
 
@@ -97,6 +97,9 @@ final class PagesController extends Controller
                     ]);
                     $db->update('pages', array_merge([
                         'title' => $title, 'slug' => $slug, 'body' => $body, 'blocks_json' => $blocksJson,
+                        'status' => 'draft',
+                        'review_status' => 'draft', 'review_note' => null,
+                        'reviewed_by' => null, 'reviewed_at' => null,
                         'updated_by' => $this->user()->id,
                         'updated_at' => date('Y-m-d H:i:s'),
                     ], $seo), 'id = ?', [$id]);
@@ -104,6 +107,7 @@ final class PagesController extends Controller
                     $id = (int) $db->insert('pages', array_merge([
                         'title' => $title, 'slug' => $slug, 'body' => $body, 'blocks_json' => $blocksJson,
                         'status' => 'draft',
+                        'review_status' => 'draft',
                         'updated_by' => $this->user()->id,
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s'),
@@ -129,6 +133,7 @@ final class PagesController extends Controller
                 $db, $this->c->get(\Core\Modules\ModuleRegistry::class), $this->csrf()
             ))->definitions(),
             'seoAudit' => (new \Core\Seo\AccessibilityAuditor())->audit($page ?? []),
+            'canPublish' => $this->canPublish(),
         ], $page ? 'Edit page' : 'New page');
     }
 
@@ -170,6 +175,8 @@ final class PagesController extends Controller
             $db->update('pages', [
                 'title' => $rev['title'], 'body' => $rev['body'], 'status' => 'draft',
                 'blocks_json' => $rev['blocks_json'] ?? null,
+                'review_status' => 'draft', 'review_note' => null,
+                'reviewed_by' => null, 'reviewed_at' => null,
                 'updated_by' => $this->user()->id, 'updated_at' => date('Y-m-d H:i:s'),
             ], 'id = ?', [$id]);
         }
@@ -179,7 +186,7 @@ final class PagesController extends Controller
 
     public function publish(Request $r): Response
     {
-        if (!$this->can()) {
+        if (!$this->canPublish()) {
             return $this->forbidden();
         }
         $id = (int) $r->attributes['id'];
@@ -191,6 +198,9 @@ final class PagesController extends Controller
         $data = [
             'status' => $status, 'updated_at' => date('Y-m-d H:i:s'),
             'publish_at' => null, 'unpublish_at' => null,
+            'review_status' => $status === 'published' ? 'approved' : 'draft',
+            'reviewed_by' => $this->user()->id,
+            'reviewed_at' => date('Y-m-d H:i:s'),
         ];
         if ($status === 'published') {
             $data['published_at'] = date('Y-m-d H:i:s');
@@ -205,7 +215,7 @@ final class PagesController extends Controller
 
     public function schedule(Request $r): Response
     {
-        if (!$this->can()) return $this->forbidden();
+        if (!$this->canPublish()) return $this->forbidden();
         $id = (int) $r->attributes['id'];
         $publishAt = $this->dateTime($r->string('publish_at'));
         $unpublishAt = $this->dateTime($r->string('unpublish_at'));
@@ -223,6 +233,39 @@ final class PagesController extends Controller
         ]);
         $this->flash('ok', ($publishAt || $unpublishAt) ? 'Publishing schedule saved.' : 'Publishing schedule cleared.');
         return $this->redirect($r, '/admin/pages/edit/' . $id);
+    }
+
+    public function requestReview(Request $r): Response
+    {
+        if (!$this->can()) return $this->forbidden();
+        $id = (int) $r->attributes['id'];
+        $note = trim($r->string('review_note'));
+        $this->db()->update('pages', [
+            'status' => 'draft', 'review_status' => 'pending',
+            'review_note' => $note !== '' ? mb_substr($note, 0, 1000) : null,
+            'reviewed_by' => null, 'reviewed_at' => null,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ], 'id = ? AND deleted_at IS NULL', [$id]);
+        $this->c->get(\Core\Audit\AuditLog::class)->record('page.review_requested', $this->user()->id, ['page' => $id]);
+        $this->c->get(\Core\Events\Dispatcher::class)->dispatch('page.review_requested', ['page' => $id, 'by' => $this->user()->id]);
+        $this->flash('ok', 'Page submitted for review.');
+        return $this->redirect($r, '/admin/pages/edit/' . $id);
+    }
+
+    public function compare(Request $r): Response
+    {
+        if (!$this->can()) return $this->forbidden();
+        $id = (int) $r->attributes['id'];
+        $a = (int) $r->attributes['a'];
+        $b = (int) $r->attributes['b'];
+        $db = $this->db();
+        $page = $db->fetch('SELECT id, title FROM `' . $db->table('pages') . '` WHERE id = ?', [$id]);
+        $left = $db->fetch('SELECT * FROM `' . $db->table('page_revisions') . '` WHERE id = ? AND page_id = ?', [$a, $id]);
+        $right = $db->fetch('SELECT * FROM `' . $db->table('page_revisions') . '` WHERE id = ? AND page_id = ?', [$b, $id]);
+        if (!$page || !$left || !$right) return Response::notFound();
+        return $this->page($r, 'pages/compare', [
+            'page' => $page, 'left' => $left, 'right' => $right,
+        ], 'Compare revisions');
     }
 
     public function duplicate(Request $r): Response
@@ -244,6 +287,8 @@ final class PagesController extends Controller
             'noindex' => $page['noindex'] ?? 0, 'canonical' => $page['canonical'] ?? null,
             'og_media_id' => $page['og_media_id'] ?? null, 'parent_id' => $page['parent_id'] ?? null,
             'schema_json' => $page['schema_json'] ?? null,
+            'review_status' => 'draft', 'review_note' => null,
+            'reviewed_by' => null, 'reviewed_at' => null,
             'publish_at' => null, 'unpublish_at' => null, 'deleted_at' => null,
         ];
         $newId = (int) $db->insert('pages', $copy);
@@ -308,6 +353,12 @@ final class PagesController extends Controller
     {
         $u = $this->user();
         return $u !== null && $this->auth()->has($u, 'content.manage');
+    }
+
+    private function canPublish(): bool
+    {
+        $u = $this->user();
+        return $u !== null && $this->auth()->has($u, 'content.publish');
     }
 
     private function schemaJson(string $json): ?string

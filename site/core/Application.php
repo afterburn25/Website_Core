@@ -181,7 +181,7 @@ final class Application
         $this->container->instance(\Core\Seo\NotFoundLog::class, new \Core\Seo\NotFoundLog($db));
         $this->container->instance(JobQueue::class, new JobQueue($db));
         $this->container->instance(RateLimiter::class, new RateLimiter($db));
-        $this->container->instance(Permissions::class, new Permissions());
+        $this->container->instance(Permissions::class, new Permissions($db));
         $this->container->instance(AdminRepository::class, new AdminRepository($db));
         $systemMail = new \Core\Mail\SystemMail($db, $this->container->get(SettingsRepository::class));
         $this->container->instance(\Core\Mail\SystemMail::class, $systemMail);
@@ -531,6 +531,7 @@ final class Application
             $r->post('/profile/sessions/revoke-others', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->revokeOtherSessions($req), [$auth, $csrfCheck]);
             $r->post('/profile/sessions/{id:\d+}/revoke', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->revokeSession($req), [$auth, $csrfCheck]);
             $r->get('/users', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->index($req), [$auth]);
+            $r->any('/roles', fn (Request $req) => (new \Admin\Controllers\RolesController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/security', fn (Request $req) => (new \Admin\Controllers\SecurityController($c))->index($req), [$auth, $csrfCheck]);
             $r->post('/users/create', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->create($req), [$auth, $csrfCheck]);
             $r->post('/users/{id:\d+}/role', fn (Request $req) => (new \Admin\Controllers\UsersController($c))->changeRole($req), [$auth, $csrfCheck]);
@@ -549,6 +550,8 @@ final class Application
             $r->post('/forms/submissions/{id:\d+}/read', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->markRead($req), [$auth, $csrfCheck]);
             $r->get('/forms/export', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->export($req), [$auth]);
             $r->post('/pages/{id:\d+}/publish', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->publish($req), [$auth, $csrfCheck]);
+            $r->post('/pages/{id:\d+}/review', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->requestReview($req), [$auth, $csrfCheck]);
+            $r->get('/pages/{id:\d+}/compare/{a:\d+}/{b:\d+}', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->compare($req), [$auth]);
             $r->post('/pages/{id:\d+}/schedule', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->schedule($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/duplicate', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->duplicate($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/trash', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->trash($req), [$auth, $csrfCheck]);

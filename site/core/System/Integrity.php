@@ -17,6 +17,7 @@ final class Integrity
         'not_found_log', 'forms', 'form_submissions', 'page_patterns',
         'privacy_requests', 'migrations',
         'site_languages', 'page_translations',
+        'custom_roles',
     ];
 
     public function __construct(

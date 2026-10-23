@@ -19,6 +19,7 @@ final class Integrity
         'site_languages', 'page_translations',
         'custom_roles',
         'api_keys', 'webhooks', 'webhook_deliveries',
+        'agency_sites', 'marketplace_sources', 'managed_update_checks',
     ];
 
     public function __construct(

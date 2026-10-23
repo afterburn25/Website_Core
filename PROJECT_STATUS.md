@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `1.9.0`. The planned 0.1.15 through 1.9 core milestones
+**Current**: `2.0.0`. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -43,6 +43,10 @@ review requests and notes, and side-by-side revision comparison.
 The 1.9 release adds scoped API keys, authenticated health/content endpoints,
 signed asynchronous webhooks, portable content transfer and optional remote
 WebDAV backup replication.
+
+The 2.0 release adds an encrypted agency site registry, remote version/health
+checks, signed marketplace feeds, policy-driven managed updates, and a visual
+drag-and-drop navigation tree with page-aware links and explicit targets.
 
 The first industry implementation remains `examples/industry-catering`: a
 complete editorial public site, menu/package management, secure multi-step

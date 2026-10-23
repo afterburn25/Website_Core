@@ -204,6 +204,26 @@ final class Application
         $this->container->instance(\Core\Media\MediaService::class, new \Core\Media\MediaService($db, $this->config));
         $this->container->instance(\Core\Content\MenuService::class, new \Core\Content\MenuService($db));
         $this->container->instance(\Core\Content\PublishingService::class, new \Core\Content\PublishingService($db));
+        $this->container->instance(\Core\Agency\AgencyService::class, new \Core\Agency\AgencyService($db, $this->config));
+        $marketplace = new \Core\Marketplace\MarketplaceService($db, new \Core\Update\SignatureVerifier(
+            (array) $this->config->get('trust.public_keys', []), false
+        ));
+        $this->container->instance(\Core\Marketplace\MarketplaceService::class, $marketplace);
+        $managedUpdates = new \Core\Update\ManagedUpdateService(
+            $db, $this->config, $this->container->get(SettingsRepository::class), $marketplace
+        );
+        $this->container->instance(\Core\Update\ManagedUpdateService::class, $managedUpdates);
+        try {
+            $policy = (string) $this->container->get(SettingsRepository::class)->get('updates.automation', 'off');
+            $lastCheck = $db->fetchColumn('SELECT MAX(created_at) FROM `' . $db->table('managed_update_checks') . '`');
+            $pending = $db->fetchColumn("SELECT COUNT(*) FROM `" . $db->table('jobs') . "` WHERE type = 'core.managed_update' AND status IN ('pending','uncertain','running')");
+            $sources = $db->fetchColumn('SELECT COUNT(*) FROM `' . $db->table('marketplace_sources') . '` WHERE active = 1');
+            if ($policy !== 'off' && $sources && !$pending && (!$lastCheck || strtotime((string) $lastCheck) < time() - 43200)) {
+                $this->container->get(JobQueue::class)->dispatch('core.managed_update');
+            }
+        } catch (\Throwable) {
+            // The 2.0 migration may not exist yet during an in-place update.
+        }
 
         $view = new View();
         $view->addResolver('admin', fn (string $v): ?string =>
@@ -531,6 +551,8 @@ final class Application
             $r->any('/privacy', fn (Request $req) => (new \Admin\Controllers\PrivacyController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/integrations', fn (Request $req) => (new \Admin\Controllers\IntegrationsController($c))->index($req), [$auth, $csrfCheck]);
             $r->get('/integrations/export', fn (Request $req) => (new \Admin\Controllers\IntegrationsController($c))->export($req), [$auth]);
+            $r->any('/agency', fn (Request $req) => (new \Admin\Controllers\AgencyController($c))->index($req), [$auth, $csrfCheck]);
+            $r->any('/marketplace', fn (Request $req) => (new \Admin\Controllers\MarketplaceController($c))->index($req), [$auth, $csrfCheck]);
             $r->get('/privacy/export', fn (Request $req) => (new \Admin\Controllers\PrivacyController($c))->export($req), [$auth]);
             $r->post('/settings/license-validate', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->validateLicense($req), [$auth, $csrfCheck]);
             $r->any('/profile', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->index($req), [$auth, $csrfCheck]);

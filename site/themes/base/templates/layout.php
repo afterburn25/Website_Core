@@ -58,7 +58,10 @@ $renderMenu = function (array $items, bool $child = false) use (&$renderMenu, $b
         $url = (string) ($nav['url'] ?? '/' . ($nav['slug'] ?? ''));
         $href = str_starts_with($url, '/') ? $basePath . $url : $url;
         $label = (string) ($nav['label'] ?? $nav['title'] ?? '');
-        echo '<li class="nav-item"><a href="' . e_url($href) . '">' . e($label) . '</a>';
+        $target = (string) ($nav['target'] ?? 'self');
+        $attrs = $target === 'tab' ? ' target="_blank" rel="noopener noreferrer"'
+            : ($target === 'window' ? ' target="wc-nav-window" rel="noopener noreferrer" data-open-window' : '');
+        echo '<li class="nav-item"><a href="' . e_url($href) . '"' . $attrs . '>' . e($label) . '</a>';
         if (!empty($nav['children'])) $renderMenu($nav['children'], true);
         echo '</li>';
     }
@@ -75,5 +78,6 @@ $renderMenu($pages ?? []);
 <footer class="site-footer">
 <p><?= e($siteName) ?> — <?= e(__('site.powered_by')) ?></p>
 </footer>
+<script>document.querySelectorAll('[data-open-window]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();window.open(link.href,'wc-nav-window','noopener,noreferrer,width=1200,height=800,resizable=yes,scrollbars=yes');}));</script>
 </body>
 </html>

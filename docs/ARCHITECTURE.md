@@ -54,6 +54,12 @@ Request → index.php → bootstrap.php → Application
   table, never "exactly-once" claims.
 - **Audit** (`Core\Audit\AuditLog`) — durable mutations log with a
   sensitive-key redaction safety net.
+- **Integrations** (`Core\Api\*`) — hashed scoped bearer keys, versioned JSON
+  endpoints, encrypted webhook signing secrets and queued delivery history.
+- **Agency/Marketplace** (`Core\Agency\*`, `Core\Marketplace\*`) — encrypted
+  remote site credentials, authenticated health/version checks and signed
+  catalog ingestion. `ManagedUpdateService` is the only automated path from
+  trusted catalog metadata to the existing update verifier.
 
 ## Decisions (with alternatives)
 

@@ -12,8 +12,11 @@ final class ApiController extends Controller
     public function health(Request $request): Response
     {
         if (!$this->authorized($request, 'health.read')) return $this->unauthorized();
+        $industries = $this->c->has(\Core\System\Version::class)
+            ? $this->c->get(\Core\System\Version::class)->industries() : [];
         return $this->json(['ok' => true, 'core' => WC_VERSION, 'api' => WC_API_VERSION,
-            'site' => (string) $this->settings()->get('site.name', 'Website'), 'time' => date('c')]);
+            'site' => (string) $this->settings()->get('site.name', 'Website'),
+            'industries' => $industries, 'time' => date('c')]);
     }
 
     public function pages(Request $request): Response

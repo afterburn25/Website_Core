@@ -170,6 +170,23 @@ final class ContentMediaTest extends TestCase
         $this->assertStringContainsString('loop', (string) $error);
     }
 
+    public function testMenuCanLinkPagesUseTargetsAndSaveDraggedTree(): void
+    {
+        $pageId = (int) $this->db->insert('pages', ['slug' => 'our-story', 'title' => 'Our Story', 'status' => 'published', 'created_at' => date('Y-m-d H:i:s')]);
+        $menu = new MenuService($this->db);
+        $menuId = $menu->ensureLocation('primary', 'Primary');
+        [$about, $error] = $menu->addItem($menuId, 'About', '', null, 0, 'tab', $pageId);
+        [$contact] = $menu->addItem($menuId, 'Contact', '/contact', null, 1, 'window');
+        $this->assertNull($error);
+        $this->assertSame('/our-story', $menu->tree('primary')[0]['url']);
+        $this->assertSame('tab', $menu->tree('primary')[0]['target']);
+        [$ok, $error] = $menu->reorder($menuId, [['id' => $contact, 'children' => [['id' => $about, 'children' => []]]]]);
+        $this->assertTrue($ok, (string) $error);
+        $tree = $menu->tree('primary');
+        $this->assertSame('Contact', $tree[0]['label']);
+        $this->assertSame('About', $tree[0]['children'][0]['label']);
+    }
+
     public function testPreviewTokens(): void
     {
         $db = $this->db;

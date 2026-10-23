@@ -28,7 +28,8 @@ final class NavigationController extends Controller
                     $r->string('label'),
                     $r->string('url'),
                     ($p = $r->string('parent_id')) !== '' ? (int) $p : null,
-                    (int) $r->string('sort_order', '0')
+                    (int) $r->string('sort_order', '0'), $r->string('target', 'self'),
+                    ($pageId = $r->string('page_id')) !== '' ? (int) $pageId : null
                 );
                 $this->flash($err ? 'error' : 'ok', $err ?? 'Menu item added.');
             } elseif ($action === 'save') {
@@ -37,9 +38,18 @@ final class NavigationController extends Controller
                     $r->string('label'),
                     $r->string('url'),
                     ($p = $r->string('parent_id')) !== '' ? (int) $p : null,
-                    (int) $r->string('sort_order', '0')
+                    (int) $r->string('sort_order', '0'), $r->string('target', 'self'),
+                    ($pageId = $r->string('page_id')) !== '' ? (int) $pageId : null
                 );
                 $this->flash($ok ? 'ok' : 'error', $err ?? 'Menu item updated.');
+            } elseif ($action === 'reorder') {
+                try {
+                    $tree = json_decode((string) ($r->post['tree_json'] ?? ''), true, 32, JSON_THROW_ON_ERROR);
+                    [$ok, $err] = $menus->reorder($menuId, is_array($tree) ? $tree : []);
+                    $this->flash($ok ? 'ok' : 'error', $err ?? 'Menu tree saved.');
+                } catch (\JsonException) {
+                    $this->flash('error', 'Menu tree data was invalid. Reload and try again.');
+                }
             } elseif ($action === 'delete') {
                 $menus->deleteItem((int) $r->string('id'));
                 $this->flash('ok', 'Menu item removed.');
@@ -73,8 +83,10 @@ final class NavigationController extends Controller
         }
         return $this->page($r, 'navigation/index', [
             'items'     => $items,
+            'tree'      => $menus->tree($location),
             'depths'    => $depths,
             'menuId'    => $menuId,
+            'pages'     => $this->db()->fetchAll('SELECT id,title,slug,status FROM `' . $this->db()->table('pages') . '` WHERE deleted_at IS NULL ORDER BY title'),
             'redirects' => $redirects->all(),
         ], 'Navigation');
     }

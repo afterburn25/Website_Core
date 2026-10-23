@@ -20,7 +20,8 @@
 <nav class="rail-nav" aria-label="Primary">
 <?php foreach ($pages ?? [] as $nav): ?>
 <?php $href = ($nav['url'] ?? '') !== '' && $nav['url'][0] !== '/' ? $nav['url'] : ($basePath . ($nav['url'] ?? '/' . ($nav['slug'] ?? ''))); ?>
-<a href="<?= e_url($href) ?>"><?= e($nav['title']) ?></a>
+<?php $target = $nav['target'] ?? 'self'; ?>
+<a href="<?= e_url($href) ?>"<?= $target === 'tab' ? ' target="_blank" rel="noopener noreferrer"' : ($target === 'window' ? ' target="wc-nav-window" rel="noopener noreferrer" data-open-window' : '') ?>><?= e($nav['label'] ?? $nav['title'] ?? '') ?></a>
 <?php endforeach; ?>
 </nav>
 </aside>
@@ -29,5 +30,6 @@
 <footer class="foot"><?= e($siteName) ?></footer>
 </main>
 </div>
+<script>document.querySelectorAll('[data-open-window]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();window.open(link.href,'wc-nav-window','noopener,noreferrer,width=1200,height=800,resizable=yes,scrollbars=yes');}));</script>
 </body>
 </html>

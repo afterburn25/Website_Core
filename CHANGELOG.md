@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.0 — 2026-10-23
+
+- Added an owner-only agency dashboard with encrypted remote credentials,
+  authenticated health checks, and core/industry version visibility.
+- Added signed marketplace catalogs and policy-driven, verified managed core
+  update staging or application with safety backups and maintenance windows.
+- Rebuilt the navigation editor as a polished visual tree with drag-and-drop
+  ordering/nesting, keyboard-friendly structure controls, page lookup,
+  external links, and same-tab/new-tab/new-window behavior.
+- Preserved Module API v1 compatibility for existing industry modules,
+  add-ons and themes.
+
 ## 1.9.0 — 2026-10-23
 
 - Added scoped, revocable API keys and authenticated health/content endpoints.

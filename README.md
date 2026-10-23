@@ -26,10 +26,10 @@ installed through the Module Manager.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
-- **Status**: `1.9.0`. The stable core now includes visual composition,
-  universal forms, editorial approvals, scoped APIs, signed webhooks and
-  portable site transfer. See `PROJECT_STATUS.md`, `docs/ROADMAP.md`, and
-  `docs/1.9_RELEASE_NOTES.md`.
+- **Status**: `2.0.0`. The stable core now includes visual composition,
+  editorial approvals, scoped integrations, an agency dashboard, signed
+  catalogs, managed updates and a visual navigation-tree editor. See
+  `PROJECT_STATUS.md`, `docs/ROADMAP.md`, and `docs/2.0_RELEASE_NOTES.md`.
 
 ## Quick start (development)
 
@@ -70,6 +70,8 @@ php tools/build-web-installer.php \
 | `docs/MODULE_API.md` | Supported extension API surface |
 | `docs/PACKAGE_SPEC.md` | addon.json manifest schema v1 |
 | `docs/LICENSING_API.md` | Bundle/DRM licensing contract |
+| `docs/INTEGRATIONS_API.md` | API keys, endpoints and signed webhooks |
+| `docs/AGENCY_MARKETPLACE.md` | Agency registry, catalogs and managed update policies |
 | `docs/UPGRADES.md` / `docs/BACKUP_RESTORE.md` | Update & DR design |
 | `docs/SECURITY.md` / `docs/THREAT_MODEL.md` | Security policy & model |
 | `SESSION_HANDOFF.md` | Session-to-session work log |

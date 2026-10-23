@@ -27,7 +27,7 @@ adapt to real dependencies; scope is preserved, not deferred silently.
 | 1.7 | multilingual pages, localized URLs, language navigation and metadata | complete | commit “Add the 1.7 multilingual content system” |
 | 1.8 | custom roles, editorial approval and revision comparison | complete | commit “Add the 1.8 roles and editorial workflow” |
 | 1.9 | API keys, webhooks, site transfer and remote backups | complete | commit “Build the 1.9 integration platform” |
-| 2.0 | agency site registry, marketplace catalog and managed update feeds | planned | — |
+| 2.0 | agency site registry, marketplace catalog, managed update feeds and visual navigation tree | complete | commit “Release the 2.0 agency and managed platform” |
 
 The immutable footer is core code, not an editable setting or theme field.
 Every public HTML response receives both required links to

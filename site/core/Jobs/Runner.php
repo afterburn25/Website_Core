@@ -66,6 +66,9 @@ final class Runner
             'webhook.deliver' => function (array $payload, Container $c): void {
                 $c->get(\Core\Api\WebhookService::class)->deliver((int) ($payload['delivery_id'] ?? 0));
             },
+            'core.managed_update' => function (array $payload, Container $c): void {
+                $c->get(\Core\Update\ManagedUpdateService::class)->run();
+            },
             'core.backup' => function (array $payload, Container $c): void {
                 $config = $c->get(\Core\Config::class);
                 $storage = (string) $config->get('paths.storage', WC_ROOT . '/storage');

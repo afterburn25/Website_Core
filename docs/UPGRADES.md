@@ -80,7 +80,22 @@ For an offline/reproducible build, `WC_BUILD_VENDOR_DIR` may point to a
 previously verified production-only Composer vendor tree. The builder requires
 both `autoload.php` and Composer installed metadata before it will use it.
 
-## Not yet implemented (roadmap)
+## Managed signed feeds (2.0)
+
+Owner-only **Marketplace** accepts public HTTPS catalog URLs. Catalog JSON is
+accepted only when its Ed25519 signature matches `trust.public_keys`;
+unsigned catalogs are never accepted, even on development installations.
+Every listed update also carries a SHA-256 digest, and the downloaded archive
+must independently pass `CoreUpdater` signature, manifest and member checks.
+
+Automation policies are stored in `updates.automation`: `off`,
+`stage-security`, `stage-all`, `apply-security`, or `apply-all`. Staging leaves
+the verified archive for owner review. Apply policies first create a complete
+site backup, enable maintenance, apply atomically, run migrations, clear
+opcache and journal the result. Cron checks are deduplicated and no more often
+than every twelve hours.
+
+## Future hardening
 
 - A stronger TUF-style signed-metadata chain is a reference target; the
   shipped floor already refuses older archives, expired manifests,

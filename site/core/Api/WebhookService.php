@@ -6,6 +6,8 @@ namespace Core\Api;
 use Core\Config;
 use Core\Database\Connection;
 use Core\Jobs\JobQueue;
+use Core\Security\SecretBox;
+use Core\Security\PublicHttpsUrl;
 
 final class WebhookService
 {
@@ -18,7 +20,7 @@ final class WebhookService
     {
         $label = trim(strip_tags($label));
         if ($label === '') throw new \InvalidArgumentException('A webhook label is required.');
-        if (!$this->validHttpsUrl($url)) throw new \InvalidArgumentException('Webhook URLs must be public HTTPS URLs.');
+        if (!PublicHttpsUrl::valid($url)) throw new \InvalidArgumentException('Webhook URLs must be public HTTPS URLs.');
         $events = array_values(array_intersect(self::EVENTS, array_map('strval', $events)));
         if ($events === []) throw new \InvalidArgumentException('Select at least one event.');
         $secret = bin2hex(random_bytes(24));
@@ -26,7 +28,7 @@ final class WebhookService
             'label' => mb_substr($label, 0, 120), 'url' => $url,
             'events_json' => json_encode($events, JSON_UNESCAPED_SLASHES),
             'secret_hash' => hash('sha256', $secret),
-            'secret_cipher' => $this->seal($secret), 'active' => 1,
+            'secret_cipher' => (new SecretBox($this->config))->seal($secret), 'active' => 1,
             'created_at' => date('Y-m-d H:i:s'),
         ]);
         return ['id' => $id, 'secret' => $secret];
@@ -53,7 +55,7 @@ final class WebhookService
         $row = $this->db->fetch('SELECT d.*,w.url,w.secret_cipher,w.active FROM `' . $this->db->table('webhook_deliveries') . '` d JOIN `' . $this->db->table('webhooks') . '` w ON w.id=d.webhook_id WHERE d.id = ?', [$deliveryId]);
         if (!$row || !(bool) $row['active']) return;
         if (!function_exists('curl_init')) throw new \RuntimeException('cURL is required for webhook delivery.');
-        $secret = $this->open((string) $row['secret_cipher']);
+        $secret = (new SecretBox($this->config))->open((string) $row['secret_cipher']);
         $body = (string) $row['payload_json'];
         $signature = hash_hmac('sha256', $body, $secret);
         $ch = curl_init((string) $row['url']);
@@ -71,40 +73,4 @@ final class WebhookService
     public function recent(): array { return $this->db->fetchAll('SELECT d.*,w.label FROM `' . $this->db->table('webhook_deliveries') . '` d JOIN `' . $this->db->table('webhooks') . '` w ON w.id=d.webhook_id ORDER BY d.id DESC LIMIT 50'); }
     public function disable(int $id): void { $this->db->update('webhooks', ['active' => 0], 'id = ?', [$id]); }
 
-    private function validHttpsUrl(string $url): bool
-    {
-        if (!filter_var($url, FILTER_VALIDATE_URL) || strtolower((string) parse_url($url, PHP_URL_SCHEME)) !== 'https') return false;
-        $host = (string) parse_url($url, PHP_URL_HOST);
-        if ($host === '' || strtolower($host) === 'localhost') return false;
-        $addresses = filter_var($host, FILTER_VALIDATE_IP) ? [$host] : (gethostbynamel($host) ?: []);
-        if ($addresses === []) return false;
-        foreach ($addresses as $address) {
-            if (!filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) return false;
-        }
-        return true;
-    }
-
-    private function key(): string
-    {
-        return hash('sha256', (string) $this->config->get('security.app_key', ''), true);
-    }
-
-    private function seal(string $plain): string
-    {
-        if (function_exists('sodium_crypto_secretbox')) {
-            $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-            return 'sodium:' . base64_encode($nonce . sodium_crypto_secretbox($plain, $nonce, $this->key()));
-        }
-        throw new \RuntimeException('Sodium is required to protect webhook secrets.');
-    }
-
-    private function open(string $cipher): string
-    {
-        $raw = base64_decode(substr($cipher, 7), true);
-        if (!str_starts_with($cipher, 'sodium:') || $raw === false) throw new \RuntimeException('Webhook secret is unreadable.');
-        $nonce = substr($raw, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-        $plain = sodium_crypto_secretbox_open(substr($raw, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES), $nonce, $this->key());
-        if ($plain === false) throw new \RuntimeException('Webhook secret could not be decrypted.');
-        return $plain;
-    }
 }

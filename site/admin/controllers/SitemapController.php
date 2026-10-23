@@ -18,7 +18,7 @@ final class SitemapController extends Controller
         // per-page robots meta an editor chose.
         $pages = $this->db()->fetchAll(
             'SELECT slug, updated_at FROM `' . $this->db()->table('pages')
-            . "` WHERE status = 'published' AND noindex = 0 ORDER BY slug"
+            . "` WHERE status = 'published' AND noindex = 0 AND deleted_at IS NULL ORDER BY slug"
         );
         $base = rtrim((string) ($this->settings()->get('app.url', '')
             ?: $this->c->get(\Core\Config::class)->get('app.url', '')), '/');
@@ -32,7 +32,8 @@ final class SitemapController extends Controller
                 . "</url>\n";
         }
         $xml .= '</urlset>';
-        return (new Response($xml))->header('Content-Type', 'application/xml; charset=utf-8');
+        return (new Response($xml))->header('Content-Type', 'application/xml; charset=utf-8')
+            ->header('Cache-Control', 'public, max-age=1800');
     }
 
     public function robots(Request $r): Response
@@ -42,6 +43,6 @@ final class SitemapController extends Controller
             ?: $this->c->get(\Core\Config::class)->get('app.url', '')), '/');
         $body = $custom !== '' ? $custom : "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /preview\n";
         $body .= "\nSitemap: {$base}/sitemap.xml\n";
-        return Response::text($body);
+        return Response::text($body)->header('Cache-Control', 'public, max-age=1800');
     }
 }

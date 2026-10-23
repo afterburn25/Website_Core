@@ -1,4 +1,4 @@
-<?php /** @var string $content @var string $siteName @var string $tagline @var string $basePath @var array $pages @var array|null $page @var string|null $brandLogoUrl @var string|null $faviconUrl @var string|null $socialImageUrl @var array $designTokens */ ?>
+<?php /** @var string $content @var string $siteName @var string $tagline @var string $basePath @var array $pages @var array|null $page @var string|null $brandLogoUrl @var string|null $faviconUrl @var string|null $socialImageUrl @var array $designTokens @var string $siteUrl @var string $currentUrl @var array $organization */ ?>
 <!doctype html>
 <html lang="<?= e_attr(\Core\I18n\Translator::instance()->langTag()) ?>">
 <head>
@@ -7,7 +7,10 @@
 <title><?= e(($page['meta_title'] ?? $page['title'] ?? '') !== '' ? ($page['meta_title'] ?? $page['title']) . ' — ' : '') ?><?= e($siteName) ?></title>
 <?php if (!empty($page['meta_description'])): ?>
 <meta name="description" content="<?= e_attr($page['meta_description']) ?>">
+<?php elseif ($tagline !== ''): ?>
+<meta name="description" content="<?= e_attr($tagline) ?>">
 <?php endif; ?>
+<meta property="og:type" content="website"><meta property="og:url" content="<?= e_attr($currentUrl) ?>">
 <?php if (!empty($page['noindex'])): ?>
 <meta name="robots" content="noindex, nofollow">
 <?php endif; ?>
@@ -24,6 +27,11 @@
 <?php if (!empty($faviconUrl)): ?><link rel="icon" href="<?= e_attr($faviconUrl) ?>"><?php endif; ?>
 <link rel="stylesheet" href="<?= e_attr($basePath . '/index.php?p=/_a/themes/base/assets/css/style.css&v=' . rawurlencode(defined('WC_VERSION') ? WC_VERSION : 'development')) ?>">
 <style>:root{--color-accent:<?= e_attr($designTokens['primary']) ?>;--color-highlight:<?= e_attr($designTokens['accent']) ?>;--radius:<?= (int) $designTokens['radius'] ?>px}</style>
+<?php
+$schema = ['@context' => 'https://schema.org', '@type' => 'Organization'] + array_filter($organization);
+if (!empty($brandLogoUrl)) $schema['logo'] = $brandLogoUrl;
+?>
+<script type="application/ld+json"><?= json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
 </head>
 <body>
 <header class="site-header">

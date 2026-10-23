@@ -13,7 +13,8 @@ final class Integrity
     private const TABLES = [
         'admins', 'admin_sessions', 'settings', 'pages', 'page_revisions',
         'packages', 'package_journal', 'jobs', 'audit_log', 'media',
-        'menus', 'menu_items', 'system_messages', 'migrations',
+        'menus', 'menu_items', 'system_messages', 'admin_notices',
+        'not_found_log', 'migrations',
     ];
 
     public function __construct(

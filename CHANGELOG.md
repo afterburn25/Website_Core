@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0-dev (unreleased)
+
+### Added — SEO and public performance
+- Added aggregated public 404 insights with referrer evidence and one-step validated redirects.
+- Added Open Graph URL/type data, default social imagery, and Schema.org organization metadata.
+- Added sitemap trash filtering plus explicit sitemap/robots cache policy.
+- Added strong ETags, conditional 304 responses, and bounded caching for public HTML.
+
 ## 0.7.0-dev (unreleased)
 
 ### Added — operations and recovery

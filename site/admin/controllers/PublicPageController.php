@@ -131,6 +131,17 @@ final class PublicPageController extends Controller
         $v->share('basePath', $r->basePath);
         $v->share('siteName', $this->settings()->get('site.name', 'Website Core'));
         $v->share('tagline', $this->settings()->get('site.tagline', ''));
+        $siteUrl = rtrim((string) ($this->settings()->get('app.url', '')
+            ?: $this->c->get(\Core\Config::class)->get('app.url', '')), '/');
+        $v->share('siteUrl', $siteUrl);
+        $v->share('currentUrl', $siteUrl . ($r->path === '/' ? '/' : $r->path));
+        $v->share('organization', [
+            'name' => (string) $this->settings()->get('site.name', 'Website Core'),
+            'url' => $siteUrl,
+            'telephone' => (string) $this->settings()->get('site.phone', ''),
+            'email' => (string) $this->settings()->get('site.contact_email', ''),
+            'address' => (string) $this->settings()->get('site.address', ''),
+        ]);
         $v->share('brandLogoUrl', $this->brandMediaUrl($r, 'brand.logo_media_id', 480));
         $v->share('faviconUrl', $this->brandMediaUrl($r, 'brand.favicon_media_id'));
         $v->share('socialImageUrl', $this->brandMediaUrl($r, 'brand.social_media_id', 1200));

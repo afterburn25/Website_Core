@@ -169,6 +169,7 @@ final class Application
         $this->container->instance(SettingsRepository::class, new SettingsRepository($db));
         $this->container->instance(AuditLog::class, new AuditLog($db));
         $this->container->instance(\Core\Admin\NoticeCenter::class, new \Core\Admin\NoticeCenter($db));
+        $this->container->instance(\Core\Seo\NotFoundLog::class, new \Core\Seo\NotFoundLog($db));
         $this->container->instance(JobQueue::class, new JobQueue($db));
         $this->container->instance(RateLimiter::class, new RateLimiter($db));
         $this->container->instance(Permissions::class, new Permissions());
@@ -311,10 +312,29 @@ final class Application
         $this->bootModules();
         $this->registerPublicRoutes();
         $response = $this->router->dispatch($request);
-        if (!str_starts_with(rtrim($request->path, '/') ?: '/', '/admin')) {
+        $publicRequest = !str_starts_with(rtrim($request->path, '/') ?: '/', '/admin');
+        if ($publicRequest && $response->status() === 404) {
+            try {
+                $this->container->get(\Core\Seo\NotFoundLog::class)->record(
+                    $request->path, $request->header('Referer')
+                );
+            } catch (\Throwable) {
+                // Upgrade request may run before the 404-log migration.
+            }
+        }
+        if ($publicRequest) {
             $contentType = strtolower((string) ($response->headers()['Content-Type'] ?? 'text/html'));
             if (str_contains($contentType, 'text/html')) {
                 $response->setBody((new \Core\Branding\Attribution())->apply($response->body()));
+                if ($request->method === 'GET' && $response->status() === 200) {
+                    $etag = '"' . hash('sha256', $response->body()) . '"';
+                    $response->header('ETag', $etag)
+                        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+                    if (hash_equals($etag, trim($request->header('If-None-Match')))) {
+                        $response = (new Response('', 304))->header('ETag', $etag)
+                            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+                    }
+                }
             }
         }
         return $this->withSecurityHeaders($response);
@@ -499,6 +519,7 @@ final class Application
             $r->post('/pages/{id:\d+}/preview', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->previewLink($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/restore/{rid:\d+}', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->restoreRevision($req), [$auth, $csrfCheck]);
             $r->any('/navigation', fn (Request $req) => (new \Admin\Controllers\NavigationController($c))->index($req), [$auth, $csrfCheck]);
+            $r->any('/seo', fn (Request $req) => (new \Admin\Controllers\SeoController($c))->index($req), [$auth, $csrfCheck]);
             $r->get('/content', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->index($req), [$auth]);
             $r->get('/content/list', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->list($req), [$auth]);
             $r->get('/content/edit', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->edit($req), [$auth]);

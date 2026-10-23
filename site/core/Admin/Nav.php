@@ -29,6 +29,7 @@ final class Nav
             $this->core('/admin/notices',    'Notifications',  null,                    'Overview',       'core-overview'),
             $this->core('/admin/pages',      'Content',        'content.manage',        'Website',        'core-website'),
             $this->core('/admin/navigation', 'Navigation',     'navigation.manage',     'Website',        'core-website'),
+            $this->core('/admin/seo',        'SEO',            'navigation.manage',     'Website',        'core-website'),
             $this->core('/admin/media',      'Media',          'media.manage',          'Website',        'core-website'),
             $this->core('/admin/appearance', 'Appearance',     'appearance.manage',     'Design',         'core-design'),
             $this->core('/admin/users',      'Administrators', 'admins.view',           'Administration', 'core-administration'),

@@ -45,6 +45,12 @@ final class InstallerCleanupTest extends TestCase
         self::assertFileExists($this->root . '/index.php');
     }
 
+    public function testCleanupCapabilityProbeExercisesDocumentRootMutations(): void
+    {
+        self::assertTrue(wc_probe_installer_cleanup_access($this->root));
+        self::assertSame([], glob($this->root . '/.wc-cleanup-probe-*') ?: []);
+    }
+
     public function testSameParentRetirementRemovesCanonicalPathAndProtectsResidues(): void
     {
         file_put_contents($this->root . '/.htaccess', "# existing application rules\n");

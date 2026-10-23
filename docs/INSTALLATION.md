@@ -111,6 +111,12 @@ that fail real create/read/rename/delete probes are rejected. No FTP or hosting
 credentials are requested, and chmod 0777 is never used. Long absolute paths
 wrap inside readiness cards rather than overflowing the setup panel.
 
+Installer self-removal has a separate required probe in the public document
+root. If it fails, ask the hosting provider to run PHP-FPM as the hosting
+account and repair the document-root ownership to that same account before
+installing. This setting is controlled by each hosting server; it cannot be
+made portable inside a PHP/ZIP package. Do not work around it with mode 0777.
+
 An existing Website Core database is supported for reinstall/recovery. The
 installer applies only pending migrations, creates or refreshes the submitted
 owner login, preserves an existing home page and cron token, and idempotently

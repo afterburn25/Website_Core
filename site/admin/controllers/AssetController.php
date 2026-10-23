@@ -51,10 +51,74 @@ final class AssetController extends Controller
             return Response::notFound();
         }
 
+        $body = (string) file_get_contents($file);
+        if ($ext === 'css') {
+            $body = self::rewriteCssUrls($body, $path);
+        }
+
         return Response::html('')
             ->header('Content-Type', $mime)
             ->header('Cache-Control', 'public, max-age=86400')
             ->header('X-Content-Type-Options', 'nosniff')
-            ->setBody(file_get_contents($file));
+            ->setBody($body);
+    }
+
+    /**
+     * A stylesheet served through index.php has no virtual directory from
+     * which a browser can resolve ../images or ../fonts. Rebase relative CSS
+     * resources onto the same rewrite-free asset route. Query-only URLs keep
+     * the current physical index.php and therefore work in any subfolder.
+     */
+    private static function rewriteCssUrls(string $css, string $assetPath): string
+    {
+        $directory = str_replace('\\', '/', dirname($assetPath));
+
+        return (string) preg_replace_callback(
+            '#url\(\s*([\'\"]?)([^\'\")]+)\1\s*\)#i',
+            static function (array $match) use ($directory): string {
+                $reference = trim($match[2]);
+                if ($reference === ''
+                    || preg_match('#^(?:[a-z][a-z0-9+.-]*:|/|\\\\|\#|\?)#i', $reference)
+                ) {
+                    return $match[0];
+                }
+
+                $fragment = '';
+                if (($hash = strpos($reference, '#')) !== false) {
+                    $fragment = substr($reference, $hash);
+                    $reference = substr($reference, 0, $hash);
+                }
+                $query = '';
+                if (($question = strpos($reference, '?')) !== false) {
+                    $query = substr($reference, $question + 1);
+                    $reference = substr($reference, 0, $question);
+                }
+
+                $segments = [];
+                foreach (explode('/', $directory . '/' . $reference) as $segment) {
+                    if ($segment === '' || $segment === '.') {
+                        continue;
+                    }
+                    if ($segment === '..') {
+                        if ($segments === []) {
+                            return $match[0];
+                        }
+                        array_pop($segments);
+                        continue;
+                    }
+                    $segments[] = $segment;
+                }
+                if ($segments === [] || !in_array($segments[0], ['modules', 'themes'], true)) {
+                    return $match[0];
+                }
+
+                $encoded = implode('/', array_map('rawurlencode', $segments));
+                $url = '?p=/_a/' . $encoded;
+                $url .= '&v=' . rawurlencode(defined('WC_VERSION') ? WC_VERSION : 'development');
+                $url .= $query !== '' ? '&' . $query : '';
+                return 'url("' . $url . $fragment . '")';
+            },
+            $css
+        );
     }
 }

@@ -2,6 +2,7 @@
 /** @var string $content @var string $siteName @var string $tagline @var string $basePath @var string $assetBase
  * @var string $currentPath @var string $phone @var string $contactEmail @var array $page */
 $asset = $assetBase;
+$assetVersion = rawurlencode(defined('WC_VERSION') ? WC_VERSION : 'development');
 $nav = [
     ['Our Story', '/about'], ['Menus', '/menus'], ['Services', '/services'],
     ['Packages', '/packages'], ['Gallery', '/gallery'], ['Contact', '/contact'],
@@ -15,7 +16,7 @@ $nav = [
 <title><?= e(($page['title'] ?? '') !== 'Home' ? ($page['title'] ?? '') . ' — ' : '') ?><?= e($siteName) ?></title>
 <meta name="description" content="<?= e_attr($page['meta_description'] ?? '') ?>">
 <?php if (!empty($page['noindex'])): ?><meta name="robots" content="noindex,nofollow"><?php endif; ?>
-<link rel="stylesheet" href="<?= e_attr($asset) ?>/assets/css/catering.css">
+<link rel="stylesheet" href="<?= e_attr($asset . '/assets/css/catering.css&v=' . $assetVersion) ?>">
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
@@ -61,6 +62,6 @@ $nav = [
 </div>
 <div class="c-footer-bottom"><span>© <?= date('Y') ?> <?= e($siteName) ?></span><span>Demo content should be replaced before launch.</span></div>
 </footer>
-<script src="<?= e_attr($asset) ?>/assets/js/catering.js" defer></script>
+<script src="<?= e_attr($asset . '/assets/js/catering.js&v=' . $assetVersion) ?>" defer></script>
 </body>
 </html>

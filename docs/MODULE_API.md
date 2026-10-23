@@ -28,6 +28,9 @@ breaking changes bump the major and ship with a migration guide.
 | `routeBase($basePath = '')` | Return the rewrite-independent `index.php?p=` prefix used by package views that append application routes. |
 | `url($basePath, $path = '/', $query = [])` | Build a complete rewrite-independent application URL, including additional query parameters. |
 
+Relative image and font references inside package CSS are automatically
+rebased onto the rewrite-independent asset route by the core asset server.
+
 Each enabled package receives its **own** `ModuleContext` stamped with its
 packageId — registrations are attributed to the package and aggregated by
 the `ModuleRegistry` (`adminNavItems()`, `jobHandlers()`, `contexts()`).

@@ -214,10 +214,13 @@ final class Installer
                 : 'No safe persistent storage location could be created automatically.'
         );
         $add('SSL / HTTPS', $this->requestSecure(), 'A valid SSL certificate and HTTPS connection are required');
+        $cleanupAccess = wc_probe_installer_cleanup_access(WC_ROOT);
         $add(
-            'Installer security',
-            true,
-            'Setup runs inside the protected core and is permanently disabled by the verified installation lock.'
+            'Installer self-removal',
+            $cleanupAccess,
+            $cleanupAccess
+                ? 'Verified create, rename, and delete access in the document root.'
+                : 'PHP cannot create, rename, and delete entries in the document root. Ask the host to run PHP-FPM as the hosting account and repair document-root ownership before installing.'
         );
 
         // Report bundled-product detection so the customer can confirm the

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.9-dev (unreleased)
+
+### Fixed — images and fonts in routed stylesheets
+- The core asset server now rebases relative `url(...)` references inside
+  package and theme CSS onto the rewrite-independent `index.php?p=/_a/...`
+  route. Background images and fonts therefore resolve correctly when nginx
+  or a shared-host proxy ignores `.htaccess` clean-path rewrites.
+- The transformation preserves external, absolute, fragment, query-only, and
+  data URLs and normalizes relative path traversal inside the asset namespace.
+- Versioned CSS, JavaScript, image, and font asset URLs invalidate the prior
+  24-hour browser cache immediately after a core or industry upgrade.
+- Installer readiness now proves that the PHP worker can create, rename, and
+  delete files and directories in the document root before installation, with
+  clear PHP-FPM ownership guidance when the host blocks self-removal.
+- Incremented the catering module to `0.1.9`.
+
 ## 0.1.8-dev (unreleased)
 
 ### Fixed — deploy-time cleanup and rewrite-free assets

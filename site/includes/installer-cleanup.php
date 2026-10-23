@@ -68,6 +68,69 @@ function wc_remaining_installer_artifacts(string $root): array
 }
 
 /**
+ * Prove that the PHP worker can create, rename, and delete both files and
+ * directories in the public root. This is the capability the installer needs
+ * to retire its own public entry points after a successful installation.
+ *
+ * The probe uses unique, hidden names and always performs best-effort cleanup.
+ */
+function wc_probe_installer_cleanup_access(string $root): bool
+{
+    $root = rtrim($root, DIRECTORY_SEPARATOR);
+    if ($root === '' || !is_dir($root) || is_link($root)) {
+        return false;
+    }
+
+    try {
+        $suffix = bin2hex(random_bytes(8));
+    } catch (Throwable) {
+        return false;
+    }
+
+    $file = $root . DIRECTORY_SEPARATOR . '.wc-cleanup-probe-' . $suffix;
+    $renamedFile = $file . '.renamed';
+    $directory = $root . DIRECTORY_SEPARATOR . '.wc-cleanup-probe-dir-' . $suffix;
+    $renamedDirectory = $directory . '.renamed';
+    $child = $directory . DIRECTORY_SEPARATOR . 'probe';
+    $renamedChild = $renamedDirectory . DIRECTORY_SEPARATOR . 'probe';
+    $ok = false;
+
+    $handle = @fopen($file, 'x');
+    if ($handle !== false) {
+        $written = fwrite($handle, "installer cleanup capability probe\n");
+        fclose($handle);
+        @chmod($file, 0600);
+
+        if ($written !== false
+            && @rename($file, $renamedFile)
+            && @unlink($renamedFile)
+            && @mkdir($directory, 0700)
+            && @file_put_contents($child, 'probe', LOCK_EX) !== false
+            && @unlink($child)
+            && @rename($directory, $renamedDirectory)
+            && @rmdir($renamedDirectory)
+        ) {
+            clearstatcache();
+            $ok = !file_exists($file)
+                && !file_exists($renamedFile)
+                && !file_exists($directory)
+                && !file_exists($renamedDirectory);
+        }
+    }
+
+    // Clean up any partial probe without touching any shipped application file.
+    @unlink($child);
+    @unlink($renamedChild);
+    @unlink($file);
+    @unlink($renamedFile);
+    @rmdir($directory);
+    @rmdir($renamedDirectory);
+    clearstatcache();
+
+    return $ok;
+}
+
+/**
  * Remove only the two shipped installer artifacts. Direct deletion is tried
  * first. On split-ownership hosts, the exact artifact is atomically retired
  * into protected retirement storage and erased there. If the host refuses a

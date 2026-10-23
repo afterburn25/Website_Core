@@ -16,6 +16,21 @@ No license keys, unlock files, wizards, or merchant credentials for a
 core-only install. **Bundled products** (core + industry module purchased
 from Cajunwebpro.com) carry an embedded license key — see below.
 
+## Keyless testing bundles
+
+For development and customer testing, build an explicitly labeled bundle:
+
+```bash
+php tools/build-packages.php test-bundle <industry> [outdir]
+```
+
+The resulting `*-TEST-BUNDLE.zip` contains the core and selected industry
+module but deliberately omits `license_key`. The installer still detects,
+migrates, registers, and enables the industry module. No license row is
+created, no licensing API request is made, and periodic license enforcement
+remains inactive. This testing path does not weaken licensed `*-BUNDLE.zip`
+files: any bundle containing `license_key` follows the normal validation flow.
+
 ## Bundled products (license-validated)
 
 Bundles ship the industry module pre-extracted at

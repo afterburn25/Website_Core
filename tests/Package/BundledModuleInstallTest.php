@@ -73,15 +73,17 @@ final class BundledModuleInstallTest extends TestCase
         }
     }
 
-    /** Mirrors Installer's bundled-module block: license row + packages row + module migrations + enabled. */
-    private function registerBundled(string $moduleDir, string $licenseKey, string $domain): array
+    /** Mirrors Installer: optional license row + package row + module migrations + enabled. */
+    private function registerBundled(string $moduleDir, ?string $licenseKey, string $domain): array
     {
-        $licenseTable = $this->db->table('license');
-        $this->db->run(
-            "INSERT INTO `{$licenseTable}` (license_key, license_domain, license_valid, license_validated_at, created_at)
-             VALUES (?, ?, 1, ?, ?)",
-            [$licenseKey, $domain, date('Y-m-d H:i:s'), date('Y-m-d H:i:s')]
-        );
+        if ($licenseKey !== null) {
+            $licenseTable = $this->db->table('license');
+            $this->db->run(
+                "INSERT INTO `{$licenseTable}` (license_key, license_domain, license_valid, license_validated_at, created_at)
+                 VALUES (?, ?, 1, ?, ?)",
+                [$licenseKey, $domain, date('Y-m-d H:i:s'), date('Y-m-d H:i:s')]
+            );
+        }
 
         $manifest = json_decode((string) file_get_contents($moduleDir . '/addon.json'), true);
         $this->assertIsArray($manifest);
@@ -173,5 +175,34 @@ final class BundledModuleInstallTest extends TestCase
             'SELECT COUNT(*) c FROM `' . $this->db->table('packages') . "` WHERE package_id = ? AND state = 'enabled'",
             ['wcref/nomig']
         )['c']);
+    }
+
+    public function testKeylessTestingBundleRegistersMigratesAndBoots(): void
+    {
+        $src = dirname(WC_ROOT) . '/examples/industry-restaurant';
+        $dest = $this->tmp . '/industries/industry-restaurant';
+        $this->copyTree($src, $dest);
+
+        $manifest = json_decode((string) file_get_contents($dest . '/addon.json'), true);
+        unset($manifest['license_key'], $manifest['provider'], $manifest['psr4'], $manifest['entry']);
+        file_put_contents($dest . '/addon.json', json_encode($manifest, JSON_PRETTY_PRINT));
+
+        [$packageId] = $this->registerBundled($dest, null, 'testing.example.com');
+        $this->assertSame('wcref/restaurant', $packageId);
+        $this->assertSame(0, (int) $this->db->fetch(
+            'SELECT COUNT(*) c FROM `' . $this->db->table('license') . '`'
+        )['c']);
+        $this->assertSame(1, (int) $this->db->fetch(
+            'SELECT COUNT(*) c FROM `' . $this->db->table('packages') . "` WHERE package_id = ? AND state = 'enabled'",
+            [$packageId]
+        )['c']);
+        $this->assertTrue($this->db->tableExists('restaurant_categories'));
+        $this->assertTrue($this->db->tableExists('restaurant_items'));
+
+        $registry = new ModuleRegistry($this->db, $this->tmp . '/industries', $this->tmp . '/addons', $this->tmp . '/themes');
+        $booted = $registry->bootEnabled(
+            fn (string $id) => new ModuleContext($id, new Router(), new Dispatcher())
+        );
+        $this->assertSame(['wcref/restaurant'], $booted);
     }
 }

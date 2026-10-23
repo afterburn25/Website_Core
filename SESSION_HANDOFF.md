@@ -1,5 +1,19 @@
 # Session Handoff
 
+## 2026-10-23 — keyless test-bundle installation
+
+- Added `test-bundle <industry> [outdir]` packaging mode. Output is visibly
+  named `TEST-BUNDLE` and omits `license_key` from the industry manifest.
+- Installer discovery no longer requires a license key: a keyless bundled
+  industry module is registered, migrated, and enabled automatically without
+  creating a license row or contacting the licensing API.
+- Licensed bundles are unchanged: when `license_key` exists, install-time
+  validation, storage, domain binding, and periodic enforcement still apply.
+- Added package coverage for the keyless bundled-module lifecycle and updated
+  installation/licensing documentation. CI now performs a real HTTP install
+  on both MySQL and MariaDB, verifies no license row/API warning is created,
+  and inspects the generated TEST-BUNDLE archive contract.
+
 ## 2026-10-15 — M6 accessibility and performance controls
 
 **Completed this session** — accessibility controls added and tested:

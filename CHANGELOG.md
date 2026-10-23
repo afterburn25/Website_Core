@@ -2,6 +2,15 @@
 
 ## 0.1.0-dev (unreleased)
 
+### Added — keyless testing bundles
+- `tools/build-packages.php test-bundle <industry> [outdir]` creates a clearly
+  labeled industry bundle without `license_key` for development and customer
+  testing.
+- The browser installer now detects, migrates, registers, and enables bundled
+  industry modules whether or not they carry a license key. Keyless test
+  bundles make no licensing API request and create no license row; licensed
+  production bundles retain the existing validation and enforcement path.
+
 ### Added — M0 + M1 first increment
 - Project skeleton, boundary/architecture/status docs, CI (lint+unit
   matrix, native MySQL/MariaDB, core-only boot).

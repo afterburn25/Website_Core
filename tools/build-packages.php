@@ -22,20 +22,26 @@ declare(strict_types=1);
  *        php tools/build-packages.php bundle <industry> <license_key> [outdir]
  *                                    Create a bundled package (core + industry module
  *                                    with license_key embedded in addon.json)
+ *        php tools/build-packages.php test-bundle <industry> [outdir]
+ *                                    Create a clearly labeled keyless bundle for testing
  * Run from a clean commit for release builds.
  */
 
 $root = dirname(__DIR__);
 $out = $argv[1] ?? $root . '/dist';
 
-if ($argv[1] === 'bundle') {
-    // php tools/build-packages.php bundle <industry> <license_key> [outdir]
+if (in_array($argv[1] ?? null, ['bundle', 'test-bundle'], true)) {
+    $testingBundle = $argv[1] === 'test-bundle';
+    // Licensed: php tools/build-packages.php bundle <industry> <license_key> [outdir]
+    // Testing:  php tools/build-packages.php test-bundle <industry> [outdir]
     $industry = $argv[2] ?? null;
-    $licenseKey = $argv[3] ?? null;
-    $out = $argv[4] ?? $root . '/dist';
+    $licenseKey = $testingBundle ? null : ($argv[3] ?? null);
+    $out = $testingBundle ? ($argv[3] ?? $root . '/dist') : ($argv[4] ?? $root . '/dist');
     @mkdir($out, 0777, true);
-    if ($industry === null || $licenseKey === null) {
-        fwrite(STDERR, "Usage: php tools/build-packages.php bundle <industry> <license_key> [outdir]\n");
+    if ($industry === null || (!$testingBundle && $licenseKey === null)) {
+        fwrite(STDERR, $testingBundle
+            ? "Usage: php tools/build-packages.php test-bundle <industry> [outdir]\n"
+            : "Usage: php tools/build-packages.php bundle <industry> <license_key> [outdir]\n");
         exit(1);
     }
     $version = '0.0.0-dev';
@@ -46,7 +52,9 @@ if ($argv[1] === 'bundle') {
         }
     }
     $ver = preg_replace('/[^a-zA-Z0-9.\-]+/', '-', $version);
-    echo "Building bundle for {$industry} with license_key={$licenseKey}\n";
+    echo $testingBundle
+        ? "Building keyless TEST-BUNDLE for {$industry}\n"
+        : "Building licensed bundle for {$industry} with license_key={$licenseKey}\n";
     echo "version={$ver}\n";
     // Find the industry module in examples/
     $examples = glob($root . '/examples/industry-*', GLOB_ONLYDIR);
@@ -63,7 +71,8 @@ if ($argv[1] === 'bundle') {
     }
     $moduleName = basename($moduleDir);
     // Build the bundle ZIP
-    $bundleZip = "{$out}/Website-Core-{$industry}-{$ver}-BUNDLE.zip";
+    $bundleKind = $testingBundle ? 'TEST-BUNDLE' : 'BUNDLE';
+    $bundleZip = "{$out}/Website-Core-{$industry}-{$ver}-{$bundleKind}.zip";
     $zip = new ZipArchive();
     if ($zip->open($bundleZip, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
         fwrite(STDERR, "cannot create {$bundleZip}\n");
@@ -95,7 +104,8 @@ if ($argv[1] === 'bundle') {
         $zip->addFile($path, 'site/' . $rel);
         $count++;
     }
-    // Add module files with embedded license_key
+    // Add module files. Production bundles embed license_key; TEST-BUNDLE
+    // explicitly removes it so the result cannot accidentally phone home.
     $moduleBase = $moduleDir;
     $iterator = new RecursiveIteratorIterator(
         new RecursiveDirectoryIterator($moduleBase, FilesystemIterator::SKIP_DOTS)
@@ -109,11 +119,15 @@ if ($argv[1] === 'bundle') {
         if (str_ends_with($rel, '.env') || str_contains($rel, '.key') || str_contains($rel, '.pem')) {
             continue;
         }
-        // Embed license_key in addon.json
+        // Embed or remove license_key in addon.json.
         if ($rel === 'addon.json') {
             $content = file_get_contents($path);
             $manifest = json_decode($content, true);
-            $manifest['license_key'] = $licenseKey;
+            if ($testingBundle) {
+                unset($manifest['license_key']);
+            } else {
+                $manifest['license_key'] = $licenseKey;
+            }
             $zip->addFromString('site/modules/industries/' . $moduleName . '/addon.json',
                 json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         } else {

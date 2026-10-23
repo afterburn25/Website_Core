@@ -146,3 +146,15 @@ php tools/build-packages.php bundle restaurant ABCD-1234-EFGH dist/
 
 This creates `Website-Core-restaurant-0.1.0-BUNDLE.zip` containing the core
 and the restaurant module with `license_key` embedded in `addon.json`.
+
+## Keyless testing build
+
+```bash
+php tools/build-packages.php test-bundle restaurant dist/
+```
+
+This creates `Website-Core-restaurant-0.1.0-TEST-BUNDLE.zip`. Its manifest has
+no `license_key`, so installation, automatic module registration, migrations,
+and activation work without contacting the licensing service. The installed
+site has no license row and therefore no domain-binding or periodic license
+enforcement. Production `BUNDLE` builds are unchanged and remain licensed.

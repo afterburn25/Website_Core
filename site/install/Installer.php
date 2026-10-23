@@ -172,14 +172,22 @@ final class Installer
         // package they purchased was extracted correctly. Not required —
         // a core-only install is a valid configuration.
         $bundledName = null;
+        $bundledLicensed = false;
         foreach (glob(WC_ROOT . '/modules/industries/*/addon.json') ?: [] as $manifestFile) {
             $m = json_decode((string) file_get_contents($manifestFile), true);
-            if (is_array($m) && isset($m['license_key'])) {
+            if (is_array($m)) {
                 $bundledName = basename(dirname($manifestFile));
+                $bundledLicensed = trim((string) ($m['license_key'] ?? '')) !== '';
                 break;
             }
         }
-        $add('Bundled industry module', true, $bundledName !== null ? $bundledName . ' — license will be validated during install' : 'none detected — core-only install', false);
+        $bundleDetail = 'none detected — core-only install';
+        if ($bundledName !== null) {
+            $bundleDetail = $bundledName . ($bundledLicensed
+                ? ' — license will be validated during install'
+                : ' — TEST BUNDLE; no license required');
+        }
+        $add('Bundled industry module', true, $bundleDetail, false);
 
         return $checks;
     }
@@ -275,18 +283,22 @@ final class Installer
             $errors['storage_path'] = 'Storage path is not writable and could not be created.';
         }
 
-        // --- license validation (DRM) ----------------------------------------
-        // Bundled modules are extracted to site/modules/industries/*/
+        // --- bundled module discovery + optional license validation ----------
+        // Bundled modules are extracted to site/modules/industries/*/. A
+        // production bundle contains license_key. An explicitly built testing
+        // bundle omits it and must still install/register/enable normally.
         $licenseKey = null;
-        $licenseModuleDir = null;
+        $bundledModuleDir = null;
         $licenseOk = true;
         $licenseError = null;
+        $domain = null;
         $bundledModules = glob(WC_ROOT . '/modules/industries/*/addon.json') ?: [];
         foreach ($bundledModules as $manifestFile) {
             $manifest = json_decode((string) file_get_contents($manifestFile), true);
-            if (is_array($manifest) && isset($manifest['license_key'])) {
-                $licenseKey = (string) $manifest['license_key'];
-                $licenseModuleDir = dirname($manifestFile);
+            if (is_array($manifest)) {
+                $bundledModuleDir = dirname($manifestFile);
+                $candidateKey = trim((string) ($manifest['license_key'] ?? ''));
+                $licenseKey = $candidateKey !== '' ? $candidateKey : null;
                 break;
             }
         }
@@ -351,31 +363,33 @@ final class Installer
             return $this->page($checks, ['db_name' => 'Schema/owner creation failed: ' . $e->getMessage()], $request);
         }
 
-        // --- bundled module installation (DRM) --------------------------------
+        // --- bundled module installation --------------------------------------
         // The bundled module ships extracted at site/modules/industries/NAME/.
-        // Store the license, then register the package, run its migrations and
-        // mark it enabled — a bundled product must work out of the box without
-        // the customer manually enabling anything.
-        if ($licenseModuleDir !== null) {
+        // Production bundles store the license first. Keyless TEST-BUNDLE builds
+        // deliberately skip the license row. Both paths register the package,
+        // run migrations and enable it without a manual activation step.
+        if ($bundledModuleDir !== null) {
             try {
-                $table = $db->table('license');
-                // On an inconclusive install check the row is stored valid
-                // with a NULL validated_at — the job scheduler treats that
-                // as "never validated" and enqueues verification on the next
-                // cron tick, so a borrowed/invalid key still self-corrects.
-                $db->run(
-                    "INSERT INTO `{$table}` (license_key, license_domain, license_valid, license_validated_at, license_error, created_at)
-                     VALUES (?, ?, ?, ?, ?, ?)",
-                    [
-                        $licenseKey, $domain, 1,
-                        $licenseOk ? date('Y-m-d H:i:s') : null,
-                        $licenseOk ? null : 'Install-time license check inconclusive: ' . ($licenseError ?? 'unknown'),
-                        date('Y-m-d H:i:s'),
-                    ]
-                );
+                if ($licenseKey !== null) {
+                    $table = $db->table('license');
+                    // On an inconclusive install check the row is stored valid
+                    // with a NULL validated_at — the job scheduler treats that
+                    // as "never validated" and enqueues verification on the next
+                    // cron tick, so a borrowed/invalid key still self-corrects.
+                    $db->run(
+                        "INSERT INTO `{$table}` (license_key, license_domain, license_valid, license_validated_at, license_error, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?)",
+                        [
+                            $licenseKey, $domain, 1,
+                            $licenseOk ? date('Y-m-d H:i:s') : null,
+                            $licenseOk ? null : 'Install-time license check inconclusive: ' . ($licenseError ?? 'unknown'),
+                            date('Y-m-d H:i:s'),
+                        ]
+                    );
+                }
 
-                $manifest = json_decode((string) file_get_contents($licenseModuleDir . '/addon.json'), true);
-                $packageId = (string) ($manifest['id'] ?? basename($licenseModuleDir));
+                $manifest = json_decode((string) file_get_contents($bundledModuleDir . '/addon.json'), true);
+                $packageId = (string) ($manifest['id'] ?? basename($bundledModuleDir));
                 $packagesTable = $db->table('packages');
                 $db->run(
                     "INSERT INTO `{$packagesTable}` (package_id, state, version, manifest, updated_at)
@@ -387,8 +401,8 @@ final class Installer
                 );
 
                 $migDir = trim((string) ($manifest['migrations'] ?? ''), '/');
-                if ($migDir !== '' && is_dir($licenseModuleDir . '/' . $migDir)) {
-                    (new Migrator($db, $licenseModuleDir . '/' . $migDir))->migrate();
+                if ($migDir !== '' && is_dir($bundledModuleDir . '/' . $migDir)) {
+                    (new Migrator($db, $bundledModuleDir . '/' . $migDir))->migrate();
                 }
 
                 $db->run(
@@ -397,7 +411,9 @@ final class Installer
                 );
                 $db->insert('package_journal', [
                     'package_id' => $packageId, 'operation' => 'bundled-install',
-                    'result' => 'ok', 'detail' => 'Bundled module enabled during install',
+                    'result' => 'ok', 'detail' => $licenseKey !== null
+                        ? 'Licensed bundled module enabled during install'
+                        : 'Keyless testing bundle enabled during install',
                     'created_at' => date('Y-m-d H:i:s'),
                 ]);
             } catch (\Throwable $e) {
@@ -438,11 +454,15 @@ final class Installer
             }
         }
 
-        $licenseNote = ($licenseModuleDir !== null && !$licenseOk)
-            ? '<p><strong>License check deferred:</strong> the license server could not be reached '
-              . 'during install (' . e((string) $licenseError) . '). Your license will be verified '
-              . 'automatically — if it cannot be validated the site will go offline.</p>'
-            : '';
+        $licenseNote = '';
+        if ($bundledModuleDir !== null && $licenseKey === null) {
+            $licenseNote = '<p><strong>Testing mode:</strong> this TEST-BUNDLE was installed without '
+                . 'a license key. License validation and domain binding are inactive.</p>';
+        } elseif ($bundledModuleDir !== null && !$licenseOk) {
+            $licenseNote = '<p><strong>License check deferred:</strong> the license server could not be reached '
+                . 'during install (' . e((string) $licenseError) . '). Your license will be verified '
+                . 'automatically — if it cannot be validated the site will go offline.</p>';
+        }
 
         return Response::html(
             '<!doctype html><html><head><meta charset="utf-8"><title>Installed</title>'

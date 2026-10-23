@@ -236,6 +236,59 @@ jobs:
           kill $MOCK_PID $SITE_PID 2>/dev/null || true
           echo "licensed bundle acceptance OK"
 
+      - name: Keyless TEST-BUNDLE install acceptance over HTTP (real MySQL)
+        run: |
+          set -ex
+          trap 'echo "--- php -S log ---"; cat /tmp/php-keyless.log 2>/dev/null || true' EXIT
+          php -r 'new PDO("mysql:host=127.0.0.1;port=3306","root","")->exec("CREATE DATABASE IF NOT EXISTS wc_install_keyless");'
+
+          cp -r site /tmp/wcsite3
+          cp -r vendor /tmp/wcsite3/vendor
+          mkdir -p /tmp/wcsite3/modules/industries
+          cp -r examples/industry-restaurant /tmp/wcsite3/modules/industries/industry-restaurant
+          # The example manifest has no license_key — this mirrors a TEST-BUNDLE.
+          php -S 127.0.0.1:8101 -t /tmp/wcsite3 >/tmp/php-keyless.log 2>&1 &
+          SITE_PID=$!
+          for i in $(seq 1 30); do
+            curl -s -b /tmp/wcjar3 -c /tmp/wcjar3 -o /tmp/keyless-get.html http://127.0.0.1:8101/install.php && break
+            sleep 1
+          done
+          grep -q "industry-restaurant" /tmp/keyless-get.html
+          grep -q "TEST BUNDLE; no license required" /tmp/keyless-get.html
+
+          code=$(curl -s -b /tmp/wcjar3 -c /tmp/wcjar3 -o /tmp/keyless-resp.html -w '%{http_code}' \
+            -X POST http://127.0.0.1:8101/install.php \
+            --data-urlencode "site_name=Keyless Test" \
+            --data-urlencode "base_url=http://127.0.0.1:8101" \
+            --data-urlencode "timezone=UTC" \
+            --data-urlencode "db_host=127.0.0.1" \
+            --data-urlencode "db_port=3306" \
+            --data-urlencode "db_name=wc_install_keyless" \
+            --data-urlencode "db_user=root" \
+            --data-urlencode "db_pass=" \
+            --data-urlencode "db_prefix=wc_" \
+            --data-urlencode "owner_username=ci-keyless" \
+            --data-urlencode "owner_email=keyless@example.test" \
+            --data-urlencode "owner_password=ci-keyless-pass-1" \
+            --data-urlencode "owner_password2=ci-keyless-pass-1" \
+            --data-urlencode "storage_path=/tmp/wcsite3/storage")
+          if [ "$code" != "200" ] || ! grep -q "Installation complete" /tmp/keyless-resp.html; then
+            echo "keyless install POST failed (HTTP $code)"; head -60 /tmp/keyless-resp.html; exit 1
+          fi
+          grep -q "Testing mode" /tmp/keyless-resp.html
+
+          php -r '$p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_keyless","root","");
+            if((int)$p->query("SELECT COUNT(*) FROM wc_license")->fetchColumn()!==0){fwrite(STDERR,"unexpected license row\n");exit(1);}
+            $pkg=$p->query("SELECT state FROM wc_packages WHERE package_id=\"wcref/restaurant\"")->fetch();
+            if(!$pkg||$pkg["state"]!=="enabled"){fwrite(STDERR,"package not enabled\n");exit(1);}
+            if($p->query("SHOW TABLES LIKE \"wc_restaurant_items\"")->rowCount()!==1){fwrite(STDERR,"module tables missing\n");exit(1);}
+            echo "keyless package state + module tables OK\n";'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8101/index.php)" = "200"
+          curl -s http://127.0.0.1:8101/index.php | grep -q "License Warning" && { echo "license warning leaked into keyless bundle"; exit 1; } || true
+
+          kill $SITE_PID 2>/dev/null || true
+          echo "keyless TEST-BUNDLE acceptance OK"
+
   core-only-boot:
     name: Core-only boot check
     runs-on: ubuntu-latest
@@ -270,6 +323,19 @@ jobs:
       - run: composer install --no-interaction --prefer-dist
       - name: Build all release artifacts
         run: php tools/build-packages.php /tmp/dist
+      - name: Build and inspect keyless testing bundle
+        run: |
+          php tools/build-packages.php test-bundle restaurant /tmp/test-dist
+          php -r '
+          $path=glob("/tmp/test-dist/*TEST-BUNDLE.zip")[0]??null;
+          if($path===null){fwrite(STDERR,"TEST-BUNDLE missing\n");exit(1);}
+          $z=new ZipArchive();
+          if($z->open($path)!==true){fwrite(STDERR,"TEST-BUNDLE unreadable\n");exit(1);}
+          $manifest=$z->getFromName("site/modules/industries/industry-restaurant/addon.json");
+          $m=json_decode((string)$manifest,true);
+          if(!is_array($m)||isset($m["license_key"])){fwrite(STDERR,"TEST-BUNDLE contains license_key\n");exit(1);}
+          if($z->locateName("site/install.php")===false){fwrite(STDERR,"TEST-BUNDLE missing installer\n");exit(1);}
+          echo "keyless TEST-BUNDLE contract OK\n";'
       - name: Artifact contract assertions
         run: |
           php -r '

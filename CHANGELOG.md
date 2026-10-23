@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.0 — 2026-10-23
+
+- Added consent-gated analytics, public privacy requests, the private request
+  inbox, completion tracking and CSV export.
+
 ## 1.4.0 — 2026-10-23
 
 - Added reusable layout patterns with revision-safe application.

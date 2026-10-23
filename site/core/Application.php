@@ -174,6 +174,8 @@ final class Application
 
         $this->container->instance(Csrf::class, new Csrf());
         $this->container->instance(SettingsRepository::class, new SettingsRepository($db));
+        $this->container->instance(\Core\Privacy\ConsentManager::class,
+            new \Core\Privacy\ConsentManager($this->container->get(SettingsRepository::class)));
         $this->container->instance(AuditLog::class, new AuditLog($db));
         $this->container->instance(\Core\Admin\NoticeCenter::class, new \Core\Admin\NoticeCenter($db));
         $this->container->instance(\Core\Seo\NotFoundLog::class, new \Core\Seo\NotFoundLog($db));
@@ -347,6 +349,8 @@ final class Application
                 $cacheable = ($response->headers()['X-WC-Cacheable'] ?? '') === 'public';
                 $response->removeHeader('X-WC-Cacheable');
                 $response->setBody((new \Core\Branding\Attribution())->apply($response->body()));
+                $response->setBody($this->container->get(\Core\Privacy\ConsentManager::class)
+                    ->inject($response->body(), $request->routeBase()));
                 if ($cacheable && $request->method === 'GET' && $response->status() === 200) {
                     $etag = '"' . hash('sha256', $response->body()) . '"';
                     $response->header('ETag', $etag)
@@ -518,6 +522,8 @@ final class Application
             $r->get('/notices', fn (Request $req) => (new \Admin\Controllers\NoticesController($c))->index($req), [$auth]);
             $r->post('/notices/{id:\d+}/dismiss', fn (Request $req) => (new \Admin\Controllers\NoticesController($c))->dismiss($req), [$auth, $csrfCheck]);
             $r->any('/settings', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->index($req), [$auth, $csrfCheck]);
+            $r->any('/privacy', fn (Request $req) => (new \Admin\Controllers\PrivacyController($c))->index($req), [$auth, $csrfCheck]);
+            $r->get('/privacy/export', fn (Request $req) => (new \Admin\Controllers\PrivacyController($c))->export($req), [$auth]);
             $r->post('/settings/license-validate', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->validateLicense($req), [$auth, $csrfCheck]);
             $r->any('/profile', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->index($req), [$auth, $csrfCheck]);
             $r->post('/profile/mfa/enable', fn (Request $req) => (new \Admin\Controllers\ProfileController($c))->enableMfa($req), [$auth, $csrfCheck]);
@@ -584,6 +590,7 @@ final class Application
         $this->router->get('/media/{id:\d+}/{name:.*}', fn (Request $r) => (new \Admin\Controllers\MediaController($c))->serve($r));
         $this->router->get('/preview/{token:[a-f0-9]{48}}', fn (Request $r) => (new \Admin\Controllers\PublicPageController($c))->preview($r));
         $this->router->post('/forms/{id:\d+}/submit', fn (Request $r) => (new \Admin\Controllers\FormsController($c))->submit($r));
+        $this->router->any('/privacy/request', fn (Request $r) => (new \Admin\Controllers\PrivacyController($c))->request($r));
 
         // Namespaced asset resolver (theme/module assets, allowlisted types).
         $this->router->get('/_a/{path:.*}', function (Request $r) use ($c): Response {
@@ -605,7 +612,7 @@ final class Application
      */
     public const RESERVED_SLUGS = [
         'admin', '_a', 'media', 'preview', 'sitemap.xml', 'robots.txt',
-        'install.php', 'cron.php', 'api', 'forms', 'storage', 'upload',
+        'install.php', 'cron.php', 'api', 'forms', 'privacy', 'storage', 'upload',
     ];
 
     private function registerPublicRoutes(): void

@@ -34,6 +34,7 @@ final class Nav
             $this->core('/admin/seo',        'SEO',            'navigation.manage',     'Website',        'core-website'),
             $this->core('/admin/media',      'Media',          'media.manage',          'Website',        'core-website'),
             $this->core('/admin/appearance', 'Appearance',     'appearance.manage',     'Design',         'core-design'),
+            $this->core('/admin/privacy',    'Privacy',        'settings.manage',       'Administration', 'core-administration'),
             $this->core('/admin/users',      'Administrators', 'admins.view',           'Administration', 'core-administration'),
             $this->core('/admin/security',   'Security',       'admins.view',           'Administration', 'core-administration'),
             $this->core('/admin/modules',    'Modules',        'modules.view',          'System',         'core-system'),

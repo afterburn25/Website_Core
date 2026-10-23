@@ -26,9 +26,9 @@ installed through the Module Manager.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
-- **Status**: `1.4.0`. The stable core now includes visual composition,
+- **Status**: `1.5.0`. The stable core now includes visual composition,
   universal forms, production media workflows and reusable layout patterns.
-  See `PROJECT_STATUS.md`, `docs/ROADMAP.md`, and `docs/1.4_RELEASE_NOTES.md`.
+  See `PROJECT_STATUS.md`, `docs/ROADMAP.md`, and `docs/1.5_RELEASE_NOTES.md`.
 
 ## Quick start (development)
 

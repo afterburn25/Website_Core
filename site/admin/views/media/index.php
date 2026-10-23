@@ -39,7 +39,7 @@
 <tr>
 <td><input type="checkbox" name="ids[]" value="<?= (int) $m['id'] ?>" form="media-bulk" style="width:auto"></td>
 <td>
-<?php if (str_starts_with($m['mime'], 'image/')): ?><img src="<?= e_attr($basePath) ?>/media/<?= (int) $m['id'] ?>/crop/96x96/<?= e_attr($m['original_name']) ?>" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:6px;vertical-align:middle"><?php endif; ?>
+<?php if (str_starts_with($m['mime'], 'image/')): ?><img src="<?= e_attr($basePath) ?>/media/<?= (int) $m['id'] ?>/crop/96x96/<?= e_attr($m['original_name']) ?>" alt="<?= e_attr(($m['alt_text'] ?? '') !== '' ? $m['alt_text'] : 'Thumbnail for ' . $m['original_name']) ?>" style="width:56px;height:56px;object-fit:cover;border-radius:6px;vertical-align:middle"><?php endif; ?>
 <a href="<?= e_attr($basePath) ?>/media/<?= (int) $m['id'] ?>/<?= e_attr($m['original_name']) ?>"><?= e($m['original_name']) ?></a><?= $m['is_private'] ? ' <span class="badge warn">private</span>' : '' ?>
 <br><span class="muted"><?= e($m['folder'] ?: '(root)') ?> · <?= e($m['created_at'] ?? '') ?></span>
 </td>

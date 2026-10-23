@@ -14,7 +14,8 @@ final class Integrity
         'admins', 'admin_sessions', 'settings', 'pages', 'page_revisions',
         'packages', 'package_journal', 'jobs', 'audit_log', 'media',
         'menus', 'menu_items', 'system_messages', 'admin_notices',
-        'not_found_log', 'forms', 'form_submissions', 'page_patterns', 'migrations',
+        'not_found_log', 'forms', 'form_submissions', 'page_patterns',
+        'privacy_requests', 'migrations',
     ];
 
     public function __construct(

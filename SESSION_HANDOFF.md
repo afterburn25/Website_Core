@@ -16,11 +16,12 @@
 
 ## 2026-10-23 — 0.1.15 through 0.9 release-candidate build
 
-- Delivered focused core milestones for integrity (`bdd67f2`), the admin
-  platform (`a08d09c`), publishing and nested editable menus (`7f9c95f`),
-  shared media/branding (`89dd163`), package integration plus immutable Cajun
-  Web Pro attribution (`2cd9346`), admin security (`b253586`), operations and
-  recovery (`14519bf`), and SEO/performance (`3c41b71`).
+- Delivered focused, individually named commits for integrity, the admin
+  platform, publishing and nested editable menus, shared media/branding,
+  package integration plus immutable Cajun Web Pro attribution, admin
+  security, operations/recovery, and SEO/performance. `docs/ROADMAP.md` maps
+  every version to its stable commit subject so the history remains readable
+  even when a credentialed GitHub connector reauthors commit object IDs.
 - The required footer is code-owned and injected into every public HTML
   response: “Website Design & Development by Cajun Web Pro LLC” and “Want a
   website like this for your business? Let’s build yours.” Both named links

@@ -7,16 +7,16 @@ adapt to real dependencies; scope is preserved, not deferred silently.
 
 | Version | Scope | State | Git evidence |
 |---|---|---|---|
-| 0.1.15 | version and installation integrity | complete | `bdd67f2` |
-| 0.2 | core admin search, notices, dashboard | complete | `a08d09c` |
-| 0.3 | publishing workflow, trash, editable menus/submenus | complete | `7f9c95f` |
-| 0.4 | media derivatives/replacement and shared branding | complete | `89dd163` |
-| 0.5 | package hooks, upgrade UX, immutable Cajun Web Pro footer | complete | `2cd9346` |
-| 0.6 | session controls, MFA policy, security headers | complete | `b253586` |
-| 0.7 | operations, queue controls, automatic backups and safer restore | complete | `14519bf` |
-| 0.8 | SEO insights, structured data, redirects and cache support | complete | `3c41b71` |
-| 0.9 | release gate, compatibility hardening, cumulative-update metadata | complete | `e260ac9` |
-| 1.0 | stable version, packages, checksums, release notes and branch handoff | complete | current branch |
+| 0.1.15 | version and installation integrity | complete | commit “Stabilize version and integrity reporting” |
+| 0.2 | core admin search, notices, dashboard | complete | commit “Build the core admin platform” |
+| 0.3 | publishing workflow, trash, editable menus/submenus | complete | commit “Add editorial workflow and nested menus” |
+| 0.4 | media derivatives/replacement and shared branding | complete | commit “Add shared media and branding controls” |
+| 0.5 | package hooks, upgrade UX, immutable Cajun Web Pro footer | complete | commit “Expand the package integration API” |
+| 0.6 | session controls, MFA policy, security headers | complete | commit “Add administrator session security controls” |
+| 0.7 | operations, queue controls, automatic backups and safer restore | complete | commit “Add operations and recovery controls” |
+| 0.8 | SEO insights, structured data, redirects and cache support | complete | commit “Add SEO insights and public caching” |
+| 0.9 | release gate, compatibility hardening, cumulative-update metadata | complete | commit “Harden the 0.9 release candidate” |
+| 1.0 | stable version, packages, checksums, release notes and branch handoff | complete | commit “Release Website Core 1.0.0” |
 
 The immutable footer is core code, not an editable setting or theme field.
 Every public HTML response receives both required links to

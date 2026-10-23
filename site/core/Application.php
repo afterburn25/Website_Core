@@ -63,7 +63,7 @@ final class Application
         $this->request = $this->makeRequest();
         try {
             if (!$this->installed()) {
-                Response::redirect($this->request->basePath . '/install.php')->send();
+                (new \Core\Install\Installer($this))->run();
                 return;
             }
             $response = $this->dispatch($this->request);
@@ -189,9 +189,6 @@ final class Application
         $view->addResolver('admin', fn (string $v): ?string =>
             is_file(WC_ROOT . '/admin/views/' . $v . '.php')
                 ? WC_ROOT . '/admin/views/' . $v . '.php' : null);
-        $view->addResolver('install', fn (string $v): ?string =>
-            is_file(WC_ROOT . '/install/views/' . $v . '.php')
-                ? WC_ROOT . '/install/views/' . $v . '.php' : null);
         $themeDir = (string) ($this->container->get(SettingsRepository::class)->get('theme.active', 'base'));
         $themesRoot = (string) $this->config->get('paths.themes', WC_THEMES);
         $view->addResolver('theme', function (string $v) use ($themeDir, $themesRoot): ?string {
@@ -331,8 +328,8 @@ final class Application
     /**
      * An installed license that failed validation or was remotely deactivated
      * blocks public pages. Admin routes stay open — the owner needs them to
-     * re-register the domain or contact support. cron.php and install.php are
-     * standalone entry points that never reach this gate, so revalidation can
+     * re-register the domain or contact support. cron.php remains a standalone
+     * entry point, and setup runs only before installation, so revalidation can
      * still reactivate the site. License-free installs are unaffected.
      */
     private function licenseBlocked(Request $request): bool

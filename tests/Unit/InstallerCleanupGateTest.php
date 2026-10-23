@@ -48,6 +48,15 @@ PHP);
         $this->assertFileDoesNotExist($this->root . '/config/cleanup-required.lock');
     }
 
+    public function testCompletedSiteNeverStaysLockedByLegacyCleanupMarker(): void
+    {
+        file_put_contents($this->root . '/config/cleanup-required.lock', "legacy cleanup pending\n");
+        $gate = require dirname(__DIR__, 2) . '/site/includes/install-cleanup-gate.php';
+
+        $this->assertFalse($gate($this->root));
+        $this->assertFileDoesNotExist($this->root . '/config/cleanup-required.lock');
+    }
+
     public function testMarkerWithoutValidConfigNeverAuthorizesAutomaticDeletion(): void
     {
         unlink($this->root . '/config/config.php');

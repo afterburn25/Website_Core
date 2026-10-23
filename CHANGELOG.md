@@ -1,6 +1,22 @@
 # Changelog
 
-## 0.1.5-dev (unreleased)
+## 0.1.6-dev (unreleased)
+
+### Changed — ownership-independent installer architecture
+- Removed the public `install.php` entry and `install/` directory from new
+  packages. The one-page installer now runs through the normal root front
+  controller while the implementation and view live under the protected core.
+- Successful installation is switched atomically by the validated generated
+  configuration plus permanent installation marker. There are no public
+  installer files or folders that must be deleted, so a hosting panel that
+  denies PHP changes to document-root entries can no longer strand the site
+  behind a cleanup error.
+- Installed sites still retry exact cleanup of legacy pre-0.1.6 artifacts.
+  Legacy `/install` and `/install.php` requests are explicitly denied, and
+  ownership-blocked residue no longer takes the public site or admin offline.
+- Incremented the catering module to `0.1.6`.
+
+## 0.1.5-dev
 
 ### Fixed — shared-host same-parent installer retirement
 - Ported the proven same-parent retirement fallback from earlier CajunWebPro

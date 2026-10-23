@@ -3,9 +3,9 @@
 ## Overview
 
 A single PHP application — no microservices, no home-grown framework
-beyond a deliberately small kernel. All HTTP enters through `site/index.php`;
-the installer has its own thin entry (`site/install.php`) that is removed or
-permanently blocked after setup.
+beyond a deliberately small kernel. All HTTP, including initial setup, enters
+through `site/index.php`. Before installation it invokes the protected-core
+installer; after the verified marker and config exist it boots the website.
 
 ```
 Request → index.php → bootstrap.php → Application
@@ -73,5 +73,6 @@ Request → index.php → bootstrap.php → Application
 
 ## Namespaces
 
-`Core\*` → `site/core/`, `Admin\*` → `site/admin/`, `Install\*` →
-`site/install/`; module PSR-4 prefixes are registered per-manifest.
+`Core\*` → `site/core/`, `Admin\*` → `site/admin/`; the installer is
+`Core\Install\*` under `site/core/Install/`. Module PSR-4 prefixes are
+registered per-manifest.

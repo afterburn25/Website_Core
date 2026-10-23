@@ -1,5 +1,20 @@
 # Session Handoff
 
+## 2026-10-23 — ownership-independent installer (`0.1.6-dev`)
+
+- Live verification at `demo.cajunwebpro.com/catering` showed both canonical
+  artifacts remained after direct delete, protected cross-parent retirement,
+  and same-parent rename. That proves the PHP worker cannot change entries in
+  the document root; another delete primitive cannot repair that ownership.
+- Moved the installer into `site/core/Install` and routed uninstalled root
+  requests through it. New packages ship no public `install.php` or `install/`
+  artifact, so successful launch no longer requires document-root deletion.
+- Installed sites continue best-effort cleanup of old artifacts without
+  failing closed. Root access rules explicitly deny legacy `install.php` and
+  `/install`; the old entry also retains its completed-install guard if a
+  non-Apache server ignores `.htaccess`.
+- Bumped Website Core to `0.1.6-dev` and catering to `0.1.6`.
+
 ## 2026-10-23 — same-parent installer retirement (`0.1.5-dev`)
 
 - Ported the proven shared-host cleanup path from the earlier Velvet Vixxen

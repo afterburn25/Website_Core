@@ -21,18 +21,26 @@ final class InstallerPrivateRuntimeTest extends TestCase
 
     public function testInstallerContainsNoFtpCredentialFlow(): void
     {
-        $installer = file_get_contents(WC_ROOT . '/install/Installer.php');
-        $view = file_get_contents(WC_ROOT . '/install/views/installer.php');
+        $installer = file_get_contents(WC_ROOT . '/core/Install/Installer.php');
+        $view = file_get_contents(WC_ROOT . '/core/Install/views/installer.php');
         self::assertIsString($installer);
         self::assertIsString($view);
         self::assertStringNotContainsString('ftp_password', $installer . $view);
         self::assertStringNotContainsString('LocalFtpProvisioner', $installer . $view);
     }
 
+    public function testInstallerLivesOnlyInsideProtectedCore(): void
+    {
+        self::assertFileExists(WC_ROOT . '/core/Install/Installer.php');
+        self::assertFileExists(WC_ROOT . '/core/Install/views/installer.php');
+        self::assertFileDoesNotExist(WC_ROOT . '/install.php');
+        self::assertDirectoryDoesNotExist(WC_ROOT . '/install');
+    }
+
     public function testPrivateRuntimeAndGreenStepContractsArePresent(): void
     {
         $runtime = file_get_contents(WC_ROOT . '/includes/runtime-paths.php');
-        $view = file_get_contents(WC_ROOT . '/install/views/installer.php');
+        $view = file_get_contents(WC_ROOT . '/core/Install/views/installer.php');
         self::assertIsString($runtime);
         self::assertIsString($view);
         self::assertStringContainsString('.website-core-', $runtime);

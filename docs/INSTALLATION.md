@@ -4,7 +4,7 @@
 
 1. Extract COMPLETE-UPLOAD into the website directory (contents land at the
    web root; `site/` internal layout is the deployment layout).
-2. Browse to `/` → redirected to `/install.php`.
+2. Browse to `/` → the protected-core installer opens at the site root.
 3. The branded one-page setup checks PHP/extensions, writable paths, and
    required SSL/HTTPS. Enter MySQL/MariaDB credentials and use **Test
    connection** before installing. If the extracted files have foreign
@@ -12,9 +12,10 @@
    runtime directory without asking the customer for hosting credentials.
 4. The installer verifies checks, connects to MySQL, runs migrations,
    creates the owner, writes `config/config.php` with generated secrets,
-   writes `installed.lock`, then removes `install/` and `install.php`. The
-   completion screen provides separate **Visit website** and **Open admin**
-   actions.
+   writes `installed.lock`, and permanently switches the root front controller
+   from setup to the website. New packages contain no public installer file or
+   directory to delete. The completion screen provides separate **Visit
+   website** and **Open admin** actions.
 5. Sign in at `/admin`, enable MFA in **Profile**.
 
 No license keys, unlock files, wizards, or merchant credentials for a
@@ -81,7 +82,7 @@ Two supported modes:
   The form then requires that value on submit. Delete the file after
   install (installer removes it too).
 - **Bound-session claim** — if no token exists, the first visitor to
-  `install.php` claims setup: `config/claim.lock` is created atomically and
+  the root installer claims setup: `config/claim.lock` is created atomically and
   bound to that browser's session cookie. Other sessions see a 409 and the
   documented recovery (remove the claim files via the host file manager).
   The page warns clearly that an unclaimed public upload is claimable by
@@ -131,24 +132,16 @@ generated `config.php` and `installed.lock`.
 - Failed setup is resumable: re-open the page, fix inputs, resubmit. No
   destructive reinstall; `installed.lock` + config are only written on
   success.
-- After successful setup, the installer removes only the shipped `install/`
-  directory and root `install.php` entry file. It first performs physical
-  deletion. When split ownership blocks deletion but permits a parent rename,
-  the exact artifact is atomically moved out of the public document root into
-  the protected private runtime and erased there. It never scans or deletes
-  unrelated files.
-- The same exact cleanup runs on every later public or admin site load after a
-  valid `config.php` plus `installed.lock` confirms successful installation.
-  This automatically removes installer artifacts accidentally restored by a
-  later upload and retries protected retired remnants until physical erasure
-  succeeds. It never runs from a database check or marker file alone.
-- Cleanup is fail-closed. If PHP cannot remove either installer artifact, all
-  public, admin, and cron entry points return a styled 503 screen. Open the
-  hosting File Manager, delete `install/` and `install.php` from the website
-  root, then select **Recheck cleanup**; it opens the website automatically
-  after both are gone. Separate **Visit website** and **Open admin** actions
-  are also provided. Do not delete `installed.lock` or
-  `cleanup-required.lock` from the active configuration directory.
+- New packages contain no public installer artifact. Setup code lives under
+  the access-denied `core/Install/` tree, and the root front controller invokes
+  it only while a valid generated config plus `installed.lock` are absent.
+- Sites upgraded from pre-0.1.6 releases still attempt exact physical cleanup
+  of legacy `install/` and `install.php` entries on every load. If hosting
+  ownership blocks deletion, explicit access rules deny those paths and the
+  completed-install guard prevents setup from running. Legacy residue never
+  takes the installed website or administration area offline.
+- Cleanup never scans or deletes unrelated files, never uses FTP or 0777, and
+  never runs based on database tables alone.
 - `config.php`, `claim.*`, `cleanup-required.lock`, and `installed.lock` are
   gitignored and excluded from release packages.
 

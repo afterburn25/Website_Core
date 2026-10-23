@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Install;
+namespace Core\Install;
 
 use Core\Application;
 use Core\Database\Connection;
@@ -21,9 +21,9 @@ use Core\Http\Response;
  *    plainly that an unclaimed public upload is claimable by the first
  *    visitor — the documented remedy is host protection or a seeded token.
  *
- * After success: config.php + installed.lock are written, then install/ and
- * install.php are removed. If host permissions prevent complete cleanup,
- * every application entry point remains locked until manual removal.
+ * After success, config.php plus installed.lock permanently disable setup.
+ * The installer is part of the protected core rather than a public artifact,
+ * so launch never depends on deleting panel-owned files from the document root.
  */
 final class Installer
 {
@@ -72,12 +72,6 @@ final class Installer
     private function handle(Request $request): Response
     {
         if (wc_completed_installation($this->configDir)) {
-            if (is_file($this->configDir . '/cleanup-required.lock')
-                || is_dir(WC_ROOT . '/install')
-                || is_file(WC_ROOT . '/install.php')
-            ) {
-                return $this->cleanupRequiredPage();
-            }
             return Response::html(
                 '<h1>Already installed</h1><p>This installation is complete. '
                 . 'The installer is permanently disabled.</p>',
@@ -222,10 +216,9 @@ final class Installer
         );
         $add('SSL / HTTPS', $this->requestSecure(), 'A valid SSL certificate and HTTPS connection are required');
         $add(
-            'Installer writable (automatic cleanup)',
-            is_writable(WC_ROOT) && is_writable(WC_ROOT . '/install'),
-            'Automatic cleanup removes install/ and install.php. The site stays locked if manual cleanup is required.',
-            false
+            'Installer security',
+            true,
+            'Setup runs inside the protected core and is permanently disabled by the verified installation lock.'
         );
 
         // Report bundled-product detection so the customer can confirm the
@@ -675,21 +668,17 @@ final class Installer
             ], $request);
         }
 
-        // --- fail-closed installer cleanup ------------------------------------
-        // Seed the gate before deletion so a timeout or permission failure can
-        // never leave the new site available with installer artifacts present.
-        $cleanupLock = $this->configDir . '/cleanup-required.lock';
-        $cleanupContents = date('c') . " installer cleanup pending\n";
-        @file_put_contents($cleanupLock, $cleanupContents, LOCK_EX);
+        // Remove any legacy public installer artifacts when the host permits
+        // it. They are no longer part of new bundles and never control launch.
+        // Existing copies remain denied by the root access rules and their own
+        // completed-install guard if panel ownership blocks physical removal.
         foreach ([$this->claimFile, $this->configDir . '/claim.session', $this->tokenFile] as $f) {
             if (is_file($f)) {
                 @unlink($f);
             }
         }
-        $remainingInstallerArtifacts = wc_remove_installer_artifacts(WC_ROOT);
-        if ($remainingInstallerArtifacts === []) {
-            @unlink($cleanupLock);
-        }
+        wc_remove_installer_artifacts(WC_ROOT);
+        @unlink($this->configDir . '/cleanup-required.lock');
 
         $licenseNote = '';
         if ($bundledModuleDir !== null && $licenseKey === null) {
@@ -701,11 +690,7 @@ final class Installer
                 . 'automatically — if it cannot be validated the site will go offline.</p>';
         }
 
-        if ($remainingInstallerArtifacts !== []) {
-            return $this->cleanupRequiredPage($remainingInstallerArtifacts);
-        }
-
-        $basePath = rtrim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/install.php'))), '/');
+        $basePath = rtrim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php'))), '/');
         $logoUrl = ($basePath === '' ? '' : $basePath) . '/assets/images/cajunwebpro-logo.png';
         return Response::html(
             '<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -721,19 +706,12 @@ final class Installer
             . '</head><body><main class="done"><a class="logo-link" href="https://cajunwebpro.com" target="_blank" rel="noopener noreferrer" aria-label="Visit CajunWebPro">'
             . '<img class="logo" src="' . e_attr($logoUrl) . '" alt="CajunWebPro — Web Design &amp; Development"></a>'
             . '<div class="mark">✓</div><p>CAJUNWEBPRO DEPLOYMENT</p><h1>Installation complete</h1>'
-            . '<p>The installer files and folders were removed successfully. Your site is secured and ready.</p>'
+            . '<p>The installer is permanently disabled. Your site is secured and ready.</p>'
             . $licenseNote
             . '<p>Sign in and enable two-factor authentication for the owner account.</p>'
             . '<div class="actions"><a class="launch-link primary" href="' . e_attr(rtrim($baseUrl, '/')) . '/">Visit website</a>'
             . '<a class="launch-link" href="' . e_attr(rtrim($baseUrl, '/')) . '/admin">Open admin</a></div></main></body></html>'
         );
-    }
-
-    /** @param list<string>|null $remaining */
-    private function cleanupRequiredPage(?array $remaining = null): Response
-    {
-        $remaining ??= wc_remaining_installer_artifacts(WC_ROOT);
-        return Response::html(wc_installer_cleanup_page(WC_ROOT, $remaining), 503);
     }
 
     /**
@@ -874,7 +852,7 @@ final class Installer
                 break;
             }
         }
-        $basePath = rtrim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/install.php'))), '/');
+        $basePath = rtrim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php'))), '/');
         $logoUrl = ($basePath === '' ? '' : $basePath) . '/assets/images/cajunwebpro-logo.png';
         $old = [];
         if ($request !== null) {
@@ -891,7 +869,7 @@ final class Installer
 
         ob_start();
         $tzList = \DateTimeZone::listIdentifiers();
-        require WC_ROOT . '/install/views/installer.php';
+        require WC_CORE . '/Install/views/installer.php';
         return Response::html((string) ob_get_clean());
     }
 

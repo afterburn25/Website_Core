@@ -34,7 +34,7 @@ Confirm that:
    ```bash
    echo "random-$(openssl rand -hex 16)" > config/setup.token
    ```
-3. Browse to `http://yourdomain.com/` → should redirect to `/install.php`.
+3. Browse to `http://yourdomain.com/` → should render the installer at `/`.
 4. Fill out all fields:
    - Submit the token (if using seeded-token mode).
    - Database credentials (MySQL/MariaDB host, database name, user, password).
@@ -44,16 +44,17 @@ Confirm that:
    - Create the owner.
    - Write `config/config.php`.
    - Write `config/installed.lock`.
-   - Self-disable by removing both `install.php` and `install/` (or atomically
-     retiring a split-owned artifact outside the public document root).
+   - Permanently switch the root front controller from setup to the website
+     using the verified generated configuration and installation marker.
+   - Contain no public `install.php` or `install/` artifact requiring deletion.
    - Show separate **Visit website** and **Open admin** actions.
 6. Browse to `/admin/login` → should 200 (login page renders).
 7. Sign in with the owner credentials → should redirect to `/admin/dashboard`.
 
-Recovery check: re-upload `install.php` and `install/` from the same package,
-then load the website. With a valid generated config and completed-install
-marker, core should automatically remove them again. With either proof
-missing, it must preserve the files and offer installation/reinstallation.
+Legacy recovery check: place pre-0.1.6 `install.php` and `install/` fixtures in
+the web root, then load the installed website. Core should remove them where
+ownership permits, deny both public paths regardless, and keep the website and
+admin available when the hosting panel refuses physical deletion.
 
 **Expected result**: clean install, no errors, admin dashboard accessible.
 

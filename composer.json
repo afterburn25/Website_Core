@@ -15,8 +15,7 @@
     "autoload": {
         "psr-4": {
             "Core\\": "site/core/",
-            "Admin\\": "site/admin/",
-            "Install\\": "site/install/"
+            "Admin\\": "site/admin/"
         }
     },
     "autoload-dev": {

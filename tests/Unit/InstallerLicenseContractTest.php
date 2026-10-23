@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
-use Install\Installer;
+use Core\Install\Installer;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * PSR-4 autoloader for core, admin, install, and registered module namespaces.
+ * PSR-4 autoloader for core, admin, and registered module namespaces.
  * Module namespaces are registered at boot by the ModuleRegistry.
  */
 final class CoreAutoload
@@ -39,6 +39,5 @@ final class CoreAutoload
 
 CoreAutoload::register('Core', __DIR__ . '/../core');
 CoreAutoload::register('Admin', __DIR__ . '/../admin');
-CoreAutoload::register('Install', __DIR__ . '/../install');
 
 spl_autoload_register([CoreAutoload::class, 'load']);

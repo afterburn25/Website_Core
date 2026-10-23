@@ -4,7 +4,7 @@
 industry implementation: `examples/industry-catering`. The catering package
 contains a complete editorial public site, menu/package management, a secure
 multi-step quote workflow, and catering lead administration. Pre-1.0 — version
-`0.1.5-dev`; PHP 8.4/8.5, MySQL 8.4, MariaDB 11.4, core-only boot,
+`0.1.6-dev`; PHP 8.4/8.5, MySQL 8.4, MariaDB 11.4, core-only boot,
 and release-artifact CI are green.
 
 ## Baseline
@@ -22,7 +22,7 @@ and release-artifact CI are green.
 |----|------|-------|----------|
 | M0 | Repo baseline, boundaries, architecture docs | done | this repo, `CORE_BOUNDARIES.md`, `docs/` |
 | M0 | Runnable bootstrap + CI | done | `site/index.php`, `site/core/Application.php`, `.github/workflows/ci.yml` |
-| M1 | Branded one-page installer + claim model | implemented | CajunWebPro UI, required SSL/HTTPS, credential-free private-runtime ownership repair, live green readiness steps, database connection test, exact automatic installer deletion/retirement on install and future site loads, same-parent shared-host retirement fallback, valid config+marker completion detection, existing-database reinstall support, styled fail-closed cleanup gate with recheck/site/admin actions in `site/install/Installer.php`, `site/includes/installer-cleanup.php`, `site/includes/runtime-paths.php`, `site/install/views/installer.php`, `site/includes/install-cleanup-gate.php` |
+| M1 | Branded one-page installer + claim model | implemented | CajunWebPro UI, required SSL/HTTPS, credential-free private-runtime ownership repair, live green readiness steps, database connection test, ownership-independent protected-core installer with no public cleanup artifacts, valid config+marker completion detection, existing-database reinstall support, and best-effort retirement of legacy installer files in `site/core/Install/Installer.php`, `site/includes/installer-cleanup.php`, `site/includes/runtime-paths.php`, `site/core/Install/views/installer.php`, `site/includes/install-cleanup-gate.php` |
 | M1 | Migrations + schema | implemented | `site/database/migrations/2026_10_14_0001_*`, native suite |
 | M1 | Admin auth: sessions, CSRF, TOTP MFA, recovery codes, rate limits, last-owner protection | implemented | `site/core/Auth/`, `site/core/Security/`, `tests/Unit/AuthServiceTest.php` |
 | M1 | Admin shell: dashboard, settings, users, modules list, basic pages | implemented | `site/admin/` |

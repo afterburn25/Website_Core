@@ -10,16 +10,14 @@ Website_Core/
   examples/            Reference industry/add-on/theme packages (M5)
   site/                === deployable web root (COMPLETE-UPLOAD contents) ===
     index.php          Thin front controller (only required HTTP entry)
-    install.php        Thin installer entry; removed with install/ after success
     cron.php           Token-guarded/CLI job runner for host cron
     .htaccess          Front-controller rewrite + private-path protection
-    core/              Universal services + supported extension API
+    core/              Universal services, protected installer + extension API
     includes/          bootstrap, autoload, template helpers (small, fixed set)
     admin/controllers/ Admin controllers (Admin\Controllers\)
     admin/views/       Admin templates (layouts + pages)
     database/migrations/ Ordered, journaled migration files
     config/            config.example.php; generated config.php is gitignored
-    install/           Installer class + views (setup-only)
     modules/industries/ Install destination — empty on core-only setup
     modules/addons/     Install destination — empty on core-only setup
     themes/base/        Usable, replaceable industry-neutral theme
@@ -37,7 +35,7 @@ Website_Core/
   `phpunit.xml` are development material: present in FULL-PROJECT only.
 - `.htaccess` rules + per-directory deny files protect `core/`, `config/`,
   `modules/`, `themes/`, `storage/`, `upload/`, `admin/controllers`,
-  `admin/views`, `install/`, `includes/`, `database/`, `vendor/` from
+  `admin/views`, `includes/`, `database/`, `vendor/` from
   direct HTTP access. Protection is layered: rules + deny files +
   preferred external `paths.storage` outside the document root.
 - Theme/module public assets are served through the namespaced resolver

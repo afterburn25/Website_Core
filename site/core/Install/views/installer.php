@@ -132,7 +132,7 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
             </ul>
         </section>
 
-        <form id="setup-form" method="post" action="install.php">
+        <form id="setup-form" method="post">
             <section class="form-section" aria-labelledby="site-title">
                 <div class="section-head"><div class="section-title"><span class="section-index">01</span><h3 id="site-title">Website details</h3></div><span class="section-note">Public identity and location</span></div>
                 <div class="section-body field-grid">
@@ -169,7 +169,7 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
                     <div class="field"><label for="owner_password">Password</label><input id="owner_password" name="owner_password" type="password" class="<?= e(trim($cls('owner_password'))) ?>" autocomplete="new-password" minlength="12" required><?= $err('owner_password') ?><p class="hint">Use at least 12 characters.</p></div>
                     <div class="field"><label for="owner_password2">Confirm password</label><input id="owner_password2" name="owner_password2" type="password" class="<?= e(trim($cls('owner_password2'))) ?>" autocomplete="new-password" minlength="12" required><?= $err('owner_password2') ?></div>
                     <?php if ($needsToken): ?><div class="field full"><label for="setup_token">Setup security token</label><input id="setup_token" name="setup_token" class="<?= e(trim($cls('setup_token'))) ?>" autocomplete="off" required><?= $err('setup_token') ?></div><?php endif; ?>
-                    <div class="field full"><details class="details"><summary>What happens when I install?</summary><p>The installer creates the database schema and owner account, enables the bundled industry package, writes the private configuration, locks setup, then securely removes both the installer folder and install.php. If cleanup cannot finish, the site stays locked and shows manual removal instructions.</p></details></div>
+                    <div class="field full"><details class="details"><summary>What happens when I install?</summary><p>The installer creates the database schema and owner account, enables the bundled industry package, writes the private configuration, and permanently disables setup. Installation runs through the protected core, so launch does not depend on deleting files owned by the hosting control panel.</p></details></div>
                 </div>
             </section>
 

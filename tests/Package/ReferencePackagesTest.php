@@ -262,7 +262,10 @@ final class ReferencePackagesTest extends TestCase
         $this->assertSame(200, $home->status());
         $this->assertStringContainsString('Gather', $home->body());
         $this->assertStringContainsString('Request a Quote', $home->body());
-        $this->assertStringContainsString('/index.php?p=/_a/modules/industry-catering/assets/css/catering.css', $home->body());
+        // Package asset URLs use the installed directory namespace. The
+        // staged archive installs as modules/industries/catering, while the
+        // manifest id remains cajunwebpro/catering.
+        $this->assertStringContainsString('/index.php?p=/_a/modules/catering/assets/css/catering.css', $home->body());
 
         foreach (['/services', '/menus', '/packages', '/gallery', '/about', '/service-area', '/faq', '/contact', '/request-a-quote'] as $route) {
             $response = $this->req('GET', $route);

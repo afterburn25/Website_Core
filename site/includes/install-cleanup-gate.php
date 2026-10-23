@@ -9,7 +9,9 @@ declare(strict_types=1);
  * @return callable(string): bool
  */
 return static function (string $root): bool {
-    $installedLock = $root . '/config/installed.lock';
+    require_once __DIR__ . '/runtime-paths.php';
+    $configDirectory = wc_runtime_config_dir($root);
+    $installedLock = $configDirectory . '/installed.lock';
     if (!is_file($installedLock)) {
         return false;
     }
@@ -18,7 +20,7 @@ return static function (string $root): bool {
         is_dir($root . '/install') ? 'install/' : null,
         is_file($root . '/install.php') ? 'install.php' : null,
     ]));
-    $cleanupLock = $root . '/config/cleanup-required.lock';
+    $cleanupLock = $configDirectory . '/cleanup-required.lock';
     if ($remaining === []) {
         if (is_file($cleanupLock)) {
             @unlink($cleanupLock);
@@ -53,10 +55,10 @@ return static function (string $root): bool {
         . '<img class="logo" src="' . $logo . '" alt="CajunWebPro — Web Design &amp; Development"></a>'
         . '<span class="flag">SITE SAFELY LOCKED</span><h1>Installer cleanup required</h1>'
         . '<p>Installation finished, but the installer could not remove all of its files. The public site and administration area are locked for security.</p>'
-        . '<ol><li>Open DirectAdmin File Manager or connect by FTP.</li><li>Go to <code>' . $path . '</code>.</li>'
+        . '<ol><li>Open DirectAdmin File Manager.</li><li>Go to <code>' . $path . '</code>.</li>'
         . '<li>Delete the <code>install</code> folder and the root <code>install.php</code> file.</li>'
         . '<li>Reload this page. The site will unlock automatically after both are gone.</li></ol>'
-        . '<p><strong>Do not delete</strong> <code>config/installed.lock</code> or <code>config/cleanup-required.lock</code>.</p>'
+        . '<p><strong>Do not delete</strong> the protected <code>installed.lock</code> or <code>cleanup-required.lock</code> files.</p>'
         . '</main></body></html>';
     return true;
 };

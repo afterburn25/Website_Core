@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.3-dev (unreleased)
+
+### Changed — credential-free ownership repair
+- Removed the FTP fallback and every FTP credential field from setup.
+- When packaged `config/` or `storage/` directories have foreign ownership,
+  setup now discovers or creates a deterministic mode-0700 private runtime
+  outside the public document root. The bootstrap and fail-closed cleanup gate
+  automatically reuse that location after installation.
+- Added strict persistence and safety checks: public paths, temporary paths,
+  symlinks, and locations that fail real create/read/rename/delete probes are
+  rejected. No 0777 permissions are used.
+- The three installer overview steps now update live. Completed steps turn
+  green, display a checkmark and “Ready,” while the next incomplete step is
+  highlighted. Installation unlocks after all checks, a successful database
+  test, and valid owner details.
+- Incremented the catering module to `0.1.3`.
+
 ## 0.1.2-dev (unreleased)
 
 ### Fixed — shared-host ownership fallback

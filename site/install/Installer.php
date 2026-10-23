@@ -13,8 +13,8 @@ use Core\Http\Response;
  * One-page, key-free installer.
  *
  * Ownership model (docs/INSTALLATION.md):
- *  - Preferred: the deployer pre-seeds config/setup.token (host panel,
- *    deployment script, or FTP upload). The form then requires it.
+ *  - Preferred: the deployer pre-seeds config/setup.token through the host
+ *    panel or deployment script. The form then requires it.
  *  - Otherwise the first visitor atomically claims setup via
  *    config/claim.lock (created with 'x' mode — no race). The claim is bound
  *    to a session cookie so only that browser may submit. The page states
@@ -30,12 +30,30 @@ final class Installer
     private string $configDir;
     private string $claimFile;
     private string $tokenFile;
+    private string $installedLock;
+    private ?string $privateRuntime = null;
+    private bool $usingPrivateConfig = false;
 
     public function __construct(private Application $app)
     {
-        $this->configDir = WC_CONFIG;
+        $siteConfig = WC_ROOT . '/config';
+        $this->configDir = $siteConfig;
+        $siteConfigWritable = $this->prepareWritableDirectory($siteConfig);
+        $siteStorageWritable = $this->prepareWritableDirectory(WC_ROOT . '/storage');
+        $siteUploadWritable = $this->prepareWritableDirectory(WC_ROOT . '/upload');
+        if (!$siteConfigWritable || !$siteStorageWritable || !$siteUploadWritable) {
+            $this->privateRuntime = wc_private_runtime_dir(WC_ROOT, true);
+            if (!$siteConfigWritable && $this->privateRuntime !== null) {
+                $privateConfig = $this->privateRuntime . '/config';
+                if ($this->prepareWritableDirectory($privateConfig, 0700)) {
+                    $this->configDir = $privateConfig;
+                    $this->usingPrivateConfig = true;
+                }
+            }
+        }
         $this->claimFile = $this->configDir . '/claim.lock';
         $this->tokenFile = $this->configDir . '/setup.token';
+        $this->installedLock = $this->configDir . '/installed.lock';
     }
 
     public function run(): void
@@ -53,7 +71,7 @@ final class Installer
 
     private function handle(Request $request): Response
     {
-        if (is_file(WC_INSTALLED_LOCK)) {
+        if (is_file($this->installedLock)) {
             if (is_file($this->configDir . '/cleanup-required.lock')
                 || is_dir(WC_ROOT . '/install')
                 || is_file(WC_ROOT . '/install.php')
@@ -76,9 +94,6 @@ final class Installer
         if ($request->isPost()) {
             if ($request->string('action') === 'test_database') {
                 return $this->testDatabase($request);
-            }
-            if ($request->string('action') === 'test_hosting_access') {
-                return $this->testHostingAccess($request);
             }
             return $this->install($request, $checks);
         }
@@ -174,27 +189,36 @@ final class Installer
         $add('signature verification (sodium or polyfill)', $sodiumOk,
             extension_loaded('sodium') ? 'ext-sodium' : ($sodiumOk ? 'sodium_compat polyfill' : 'absent'), false);
 
-        $configWritable = $this->prepareWritableDirectory($this->configDir);
-        $storageDefault = WC_ROOT . '/storage';
-        $storageWritable = $this->prepareWritableDirectory($storageDefault);
-        $ftpFallback = LocalFtpProvisioner::supported();
+        $configWritable = $this->prepareWritableDirectory(
+            $this->configDir,
+            $this->usingPrivateConfig ? 0700 : 0750
+        );
+        $storageDefault = $this->defaultStoragePath();
+        $storageWritable = $this->prepareWritableDirectory(
+            $storageDefault,
+            $this->privateRuntime !== null ? 0700 : 0750
+        );
+        $uploadWritable = $this->prepareWritableDirectory(
+            $this->defaultUploadPath(),
+            $this->privateRuntime !== null ? 0700 : 0750
+        );
         $add(
             'Configuration provisioning',
-            $configWritable || $ftpFallback,
+            $configWritable,
             $configWritable
-                ? 'Direct write verified: ' . $this->configDir
-                : ($ftpFallback
-                    ? 'Foreign ownership detected; automatic local FTP fallback is available for ' . $this->configDir
-                    : 'Foreign ownership detected and the PHP FTP extension is unavailable: ' . $this->configDir)
+                ? ($this->usingPrivateConfig
+                    ? 'Protected private runtime verified automatically: ' . $this->configDir
+                    : 'Direct write verified: ' . $this->configDir)
+                : 'No safe persistent configuration location could be created automatically.'
         );
         $add(
             'Storage provisioning',
-            $storageWritable || $ftpFallback,
-            $storageWritable
-                ? 'Direct write verified: ' . $storageDefault
-                : ($ftpFallback
-                    ? 'Foreign ownership detected; automatic local FTP fallback is available for ' . $storageDefault
-                    : 'Foreign ownership detected and the PHP FTP extension is unavailable: ' . $storageDefault)
+            $storageWritable && $uploadWritable,
+            $storageWritable && $uploadWritable
+                ? ($this->privateRuntime !== null
+                    ? 'Protected private runtime verified automatically: ' . $storageDefault
+                    : 'Direct write verified: ' . $storageDefault)
+                : 'No safe persistent storage location could be created automatically.'
         );
         $add('SSL / HTTPS', $this->requestSecure(), 'A valid SSL certificate and HTTPS connection are required');
         $add(
@@ -254,7 +278,7 @@ final class Installer
         return is_array($cfVisitor) && strtolower((string) ($cfVisitor['scheme'] ?? '')) === 'https';
     }
 
-    private function prepareWritableDirectory(string $dir): bool
+    private function prepareWritableDirectory(string $dir, int $preferredMode = 0750): bool
     {
         if (!is_dir($dir) && !@mkdir($dir, 0750, true) && !is_dir($dir)) {
             return false;
@@ -267,12 +291,28 @@ final class Installer
         // sensitive directory to world-write (0777).
         $permissions = @fileperms($dir);
         $current = is_int($permissions) ? ($permissions & 0777) : 0;
-        foreach (array_unique([$current | 0700, $current | 0770, 0750, 0770]) as $mode) {
+        foreach (array_unique([$current | 0700, $current | 0770, $preferredMode, 0750, 0770]) as $mode) {
             if (@chmod($dir, $mode) && $this->writable($dir)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private function defaultStoragePath(): string
+    {
+        if ($this->privateRuntime !== null) {
+            return $this->privateRuntime . '/storage';
+        }
+        return WC_ROOT . '/storage';
+    }
+
+    private function defaultUploadPath(): string
+    {
+        if ($this->privateRuntime !== null) {
+            return $this->privateRuntime . '/upload';
+        }
+        return WC_ROOT . '/upload';
     }
 
     private function testDatabase(Request $request): Response
@@ -322,40 +362,6 @@ final class Installer
         ]);
     }
 
-    private function testHostingAccess(Request $request): Response
-    {
-        if (!$this->requestSecure()) {
-            return Response::json([
-                'ok' => false,
-                'message' => 'SSL / HTTPS is required before hosting credentials can be tested.',
-            ], 400);
-        }
-
-        $ftp = new LocalFtpProvisioner(WC_ROOT);
-        try {
-            $ftp->connect(
-                '127.0.0.1',
-                (int) $request->string('ftp_port', '21'),
-                $request->string('ftp_user'),
-                (string) ($request->post['ftp_password'] ?? ''),
-                $request->string('ftp_path')
-            );
-            $root = $ftp->detectedRoot();
-        } catch (\Throwable $e) {
-            return Response::json([
-                'ok' => false,
-                'message' => $e->getMessage(),
-            ], 422);
-        } finally {
-            $ftp->close();
-        }
-
-        return Response::json([
-            'ok' => true,
-            'message' => 'Hosting access verified. Website folder found at ' . $root . '.',
-        ]);
-    }
-
     private function writable(string $dir): bool
     {
         if (!is_dir($dir)) {
@@ -399,8 +405,7 @@ final class Installer
         $ownerEmail = $request->string('owner_email');
         $pass1 = (string) ($request->post['owner_password'] ?? '');
         $pass2 = (string) ($request->post['owner_password2'] ?? '');
-        $storagePath = $request->string('storage_path', WC_ROOT . '/storage');
-        $ftp = null;
+        $storagePath = $request->string('storage_path', $this->defaultStoragePath());
 
         if ($siteName === '') $errors['site_name'] = 'Site name is required.';
         if ($baseUrl === '' || !preg_match('#^https://#i', $baseUrl)) {
@@ -426,38 +431,24 @@ final class Installer
             $errors['owner_password2'] = 'Passwords do not match.';
         }
 
-        // Uploaded archives on shared hosting are often owned by a different
-        // account than PHP. When direct probes fail, use the same local-only
-        // FTP fallback as our other installers. Credentials never leave this
-        // request and the password is never returned to the form.
-        $configWritable = $this->prepareWritableDirectory($this->configDir);
-        $storageWritable = $this->prepareWritableDirectory($storagePath);
-        $needsFtp = !$configWritable || !$storageWritable;
-        if ($needsFtp && $errors === []) {
-            if (!$storageWritable && $storagePath !== WC_ROOT . '/storage') {
-                $errors['storage_path'] = 'The automatic ownership fallback can provision the bundled storage path only.';
-            } else {
-                try {
-                    $ftp = new LocalFtpProvisioner(WC_ROOT);
-                    $ftp->connect(
-                        '127.0.0.1',
-                        (int) $request->string('ftp_port', '21'),
-                        $request->string('ftp_user'),
-                        (string) ($request->post['ftp_password'] ?? ''),
-                        $request->string('ftp_path')
-                    );
-                    if (!$storageWritable) {
-                        $ftp->provisionStorage();
-                        clearstatcache(true, $storagePath);
-                        $storageWritable = $this->writable($storagePath);
-                        if (!$storageWritable) {
-                            $errors['storage_path'] = 'Hosting access worked, but PHP still cannot write storage after safe 0775 provisioning. Confirm the FTP account belongs to this domain.';
-                        }
-                    }
-                } catch (\Throwable $e) {
-                    $errors['ftp_user'] = $e->getMessage();
-                }
-            }
+        $configWritable = $this->prepareWritableDirectory(
+            $this->configDir,
+            $this->usingPrivateConfig ? 0700 : 0750
+        );
+        $storageWritable = $this->prepareWritableDirectory(
+            $storagePath,
+            $this->privateRuntime !== null ? 0700 : 0750
+        );
+        $uploadPath = $this->defaultUploadPath();
+        $uploadWritable = $this->prepareWritableDirectory(
+            $uploadPath,
+            $this->privateRuntime !== null ? 0700 : 0750
+        );
+        if (!$configWritable) {
+            $errors['site_name'] = 'No safe persistent configuration directory is available.';
+        }
+        if (!$storageWritable || !$uploadWritable) {
+            $errors['storage_path'] = 'No safe persistent storage and upload workspace is available.';
         }
 
         // DB connectivity is checked with the provided credentials — errors
@@ -615,21 +606,15 @@ final class Installer
             'siteName' => $siteName, 'baseUrl' => $baseUrl, 'timezone' => $timezone,
             'dbHost' => $dbHost, 'dbPort' => $dbPort, 'dbName' => $dbName,
             'dbUser' => $dbUser, 'dbPass' => $dbPass, 'dbPrefix' => $dbPrefix,
-            'storage' => $storagePath, 'appKey' => $appKey,
+            'storage' => $storagePath, 'upload' => $uploadPath, 'appKey' => $appKey,
             'https' => $this->requestSecure(),
             'licenseApiUrl' => rtrim((string) (getenv('WC_LICENSE_API_URL') ?: 'https://cajunwebpro.com/api'), '/'),
         ]);
         try {
-            if ($configWritable) {
-                if (@file_put_contents($this->configDir . '/config.php', $configPhp, LOCK_EX) === false) {
-                    throw new \RuntimeException('Direct configuration write failed.');
-                }
-                @chmod($this->configDir . '/config.php', 0640);
-            } elseif ($ftp instanceof LocalFtpProvisioner) {
-                $ftp->write('config/config.php', $configPhp, 0640);
-            } else {
-                throw new \RuntimeException('No safe configuration writer is available.');
+            if (@file_put_contents($this->configDir . '/config.php', $configPhp, LOCK_EX) === false) {
+                throw new \RuntimeException('Configuration write failed.');
             }
+            @chmod($this->configDir . '/config.php', $this->usingPrivateConfig ? 0600 : 0640);
             clearstatcache(true, $this->configDir . '/config.php');
             $savedConfig = @include $this->configDir . '/config.php';
             if (!is_array($savedConfig)
@@ -645,14 +630,10 @@ final class Installer
         }
 
         $installedContents = date('c') . ' install complete' . "\n";
-        if (@file_put_contents(WC_INSTALLED_LOCK, $installedContents, LOCK_EX) === false) {
-            if ($ftp instanceof LocalFtpProvisioner) {
-                $ftp->write('config/installed.lock', $installedContents, 0640);
-            } else {
-                return $this->page($checks, [
-                    'site_name' => 'Could not create the permanent installation lock.',
-                ], $request);
-            }
+        if (@file_put_contents($this->installedLock, $installedContents, LOCK_EX) === false) {
+            return $this->page($checks, [
+                'site_name' => 'Could not create the permanent installation lock.',
+            ], $request);
         }
 
         // --- fail-closed installer cleanup ------------------------------------
@@ -660,32 +641,15 @@ final class Installer
         // never leave the new site available with installer artifacts present.
         $cleanupLock = $this->configDir . '/cleanup-required.lock';
         $cleanupContents = date('c') . " installer cleanup pending\n";
-        if (@file_put_contents($cleanupLock, $cleanupContents, LOCK_EX) === false
-            && $ftp instanceof LocalFtpProvisioner
-        ) {
-            $ftp->write('config/cleanup-required.lock', $cleanupContents, 0640);
-        }
+        @file_put_contents($cleanupLock, $cleanupContents, LOCK_EX);
         foreach ([$this->claimFile, $this->configDir . '/claim.session', $this->tokenFile] as $f) {
             if (is_file($f)) {
                 @unlink($f);
             }
         }
-        if ($ftp instanceof LocalFtpProvisioner) {
-            foreach (['config/claim.lock', 'config/claim.session', 'config/setup.token'] as $relative) {
-                $ftp->delete($relative);
-            }
-        }
         $remainingInstallerArtifacts = $this->removeInstallerArtifacts();
-        if ($remainingInstallerArtifacts !== [] && $ftp instanceof LocalFtpProvisioner) {
-            $remainingInstallerArtifacts = $ftp->removeInstallerArtifacts();
-        }
         if ($remainingInstallerArtifacts === []) {
-            if (!@unlink($cleanupLock) && is_file($cleanupLock) && $ftp instanceof LocalFtpProvisioner) {
-                $ftp->delete('config/cleanup-required.lock');
-            }
-        }
-        if ($ftp instanceof LocalFtpProvisioner) {
-            $ftp->close();
+            @unlink($cleanupLock);
         }
 
         $licenseNote = '';
@@ -793,7 +757,7 @@ final class Installer
             . '<span class="flag">SITE SAFELY LOCKED</span>'
             . '<h1>One cleanup step remains</h1><p>The website was installed, but PHP could not remove <strong>' . $items . '</strong>. '
             . 'For security, the public site and administration area will remain unavailable.</p>'
-            . '<ol><li>Open your hosting File Manager or FTP.</li><li>Go to <code>' . e(WC_ROOT) . '</code>.</li>'
+            . '<ol><li>Open your hosting File Manager.</li><li>Go to <code>' . e(WC_ROOT) . '</code>.</li>'
             . '<li>Delete the <code>install</code> folder and the root <code>install.php</code> file.</li>'
             . '<li>Reload your website. Access will unlock automatically after both are gone.</li></ol>'
             . '<p><strong>Do not delete</strong> <code>config/installed.lock</code> or <code>config/cleanup-required.lock</code>.</p>'
@@ -899,7 +863,7 @@ final class Installer
             ],
             'paths' => [
                 'storage' => {$s($v['storage'])},
-                'upload' => {$s(WC_ROOT . '/upload')},
+                'upload' => {$s($v['upload'])},
             ],
             'security' => [
                 'app_key' => {$s($v['appKey'])},
@@ -942,9 +906,6 @@ final class Installer
         }
         $basePath = rtrim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/install.php'))), '/');
         $logoUrl = ($basePath === '' ? '' : $basePath) . '/assets/images/cajunwebpro-logo.png';
-        $ownershipFallbackRequired = !$this->prepareWritableDirectory($this->configDir)
-            || !$this->prepareWritableDirectory(WC_ROOT . '/storage');
-        $ftpSupported = LocalFtpProvisioner::supported();
         $old = [];
         if ($request !== null) {
             foreach (['site_name','base_url','timezone','db_host','db_port','db_name','db_user','db_prefix','owner_username','owner_email','storage_path'] as $k) {
@@ -955,8 +916,7 @@ final class Installer
             'site_name' => '', 'base_url' => $this->guessBaseUrl(), 'timezone' => 'UTC',
             'db_host' => '127.0.0.1', 'db_port' => '3306', 'db_name' => '', 'db_user' => '',
             'db_prefix' => 'wc_', 'owner_username' => '', 'owner_email' => '',
-            'storage_path' => WC_ROOT . '/storage',
-            'ftp_port' => '21', 'ftp_path' => '',
+            'storage_path' => $this->defaultStoragePath(),
         ], array_filter($old, fn ($x) => $x !== ''));
 
         ob_start();

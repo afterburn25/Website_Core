@@ -10,12 +10,13 @@ declare(strict_types=1);
  */
 
 define('WC_ROOT', dirname(__DIR__));                       // deployable site dir
-define('WC_CONFIG', WC_ROOT . '/config');
+require_once __DIR__ . '/runtime-paths.php';
+define('WC_CONFIG', wc_runtime_config_dir(WC_ROOT));
 define('WC_CORE', WC_ROOT . '/core');
 define('WC_THEMES', WC_ROOT . '/themes');
 define('WC_MODULES', WC_ROOT . '/modules');
 define('WC_INSTALLED_LOCK', WC_CONFIG . '/installed.lock');
-define('WC_VERSION', '0.1.2-dev');
+define('WC_VERSION', '0.1.3-dev');
 define('WC_API_VERSION', 1);
 
 require __DIR__ . '/autoload.php';

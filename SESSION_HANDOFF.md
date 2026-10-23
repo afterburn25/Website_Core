@@ -1,5 +1,18 @@
 # Session Handoff
 
+## 2026-10-23 — credential-free installer repair (`0.1.3-dev`)
+
+- Removed the local FTP provisioner, FTP fields, and hosting-access test.
+- Foreign-owned packaged directories now trigger automatic creation of a
+  persistent mode-0700 runtime outside the document root. Bootstrap and the
+  cleanup gate deterministically rediscover its configuration and locks.
+- Runtime selection rejects public/temp paths, symlinks, weak permissions,
+  and destinations that fail a complete create/read/rename/delete probe.
+- Installer overview steps 01–03 now turn green with a checkmark and “Ready”
+  as server checks, site/database details, and owner details are completed.
+  The next incomplete step receives the active highlight.
+- Bumped Website Core to `0.1.3-dev` and catering to `0.1.3`.
+
 ## 2026-10-23 — shared-host ownership fallback (`0.1.2-dev`)
 
 - Replaced the ineffective direct-only `config/` and `storage/` ownership

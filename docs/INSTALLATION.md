@@ -8,7 +8,8 @@
 3. The branded one-page setup checks PHP/extensions, writable paths, and
    required SSL/HTTPS. Enter MySQL/MariaDB credentials and use **Test
    connection** before installing. If the extracted files have foreign
-   ownership, the installer reveals its automatic local FTP repair fields.
+   ownership, the installer automatically provisions a protected private
+   runtime directory without asking the customer for hosting credentials.
 4. The installer verifies checks, connects to MySQL, runs migrations,
    creates the owner, writes `config/config.php` with generated secrets,
    writes `installed.lock`, then removes `install/` and `install.php`.
@@ -74,7 +75,7 @@ Bundles ship the industry module pre-extracted at
 Two supported modes:
 
 - **Seeded token (recommended for public uploads)** — the deployer writes a
-  random value to `config/setup.token` (host panel, deploy script, FTP).
+  random value to `config/setup.token` (host panel or deployment script).
   The form then requires that value on submit. Delete the file after
   install (installer removes it too).
 - **Bound-session claim** — if no token exists, the first visitor to
@@ -98,14 +99,14 @@ certificate with the installer accessed over HTTPS.
 Real create/write/rename/delete probes are used — not just `is_writable`.
 The installer creates missing `config/` and `storage/` directories and tries
 safe owner/group permission repairs when the hosting account permits it. When
-an uploaded archive belongs to a different filesystem owner, PHP's FTP
-extension activates an automatic fallback: credentials are sent only to
-`127.0.0.1`, used for the current request, never stored, and can be verified
-with **Test hosting access** before installation. The fallback detects this
-specific website using packaged fingerprints, provisions with 0750/0775
-permissions, writes and verifies the configuration, and retries installer
-cleanup through the hosting account. It never uses chmod 0777. Long absolute
-paths wrap inside the readiness cards rather than overflowing the setup panel.
+an uploaded archive belongs to a different filesystem owner, the installer
+automatically creates a deterministic mode-0700 runtime directory outside the
+public document root. Generated configuration, installation locks, and private
+storage live there; the bootstrap and cleanup gate locate it automatically on
+later requests. Temporary directories, public paths, symlinks, and locations
+that fail real create/read/rename/delete probes are rejected. No FTP or hosting
+credentials are requested, and chmod 0777 is never used. Long absolute paths
+wrap inside readiness cards rather than overflowing the setup panel.
 
 ## Deployment variants
 
@@ -126,7 +127,7 @@ paths wrap inside the readiness cards rather than overflowing the setup panel.
   unrelated files.
 - Cleanup is fail-closed. If PHP cannot remove either installer artifact, all
   public, admin, and cron entry points return 503. Open DirectAdmin File
-  Manager or FTP, delete `install/` and `install.php` from the website root,
+  Manager, delete `install/` and `install.php` from the website root,
   then reload; the site unlocks automatically. Do not delete
   `config/installed.lock` or `config/cleanup-required.lock`.
 - `config.php`, `claim.*`, `cleanup-required.lock`, and `installed.lock` are

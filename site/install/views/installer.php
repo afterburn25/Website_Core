@@ -1,5 +1,5 @@
 <?php
-/** @var array $checks @var array $errors @var array $defaults @var bool $needsToken @var bool $unclaimed @var bool $ownershipFallbackRequired @var bool $ftpSupported @var array $tzList @var string $packageName @var string $logoUrl */
+/** @var array $checks @var array $errors @var array $defaults @var bool $needsToken @var bool $unclaimed @var array $tzList @var string $packageName @var string $logoUrl */
 $err = fn (string $key): string => isset($errors[$key])
     ? '<p class="field-error">' . e((string) $errors[$key]) . '</p>'
     : '';
@@ -41,8 +41,8 @@ a{color:var(--gold-2)}
 .brand-panel h1{margin:0;font:700 clamp(2.25rem,4vw,4.4rem)/.98 Georgia,"Times New Roman",serif;letter-spacing:-.045em}
 .brand-copy{max-width:32rem;margin:20px 0 30px;color:#bdd0e3;line-height:1.75}
 .steps{display:grid;gap:12px;margin:0;padding:0;list-style:none}
-.steps li{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:center;padding:12px 14px;border:1px solid rgba(103,139,174,.27);border-radius:13px;background:rgba(5,15,27,.32);color:#c7d7e7}
-.step-number{display:grid;place-items:center;width:34px;height:34px;border:1px solid rgba(215,170,80,.52);border-radius:50%;color:var(--gold-2);font-size:.8rem;font-weight:850}
+.steps li{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:center;padding:12px 14px;border:1px solid rgba(103,139,174,.27);border-radius:13px;background:rgba(5,15,27,.32);color:#c7d7e7;transition:border-color .2s,background .2s,color .2s,transform .2s}
+.step-number{display:grid;place-items:center;width:34px;height:34px;border:1px solid rgba(215,170,80,.52);border-radius:50%;color:var(--gold-2);font-size:.8rem;font-weight:850;transition:background .2s,border-color .2s,color .2s}.step-check{display:none;font-size:1rem}.step-copy strong{display:block;font-size:.88rem}.step-copy small{display:block;margin-top:3px;color:#7f96ad;font-size:.7rem;font-weight:700;letter-spacing:.04em}.steps li.is-current{border-color:rgba(215,170,80,.72);background:rgba(114,77,20,.22);transform:translateX(3px)}.steps li.is-ready{border-color:rgba(61,213,152,.58);background:linear-gradient(135deg,rgba(31,125,91,.27),rgba(7,44,39,.34));color:#dffff1}.steps li.is-ready .step-number{border-color:var(--green);background:var(--green);color:#062519;box-shadow:0 0 0 5px rgba(61,213,152,.1)}.steps li.is-ready .step-number-value{display:none}.steps li.is-ready .step-check{display:block}.steps li.is-ready .step-copy small{color:#75ddb3}
 .secure-note{display:flex;gap:10px;align-items:flex-start;margin-top:24px;padding-top:22px;border-top:1px solid rgba(116,148,178,.25);color:#95abc0;font-size:.86rem;line-height:1.55}
 .secure-note svg{flex:0 0 18px;color:var(--green);margin-top:2px}
 .workspace{min-width:0;padding:40px clamp(22px,4vw,58px) 52px}
@@ -69,10 +69,9 @@ input::placeholder{color:#5f7892}.hint{margin:7px 0 0;color:#7990a8;font-size:.7
 .db-actions{display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin-top:18px;padding-top:18px;border-top:1px solid rgba(80,116,149,.27)}
 button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;min-height:44px;padding:0 16px;border:1px solid #52789c;border-radius:11px;background:#132f4d;color:#edf6ff;font-weight:800;cursor:pointer;transition:transform .18s,background .18s,border-color .18s}.test-button:hover{transform:translateY(-1px);background:#193d62;border-color:#6b95bc}.test-button:disabled{opacity:.62;cursor:wait;transform:none}
 .db-status{display:inline-flex;align-items:center;gap:8px;min-width:0;color:#91a8bd;font-size:.82rem;line-height:1.45}.db-status:before{content:"";flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:#667f97;box-shadow:0 0 0 4px rgba(102,127,151,.12)}.db-status.success{color:#8ce8bd}.db-status.success:before{background:var(--green);box-shadow:0 0 0 4px rgba(61,213,152,.12)}.db-status.error{color:#ffadb5}.db-status.error:before{background:var(--red);box-shadow:0 0 0 4px rgba(255,122,134,.12)}
-.ownership-note{margin:0 0 18px;padding:15px 16px;border:1px solid rgba(255,203,112,.35);border-radius:13px;background:rgba(99,68,17,.22);color:#f4ddb1;font-size:.82rem;line-height:1.65}.ownership-note strong{color:#fff}.fixed-host{opacity:.82}
 .details{margin-top:18px;border:1px solid rgba(78,113,146,.28);border-radius:12px;background:rgba(4,14,25,.24)}.details summary{padding:13px 15px;cursor:pointer;color:#aec1d4;font-size:.82rem;font-weight:750}.details p{margin:0;padding:0 15px 15px;color:#8299b0;font-size:.8rem;line-height:1.65}
 .install-bar{position:sticky;bottom:16px;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:24px;padding:14px 14px 14px 18px;border:1px solid rgba(215,170,80,.42);border-radius:17px;background:rgba(8,23,39,.94);box-shadow:0 20px 50px rgba(0,0,0,.44);backdrop-filter:blur(15px)}
-.install-copy strong{display:block;font-size:.87rem}.install-copy span{display:block;margin-top:3px;color:#859bb0;font-size:.73rem}.install-button{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;padding:0 24px;border:0;border-radius:12px;background:linear-gradient(135deg,#f0d28f,#c99435);color:#07111e;font-weight:900;cursor:pointer;box-shadow:0 10px 28px rgba(215,170,80,.24);transition:transform .18s,filter .18s}.install-button:hover{transform:translateY(-1px);filter:brightness(1.06)}
+.install-copy strong{display:block;font-size:.87rem}.install-copy span{display:block;margin-top:3px;color:#859bb0;font-size:.73rem}.install-button{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;padding:0 24px;border:0;border-radius:12px;background:linear-gradient(135deg,#f0d28f,#c99435);color:#07111e;font-weight:900;cursor:pointer;box-shadow:0 10px 28px rgba(215,170,80,.24);transition:transform .18s,filter .18s}.install-button:hover{transform:translateY(-1px);filter:brightness(1.06)}.install-button:disabled{cursor:not-allowed;opacity:.45;filter:saturate(.55);transform:none;box-shadow:none}
 .spinner{display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}.is-loading .spinner{display:inline-block}.is-loading .test-icon{display:none}@keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:980px){.installer-shell{grid-template-columns:1fr;margin:16px auto}.brand-panel{border-right:0;border-bottom:1px solid var(--line)}.brand-sticky{position:static}.brand-panel h1{font-size:clamp(2.2rem,8vw,4rem)}.steps{grid-template-columns:repeat(3,minmax(0,1fr))}.steps li{grid-template-columns:30px minmax(0,1fr);padding:10px}.step-number{width:30px;height:30px}.secure-note{display:none}}
 @media(max-width:680px){.installer-shell{width:100%;margin:0;border:0;border-radius:0}.brand-panel,.workspace{padding:25px 18px}.workspace-head{display:block}.version-badge{display:inline-block;margin-top:14px}.checks,.field-grid,.field-grid.three,.steps{grid-template-columns:1fr}.section-head{align-items:flex-start}.section-note{max-width:42%;overflow-wrap:anywhere}.section-body{padding:18px}.install-bar{align-items:stretch;flex-direction:column;bottom:8px}.install-button{width:100%}}
@@ -91,9 +90,9 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
             <h1><?= e($packageName) ?></h1>
             <p class="brand-copy">A guided setup for your new website. Verify the server, connect the database, create the owner account, and launch securely.</p>
             <ol class="steps">
-                <li><span class="step-number">01</span><span>Server readiness</span></li>
-                <li><span class="step-number">02</span><span>Site and database</span></li>
-                <li><span class="step-number">03</span><span>Owner and launch</span></li>
+                <li id="overview-step-1" class="<?= $requiredFailures === [] ? 'is-ready' : 'is-current' ?>"><span class="step-number"><span class="step-number-value">01</span><span class="step-check" aria-hidden="true">✓</span></span><span class="step-copy"><strong>Server readiness</strong><small><?= $requiredFailures === [] ? 'Ready' : 'Needs attention' ?></small></span></li>
+                <li id="overview-step-2"><span class="step-number"><span class="step-number-value">02</span><span class="step-check" aria-hidden="true">✓</span></span><span class="step-copy"><strong>Site and database</strong><small>Complete details</small></span></li>
+                <li id="overview-step-3"><span class="step-number"><span class="step-number-value">03</span><span class="step-check" aria-hidden="true">✓</span></span><span class="step-copy"><strong>Owner and launch</strong><small>Complete account</small></span></li>
             </ol>
             <div class="secure-note">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2 4.5 5.2v5.7c0 5.1 3.2 9.8 7.5 11.1 4.3-1.3 7.5-6 7.5-11.1V5.2L12 2Zm3.5 8.1-4.2 4.4a1 1 0 0 1-1.5 0l-2-2.1 1.5-1.4 1.3 1.4 3.5-3.7 1.4 1.4Z"/></svg>
@@ -144,30 +143,6 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
                 </div>
             </section>
 
-            <?php if ($ownershipFallbackRequired): ?>
-            <section class="form-section" aria-labelledby="hosting-title">
-                <div class="section-head"><div class="section-title"><span class="section-index">↻</span><h3 id="hosting-title">Automatic ownership repair</h3></div><span class="section-note">DirectAdmin / shared hosting</span></div>
-                <div class="section-body">
-                    <?php if ($ftpSupported): ?>
-                    <p class="ownership-note"><strong>The uploaded folders belong to a different owner.</strong> Enter the FTP account for this same hosting account. Setup connects only to <code>127.0.0.1</code>, repairs ownership access with safe permissions, writes the configuration, and removes the installer. The password is used only for this request and is never saved.</p>
-                    <div class="field-grid">
-                        <div class="field"><label for="ftp_user">Hosting FTP username</label><input id="ftp_user" name="ftp_user" class="<?= e(trim($cls('ftp_user'))) ?>" autocomplete="username" required><?= $err('ftp_user') ?></div>
-                        <div class="field"><label for="ftp_password">Hosting FTP password</label><input id="ftp_password" name="ftp_password" type="password" autocomplete="current-password" required></div>
-                        <div class="field"><label for="ftp_port">Local FTP port</label><input id="ftp_port" name="ftp_port" type="number" min="1" max="65535" value="<?= $val('ftp_port') ?>" required></div>
-                        <div class="field"><label for="ftp_host">Locked local host</label><input id="ftp_host" class="fixed-host" value="127.0.0.1" readonly aria-readonly="true"></div>
-                        <div class="field full"><label for="ftp_path">Website directory <span class="optional">optional</span></label><input id="ftp_path" name="ftp_path" value="<?= $val('ftp_path') ?>" placeholder="domains/example.com/public_html/catering" autocomplete="off"><p class="hint">Leave blank for automatic detection. If needed, copy the website directory shown in DirectAdmin.</p></div>
-                    </div>
-                    <div class="db-actions">
-                        <button class="test-button" id="ftp-test-button" type="button"><span class="test-icon" aria-hidden="true">↗</span><span class="spinner" aria-hidden="true"></span><span>Test hosting access</span></button>
-                        <span class="db-status" id="ftp-test-status" role="status" aria-live="polite">Not tested yet</span>
-                    </div>
-                    <?php else: ?>
-                    <p class="ownership-note"><strong>Automatic repair is unavailable.</strong> Ask the host to enable PHP’s FTP extension for this domain. Setup never requests unsafe <code>0777</code> permissions.</p>
-                    <?php endif; ?>
-                </div>
-            </section>
-            <?php endif; ?>
-
             <section class="form-section" aria-labelledby="database-title">
                 <div class="section-head"><div class="section-title"><span class="section-index">02</span><h3 id="database-title">Database connection</h3></div><span class="section-note">MySQL or MariaDB</span></div>
                 <div class="section-body">
@@ -200,7 +175,7 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
 
             <div class="install-bar">
                 <div class="install-copy"><strong>Ready for secure installation</strong><span>Database connectivity is verified again during setup.</span></div>
-                <button class="install-button" type="submit"><span>Install website</span><span aria-hidden="true">→</span></button>
+                <button class="install-button" id="install-button" type="submit"><span>Install website</span><span aria-hidden="true">→</span></button>
             </div>
         </form>
     </section>
@@ -211,14 +186,75 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
     const button = document.getElementById('db-test-button');
     const status = document.getElementById('db-test-status');
     const fields = [...document.querySelectorAll('[data-db-field]')];
+    const installButton = document.getElementById('install-button');
+    const installTitle = document.querySelector('.install-copy strong');
+    const installNote = document.querySelector('.install-copy span');
+    const steps = [1, 2, 3].map(number => document.getElementById('overview-step-' + number));
+    const serverReady = <?= $requiredFailures === [] ? 'true' : 'false' ?>;
     let controller = null;
+    let databaseVerified = false;
+
+    const field = id => document.getElementById(id);
+    const hasValue = id => Boolean(field(id)?.value.trim());
+    const siteAndDatabaseReady = () => {
+        const prefix = field('db_prefix')?.value || '';
+        return hasValue('site_name')
+            && /^https:\/\//i.test(field('base_url')?.value || '')
+            && hasValue('timezone')
+            && hasValue('storage_path')
+            && hasValue('db_host')
+            && Number(field('db_port')?.value) >= 1
+            && Number(field('db_port')?.value) <= 65535
+            && hasValue('db_name')
+            && hasValue('db_user')
+            && /^[A-Za-z0-9_]{0,16}$/.test(prefix)
+            && databaseVerified;
+    };
+    const ownerReady = () => {
+        const username = field('owner_username')?.value || '';
+        const email = field('owner_email')?.value || '';
+        const password = field('owner_password')?.value || '';
+        const confirmation = field('owner_password2')?.value || '';
+        const token = field('setup_token');
+        return /^[A-Za-z0-9_.-]{3,60}$/.test(username)
+            && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+            && password.length >= 12
+            && password === confirmation
+            && (!token || token.value.trim() !== '');
+    };
+    const markStep = (element, ready, current, waitingText) => {
+        if (!element) return;
+        element.classList.toggle('is-ready', ready);
+        element.classList.toggle('is-current', !ready && current);
+        const note = element.querySelector('small');
+        if (note) note.textContent = ready ? 'Ready' : waitingText;
+    };
+    const refreshProgress = () => {
+        const secondReady = siteAndDatabaseReady();
+        const thirdReady = ownerReady();
+        markStep(steps[0], serverReady, !serverReady, 'Needs attention');
+        markStep(steps[1], secondReady, serverReady && !secondReady, databaseVerified ? 'Complete details' : 'Test database');
+        markStep(steps[2], thirdReady, serverReady && secondReady && !thirdReady, 'Complete account');
+        const allReady = serverReady && secondReady && thirdReady;
+        installButton.disabled = !allReady;
+        installTitle.textContent = allReady ? 'Everything is ready' : 'Finish the highlighted setup step';
+        installNote.textContent = allReady
+            ? 'All checks and required fields passed. You can install securely.'
+            : 'Completed steps turn green automatically.';
+    };
 
     const setStatus = (state, message) => {
         status.className = 'db-status' + (state ? ' ' + state : '');
         status.textContent = message;
     };
 
-    fields.forEach(field => field.addEventListener('input', () => setStatus('', 'Connection details changed — test again')));
+    fields.forEach(input => input.addEventListener('input', () => {
+        databaseVerified = false;
+        setStatus('', 'Connection details changed — test again');
+        refreshProgress();
+    }));
+    [...form.querySelectorAll('input,select')].forEach(input => input.addEventListener('input', refreshProgress));
+    [...form.querySelectorAll('select')].forEach(input => input.addEventListener('change', refreshProgress));
     button.addEventListener('click', async () => {
         const required = ['db_host', 'db_port', 'db_name', 'db_user'];
         for (const id of required) {
@@ -246,55 +282,19 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
                 signal: controller.signal
             });
             const result = await response.json();
+            databaseVerified = Boolean(result.ok);
             setStatus(result.ok ? 'success' : 'error', result.message || (result.ok ? 'Connection successful.' : 'Connection failed.'));
         } catch (error) {
+            databaseVerified = false;
             if (error.name !== 'AbortError') setStatus('error', 'The test could not complete. Check SSL and try again.');
         } finally {
             button.disabled = false;
             button.classList.remove('is-loading');
+            refreshProgress();
         }
     });
 
-    const ftpButton = document.getElementById('ftp-test-button');
-    const ftpStatus = document.getElementById('ftp-test-status');
-    if (ftpButton && ftpStatus) {
-        const ftpFields = ['ftp_user', 'ftp_password', 'ftp_port', 'ftp_path']
-            .map(id => document.getElementById(id)).filter(Boolean);
-        const setFtpStatus = (state, message) => {
-            ftpStatus.className = 'db-status' + (state ? ' ' + state : '');
-            ftpStatus.textContent = message;
-        };
-        ftpFields.forEach(field => field.addEventListener('input', () => setFtpStatus('', 'Hosting details changed — test again')));
-        ftpButton.addEventListener('click', async () => {
-            const user = document.getElementById('ftp_user');
-            const password = document.getElementById('ftp_password');
-            if (!user.value.trim() || !password.value) {
-                (user.value.trim() ? password : user).focus();
-                setFtpStatus('error', 'Enter the hosting FTP username and password first.');
-                return;
-            }
-            const payload = new URLSearchParams({action: 'test_hosting_access'});
-            ftpFields.forEach(field => payload.set(field.name, field.value));
-            ftpButton.disabled = true;
-            ftpButton.classList.add('is-loading');
-            setFtpStatus('', 'Checking local hosting access…');
-            try {
-                const response = await fetch(form.action, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest'},
-                    body: payload.toString(),
-                    credentials: 'same-origin'
-                });
-                const result = await response.json();
-                setFtpStatus(result.ok ? 'success' : 'error', result.message || (result.ok ? 'Hosting access verified.' : 'Hosting access failed.'));
-            } catch (error) {
-                setFtpStatus('error', 'The hosting access test could not complete.');
-            } finally {
-                ftpButton.disabled = false;
-                ftpButton.classList.remove('is-loading');
-            }
-        });
-    }
+    refreshProgress();
 
     const errors = document.getElementById('setup-errors');
     if (errors) requestAnimationFrame(() => errors.scrollIntoView({behavior: 'smooth', block: 'center'}));

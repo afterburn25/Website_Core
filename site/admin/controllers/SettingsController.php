@@ -59,14 +59,14 @@ final class SettingsController extends Controller
         $values = [];
         $fields = self::FIELDS;
         $fields['app.url']['label'] .= ' — leave blank to keep '
-            . ((string) $this->app->get(\Core\Config::class)->get('app.url', '') ?: 'the installed URL');
+            . ((string) $this->c->get(\Core\Config::class)->get('app.url', '') ?: 'the installed URL');
         foreach ($fields + self::MAIL_FIELDS as $key => $meta) {
             $values[$key] = (string) $settings->get($key, '');
         }
         // License status
         $licenseStatus = null;
         try {
-            $licenseValidator = $this->app->get(\Core\License\LicenseValidation::class);
+            $licenseValidator = $this->c->get(\Core\License\LicenseValidation::class);
             $licenseStatus = $licenseValidator->status();
         } catch (\Throwable $e) {
             // License table may not exist yet
@@ -94,7 +94,7 @@ final class SettingsController extends Controller
         }
 
         try {
-            $validator = $this->app->get(\Core\License\LicenseValidation::class);
+            $validator = $this->c->get(\Core\License\LicenseValidation::class);
             $status = $validator->status();
             if ($status['license_key'] === null) {
                 $this->flash('error', 'No license is installed on this site.');

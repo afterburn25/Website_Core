@@ -13,9 +13,12 @@
 4. The installer verifies checks, connects to MySQL, runs migrations,
    creates the owner, writes `config/config.php` with generated secrets,
    writes `installed.lock`, and removes the public `install.php` file and
-   `install/` directory. If the host blocks removal, the site remains locked
-   behind the styled cleanup/recheck screen. The completion screen provides
-   separate **Visit website** and **Open admin** actions.
+   `install/` directory. When shared-host ownership blocks direct deletion,
+   the installer atomically retires those exact public paths into protected
+   storage and keeps retrying physical erasure. If even safe retirement is
+   blocked, the site remains locked behind the styled cleanup/recheck screen.
+   The completion screen provides separate **Visit website** and **Open
+   admin** actions.
 5. Sign in through `/index.php?p=/admin`, enable MFA in **Profile**.
 
 The friendly `/admin/` directory entry redirects to that rewrite-independent
@@ -116,10 +119,11 @@ credentials are requested, and chmod 0777 is never used. Long absolute paths
 wrap inside readiness cards rather than overflowing the setup panel.
 
 Installer self-removal has a separate required probe in the public document
-root. If it fails, ask the hosting provider to run PHP-FPM as the hosting
-account and repair the document-root ownership to that same account before
-installing. This setting is controlled by each hosting server; it cannot be
-made portable inside a PHP/ZIP package. Do not work around it with mode 0777.
+root. It verifies that PHP can create, rename, and delete root entries and
+install the managed access-deny rules used by the protected retirement
+fallback. If that root-level probe fails, ask the hosting provider to run
+PHP-FPM as the hosting account and repair document-root ownership. Do not work
+around it with mode 0777.
 
 An existing Website Core database is supported for reinstall/recovery. The
 installer applies only pending migrations, creates or refreshes the submitted
@@ -144,12 +148,14 @@ generated `config.php` and `installed.lock`.
   success.
 - Deployment packages contain a thin public `install.php` entry and protected
   `install/` marker directory; the implementation and view remain under
-  `core/Install/`. Successful setup physically deletes both public artifacts.
+  `core/Install/`. Successful setup deletes both public artifacts directly
+  when possible, otherwise atomically retires the canonical paths.
 - Every later request repeats exact cleanup when a valid generated config plus
-  `installed.lock` prove installation completed. If hosting ownership blocks
-  deletion, the site remains fail-closed and displays the recheck instructions.
-- Renaming or hiding installer artifacts never counts as cleanup success;
-  completion requires physical deletion of both public installer paths.
+  `installed.lock` prove installation completed and sweeps any protected
+  retirement residue. If the host blocks both deletion and safe retirement,
+  the site remains fail-closed and displays the recheck instructions.
+- A retired entry is moved out of the canonical installer URL, randomized,
+  denied by web-server rules, and repeatedly targeted for physical deletion.
 - Cleanup never scans or deletes unrelated files, never uses FTP or 0777, and
   never runs based on database tables alone.
 - `config.php`, `claim.*`, `cleanup-required.lock`, and `installed.lock` are

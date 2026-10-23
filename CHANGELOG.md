@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.11-dev (unreleased)
+
+### Fixed — Settings exception and shared-host installer retirement
+- Fixed the Settings controller using a nonexistent dependency property while
+  reading the configured base URL and license service. Settings now loads
+  through the controller's real container instead of showing a logged-reference
+  error page.
+- Restored automatic shared-host retirement after direct installer deletion:
+  split-owned `install.php` and `install/` entries are atomically moved out of
+  their canonical public paths, protected from web access, and retried for
+  physical erasure on later requests. No FTP credentials are required.
+- Incremented the catering module to `0.1.11`.
+
 ## 0.1.10-dev (unreleased)
 
 ### Fixed — subfolder admin routing and physical installer deletion

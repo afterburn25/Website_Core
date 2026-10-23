@@ -1,4 +1,4 @@
-<?php /** @var array $checks @var array $mailRows */ ?>
+<?php /** @var array $checks @var array $mailRows @var array $integrity */ ?>
 <div class="card">
 <h2 style="margin-top:0">System health</h2>
 <p><a href="<?= e_attr($basePath) ?>/admin/system/diagnostics" download>Download diagnostics bundle</a>
@@ -6,6 +6,20 @@
 <table>
 <?php foreach ($checks as $label => $value): ?>
 <tr><td><?= e($label) ?></td><td><strong><?= e($value) ?></strong></td></tr>
+<?php endforeach; ?>
+</table>
+</div>
+
+<div class="card">
+<h2 style="margin-top:0">Installation integrity</h2>
+<table>
+<tr><th>Check</th><th>Status</th><th>Detail</th></tr>
+<?php foreach ($integrity as $check): ?>
+<tr>
+<td><?= e($check['name']) ?></td>
+<td><span class="badge <?= $check['status'] === 'ok' ? 'ok' : 'bad' ?>"><?= e($check['status']) ?></span></td>
+<td class="muted"><?= e($check['detail']) ?></td>
+</tr>
 <?php endforeach; ?>
 </table>
 </div>

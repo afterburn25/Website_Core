@@ -99,6 +99,31 @@ final class ModuleRegistryTest extends TestCase
         $this->assertSame('enabled', $registry->state('core/base'));
     }
 
+    public function testDiscoveryRepairsStaleCoreBaseDatabaseState(): void
+    {
+        $this->makePackage('themes', 'base', $this->manifest([
+            'id' => 'core/base', 'type' => 'theme', 'name' => 'Base',
+            'version' => '0.1.15',
+        ]));
+        $this->db->insert('packages', [
+            'package_id' => 'core/base',
+            'state' => 'staged',
+            'version' => '0.1.14',
+            'manifest' => null,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $registry = $this->registry();
+        $registry->discover();
+
+        $row = $this->db->fetch(
+            'SELECT state, version FROM `' . $this->db->table('packages') . '` WHERE package_id = ?',
+            ['core/base']
+        );
+        $this->assertSame('enabled', $row['state']);
+        $this->assertSame('0.1.15', $row['version']);
+    }
+
     public function testInvalidManifestReportedNotFatal(): void
     {
         $this->makePackage('addons', 'bad', ['schema' => 99, 'id' => 'BAD']);

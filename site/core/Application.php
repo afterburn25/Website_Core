@@ -248,6 +248,10 @@ final class Application
         $registry = new ModuleRegistry($db, $modulesRoot . '/industries', $modulesRoot . '/addons', $themesRoot);
         $registry->discover();
         $this->container->instance(ModuleRegistry::class, $registry);
+        $this->container->instance(\Core\System\Version::class, new \Core\System\Version($registry));
+        $this->container->instance(\Core\System\Integrity::class, new \Core\System\Integrity(
+            $db, $this->config, $registry
+        ));
         $this->container->instance(\Core\Content\ContentItems::class,
             new \Core\Content\ContentItems($db, $registry));
         $this->container->instance(\Core\Modules\PackageManager::class, new \Core\Modules\PackageManager(
@@ -357,6 +361,10 @@ final class Application
         $registry = new ModuleRegistry($db, $modulesRoot . '/industries', $modulesRoot . '/addons', $themesRoot);
         $registry->discover();
         $this->container->instance(ModuleRegistry::class, $registry);
+        $this->container->instance(\Core\System\Version::class, new \Core\System\Version($registry));
+        $this->container->instance(\Core\System\Integrity::class, new \Core\System\Integrity(
+            $db, $this->config, $registry
+        ));
         $this->container->instance(\Core\Content\ContentItems::class,
             new \Core\Content\ContentItems($db, $registry));
         $this->container->instance(\Core\Modules\PackageManager::class, new \Core\Modules\PackageManager(

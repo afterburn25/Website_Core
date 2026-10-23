@@ -77,7 +77,20 @@ final class ModuleRegistry
         // stale database row must never make them appear staged or disabled.
         foreach (array_keys($this->manifests) as $id) {
             if (self::isProtectedPackage($id)) {
+                $previousState = $this->states[$id] ?? null;
                 $this->states[$id] = 'enabled';
+                if ($previousState !== null && $previousState !== 'enabled') {
+                    $this->db->run(
+                        'UPDATE `' . $this->db->table('packages')
+                        . '` SET state = ?, version = ?, updated_at = ? WHERE package_id = ?',
+                        [
+                            'enabled',
+                            (string) ($this->manifests[$id]['version'] ?? ''),
+                            date('Y-m-d H:i:s'),
+                            $id,
+                        ]
+                    );
+                }
             }
         }
     }

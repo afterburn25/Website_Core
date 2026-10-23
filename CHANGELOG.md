@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.15-dev (unreleased)
+
+### Added — stabilization and integrity inventory
+- Added one authoritative runtime version inventory for the core and enabled
+  industry packages, used throughout the administration shell.
+- Added non-destructive installation-integrity checks for required files,
+  database tables, writable runtime paths, and the protected base package.
+- Registry discovery now repairs stale `core/base` database state to enabled.
+- Reconciled project documentation and shipped manifests with the running
+  `0.1.15-dev` core version.
+
 ## 0.1.14-dev (unreleased)
 
 ### Fixed — protected core package and admin launch controls

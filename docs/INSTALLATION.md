@@ -7,7 +7,8 @@
 2. Browse to `/` → redirected to `/install.php`.
 3. The branded one-page setup checks PHP/extensions, writable paths, and
    required SSL/HTTPS. Enter MySQL/MariaDB credentials and use **Test
-   connection** before installing.
+   connection** before installing. If the extracted files have foreign
+   ownership, the installer reveals its automatic local FTP repair fields.
 4. The installer verifies checks, connects to MySQL, runs migrations,
    creates the owner, writes `config/config.php` with generated secrets,
    writes `installed.lock`, then removes `install/` and `install.php`.
@@ -96,10 +97,15 @@ certificate with the installer accessed over HTTPS.
 
 Real create/write/rename/delete probes are used — not just `is_writable`.
 The installer creates missing `config/` and `storage/` directories and tries
-safe owner/group permission repairs when the hosting account permits it. If
-the host forbids a needed operation, setup names the exact remedy instead of
-weakening protections (never chmod 0777). Long absolute paths wrap inside the
-readiness cards rather than overflowing the setup panel.
+safe owner/group permission repairs when the hosting account permits it. When
+an uploaded archive belongs to a different filesystem owner, PHP's FTP
+extension activates an automatic fallback: credentials are sent only to
+`127.0.0.1`, used for the current request, never stored, and can be verified
+with **Test hosting access** before installation. The fallback detects this
+specific website using packaged fingerprints, provisions with 0750/0775
+permissions, writes and verifies the configuration, and retries installer
+cleanup through the hosting account. It never uses chmod 0777. Long absolute
+paths wrap inside the readiness cards rather than overflowing the setup panel.
 
 ## Deployment variants
 

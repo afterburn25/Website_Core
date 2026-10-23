@@ -1,5 +1,5 @@
 <?php
-/** @var array $checks @var array $errors @var array $defaults @var bool $needsToken @var bool $unclaimed @var array $tzList @var string $packageName @var string $logoUrl */
+/** @var array $checks @var array $errors @var array $defaults @var bool $needsToken @var bool $unclaimed @var bool $ownershipFallbackRequired @var bool $ftpSupported @var array $tzList @var string $packageName @var string $logoUrl */
 $err = fn (string $key): string => isset($errors[$key])
     ? '<p class="field-error">' . e((string) $errors[$key]) . '</p>'
     : '';
@@ -69,6 +69,7 @@ input::placeholder{color:#5f7892}.hint{margin:7px 0 0;color:#7990a8;font-size:.7
 .db-actions{display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin-top:18px;padding-top:18px;border-top:1px solid rgba(80,116,149,.27)}
 button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;min-height:44px;padding:0 16px;border:1px solid #52789c;border-radius:11px;background:#132f4d;color:#edf6ff;font-weight:800;cursor:pointer;transition:transform .18s,background .18s,border-color .18s}.test-button:hover{transform:translateY(-1px);background:#193d62;border-color:#6b95bc}.test-button:disabled{opacity:.62;cursor:wait;transform:none}
 .db-status{display:inline-flex;align-items:center;gap:8px;min-width:0;color:#91a8bd;font-size:.82rem;line-height:1.45}.db-status:before{content:"";flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:#667f97;box-shadow:0 0 0 4px rgba(102,127,151,.12)}.db-status.success{color:#8ce8bd}.db-status.success:before{background:var(--green);box-shadow:0 0 0 4px rgba(61,213,152,.12)}.db-status.error{color:#ffadb5}.db-status.error:before{background:var(--red);box-shadow:0 0 0 4px rgba(255,122,134,.12)}
+.ownership-note{margin:0 0 18px;padding:15px 16px;border:1px solid rgba(255,203,112,.35);border-radius:13px;background:rgba(99,68,17,.22);color:#f4ddb1;font-size:.82rem;line-height:1.65}.ownership-note strong{color:#fff}.fixed-host{opacity:.82}
 .details{margin-top:18px;border:1px solid rgba(78,113,146,.28);border-radius:12px;background:rgba(4,14,25,.24)}.details summary{padding:13px 15px;cursor:pointer;color:#aec1d4;font-size:.82rem;font-weight:750}.details p{margin:0;padding:0 15px 15px;color:#8299b0;font-size:.8rem;line-height:1.65}
 .install-bar{position:sticky;bottom:16px;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:24px;padding:14px 14px 14px 18px;border:1px solid rgba(215,170,80,.42);border-radius:17px;background:rgba(8,23,39,.94);box-shadow:0 20px 50px rgba(0,0,0,.44);backdrop-filter:blur(15px)}
 .install-copy strong{display:block;font-size:.87rem}.install-copy span{display:block;margin-top:3px;color:#859bb0;font-size:.73rem}.install-button{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;padding:0 24px;border:0;border-radius:12px;background:linear-gradient(135deg,#f0d28f,#c99435);color:#07111e;font-weight:900;cursor:pointer;box-shadow:0 10px 28px rgba(215,170,80,.24);transition:transform .18s,filter .18s}.install-button:hover{transform:translateY(-1px);filter:brightness(1.06)}
@@ -142,6 +143,30 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
                     <div class="field"><label for="storage_path">Private storage path</label><input id="storage_path" name="storage_path" class="<?= e(trim($cls('storage_path'))) ?>" value="<?= $val('storage_path') ?>" required><?= $err('storage_path') ?><p class="hint">The installer will create or repair this directory without using unsafe 0777 permissions.</p></div>
                 </div>
             </section>
+
+            <?php if ($ownershipFallbackRequired): ?>
+            <section class="form-section" aria-labelledby="hosting-title">
+                <div class="section-head"><div class="section-title"><span class="section-index">↻</span><h3 id="hosting-title">Automatic ownership repair</h3></div><span class="section-note">DirectAdmin / shared hosting</span></div>
+                <div class="section-body">
+                    <?php if ($ftpSupported): ?>
+                    <p class="ownership-note"><strong>The uploaded folders belong to a different owner.</strong> Enter the FTP account for this same hosting account. Setup connects only to <code>127.0.0.1</code>, repairs ownership access with safe permissions, writes the configuration, and removes the installer. The password is used only for this request and is never saved.</p>
+                    <div class="field-grid">
+                        <div class="field"><label for="ftp_user">Hosting FTP username</label><input id="ftp_user" name="ftp_user" class="<?= e(trim($cls('ftp_user'))) ?>" autocomplete="username" required><?= $err('ftp_user') ?></div>
+                        <div class="field"><label for="ftp_password">Hosting FTP password</label><input id="ftp_password" name="ftp_password" type="password" autocomplete="current-password" required></div>
+                        <div class="field"><label for="ftp_port">Local FTP port</label><input id="ftp_port" name="ftp_port" type="number" min="1" max="65535" value="<?= $val('ftp_port') ?>" required></div>
+                        <div class="field"><label for="ftp_host">Locked local host</label><input id="ftp_host" class="fixed-host" value="127.0.0.1" readonly aria-readonly="true"></div>
+                        <div class="field full"><label for="ftp_path">Website directory <span class="optional">optional</span></label><input id="ftp_path" name="ftp_path" value="<?= $val('ftp_path') ?>" placeholder="domains/example.com/public_html/catering" autocomplete="off"><p class="hint">Leave blank for automatic detection. If needed, copy the website directory shown in DirectAdmin.</p></div>
+                    </div>
+                    <div class="db-actions">
+                        <button class="test-button" id="ftp-test-button" type="button"><span class="test-icon" aria-hidden="true">↗</span><span class="spinner" aria-hidden="true"></span><span>Test hosting access</span></button>
+                        <span class="db-status" id="ftp-test-status" role="status" aria-live="polite">Not tested yet</span>
+                    </div>
+                    <?php else: ?>
+                    <p class="ownership-note"><strong>Automatic repair is unavailable.</strong> Ask the host to enable PHP’s FTP extension for this domain. Setup never requests unsafe <code>0777</code> permissions.</p>
+                    <?php endif; ?>
+                </div>
+            </section>
+            <?php endif; ?>
 
             <section class="form-section" aria-labelledby="database-title">
                 <div class="section-head"><div class="section-title"><span class="section-index">02</span><h3 id="database-title">Database connection</h3></div><span class="section-note">MySQL or MariaDB</span></div>
@@ -229,6 +254,47 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
             button.classList.remove('is-loading');
         }
     });
+
+    const ftpButton = document.getElementById('ftp-test-button');
+    const ftpStatus = document.getElementById('ftp-test-status');
+    if (ftpButton && ftpStatus) {
+        const ftpFields = ['ftp_user', 'ftp_password', 'ftp_port', 'ftp_path']
+            .map(id => document.getElementById(id)).filter(Boolean);
+        const setFtpStatus = (state, message) => {
+            ftpStatus.className = 'db-status' + (state ? ' ' + state : '');
+            ftpStatus.textContent = message;
+        };
+        ftpFields.forEach(field => field.addEventListener('input', () => setFtpStatus('', 'Hosting details changed — test again')));
+        ftpButton.addEventListener('click', async () => {
+            const user = document.getElementById('ftp_user');
+            const password = document.getElementById('ftp_password');
+            if (!user.value.trim() || !password.value) {
+                (user.value.trim() ? password : user).focus();
+                setFtpStatus('error', 'Enter the hosting FTP username and password first.');
+                return;
+            }
+            const payload = new URLSearchParams({action: 'test_hosting_access'});
+            ftpFields.forEach(field => payload.set(field.name, field.value));
+            ftpButton.disabled = true;
+            ftpButton.classList.add('is-loading');
+            setFtpStatus('', 'Checking local hosting access…');
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest'},
+                    body: payload.toString(),
+                    credentials: 'same-origin'
+                });
+                const result = await response.json();
+                setFtpStatus(result.ok ? 'success' : 'error', result.message || (result.ok ? 'Hosting access verified.' : 'Hosting access failed.'));
+            } catch (error) {
+                setFtpStatus('error', 'The hosting access test could not complete.');
+            } finally {
+                ftpButton.disabled = false;
+                ftpButton.classList.remove('is-loading');
+            }
+        });
+    }
 
     const errors = document.getElementById('setup-errors');
     if (errors) requestAnimationFrame(() => errors.scrollIntoView({behavior: 'smooth', block: 'center'}));

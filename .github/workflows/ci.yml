@@ -382,6 +382,7 @@ jobs:
           }
           foreach([
             "install.php",
+            "install/LocalFtpProvisioner.php",
             "includes/install-cleanup-gate.php",
             "assets/images/cajunwebpro-logo.png",
             "vendor/autoload.php",
@@ -401,6 +402,13 @@ jobs:
           $installerView=$z->getFromName("install/views/installer.php");
           if(!is_string($installerView)||!str_contains($installerView,"href=\"https://cajunwebpro.com\"")){
             fwrite(STDERR,"installer logo is not linked to CajunWebPro\n");exit(1);
+          }
+          if(!str_contains($installerView,"Test hosting access")||str_contains($installerView,"name=\"ftp_password\" value=")){
+            fwrite(STDERR,"secure ownership fallback UI missing or password is repopulated\n");exit(1);
+          }
+          $ftp=$z->getFromName("install/LocalFtpProvisioner.php");
+          if(!is_string($ftp)||!str_contains($ftp,"127.0.0.1")||str_contains($ftp,"0777")){
+            fwrite(STDERR,"local FTP ownership fallback contract invalid\n");exit(1);
           }
           echo "catering TEST-BUNDLE contract OK: ".basename($path)."\n";'
       - name: Upload catering TEST-BUNDLE

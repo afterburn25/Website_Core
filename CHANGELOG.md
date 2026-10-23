@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.2-dev (unreleased)
+
+### Fixed — shared-host ownership fallback
+- Replaced the failed assumption that PHP can repair foreign-owned uploaded
+  directories with the proven local FTP provisioning fallback used by prior
+  CajunWebPro installers.
+- Readiness now accepts either a verified direct write or an available local
+  FTP fallback, so foreign-owned `config/` and `storage/` no longer remain red
+  when the server can repair them automatically.
+- Added a polished ownership-repair section and **Test hosting access** action.
+  FTP is hard-locked to loopback, credentials exist only for the request, and
+  the password is never echoed, logged, or saved.
+- The fallback detects the current site using packaged fingerprints,
+  provisions storage with safe 0750/0775 permissions, writes and reads back
+  the generated configuration, writes install locks, and retries removal of
+  `install/` and `install.php` through the hosting account. It never uses 0777.
+- Incremented the catering module to `0.1.2`.
+
 ## 0.1.1-dev (unreleased)
 
 ### Changed — secure branded installer

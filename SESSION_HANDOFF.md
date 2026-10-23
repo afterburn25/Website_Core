@@ -1,5 +1,23 @@
 # Session Handoff
 
+## 2026-10-23 — shared-host ownership fallback (`0.1.2-dev`)
+
+- Replaced the ineffective direct-only `config/` and `storage/` ownership
+  checks with a dual path: real PHP write probes first, then the proven
+  local-only FTP provisioning fallback used in earlier CajunWebPro builds.
+- `site/install/LocalFtpProvisioner.php` restricts transport to loopback,
+  fingerprints this exact site before writes, uses only 0750/0775 directory
+  modes, writes and verifies installer files, and retries full installer
+  cleanup. No FTP password is persisted or repopulated.
+- The polished installer shows an Automatic ownership repair section only
+  when direct writes fail and includes a live **Test hosting access** action.
+  Readiness is green when either direct writes or the supported fallback can
+  perform provisioning; no 0777 workaround is used.
+- Bumped Website Core to `0.1.2-dev` and catering to `0.1.2`. The locally
+  assembled `Website-Core-catering-0.1.2-dev-TEST-BUNDLE.zip` passes ZIP,
+  version, required-file, secret-exclusion, and fallback contract checks.
+  Full PHP lint/PHPUnit was unavailable in the current container.
+
 ## 2026-10-23 — catering industry package
 
 - The approved concept is an elegant editorial catering site: ivory and deep

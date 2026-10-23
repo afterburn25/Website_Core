@@ -273,7 +273,9 @@ jobs:
             --data-urlencode "owner_password2=ci-keyless-pass-1" \
             --data-urlencode "storage_path=/tmp/wcsite3/storage")
           if [ "$code" != "200" ] || ! grep -q "Installation complete" /tmp/keyless-resp.html; then
-            echo "keyless install POST failed (HTTP $code)"; head -60 /tmp/keyless-resp.html; exit 1
+            echo "keyless install POST failed (HTTP $code)"
+            sed -n '1,240p' /tmp/keyless-resp.html
+            exit 1
           fi
           grep -q "Testing mode" /tmp/keyless-resp.html
 

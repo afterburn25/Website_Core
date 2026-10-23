@@ -10,7 +10,7 @@ define('WC_CORE', WC_ROOT . '/core');
 define('WC_THEMES', WC_ROOT . '/themes');
 define('WC_MODULES', WC_ROOT . '/modules');
 define('WC_INSTALLED_LOCK', WC_CONFIG . '/installed.lock');
-define('WC_VERSION', '0.1.7-dev');
+define('WC_VERSION', '0.1.8-dev');
 define('WC_API_VERSION', 1);
 
 require WC_ROOT . '/includes/autoload.php';

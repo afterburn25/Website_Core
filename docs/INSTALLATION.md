@@ -4,7 +4,7 @@
 
 1. Extract COMPLETE-UPLOAD into the website directory (contents land at the
    web root; `site/` internal layout is the deployment layout).
-2. Browse to `/` → the protected-core installer opens at the site root.
+2. Browse to `/install.php` (or `/`) → the protected-core installer opens.
 3. The branded one-page setup checks PHP/extensions, writable paths, and
    required SSL/HTTPS. Enter MySQL/MariaDB credentials and use **Test
    connection** before installing. If the extracted files have foreign
@@ -12,11 +12,11 @@
    runtime directory without asking the customer for hosting credentials.
 4. The installer verifies checks, connects to MySQL, runs migrations,
    creates the owner, writes `config/config.php` with generated secrets,
-   writes `installed.lock`, and permanently switches the root front controller
-   from setup to the website. New packages contain no public installer file or
-   directory to delete. The completion screen provides separate **Visit
-   website** and **Open admin** actions.
-5. Sign in at `/admin`, enable MFA in **Profile**.
+   writes `installed.lock`, and removes the public `install.php` file and
+   `install/` directory. If the host blocks removal, the site remains locked
+   behind the styled cleanup/recheck screen. The completion screen provides
+   separate **Visit website** and **Open admin** actions.
+5. Sign in through `/index.php?p=/admin`, enable MFA in **Profile**.
 
 No license keys, unlock files, wizards, or merchant credentials for a
 core-only install. **Bundled products** (core + industry module purchased
@@ -132,14 +132,12 @@ generated `config.php` and `installed.lock`.
 - Failed setup is resumable: re-open the page, fix inputs, resubmit. No
   destructive reinstall; `installed.lock` + config are only written on
   success.
-- New packages contain no public installer artifact. Setup code lives under
-  the access-denied `core/Install/` tree, and the root front controller invokes
-  it only while a valid generated config plus `installed.lock` are absent.
-- Sites upgraded from pre-0.1.6 releases still attempt exact physical cleanup
-  of legacy `install/` and `install.php` entries on every load. If hosting
-  ownership blocks deletion, explicit access rules deny those paths and the
-  completed-install guard prevents setup from running. Legacy residue never
-  takes the installed website or administration area offline.
+- Deployment packages contain a thin public `install.php` entry and protected
+  `install/` marker directory; the implementation and view remain under
+  `core/Install/`. Successful setup physically deletes both public artifacts.
+- Every later request repeats exact cleanup when a valid generated config plus
+  `installed.lock` prove installation completed. If hosting ownership blocks
+  deletion, the site remains fail-closed and displays the recheck instructions.
 - Cleanup never scans or deletes unrelated files, never uses FTP or 0777, and
   never runs based on database tables alone.
 - `config.php`, `claim.*`, `cleanup-required.lock`, and `installed.lock` are

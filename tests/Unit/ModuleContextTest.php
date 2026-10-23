@@ -20,8 +20,13 @@ final class ModuleContextTest extends TestCase
         );
 
         $this->assertSame(
-            '/catering/_a/modules/industry-catering',
+            '/catering/index.php?p=/_a/modules/industry-catering',
             $context->assetBase('/catering')
+        );
+        $this->assertSame('/catering/index.php?p=', $context->routeBase('/catering'));
+        $this->assertSame(
+            '/catering/index.php?p=/menus/plated&guest_count=40',
+            $context->url('/catering', '/menus/plated', ['guest_count' => 40])
         );
     }
 }

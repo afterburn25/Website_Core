@@ -29,12 +29,13 @@ final class InstallerPrivateRuntimeTest extends TestCase
         self::assertStringNotContainsString('LocalFtpProvisioner', $installer . $view);
     }
 
-    public function testInstallerLivesOnlyInsideProtectedCore(): void
+    public function testInstallerHasThinPublicArtifactsAndProtectedImplementation(): void
     {
         self::assertFileExists(WC_ROOT . '/core/Install/Installer.php');
         self::assertFileExists(WC_ROOT . '/core/Install/views/installer.php');
-        self::assertFileDoesNotExist(WC_ROOT . '/install.php');
-        self::assertDirectoryDoesNotExist(WC_ROOT . '/install');
+        self::assertFileExists(WC_ROOT . '/install.php');
+        self::assertFileExists(WC_ROOT . '/install/index.php');
+        self::assertFileExists(WC_ROOT . '/install/.htaccess');
     }
 
     public function testPrivateRuntimeAndGreenStepContractsArePresent(): void

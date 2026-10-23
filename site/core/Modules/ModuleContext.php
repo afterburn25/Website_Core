@@ -63,7 +63,25 @@ final class ModuleContext
             $namespace = basename(str_replace('\\', '/', $this->packageId));
         }
 
-        return rtrim($basePath, '/') . '/_a/modules/' . rawurlencode($namespace);
+        // Query routing is the portable form: it works on Apache/LiteSpeed
+        // with rewrites and on nginx/shared hosts that ignore .htaccess.
+        return rtrim($basePath, '/') . '/index.php?p=/_a/modules/' . rawurlencode($namespace);
+    }
+
+    /** Prefix to which a package may append an absolute application route. */
+    public function routeBase(string $basePath = ''): string
+    {
+        return rtrim($basePath, '/') . '/index.php?p=';
+    }
+
+    /** Build a portable application URL without requiring server rewrites. */
+    public function url(string $basePath, string $path = '/', array $query = []): string
+    {
+        $url = $this->routeBase($basePath) . '/' . ltrim($path, '/');
+        if ($query !== []) {
+            $url .= '&' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+        }
+        return $url;
     }
 
     /** Register a public route. Module routes register before the slug catch-all. */

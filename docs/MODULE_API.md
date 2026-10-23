@@ -24,7 +24,9 @@ breaking changes bump the major and ship with a migration guide.
 | `views($dir)` | Register a view directory, resolving as `mod-<slug>:<name>`; active-theme overrides at `templates/modules/<pkg-id>/<name>.php` win, package views fall back. Returns the namespace. |
 | `service($id)` | Resolve a core service (`View`, `SettingsRepository`, `JobQueue`, `SystemMail`, `ContentItems`, …). Packages are trusted in-process code — this is the supported way to reach shared infrastructure. |
 | `packageId()` | The package's own `publisher/name` id. |
-| `assetBase($basePath = '')` | Return the public asset prefix for the installed package directory. Use this for CSS, JavaScript, images, and fonts instead of deriving a route from the manifest id. |
+| `assetBase($basePath = '')` | Return the rewrite-independent public asset prefix for the installed package directory. Use this for CSS, JavaScript, images, and fonts instead of deriving a route from the manifest id. |
+| `routeBase($basePath = '')` | Return the rewrite-independent `index.php?p=` prefix used by package views that append application routes. |
+| `url($basePath, $path = '/', $query = [])` | Build a complete rewrite-independent application URL, including additional query parameters. |
 
 Each enabled package receives its **own** `ModuleContext` stamped with its
 packageId — registrations are attributed to the package and aggregated by

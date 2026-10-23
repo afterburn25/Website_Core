@@ -143,7 +143,7 @@ final class CateringController
             return Response::text('Invalid CSRF token.', 419);
         }
         if ($request->string('website') !== '') {
-            return Response::redirect($request->basePath . '/contact?sent=1');
+            return Response::redirect($this->ctx->url($request->basePath, '/contact', ['sent' => 1]));
         }
         if (!$this->ctx->service(RateLimiter::class)->attempt('catering-contact:' . $request->ip(), 5, 600)) {
             return $this->contact($request, 'Too many submissions. Please wait a few minutes and try again.', $request->post);
@@ -154,7 +154,7 @@ final class CateringController
             return $this->contact($request, implode(' ', $errors), $data);
         }
         $this->saveInquiry($request, 'contact', $data);
-        return Response::redirect($request->basePath . '/contact?sent=1');
+        return Response::redirect($this->ctx->url($request->basePath, '/contact', ['sent' => 1]));
     }
 
     public function quote(Request $request, ?string $error = null, array $old = []): Response
@@ -175,7 +175,7 @@ final class CateringController
             return Response::text('Invalid CSRF token.', 419);
         }
         if ($request->string('website') !== '') {
-            return Response::redirect($request->basePath . '/request-a-quote?sent=1');
+            return Response::redirect($this->ctx->url($request->basePath, '/request-a-quote', ['sent' => 1]));
         }
         if (!$this->ctx->service(RateLimiter::class)->attempt('catering-quote:' . $request->ip(), 4, 900)) {
             return $this->quote($request, 'Too many submissions. Please wait and try again.', $request->post);
@@ -186,7 +186,7 @@ final class CateringController
             return $this->quote($request, implode(' ', $errors), $data);
         }
         $this->saveInquiry($request, 'quote', $data);
-        return Response::redirect($request->basePath . '/request-a-quote?sent=1');
+        return Response::redirect($this->ctx->url($request->basePath, '/request-a-quote', ['sent' => 1]));
     }
 
     public function adminDashboard(Request $request): Response
@@ -395,7 +395,7 @@ final class CateringController
         $view = $this->ctx->service(View::class);
         $settings = $this->settings();
         $shared = [
-            'basePath' => $request->basePath,
+            'basePath' => $this->ctx->routeBase($request->basePath),
             'assetBase' => $this->ctx->assetBase($request->basePath),
             'currentPath' => rtrim($request->path, '/') ?: '/',
             'siteName' => (string) $settings->get('site.name', 'Maison & Meadow Catering'),

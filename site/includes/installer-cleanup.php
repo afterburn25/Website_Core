@@ -348,7 +348,7 @@ function wc_installer_cleanup_page(string $root, array $remaining): string
     );
     $base = wc_installer_base_path();
     $siteUrl = ($base === '' ? '' : $base) . '/';
-    $adminUrl = ($base === '' ? '' : $base) . '/admin';
+    $adminUrl = ($base === '' ? '' : $base) . '/index.php?p=/admin';
     $recheckUrl = $siteUrl . '?installer_cleanup_recheck=1';
     $logoUrl = ($base === '' ? '' : $base) . '/assets/images/cajunwebpro-logo.png';
     $items = $remaining === [] ? 'installer files' : implode(' and ', array_map($escape, $remaining));
@@ -376,7 +376,7 @@ function wc_installer_cleanup_page(string $root, array $remaining): string
         . '<ol><li>Open your hosting File Manager.</li><li>Go to <code>' . $escape($root) . '</code>.</li>'
         . '<li>Delete the <code>install</code> folder and the root <code>install.php</code> file.</li>'
         . '<li>Select <strong>Recheck cleanup</strong>. When both are gone, it opens the website automatically.</li></ol>'
-        . '<p class="notice"><strong>Keep these files:</strong> do not delete <code>installed.lock</code> or <code>cleanup-required.lock</code>.</p>'
+        . '<p class="notice"><strong>Keep the site configuration:</strong> do not delete <code>config.php</code> or <code>installed.lock</code>.</p>'
         . '<div class="actions"><a class="button primary" href="' . $escape($recheckUrl) . '">Recheck cleanup</a>'
         . '<a class="button" href="' . $escape($siteUrl) . '">Visit website</a>'
         . '<a class="button" href="' . $escape($adminUrl) . '">Open admin</a></div>'

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.8-dev (unreleased)
+
+### Fixed — deploy-time cleanup and rewrite-free assets
+- Restored the thin public `install.php` entry and companion `install/`
+  directory to deployment bundles. Successful setup now physically removes
+  both from the deployed site; completed sites retry the same exact cleanup
+  on every request.
+- Restored fail-closed cleanup behavior. If either canonical installer path
+  remains, the website and administration area show the styled recovery page
+  until **Recheck cleanup** confirms both paths are gone.
+- Changed module asset URLs to the supported `index.php?p=...` fallback. This
+  works on nginx/shared hosts that do not apply the bundled `.htaccess`, while
+  still working on Apache and LiteSpeed.
+- Added rewrite-independent package route helpers and moved every catering
+  public link and form action onto the fallback route prefix, so navigation
+  works on the same nginx/shared-host configuration.
+- Incremented the catering module to `0.1.8`.
+
 ## 0.1.7-dev (unreleased)
 
 ### Fixed — package-owned public assets

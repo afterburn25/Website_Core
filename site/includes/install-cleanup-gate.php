@@ -2,10 +2,9 @@
 declare(strict_types=1);
 
 /**
- * Retire public installer artifacts left by pre-0.1.6 packages. Modern
- * packages run setup through the protected core and ship no public installer
- * entry. Legacy files are denied by access rules and their completed-install
- * guard, so panel-owned residue must never keep the installed site offline.
+ * A completed installation must remove its public installer entry and folder.
+ * Every public/admin request repeats the exact cleanup, and the site remains
+ * fail-closed with recovery instructions until both canonical paths are gone.
  *
  * @return callable(string): bool
  */
@@ -21,9 +20,16 @@ return static function (string $root): bool {
     wc_sweep_retired_installer_artifacts($root);
 
     $cleanupLock = $configDirectory . '/cleanup-required.lock';
-    wc_remove_installer_artifacts($root);
-    if (is_file($cleanupLock)) {
-        @unlink($cleanupLock);
+    $remaining = wc_remove_installer_artifacts($root);
+    if ($remaining !== []) {
+        @file_put_contents($cleanupLock, date('c') . " installer cleanup pending\n", LOCK_EX);
+        http_response_code(503);
+        header('Retry-After: 60');
+        header('Content-Type: text/html; charset=utf-8');
+        echo wc_installer_cleanup_page($root, $remaining);
+        return true;
     }
+
+    @unlink($cleanupLock);
     return false;
 };

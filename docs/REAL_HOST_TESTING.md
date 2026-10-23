@@ -46,7 +46,7 @@ Confirm that:
    - Write `config/installed.lock`.
    - Permanently switch the root front controller from setup to the website
      using the verified generated configuration and installation marker.
-   - Contain no public `install.php` or `install/` artifact requiring deletion.
+   - Contain `install.php` and `install/`; both disappear after successful setup.
    - Show separate **Visit website** and **Open admin** actions.
 6. Browse to `/admin/login` → should 200 (login page renders).
 7. Sign in with the owner credentials → should redirect to `/admin/dashboard`.

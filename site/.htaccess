@@ -13,9 +13,6 @@ Options -Indexes
     # Private source/config/package/runtime directories — never served.
     RewriteRule ^(config|core|database|includes|install|modules|themes|upload|storage|admin/controllers|admin/views|vendor)(/|$) - [F,L]
 
-    # Legacy pre-0.1.6 installer entry. New packages do not ship this file.
-    RewriteRule ^install\.php$ - [F,L,NC]
-
     # Composer/dotfiles protection.
     RewriteRule (^|/)\. - [F,L]
     RewriteRule (^|/)(composer\.(json|lock)|addon\.json|theme\.json|package\.json|README|LICENSE) - [F,L]

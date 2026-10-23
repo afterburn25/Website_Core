@@ -21,9 +21,8 @@ use Core\Http\Response;
  *    plainly that an unclaimed public upload is claimable by the first
  *    visitor — the documented remedy is host protection or a seeded token.
  *
- * After success, config.php plus installed.lock permanently disable setup.
- * The installer is part of the protected core rather than a public artifact,
- * so launch never depends on deleting panel-owned files from the document root.
+ * After success, config.php plus installed.lock permanently disable setup and
+ * the public install.php entry plus install/ folder are physically removed.
  */
 final class Installer
 {
@@ -668,16 +667,21 @@ final class Installer
             ], $request);
         }
 
-        // Remove any legacy public installer artifacts when the host permits
-        // it. They are no longer part of new bundles and never control launch.
-        // Existing copies remain denied by the root access rules and their own
-        // completed-install guard if panel ownership blocks physical removal.
         foreach ([$this->claimFile, $this->configDir . '/claim.session', $this->tokenFile] as $f) {
             if (is_file($f)) {
                 @unlink($f);
             }
         }
-        wc_remove_installer_artifacts(WC_ROOT);
+        $remaining = wc_remove_installer_artifacts(WC_ROOT);
+        if ($remaining !== []) {
+            @file_put_contents(
+                $this->configDir . '/cleanup-required.lock',
+                date('c') . " installer cleanup pending\n",
+                LOCK_EX
+            );
+            return Response::html(wc_installer_cleanup_page(WC_ROOT, $remaining), 503)
+                ->header('Retry-After', '60');
+        }
         @unlink($this->configDir . '/cleanup-required.lock');
 
         $licenseNote = '';
@@ -710,7 +714,7 @@ final class Installer
             . $licenseNote
             . '<p>Sign in and enable two-factor authentication for the owner account.</p>'
             . '<div class="actions"><a class="launch-link primary" href="' . e_attr(rtrim($baseUrl, '/')) . '/">Visit website</a>'
-            . '<a class="launch-link" href="' . e_attr(rtrim($baseUrl, '/')) . '/admin">Open admin</a></div></main></body></html>'
+            . '<a class="launch-link" href="' . e_attr(rtrim($baseUrl, '/')) . '/index.php?p=/admin">Open admin</a></div></main></body></html>'
         );
     }
 

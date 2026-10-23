@@ -18,7 +18,7 @@
 <meta property="og:title" content="<?= e_attr($page['meta_title'] ?? $page['title'] ?? '') ?>">
 <meta property="og:image" content="<?= e_attr($page['og_image_url']) ?>">
 <?php endif; ?>
-<link rel="stylesheet" href="<?= e_attr($basePath) ?>/_a/themes/base/assets/css/style.css">
+<link rel="stylesheet" href="<?= e_attr($basePath) ?>/index.php?p=/_a/themes/base/assets/css/style.css">
 </head>
 <body>
 <header class="site-header">

@@ -338,6 +338,37 @@ jobs:
             if($z->locateName($need)===false){fwrite(STDERR,"TEST-BUNDLE missing $need\n");exit(1);}
           }
           echo "keyless TEST-BUNDLE contract OK\n";'
+      - name: Build and inspect catering TEST-BUNDLE
+        run: |
+          php tools/build-packages.php test-bundle catering /tmp/catering-test-dist
+          php -r '
+          $path=glob("/tmp/catering-test-dist/*TEST-BUNDLE.zip")[0]??null;
+          if($path===null){fwrite(STDERR,"catering TEST-BUNDLE missing\n");exit(1);}
+          $z=new ZipArchive();
+          if($z->open($path)!==true){fwrite(STDERR,"catering TEST-BUNDLE unreadable\n");exit(1);}
+          $manifest=$z->getFromName("modules/industries/industry-catering/addon.json");
+          $m=json_decode((string)$manifest,true);
+          if(!is_array($m)||($m["id"]??null)!=="cajunwebpro/catering"||isset($m["license_key"])){
+            fwrite(STDERR,"catering TEST-BUNDLE manifest invalid\n");exit(1);
+          }
+          foreach([
+            "install.php",
+            "vendor/autoload.php",
+            "modules/industries/industry-catering/bootstrap.php",
+            "modules/industries/industry-catering/assets/css/catering.css",
+            "modules/industries/industry-catering/assets/images/hero.webp"
+          ] as $need){
+            if($z->locateName($need)===false){fwrite(STDERR,"catering TEST-BUNDLE missing $need\n");exit(1);}
+          }
+          echo "catering TEST-BUNDLE contract OK: ".basename($path)."\n";'
+      - name: Upload catering TEST-BUNDLE
+        uses: actions/upload-artifact@v4
+        with:
+          name: Website-Core-Catering-TEST-BUNDLE
+          path: /tmp/catering-test-dist/*TEST-BUNDLE.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
       - name: Artifact contract assertions
         run: |
           php -r '

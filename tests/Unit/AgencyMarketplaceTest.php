@@ -23,6 +23,9 @@ final class AgencyMarketplaceTest extends TestCase
         $this->db = Connection::sqlite(':memory:', 'wc_');
         (new Migrator($this->db, WC_ROOT . '/database/migrations'))->migrate();
         $dir = \WcProcessTmpDirs::make('wc-2-config-');
+        if (!is_dir($dir) && !mkdir($dir, 0700, true) && !is_dir($dir)) {
+            throw new \RuntimeException('Unable to create the Website Core 2.0 test config directory.');
+        }
         file_put_contents($dir . '/config.php', '<?php return ' . var_export(['security' => ['app_key' => str_repeat('ab', 32)]], true) . ';');
         $this->config = new Config($dir . '/config.php');
     }

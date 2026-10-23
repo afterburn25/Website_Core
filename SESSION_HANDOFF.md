@@ -1,5 +1,27 @@
 # Session Handoff
 
+## 2026-10-23 — Website Core 1.8 through 2.0
+
+- Version 1.8 completed custom roles and permissions, editorial review notes,
+  approval boundaries, and revision comparison. Version 1.9 added scoped API
+  keys, signed webhooks, JSON site transfer, and optional HTTPS WebDAV backup
+  destinations. Migrations 0019 and 0020 carry those upgrades forward.
+- Version 2.0 added the agency dashboard, encrypted remote credentials,
+  authenticated client health checks, signed marketplace catalogs, and managed
+  core-update policies with backup, maintenance-mode, migration, checksum, and
+  audit-history safeguards. Migration 0021 installs the agency, marketplace,
+  managed-update, and extended navigation data model.
+- The navigation editor is now a visual nested tree. Administrators can drag
+  items to reorder or reparent them, use accessible move/indent controls,
+  select an internal page by name or enter an external/custom URL, and choose
+  same tab, new tab, or a dedicated new window. Public themes preserve those
+  target choices with safe opener isolation.
+- Website Core is `2.0.0`; the extension/module API remains major version 1.
+  Release history, upgrade behavior, API use, agency operations, marketplace
+  trust rules, and roadmap status are documented under `docs/`. GitHub CI is
+  the authoritative PHP 8.4/8.5 plus MySQL/MariaDB release gate; do not publish
+  a branch head unless all six jobs pass.
+
 ## 2026-10-23 — Website Core 1.0.1 admin recovery
 
 - Reproduced the deployment boundary: the installed site's standalone admin

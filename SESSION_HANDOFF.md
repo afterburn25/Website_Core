@@ -1,5 +1,19 @@
 # Session Handoff
 
+## 2026-10-23 — stable Website Core 1.0
+
+- Promoted the validated 0.9 release candidate to `1.0.0` without changing
+  extension API major version 1. Added `docs/1.0_RELEASE_NOTES.md` and aligned
+  bootstrap, example config, test bootstrap, artifact verifier, base theme,
+  roadmap, project status, README and changelog.
+- Stable artifacts are built from the committed tree with a production-only
+  Composer vendor set. `Website-Core-1.0.0-UPDATE.zip` declares cumulative
+  compatibility from `0.1.14-dev`; later release operators can raise that
+  floor explicitly with `WC_UPDATE_MIN_CORE`.
+- The release is intended to be pushed to `devin/website-core`. GitHub CI is
+  the authoritative PHP 8.4/8.5 + MySQL/MariaDB acceptance gate before merge
+  or publication; do not rewrite the documented milestone commits.
+
 ## 2026-10-23 — 0.1.15 through 0.9 release-candidate build
 
 - Delivered focused core milestones for integrity (`bdd67f2`), the admin

@@ -26,9 +26,9 @@ installed through the Module Manager.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
-- **Status**: `0.9.0-dev` release candidate. The `0.1.15` through `0.8`
-  feature milestones are implemented; 0.9 is the compatibility and release
-  gate before 1.0. See `PROJECT_STATUS.md` and `docs/ROADMAP.md`.
+- **Status**: stable `1.0.0`. The `0.1.15` through `0.9` feature and
+  compatibility milestones are implemented. See `PROJECT_STATUS.md`,
+  `docs/ROADMAP.md`, and `docs/1.0_RELEASE_NOTES.md`.
 
 ## Quick start (development)
 
@@ -65,6 +65,7 @@ php tools/build-web-installer.php \
 | `CORE_BOUNDARIES.md` | What may and may not live in core |
 | `docs/ARCHITECTURE.md` | Kernel, container, routing, module API design |
 | `docs/INSTALLATION.md` | Installer + ownership claim model |
+| `docs/1.0_RELEASE_NOTES.md` | Stable release contents and upgrade notes |
 | `docs/MODULE_API.md` | Supported extension API surface |
 | `docs/PACKAGE_SPEC.md` | addon.json manifest schema v1 |
 | `docs/LICENSING_API.md` | Bundle/DRM licensing contract |

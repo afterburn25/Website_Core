@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0 — 2026-10-23
+
+### Stable core release
+- Promoted the complete 0.1.15 through 0.9 milestone line to the first stable Website Core release.
+- Added final release notes, compatibility evidence, upgrade guidance, checksummed packages, and session-to-session Git documentation.
+- Preserved the extension API at major version 1; industry modules and themes remain independently versioned.
+
 ## 0.9.0-dev (unreleased)
 
 ### Added — release candidate and compatibility gate

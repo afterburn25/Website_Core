@@ -1,15 +1,17 @@
 # Project Status
 
-**Current**: `0.9.0-dev` release candidate. The planned 0.1.15 through 0.8
-core milestones are implemented in eight focused commits. The 0.9 gate adds
-cache-safety hardening, cumulative update metadata, offline reproducible build
-support, and a dependency-free release contract check. Stable 1.0 packaging
-and final CI evidence are the remaining steps in this release line.
+**Current**: stable `1.0.0`. The planned 0.1.15 through 0.9 core milestones
+are implemented in focused, documented commits. The 0.9 gate added cache-safe
+defaults, cumulative update metadata, offline reproducible build support, and
+a dependency-free release contract check; 1.0 freezes that contract and
+produces checksummed installation and update artifacts.
 
 The first industry implementation remains `examples/industry-catering`: a
 complete editorial public site, menu/package management, secure multi-step
 quote workflow, and catering lead administration. The universal core remains
-industry-neutral.
+industry-neutral. Final GitHub CI is authoritative for PHP 8.4/8.5 and native
+MySQL/MariaDB evidence; the local release run performs the dependency-free
+gate, complete PHP syntax lint, package inspection, and checksums.
 
 ## Baseline
 

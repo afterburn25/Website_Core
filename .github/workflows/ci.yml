@@ -242,18 +242,18 @@ jobs:
           trap 'echo "--- php -S log ---"; cat /tmp/php-keyless.log 2>/dev/null || true' EXIT
           php -r 'new PDO("mysql:host=127.0.0.1;port=3306","root","")->exec("CREATE DATABASE IF NOT EXISTS wc_install_keyless");'
 
-          cp -r site /tmp/wcsite3
-          cp -r vendor /tmp/wcsite3/vendor
-          mkdir -p /tmp/wcsite3/modules/industries
-          cp -r examples/industry-restaurant /tmp/wcsite3/modules/industries/industry-restaurant
-          # The example manifest has no license_key — this mirrors a TEST-BUNDLE.
+          # Exercise the same packaged catering ZIP that testers download,
+          # including its clean production-only vendor tree.
+          php tools/build-packages.php test-bundle catering /tmp/keyless-dist
+          mkdir -p /tmp/wcsite3
+          unzip -q /tmp/keyless-dist/Website-Core-catering-*-TEST-BUNDLE.zip -d /tmp/wcsite3
           php -S 127.0.0.1:8101 -t /tmp/wcsite3 >/tmp/php-keyless.log 2>&1 &
           SITE_PID=$!
           for i in $(seq 1 30); do
             curl -s -b /tmp/wcjar3 -c /tmp/wcjar3 -o /tmp/keyless-get.html http://127.0.0.1:8101/install.php && break
             sleep 1
           done
-          grep -q "industry-restaurant" /tmp/keyless-get.html
+          grep -q "industry-catering" /tmp/keyless-get.html
           grep -q "TEST BUNDLE; no license required" /tmp/keyless-get.html
 
           code=$(curl -s -b /tmp/wcjar3 -c /tmp/wcjar3 -o /tmp/keyless-resp.html -w '%{http_code}' \
@@ -279,11 +279,12 @@ jobs:
 
           php -r '$p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_keyless","root","");
             if((int)$p->query("SELECT COUNT(*) FROM wc_license")->fetchColumn()!==0){fwrite(STDERR,"unexpected license row\n");exit(1);}
-            $pkg=$p->query("SELECT state FROM wc_packages WHERE package_id=\"wcref/restaurant\"")->fetch();
+            $pkg=$p->query("SELECT state FROM wc_packages WHERE package_id=\"cajunwebpro/catering\"")->fetch();
             if(!$pkg||$pkg["state"]!=="enabled"){fwrite(STDERR,"package not enabled\n");exit(1);}
-            if($p->query("SHOW TABLES LIKE \"wc_restaurant_items\"")->rowCount()!==1){fwrite(STDERR,"module tables missing\n");exit(1);}
+            if($p->query("SHOW TABLES LIKE \"wc_catering_inquiries\"")->rowCount()!==1){fwrite(STDERR,"module tables missing\n");exit(1);}
             echo "keyless package state + module tables OK\n";'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8101/index.php)" = "200"
+          curl -s http://127.0.0.1:8101/index.php | grep -q "Catering" || { echo "catering homepage did not render"; exit 1; }
           curl -s http://127.0.0.1:8101/index.php | grep -q "License Warning" && { echo "license warning leaked into keyless bundle"; exit 1; } || true
 
           kill $SITE_PID 2>/dev/null || true

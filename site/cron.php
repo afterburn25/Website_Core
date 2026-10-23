@@ -7,6 +7,11 @@ declare(strict_types=1);
  * Browser triggering requires the cron token from Settings > System so
  * visitor traffic alone can never drive the queue.
  */
+$cleanupGate = require __DIR__ . '/includes/install-cleanup-gate.php';
+if ($cleanupGate(__DIR__)) {
+    exit(1);
+}
+
 $app = require __DIR__ . '/includes/bootstrap.php';
 
 if (!$app->installed()) {

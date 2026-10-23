@@ -2,6 +2,19 @@
 
 ## 0.1.0-dev (unreleased)
 
+### Changed — secure branded installer
+- Reworked setup into a polished responsive CajunWebPro-branded experience
+  using the approved primary logo, readable wrapped server paths, clear
+  readiness states, and a live MySQL/MariaDB **Test connection** action.
+- SSL/HTTPS is now a required installer check and Base URLs must use
+  `https://`. Common shared-host and reverse-proxy SSL indicators are
+  recognized.
+- Writable directory checks can create or safely repair `config/` and
+  `storage/` without using 0777 permissions.
+- Successful setup removes the complete `install/` directory and root
+  `install.php`. Cleanup failures lock public, admin, and cron entry points
+  behind a 503 page with manual DirectAdmin/FTP removal instructions.
+
 ### Added — first commercial industry package
 - Added `examples/industry-catering`, a self-contained catering website
   package based on the approved ivory/forest/gold editorial concept. It
@@ -286,8 +299,9 @@
   site.tagline — '/' no longer 404s and themes render the real name.
 - 404 pages shared the layout without `tagline` — fixed via a single
   shareGlobals() path.
-- CI: installer acceptance over real HTTP on both MySQL and MariaDB
-  legs (claim session → real POST → lock/config/self-disable assertions).
+- CI: installer acceptance against real MySQL and MariaDB through the SSL
+  proxy contract (claim session → real POST → lock/config/full-cleanup
+  assertions).
 
 ### Added — administration lifecycle
 - `POST /admin/users/create`: real administrator creation (username/

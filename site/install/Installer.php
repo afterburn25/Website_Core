@@ -21,9 +21,9 @@ use Core\Http\Response;
  *    plainly that an unclaimed public upload is claimable by the first
  *    visitor — the documented remedy is host protection or a seeded token.
  *
- * After success: config.php + installed.lock are written, this entry point
- * is renamed to install.php.off where permissions allow, and even if the
- * host denies cleanup the lock makes this file permanently inert.
+ * After success: config.php + installed.lock are written, then install/ and
+ * install.php are removed. If host permissions prevent complete cleanup,
+ * every application entry point remains locked until manual removal.
  */
 final class Installer
 {
@@ -54,6 +54,12 @@ final class Installer
     private function handle(Request $request): Response
     {
         if (is_file(WC_INSTALLED_LOCK)) {
+            if (is_file($this->configDir . '/cleanup-required.lock')
+                || is_dir(WC_ROOT . '/install')
+                || is_file(WC_ROOT . '/install.php')
+            ) {
+                return $this->cleanupRequiredPage();
+            }
             return Response::html(
                 '<h1>Already installed</h1><p>This installation is complete. '
                 . 'The installer is permanently disabled.</p>',
@@ -68,6 +74,9 @@ final class Installer
 
         $checks = $this->checks();
         if ($request->isPost()) {
+            if ($request->string('action') === 'test_database') {
+                return $this->testDatabase($request);
+            }
             return $this->install($request, $checks);
         }
         return $this->page($checks, []);
@@ -162,11 +171,16 @@ final class Installer
         $add('signature verification (sodium or polyfill)', $sodiumOk,
             extension_loaded('sodium') ? 'ext-sodium' : ($sodiumOk ? 'sodium_compat polyfill' : 'absent'), false);
 
-        $add('config/ writable', $this->writable($this->configDir), $this->configDir);
+        $add('config/ writable', $this->prepareWritableDirectory($this->configDir), $this->configDir);
         $storageDefault = WC_ROOT . '/storage';
-        $add('storage writable', $this->writable($storageDefault), $storageDefault);
-        $add('HTTPS', $this->requestSecure(), 'TLS recommended for admin sessions', false);
-        $add('install.php writable (self-cleanup)', is_writable(WC_ROOT . '/install.php'), 'will self-disable via lock regardless', false);
+        $add('storage writable', $this->prepareWritableDirectory($storageDefault), $storageDefault);
+        $add('SSL / HTTPS', $this->requestSecure(), 'A valid SSL certificate and HTTPS connection are required');
+        $add(
+            'Installer writable (automatic cleanup)',
+            is_writable(WC_ROOT) && is_writable(WC_ROOT . '/install'),
+            'Setup removes install/ and install.php; the site stays locked if manual cleanup is required',
+            false
+        );
 
         // Report bundled-product detection so the customer can confirm the
         // package they purchased was extracted correctly. Not required —
@@ -194,8 +208,96 @@ final class Installer
 
     private function requestSecure(): bool
     {
-        return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-            || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        $https = strtolower(trim((string) ($_SERVER['HTTPS'] ?? '')));
+        if (in_array($https, ['on', '1', 'https'], true)) {
+            return true;
+        }
+        if ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443
+            || strtolower((string) ($_SERVER['REQUEST_SCHEME'] ?? '')) === 'https'
+        ) {
+            return true;
+        }
+
+        // Shared-hosting control panels and reverse proxies commonly pass
+        // the original SSL state through one of these headers.
+        $forwardedProto = strtolower(trim(explode(',', (string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))[0]));
+        if ($forwardedProto === 'https'
+            || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '')) === 'on'
+            || strtolower((string) ($_SERVER['HTTP_FRONT_END_HTTPS'] ?? '')) === 'on'
+        ) {
+            return true;
+        }
+
+        $cfVisitor = json_decode((string) ($_SERVER['HTTP_CF_VISITOR'] ?? ''), true);
+        return is_array($cfVisitor) && strtolower((string) ($cfVisitor['scheme'] ?? '')) === 'https';
+    }
+
+    private function prepareWritableDirectory(string $dir): bool
+    {
+        if (!is_dir($dir) && !@mkdir($dir, 0750, true) && !is_dir($dir)) {
+            return false;
+        }
+        if ($this->writable($dir)) {
+            return true;
+        }
+
+        // Repair the common shared-hosting case without ever opening a
+        // sensitive directory to world-write (0777).
+        $permissions = @fileperms($dir);
+        $current = is_int($permissions) ? ($permissions & 0777) : 0;
+        foreach (array_unique([$current | 0700, $current | 0770, 0750, 0770]) as $mode) {
+            if (@chmod($dir, $mode) && $this->writable($dir)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function testDatabase(Request $request): Response
+    {
+        if (!$this->requestSecure()) {
+            return Response::json([
+                'ok' => false,
+                'message' => 'SSL / HTTPS is required before database credentials can be tested.',
+            ], 400);
+        }
+
+        $host = $request->string('db_host', '127.0.0.1');
+        $port = (int) $request->string('db_port', '3306');
+        $name = $request->string('db_name');
+        $user = $request->string('db_user');
+        $password = (string) ($request->post['db_pass'] ?? '');
+        $prefix = $request->string('db_prefix', 'wc_');
+        if ($host === '' || $name === '' || $user === '') {
+            return Response::json([
+                'ok' => false,
+                'message' => 'Enter the database host, name, and username first.',
+            ], 422);
+        }
+        if ($port < 1 || $port > 65535) {
+            return Response::json(['ok' => false, 'message' => 'Database port must be between 1 and 65535.'], 422);
+        }
+        if (!preg_match('/^[a-zA-Z0-9_]{0,16}$/', $prefix)) {
+            return Response::json(['ok' => false, 'message' => 'The table prefix is not valid.'], 422);
+        }
+
+        try {
+            $db = Connection::mysql($host, $port, $name, $user, $password, 'utf8mb4', $prefix);
+            if ((int) $db->fetchColumn('SELECT 1') !== 1) {
+                throw new \RuntimeException('The database did not answer the verification query.');
+            }
+        } catch (\Throwable $e) {
+            $message = preg_replace('/[\r\n\t]+/', ' ', $e->getMessage()) ?: 'Connection failed.';
+            return Response::json([
+                'ok' => false,
+                'message' => 'Connection failed: ' . substr($message, 0, 300),
+            ], 422);
+        }
+
+        return Response::json([
+            'ok' => true,
+            'message' => 'Connection successful. The database is ready for installation.',
+        ]);
     }
 
     private function writable(string $dir): bool
@@ -244,8 +346,8 @@ final class Installer
         $storagePath = $request->string('storage_path', WC_ROOT . '/storage');
 
         if ($siteName === '') $errors['site_name'] = 'Site name is required.';
-        if ($baseUrl === '' || !preg_match('#^https?://#', $baseUrl)) {
-            $errors['base_url'] = 'Base URL must start with http:// or https://';
+        if ($baseUrl === '' || !preg_match('#^https://#i', $baseUrl)) {
+            $errors['base_url'] = 'Base URL must start with https:// — SSL is required.';
         }
         if (!in_array($timezone, \DateTimeZone::listIdentifiers(), true)) {
             $errors['timezone'] = 'Unknown timezone.';
@@ -279,7 +381,7 @@ final class Installer
         }
 
         // Storage: prefer outside docroot; must be creatable+writable.
-        if ($errors === [] && !$this->writable($storagePath) && !@mkdir($storagePath, 0750, true)) {
+        if ($errors === [] && !$this->prepareWritableDirectory($storagePath)) {
             $errors['storage_path'] = 'Storage path is not writable and could not be created.';
         }
 
@@ -437,21 +539,19 @@ final class Installer
         @chmod($this->configDir . '/config.php', 0640);
         file_put_contents(WC_INSTALLED_LOCK, date('c') . ' install complete' . "\n", LOCK_EX);
 
-        // --- self-disable ------------------------------------------------------
-        $cleanupNote = '';
-        if (is_writable(WC_ROOT . '/install.php')) {
-            if (@rename(WC_ROOT . '/install.php', WC_ROOT . '/install.php.off')) {
-                $cleanupNote = 'Installer entry removed.';
-            } else {
-                $cleanupNote = 'install.php could not be renamed — it is permanently blocked by installed.lock. Delete it manually when convenient.';
-            }
-        } else {
-            $cleanupNote = 'install.php is not writable by PHP — it is permanently blocked by installed.lock. Delete it via your hosting file manager.';
-        }
+        // --- fail-closed installer cleanup ------------------------------------
+        // Seed the gate before deletion so a timeout or permission failure can
+        // never leave the new site available with installer artifacts present.
+        $cleanupLock = $this->configDir . '/cleanup-required.lock';
+        @file_put_contents($cleanupLock, date('c') . " installer cleanup pending\n", LOCK_EX);
         foreach ([$this->claimFile, $this->configDir . '/claim.session', $this->tokenFile] as $f) {
             if (is_file($f)) {
                 @unlink($f);
             }
+        }
+        $remainingInstallerArtifacts = $this->removeInstallerArtifacts();
+        if ($remainingInstallerArtifacts === []) {
+            @unlink($cleanupLock);
         }
 
         $licenseNote = '';
@@ -464,14 +564,104 @@ final class Installer
                 . 'automatically — if it cannot be validated the site will go offline.</p>';
         }
 
+        if ($remainingInstallerArtifacts !== []) {
+            return $this->cleanupRequiredPage($remainingInstallerArtifacts);
+        }
+
+        $basePath = rtrim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/install.php'))), '/');
+        $logoUrl = ($basePath === '' ? '' : $basePath) . '/assets/images/cajunwebpro-logo.png';
         return Response::html(
-            '<!doctype html><html><head><meta charset="utf-8"><title>Installed</title>'
-            . '<style>body{font-family:system-ui;max-width:40rem;margin:4rem auto;padding:0 1rem}</style>'
-            . '</head><body><h1>Installation complete</h1>'
-            . '<p>' . e($cleanupNote) . '</p>'
+            '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '<title>Installation complete</title>'
+            . '<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#07111f;color:#eaf2ff;'
+            . 'font-family:Inter,system-ui,sans-serif;padding:24px}.done{width:min(620px,100%);box-sizing:border-box;padding:42px;border:1px solid #244267;'
+            . 'border-radius:24px;background:linear-gradient(145deg,#10233a,#091525);box-shadow:0 28px 80px #0008}.mark{width:58px;height:58px;'
+            . 'display:grid;place-items:center;border-radius:50%;background:#1b8f66;color:white;font-size:30px}h1{font-size:clamp(2rem,5vw,3.2rem);'
+            . 'margin:.7rem 0}.logo{display:block;width:min(330px,82%);height:auto;margin-bottom:28px;padding:12px 16px;border-radius:14px;background:#fff}'
+            . 'p{color:#b9c9dc;line-height:1.7}strong{color:#fff}a{display:inline-flex;margin-top:14px;padding:14px 22px;'
+            . 'border-radius:12px;background:#d6a94f;color:#07111f;text-decoration:none;font-weight:800}</style>'
+            . '</head><body><main class="done"><img class="logo" src="' . e_attr($logoUrl) . '" alt="CajunWebPro — Web Design &amp; Development">'
+            . '<div class="mark">✓</div><p>CAJUNWEBPRO DEPLOYMENT</p><h1>Installation complete</h1>'
+            . '<p>The installer files and folders were removed successfully. Your site is secured and ready.</p>'
             . $licenseNote
-            . '<p>Sign in to the <a href="' . e_attr($baseUrl) . '/admin">administration area</a> '
-            . 'and enable two-factor authentication on your profile.</p></body></html>'
+            . '<p>Sign in and enable two-factor authentication for the owner account.</p>'
+            . '<a href="' . e_attr($baseUrl) . '/admin">Open administration area</a></main></body></html>'
+        );
+    }
+
+    /** @return list<string> */
+    private function removeInstallerArtifacts(): array
+    {
+        $directory = WC_ROOT . '/install';
+        if (is_dir($directory) && !$this->removeTree($directory)) {
+            // Keep going so the root entry can still be removed when possible.
+        }
+        if (is_file(WC_ROOT . '/install.php')) {
+            @unlink(WC_ROOT . '/install.php');
+        }
+
+        $remaining = [];
+        if (is_dir($directory)) {
+            $remaining[] = 'install/';
+        }
+        if (is_file(WC_ROOT . '/install.php')) {
+            $remaining[] = 'install.php';
+        }
+        return $remaining;
+    }
+
+    private function removeTree(string $directory): bool
+    {
+        if (!is_dir($directory)) {
+            return true;
+        }
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($iterator as $item) {
+            $path = $item->getPathname();
+            if ($item->isLink() || $item->isFile()) {
+                @unlink($path);
+            } elseif ($item->isDir()) {
+                @rmdir($path);
+            }
+        }
+        @rmdir($directory);
+        return !is_dir($directory);
+    }
+
+    /** @param list<string>|null $remaining */
+    private function cleanupRequiredPage(?array $remaining = null): Response
+    {
+        $remaining ??= array_values(array_filter([
+            is_dir(WC_ROOT . '/install') ? 'install/' : null,
+            is_file(WC_ROOT . '/install.php') ? 'install.php' : null,
+        ]));
+        $items = $remaining === [] ? 'installer files' : implode(' and ', array_map('e', $remaining));
+        $basePath = rtrim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/install.php'))), '/');
+        $logoUrl = ($basePath === '' ? '' : $basePath) . '/assets/images/cajunwebpro-logo.png';
+        return Response::html(
+            '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '<title>Installer cleanup required</title>'
+            . '<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#07111f;color:#eef5ff;'
+            . 'font-family:Inter,system-ui,sans-serif;padding:24px}.box{width:min(680px,100%);box-sizing:border-box;padding:38px;border-radius:22px;'
+            . 'border:1px solid #6f5423;background:linear-gradient(145deg,#172333,#0b1523);box-shadow:0 30px 90px #0009}h1{margin:.4rem 0 1rem;'
+            . 'font-size:clamp(2rem,5vw,3rem)}.flag{display:inline-block;padding:7px 11px;border-radius:999px;background:#4b3513;color:#ffd98a;'
+            . 'font-weight:800;font-size:.76rem;letter-spacing:.08em}p,li{color:#c7d3e2;line-height:1.7}code{overflow-wrap:anywhere;color:#ffe0a0}strong{color:white}'
+            . '.logo{display:block;width:min(330px,82%);height:auto;margin-bottom:26px;padding:12px 16px;border-radius:14px;background:#fff}'
+            . '</style></head><body><main class="box"><img class="logo" src="' . e_attr($logoUrl) . '" alt="CajunWebPro — Web Design &amp; Development">'
+            . '<span class="flag">SITE SAFELY LOCKED</span>'
+            . '<h1>One cleanup step remains</h1><p>The website was installed, but PHP could not remove <strong>' . $items . '</strong>. '
+            . 'For security, the public site and administration area will remain unavailable.</p>'
+            . '<ol><li>Open your hosting File Manager or FTP.</li><li>Go to <code>' . e(WC_ROOT) . '</code>.</li>'
+            . '<li>Delete the <code>install</code> folder and the root <code>install.php</code> file.</li>'
+            . '<li>Reload your website. Access will unlock automatically after both are gone.</li></ol>'
+            . '<p><strong>Do not delete</strong> <code>config/installed.lock</code> or <code>config/cleanup-required.lock</code>.</p>'
+            . '</main></body></html>',
+            503
         );
     }
 
@@ -604,6 +794,16 @@ final class Installer
     {
         $needsToken = is_file($this->tokenFile);
         $unclaimed = !$needsToken;
+        $packageName = 'Website Core';
+        foreach (glob(WC_ROOT . '/modules/industries/*/addon.json') ?: [] as $manifestFile) {
+            $manifest = json_decode((string) file_get_contents($manifestFile), true);
+            if (is_array($manifest) && trim((string) ($manifest['name'] ?? '')) !== '') {
+                $packageName = (string) $manifest['name'];
+                break;
+            }
+        }
+        $basePath = rtrim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/install.php'))), '/');
+        $logoUrl = ($basePath === '' ? '' : $basePath) . '/assets/images/cajunwebpro-logo.png';
         $old = [];
         if ($request !== null) {
             foreach (['site_name','base_url','timezone','db_host','db_port','db_name','db_user','db_prefix','owner_username','owner_email','storage_path'] as $k) {

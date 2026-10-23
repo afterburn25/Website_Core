@@ -2,9 +2,9 @@
 declare(strict_types=1);
 
 /**
- * Thin installer entry. The installer self-disables after success and is
- * permanently blocked by config/installed.lock even if this file cannot be
- * removed by the host. See docs/INSTALLATION.md for the secure-claim model.
+ * Thin installer entry. Successful setup removes this file and install/.
+ * If host permissions prevent cleanup, the installed site stays locked until
+ * both artifacts are removed manually. See docs/INSTALLATION.md.
  */
 $app = require __DIR__ . '/includes/bootstrap.php';
 

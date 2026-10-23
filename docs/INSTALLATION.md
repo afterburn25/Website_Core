@@ -5,11 +5,12 @@
 1. Extract COMPLETE-UPLOAD into the website directory (contents land at the
    web root; `site/` internal layout is the deployment layout).
 2. Browse to `/` → redirected to `/install.php`.
-3. One page shows environment checks (PHP/extensions, DB, writable paths,
-   HTTPS) and every required field. One **Install** submit.
+3. The branded one-page setup checks PHP/extensions, writable paths, and
+   required SSL/HTTPS. Enter MySQL/MariaDB credentials and use **Test
+   connection** before installing.
 4. The installer verifies checks, connects to MySQL, runs migrations,
    creates the owner, writes `config/config.php` with generated secrets,
-   writes `installed.lock`, and self-disables.
+   writes `installed.lock`, then removes `install/` and `install.php`.
 5. Sign in at `/admin`, enable MFA in **Profile**.
 
 No license keys, unlock files, wizards, or merchant credentials for a
@@ -90,11 +91,15 @@ prevent duplicate initialization under simultaneous submissions.
 PHP 8.4+; extensions pdo_mysql, mbstring, openssl, json, fileinfo,
 session, ctype (gd/intl/zip/curl recommended); writable `config/` and a
 writable private storage path (preferably outside the document root);
-MySQL/MariaDB with schema privileges; UTF-8/utf8mb4.
+MySQL/MariaDB with schema privileges; UTF-8/utf8mb4; and a valid SSL
+certificate with the installer accessed over HTTPS.
 
 Real create/write/rename/delete probes are used — not just `is_writable`.
-If the host forbids a needed operation the installer names the exact
-remedy instead of weakening protections (never chmod 0777).
+The installer creates missing `config/` and `storage/` directories and tries
+safe owner/group permission repairs when the hosting account permits it. If
+the host forbids a needed operation, setup names the exact remedy instead of
+weakening protections (never chmod 0777). Long absolute paths wrap inside the
+readiness cards rather than overflowing the setup panel.
 
 ## Deployment variants
 
@@ -110,10 +115,15 @@ remedy instead of weakening protections (never chmod 0777).
 - Failed setup is resumable: re-open the page, fix inputs, resubmit. No
   destructive reinstall; `installed.lock` + config are only written on
   success.
-- After success the installer renames `install.php` → `install.php.off`
-  when permitted; either way `installed.lock` makes the entry permanently
-  inert (403). It never deletes unrelated files.
-- `install.php.off`, `config.php`, `claim.*`, `installed.lock` are all
+- After successful setup, the installer recursively removes only the shipped
+  `install/` directory and the root `install.php` entry file. It never deletes
+  unrelated files.
+- Cleanup is fail-closed. If PHP cannot remove either installer artifact, all
+  public, admin, and cron entry points return 503. Open DirectAdmin File
+  Manager or FTP, delete `install/` and `install.php` from the website root,
+  then reload; the site unlocks automatically. Do not delete
+  `config/installed.lock` or `config/cleanup-required.lock`.
+- `config.php`, `claim.*`, `cleanup-required.lock`, and `installed.lock` are
   gitignored and excluded from release packages.
 
 ## Post-install

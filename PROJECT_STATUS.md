@@ -22,7 +22,7 @@ and release-artifact CI are green.
 |----|------|-------|----------|
 | M0 | Repo baseline, boundaries, architecture docs | done | this repo, `CORE_BOUNDARIES.md`, `docs/` |
 | M0 | Runnable bootstrap + CI | done | `site/index.php`, `site/core/Application.php`, `.github/workflows/ci.yml` |
-| M1 | One-page installer + claim model | implemented | `site/install/Installer.php`, `site/install/views/installer.php` |
+| M1 | Branded one-page installer + claim model | implemented | CajunWebPro UI, required SSL/HTTPS, safe writable-directory repair, database connection test, complete installer deletion, fail-closed cleanup gate in `site/install/Installer.php`, `site/install/views/installer.php`, `site/includes/install-cleanup-gate.php` |
 | M1 | Migrations + schema | implemented | `site/database/migrations/2026_10_14_0001_*`, native suite |
 | M1 | Admin auth: sessions, CSRF, TOTP MFA, recovery codes, rate limits, last-owner protection | implemented | `site/core/Auth/`, `site/core/Security/`, `tests/Unit/AuthServiceTest.php` |
 | M1 | Admin shell: dashboard, settings, users, modules list, basic pages | implemented | `site/admin/` |
@@ -99,7 +99,7 @@ Website Core now supports a DRM licensing model for bundled products:
   Cajunwebpro endpoint and verifies the wire contract — well-formed POST,
   explicit denials vs inconclusive failures, reactivation.
 - `native`: green in CI on mysql:8.4 and mariadb:11.4 service jobs —
-  each leg also exercises the real installer over HTTP (claim → POST →
-  lock/config/self-disable assertions).
+  each leg also exercises the real installer through the SSL proxy contract
+  (claim → database test → POST → lock/config/full-cleanup assertions).
 - CI: 6 jobs — lint+unit PHP 8.4/8.5, native MySQL, native MariaDB,
   core-only boot, release-artifact contract.

@@ -116,8 +116,10 @@ real-host compatibility runs (Apache/LiteSpeed). Engineering is complete.
 - Full skeleton: thin `index.php`/`install.php`/`cron.php`, container,
   request/response, router (groups, params, middleware), PDO connection,
   journaled migrator, view w/ namespace resolvers + escaping helpers.
-- One-page installer: capability checks, seeded-token or bound-session
-  claim, migrations, owner creation, generated config+secrets, self-disable.
+- Branded one-page installer: capability checks, required SSL/HTTPS,
+  seeded-token or bound-session claim, database connection test, safe
+  writable-directory repair, migrations, owner creation, generated
+  config+secrets, complete installer deletion, and fail-closed cleanup gate.
 - Auth: roles/capabilities, staged password→MFA login, TOTP w/ replay
   protection, hashed recovery codes, session revocation, last-owner guard,
   rate limits, audit log.
@@ -294,7 +296,7 @@ on both commits; draft release refreshed + byte-verified.
 - **Real installer acceptance in CI**: native job now copies the
   deployable tree to a clean docroot, claims the install session over
   HTTP, POSTs the real form against live MySQL/MariaDB, and asserts
-  installed.lock + config.php, installer self-disable (404/403), and '/'
+  installed.lock + config.php, complete installer deletion (404), and '/'
   serving 200. Writing this check exposed three real first-run bugs:
   '/' 404'd on a fresh install (installer now seeds a published 'home'
   page), every 404 logged an undefined-$tagline warning (renderNotFound

@@ -10,7 +10,7 @@ Website_Core/
   examples/            Reference industry/add-on/theme packages (M5)
   site/                === deployable web root (COMPLETE-UPLOAD contents) ===
     index.php          Thin front controller (only required HTTP entry)
-    install.php        Thin installer entry; self-disables after success
+    install.php        Thin installer entry; removed with install/ after success
     cron.php           Token-guarded/CLI job runner for host cron
     .htaccess          Front-controller rewrite + private-path protection
     core/              Universal services + supported extension API

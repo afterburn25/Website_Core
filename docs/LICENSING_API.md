@@ -154,7 +154,9 @@ php tools/build-packages.php test-bundle restaurant dist/
 ```
 
 This creates `Website-Core-restaurant-0.1.0-TEST-BUNDLE.zip`. Its manifest has
-no `license_key`, so installation, automatic module registration, migrations,
-and activation work without contacting the licensing service. The installed
-site has no license row and therefore no domain-binding or periodic license
-enforcement. Production `BUNDLE` builds are unchanged and remain licensed.
+no `license_key`, and the archive contains the production-only Composer
+runtime with deployable files at the ZIP root. Extract it directly into the
+test domain's document root. Installation, automatic module
+registration, migrations, and activation work without contacting the licensing
+service. The installed site has no license row and therefore no domain-binding
+or periodic license enforcement. Production `BUNDLE` builds remain licensed.

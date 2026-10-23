@@ -54,8 +54,9 @@ Website Core now supports a DRM licensing model for bundled products:
 
 - **Keyless testing bundles**: `tools/build-packages.php test-bundle
   <industry> [outdir]` produces a clearly labeled TEST-BUNDLE with no
-  embedded key. The installer auto-registers, migrates, and enables it
-  without a license row or API call; licensed BUNDLE behavior is unchanged.
+  embedded key and includes production runtime dependencies. The installer
+  auto-registers, migrates, and enables it without a license row or API call;
+  licensed BUNDLE behavior is unchanged.
 
 - **License keys**: Unique per purchase, embedded in module `addon.json`,
   stored in the `license` table, checked before module operations.

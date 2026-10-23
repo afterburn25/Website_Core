@@ -3,7 +3,9 @@
 ## 2026-10-23 — keyless test-bundle installation
 
 - Added `test-bundle <industry> [outdir]` packaging mode. Output is visibly
-  named `TEST-BUNDLE` and omits `license_key` from the industry manifest.
+  named `TEST-BUNDLE`, omits `license_key` from the industry manifest, and
+  includes a clean production-only Composer runtime in a direct web-root
+  archive layout.
 - Installer discovery no longer requires a license key: a keyless bundled
   industry module is registered, migrated, and enabled automatically without
   creating a license row or contacting the licensing API.

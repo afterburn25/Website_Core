@@ -5,7 +5,9 @@
 ### Added — keyless testing bundles
 - `tools/build-packages.php test-bundle <industry> [outdir]` creates a clearly
   labeled industry bundle without `license_key` for development and customer
-  testing.
+  testing. Licensed and test bundles now include a clean production-only
+  Composer runtime. TEST-BUNDLE files use a direct web-root layout, making
+  them complete uploads rather than source-only archives.
 - The browser installer now detects, migrates, registers, and enables bundled
   industry modules whether or not they carry a license key. Keyless test
   bundles make no licensing API request and create no license row; licensed

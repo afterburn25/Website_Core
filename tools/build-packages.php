@@ -27,6 +27,39 @@ declare(strict_types=1);
  * Run from a clean commit for release builds.
  */
 
+/** Build a clean production-only Composer vendor tree and return its path. */
+function buildProductionVendor(string $root): string
+{
+    $tmpRoot = sys_get_temp_dir() . '/wc-build-' . getmypid() . '-' . bin2hex(random_bytes(4));
+    @mkdir($tmpRoot, 0777, true);
+    copy($root . '/composer.json', $tmpRoot . '/composer.json');
+    copy($root . '/composer.lock', $tmpRoot . '/composer.lock');
+    $code = 1;
+    $cout = [];
+    $args = 'install --no-dev --no-scripts --no-plugins --prefer-dist --no-interaction --working-dir='
+        . escapeshellarg($tmpRoot) . ' 2>&1';
+    // Composer may be a real executable, a Windows wrapper, or a bare PHAR.
+    $cmds = [
+        'composer ' . $args,
+        'composer.bat ' . $args,
+        '"' . PHP_BINARY . '" composer ' . $args,
+        '"' . PHP_BINARY . '" ' . escapeshellarg((getenv('HOME') ?: '') . '/bin/composer') . ' ' . $args,
+    ];
+    foreach ($cmds as $cmd) {
+        $cout = [];
+        exec($cmd, $cout, $code);
+        if ($code === 0) {
+            break;
+        }
+    }
+    if ($code !== 0 || !is_file($tmpRoot . '/vendor/autoload.php')) {
+        fwrite(STDERR, "composer install --no-dev failed:\n" . implode("\n", $cout) . "\n");
+        exit(1);
+    }
+    echo "prod vendor: " . count($cout) . " lines from composer\n";
+    return $tmpRoot . '/vendor';
+}
+
 $root = dirname(__DIR__);
 $out = $argv[1] ?? $root . '/dist';
 
@@ -70,6 +103,9 @@ if (in_array($argv[1] ?? null, ['bundle', 'test-bundle'], true)) {
         exit(1);
     }
     $moduleName = basename($moduleDir);
+    // TEST-BUNDLE is a direct web-root upload. Preserve the existing site/
+    // wrapper for licensed bundles consumed by the CajunWeb fulfilment flow.
+    $archiveRoot = $testingBundle ? '' : 'site/';
     // Build the bundle ZIP
     $bundleKind = $testingBundle ? 'TEST-BUNDLE' : 'BUNDLE';
     $bundleZip = "{$out}/Website-Core-{$industry}-{$ver}-{$bundleKind}.zip";
@@ -101,7 +137,7 @@ if (in_array($argv[1] ?? null, ['bundle', 'test-bundle'], true)) {
         ) {
             continue;
         }
-        $zip->addFile($path, 'site/' . $rel);
+        $zip->addFile($path, $archiveRoot . $rel);
         $count++;
     }
     // Add module files. Production bundles embed license_key; TEST-BUNDLE
@@ -128,11 +164,25 @@ if (in_array($argv[1] ?? null, ['bundle', 'test-bundle'], true)) {
             } else {
                 $manifest['license_key'] = $licenseKey;
             }
-            $zip->addFromString('site/modules/industries/' . $moduleName . '/addon.json',
+            $zip->addFromString($archiveRoot . 'modules/industries/' . $moduleName . '/addon.json',
                 json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         } else {
-            $zip->addFile($path, 'site/modules/industries/' . $moduleName . '/' . $rel);
+            $zip->addFile($path, $archiveRoot . 'modules/industries/' . $moduleName . '/' . $rel);
         }
+        $count++;
+    }
+    // A bundle is a complete upload, not a source-only archive. Add a clean
+    // production vendor tree under the same deployable site/ root.
+    $runtimeVendor = buildProductionVendor($root);
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($runtimeVendor, FilesystemIterator::SKIP_DOTS)
+    );
+    foreach ($iterator as $file) {
+        if (!$file->isFile() || $file->isLink()) {
+            continue;
+        }
+        $rel = str_replace('\\', '/', substr($file->getPathname(), strlen($runtimeVendor) + 1));
+        $zip->addFile($file->getPathname(), $archiveRoot . 'vendor/' . $rel);
         $count++;
     }
     $zip->close();
@@ -205,34 +255,7 @@ $skipRuntime = fn (string $rel): bool =>
     || str_ends_with($rel, '.ser');           // purifier cache
 
 // --- production vendor: clean `composer install --no-dev` in a temp dir --
-$tmpVendor = sys_get_temp_dir() . '/wc-build-' . getmypid();
-@mkdir($tmpVendor, 0777, true);
-copy($root . '/composer.json', $tmpVendor . '/composer.json');
-copy($root . '/composer.lock', $tmpVendor . '/composer.lock');
-$code = 1;
-$cout = [];
-$args = 'install --no-dev --no-scripts --no-plugins --prefer-dist --no-interaction --working-dir='
-    . escapeshellarg($tmpVendor) . ' 2>&1';
-// Composer may be a real executable on PATH, a bat wrapper, or a bare PHP
-// phar (the ~/bin shim on Windows). Try the executable form first, then
-// drive the same candidates through PHP_BINARY for phar entry points.
-$cmds = [
-    'composer ' . $args,
-    'composer.bat ' . $args,
-    '"' . PHP_BINARY . '" composer ' . $args,
-    '"' . PHP_BINARY . '" ' . escapeshellarg((getenv('HOME') ?: '') . '/bin/composer') . ' ' . $args,
-];
-foreach ($cmds as $cmd) {
-    exec($cmd, $cout, $code);
-    if ($code === 0) {
-        break;
-    }
-}
-if ($code !== 0 || !is_dir($tmpVendor . '/vendor')) {
-    fwrite(STDERR, "composer install --no-dev failed:\n" . implode("\n", $cout) . "\n");
-    exit(1);
-}
-echo "prod vendor: " . count($cout) . " lines from composer\n";
+$tmpVendor = buildProductionVendor($root);
 
 // --- COMPLETE-UPLOAD: site/ at archive root + runtime vendor -------------
 $upload = "{$out}/Website-Core-{$ver}-COMPLETE-UPLOAD.zip";
@@ -242,7 +265,7 @@ $n = buildZip($upload, $root . '/site', function (string $rel) use ($skipRuntime
     }
     return $rel;
 });
-$n += buildZip($upload, $tmpVendor . '/vendor', fn (string $rel) => 'vendor/' . $rel, [], true);
+$n += buildZip($upload, $tmpVendor, fn (string $rel) => 'vendor/' . $rel, [], true);
 echo "COMPLETE-UPLOAD {$n} members\n";
 $sums[] = $upload;
 

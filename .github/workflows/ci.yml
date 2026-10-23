@@ -331,10 +331,12 @@ jobs:
           if($path===null){fwrite(STDERR,"TEST-BUNDLE missing\n");exit(1);}
           $z=new ZipArchive();
           if($z->open($path)!==true){fwrite(STDERR,"TEST-BUNDLE unreadable\n");exit(1);}
-          $manifest=$z->getFromName("site/modules/industries/industry-restaurant/addon.json");
+          $manifest=$z->getFromName("modules/industries/industry-restaurant/addon.json");
           $m=json_decode((string)$manifest,true);
           if(!is_array($m)||isset($m["license_key"])){fwrite(STDERR,"TEST-BUNDLE contains license_key\n");exit(1);}
-          if($z->locateName("site/install.php")===false){fwrite(STDERR,"TEST-BUNDLE missing installer\n");exit(1);}
+          foreach(["install.php","vendor/autoload.php"] as $need){
+            if($z->locateName($need)===false){fwrite(STDERR,"TEST-BUNDLE missing $need\n");exit(1);}
+          }
           echo "keyless TEST-BUNDLE contract OK\n";'
       - name: Artifact contract assertions
         run: |

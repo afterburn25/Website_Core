@@ -25,11 +25,14 @@ php tools/build-packages.php test-bundle <industry> [outdir]
 ```
 
 The resulting `*-TEST-BUNDLE.zip` contains the core and selected industry
-module but deliberately omits `license_key`. The installer still detects,
+module plus production runtime dependencies, but deliberately omits
+`license_key`. The installer still detects,
 migrates, registers, and enables the industry module. No license row is
 created, no licensing API request is made, and periodic license enforcement
 remains inactive. This testing path does not weaken licensed `*-BUNDLE.zip`
 files: any bundle containing `license_key` follows the normal validation flow.
+The TEST-BUNDLE archive has deployable files at its root, so extract its
+contents directly into the test domain's document root and open the domain.
 
 ## Bundled products (license-validated)
 

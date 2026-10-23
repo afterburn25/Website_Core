@@ -1,5 +1,21 @@
 # Session Handoff
 
+## 2026-10-23 — Website Core 1.0.1 admin recovery
+
+- Reproduced the deployment boundary: the installed site's standalone admin
+  login renders, while the authenticated dashboard can fail when current PHP
+  files are placed over a database whose core migration journal stops before
+  the new admin tables. Core boot now compares `WC_SCHEMA_VERSION` with that
+  journal and applies pending core migrations before any admin service can
+  query the newer schema.
+- Production error references are now useful: the same reference displayed to
+  the operator is included in PHP's error log and, when writable, the private
+  `storage/logs/application.log`. The generic error response also uses the
+  branded dark presentation instead of an unstyled document.
+- Added an upgrade regression test that creates a pre-admin-platform SQLite
+  installation, boots current core, and verifies migrations 0009–0011 and the
+  new tables/columns are applied automatically.
+
 ## 2026-10-23 — stable Website Core 1.0
 
 - Promoted the validated 0.9 release candidate to `1.0.0` without changing

@@ -159,6 +159,13 @@ final class Application
             );
         $this->container->instance(Connection::class, $db);
 
+        // Keep the database schema synchronized even when an owner updates
+        // files directly through a shared-hosting file manager instead of the
+        // built-in updater. Without this gate, the standalone login screen can
+        // succeed while the authenticated dashboard crashes as soon as it
+        // queries a table introduced by newer core code.
+        $this->ensureCoreSchema($db);
+
         $session = new SessionManager($this->config);
         if ($request !== null) {
             $session->start($request);
@@ -619,7 +626,26 @@ final class Application
 
     private function handleException(\Throwable $e): Response
     {
-        error_log('[website-core] ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+        try {
+            $entropy = bin2hex(random_bytes(8));
+        } catch (\Throwable) {
+            $entropy = (string) microtime(true);
+        }
+        $reference = substr(hash(
+            'sha256',
+            get_class($e) . "\0" . $e->getMessage() . "\0" . $e->getFile()
+                . ':' . $e->getLine() . "\0" . $entropy
+        ), 0, 10);
+        $logLine = sprintf(
+            '[website-core] [ref %s] %s: %s @ %s:%d',
+            $reference,
+            get_class($e),
+            $e->getMessage(),
+            $e->getFile(),
+            $e->getLine(),
+        );
+        error_log($logLine);
+        $this->writeApplicationError($logLine);
         $debug = (bool) $this->config->get('app.debug', false);
         if ($debug) {
             return Response::html(
@@ -628,9 +654,51 @@ final class Application
             );
         }
         return Response::html(
-            '<!doctype html><html><body><h1>Something went wrong</h1>'
-            . '<p>The error has been logged. Reference: ' . substr(sha1($e->getMessage() . microtime()), 0, 10) . '</p></body></html>',
+            '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '<title>Something went wrong</title><style>'
+            . ':root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;'
+            . 'padding:1.5rem;background:radial-gradient(circle at top,#17324b,#07111d 60%);color:#e5eef7;'
+            . 'font-family:system-ui,-apple-system,sans-serif}.error-card{width:min(36rem,100%);padding:2rem;'
+            . 'border:1px solid #ffffff1f;border-radius:1rem;background:#0d1c2bdd;box-shadow:0 24px 70px #0008}'
+            . 'h1{margin:0 0 .75rem;font:700 1.65rem Georgia,serif}p{color:#b7c7d8;line-height:1.6}'
+            . 'code{display:inline-block;padding:.25rem .45rem;border-radius:.35rem;background:#050b12;color:#7dd3fc}'
+            . 'a{color:#7dd3fc}</style></head><body><main class="error-card"><h1>Something went wrong</h1>'
+            . '<p>The error has been logged. Give this reference to the site administrator: '
+            . '<code>' . htmlspecialchars($reference, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</code>.</p>'
+            . '<p><a href="">Reload this page</a></p></main></body></html>',
             500
+        );
+    }
+
+    /** Apply only when this build's latest core migration is absent. */
+    private function ensureCoreSchema(Connection $db): void
+    {
+        $target = defined('WC_SCHEMA_VERSION') ? (string) WC_SCHEMA_VERSION : '';
+        if ($target !== '' && $db->tableExists('migrations')) {
+            $applied = (int) $db->fetchColumn(
+                'SELECT COUNT(*) FROM `' . $db->table('migrations') . '` WHERE migration_id = ?',
+                [$target]
+            );
+            if ($applied > 0) {
+                return;
+            }
+        }
+        (new Migrator($db, WC_ROOT . '/database/migrations'))->migrate();
+    }
+
+    /** Best-effort local log that preserves the same reference shown on screen. */
+    private function writeApplicationError(string $line): void
+    {
+        $storage = (string) $this->config->get('paths.storage', WC_ROOT . '/storage');
+        $directory = rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'logs';
+        if (!is_dir($directory) && !@mkdir($directory, 0700, true) && !is_dir($directory)) {
+            return;
+        }
+        @file_put_contents(
+            $directory . DIRECTORY_SEPARATOR . 'application.log',
+            '[' . gmdate('Y-m-d\TH:i:s\Z') . '] ' . $line . PHP_EOL,
+            FILE_APPEND | LOCK_EX,
         );
     }
 }

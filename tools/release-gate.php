@@ -29,6 +29,8 @@ preg_match("/define\\('WC_VERSION', '([^']+)'\\)/", $bootstrap, $match);
 $version = $match[1] ?? '';
 $ok($version !== '' && preg_match('/^\\d+\\.\\d+\\.\\d+(?:-dev)?$/', $version) === 1,
     'WC_VERSION must be a semantic release version.');
+preg_match("/define\\('WC_SCHEMA_VERSION', '([^']+)'\\)/", $bootstrap, $schemaMatch);
+$schemaVersion = $schemaMatch[1] ?? '';
 
 $versionFiles = [
     'site/config/config.example.php',
@@ -75,6 +77,8 @@ $migrationNames = array_keys($ids);
 $sortedMigrationNames = $migrationNames;
 sort($sortedMigrationNames, SORT_STRING);
 $ok($migrationNames === $sortedMigrationNames, 'Migration files are not ordered by id.');
+$ok($schemaVersion !== '' && $schemaVersion === ($sortedMigrationNames[array_key_last($sortedMigrationNames)] ?? ''),
+    'WC_SCHEMA_VERSION must match the latest bundled core migration.');
 
 foreach ([
     'README.md', 'CHANGELOG.md', 'PROJECT_STATUS.md', 'SESSION_HANDOFF.md',

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.1 — 2026-10-23
+
+- Automatically apply pending core database migrations during installed-site
+  boot when the bundled schema marker is absent. This repairs sites updated by
+  replacing files through a shared-hosting file manager and prevents the
+  authenticated admin dashboard from querying tables that do not yet exist.
+- Put the same ten-character reference in PHP's error log, the administrator's
+  private `storage/logs/application.log`, and the styled production error page
+  so a reported failure can be traced instead of producing an unrelated ID.
+
 ## 1.0.0 — 2026-10-23
 
 ### Stable core release

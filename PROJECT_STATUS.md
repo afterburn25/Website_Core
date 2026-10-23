@@ -1,10 +1,16 @@
 # Project Status
 
-**Current**: stable `1.0.0`. The planned 0.1.15 through 0.9 core milestones
+**Current**: stable `1.0.1`. The planned 0.1.15 through 0.9 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
 produces checksummed installation and update artifacts.
+
+The 1.0.1 maintenance release adds an installed-site schema boot gate. A
+shared-hosting file-manager upload now applies pending core migrations before
+admin services query new tables, preventing the login-succeeds/dashboard-500
+failure mode. Error references are also written alongside the matching log
+entry in `storage/logs/application.log` when that private path is writable.
 
 The first industry implementation remains `examples/industry-catering`: a
 complete editorial public site, menu/package management, secure multi-step

@@ -26,9 +26,9 @@ installed through the Module Manager.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
-- **Status**: stable `1.0.0`. The `0.1.15` through `0.9` feature and
+- **Status**: stable `1.0.1`. The `0.1.15` through `0.9` feature and
   compatibility milestones are implemented. See `PROJECT_STATUS.md`,
-  `docs/ROADMAP.md`, and `docs/1.0_RELEASE_NOTES.md`.
+  `docs/ROADMAP.md`, and `docs/1.0.1_RELEASE_NOTES.md`.
 
 ## Quick start (development)
 
@@ -41,7 +41,7 @@ vendor/bin/phpunit --testsuite package  # package/manifest tests
 
 # Native MySQL acceptance (requires a server):
 WC_TEST_MYSQL_DSN="mysql:host=127.0.0.1;dbname=wc_test" \
-WC_TEST_MYSQL_USER=root WC_TEST_MYSQL_PASS=secret \
+WC_TEST_MYSQL_USER=root WC_TEST_MYSQL_PASS=replace-with-test-db-password \
 vendor/bin/phpunit --testsuite native
 
 # Dev server (uses tools/dev-router.php, an .htaccess mimic):

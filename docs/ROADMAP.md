@@ -17,6 +17,7 @@ adapt to real dependencies; scope is preserved, not deferred silently.
 | 0.8 | SEO insights, structured data, redirects and cache support | complete | commit “Add SEO insights and public caching” |
 | 0.9 | release gate, compatibility hardening, cumulative-update metadata | complete | commit “Harden the 0.9 release candidate” |
 | 1.0 | stable version, packages, checksums, release notes and branch handoff | complete | commit “Release Website Core 1.0.0” |
+| 1.0.1 | existing-install schema boot repair and traceable production errors | complete | commit “Repair admin schema drift on boot” |
 
 The immutable footer is core code, not an editable setting or theme field.
 Every public HTML response receives both required links to

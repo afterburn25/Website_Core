@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0 — 2026-10-23
+
+- Added searchable media folders and tags, bulk organization, focal points,
+  crop derivatives and per-item usage inspection.
+- Added an offline-safe branded status-page system for maintenance, 403, 404,
+  500 and license states with local artwork and a discrete admin-login entry.
+
 ## 1.2.0 — 2026-10-23
 
 - Added reusable form definitions and a visual field editor with text, email,

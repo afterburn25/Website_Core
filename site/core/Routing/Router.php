@@ -194,7 +194,9 @@ final class Router
 
     private function render404(): string
     {
-        return '<!doctype html><html><head><meta charset="utf-8"><title>Not Found</title></head>'
-            . '<body><h1>404 — Page not found</h1><p>The page you requested does not exist.</p></body></html>';
+        return \Core\Branding\StatusPage::render(
+            404, 'This trail ends here.',
+            'The page may have moved, changed its name, or drifted out with the tide.'
+        );
     }
 }

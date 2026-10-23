@@ -108,7 +108,12 @@ abstract class Controller
     /** 403 helper for capability failures. */
     protected function forbidden(): Response
     {
-        return Response::html('<h1>403 — Forbidden</h1>', 403);
+        return Response::html(\Core\Branding\StatusPage::render(
+            403, 'This area is not available to you.',
+            'Your account is signed in, but it does not have permission for this action.',
+            Request::capture()->routeBase(), (string) $this->settings()->get('site.name', 'Website'),
+            null, 'Back to dashboard', '/admin'
+        ), 403);
     }
 
     /**

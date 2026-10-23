@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `1.2.0`. The planned 0.1.15 through 1.2 core milestones
+**Current**: `1.3.0`. The planned 0.1.15 through 1.3 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -20,6 +20,10 @@ for industry-owned blocks.
 The 1.2 release adds reusable form definitions, a visual field editor, a Form
 page block, CSRF and honeypot protection, IP-scoped rate limiting, validation,
 consent evidence, a submission inbox, CSV export and queued notifications.
+
+The 1.3 release adds searchable/tagged media organization, bulk moves, focal
+point crops and usage inspection. It also replaces raw maintenance and error
+output with illustrated, offline-safe status pages and a discrete owner login.
 
 The first industry implementation remains `examples/industry-catering`: a
 complete editorial public site, menu/package management, secure multi-step

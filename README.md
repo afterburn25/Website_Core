@@ -26,9 +26,9 @@ installed through the Module Manager.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
-- **Status**: `1.2.0`. The stable 1.0 line, visual page composer and universal
-  form platform are implemented. See `PROJECT_STATUS.md`, `docs/ROADMAP.md`,
-  and `docs/1.2_RELEASE_NOTES.md`.
+- **Status**: `1.3.0`. The stable 1.0 line, visual page composer, universal
+  forms and production media workflow are implemented. See
+  `PROJECT_STATUS.md`, `docs/ROADMAP.md`, and `docs/1.3_RELEASE_NOTES.md`.
 
 ## Quick start (development)
 

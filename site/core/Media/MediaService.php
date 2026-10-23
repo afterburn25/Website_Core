@@ -121,6 +121,42 @@ final class MediaService
         );
     }
 
+    /** Persist organization and presentation metadata with strict bounds. */
+    public function organize(int $id, string $folder, array|string $tags, float $focalX = 50, float $focalY = 50): bool
+    {
+        if (!$this->find($id)) return false;
+        $folder = trim(preg_replace('/[^A-Za-z0-9 _\/-]/', '', $folder) ?? '', " /\t\n\r\0\x0B");
+        $rawTags = is_array($tags) ? $tags : preg_split('/[,\n]+/', $tags) ?: [];
+        $clean = [];
+        foreach ($rawTags as $tag) {
+            $tag = mb_strtolower(trim(strip_tags((string) $tag)));
+            if ($tag !== '') $clean[$tag] = mb_substr($tag, 0, 60);
+        }
+        $this->db->update('media', [
+            'folder' => mb_substr($folder, 0, 190),
+            'tags_json' => json_encode(array_values($clean), JSON_UNESCAPED_SLASHES),
+            'focal_x' => max(0, min(100, $focalX)),
+            'focal_y' => max(0, min(100, $focalY)),
+        ], 'id = ?', [$id]);
+        $this->clearVariants($id);
+        return true;
+    }
+
+    /** @param list<int> $ids */
+    public function bulkOrganize(array $ids, string $folder, array|string $tags = []): int
+    {
+        $changed = 0;
+        foreach (array_values(array_unique(array_filter(array_map('intval', $ids)))) as $id) {
+            $item = $this->find($id);
+            if (!$item) continue;
+            $existing = json_decode((string) ($item['tags_json'] ?? '[]'), true);
+            $combined = array_merge(is_array($existing) ? $existing : [], is_array($tags) ? $tags : [$tags]);
+            if ($this->organize($id, $folder !== '' ? $folder : (string) $item['folder'], $combined,
+                (float) ($item['focal_x'] ?? 50), (float) ($item['focal_y'] ?? 50))) $changed++;
+        }
+        return $changed;
+    }
+
     /** Delete only when explicitly requested; callers warn on usages first. */
     public function delete(int $id): bool
     {
@@ -169,13 +205,14 @@ final class MediaService
      * path when GD/type support is unavailable. Never upscales.
      * @return array{0:string,1:string}
      */
-    public function variant(array $media, int $maxWidth): array
+    public function variant(array $media, int $maxWidth, ?int $cropHeight = null): array
     {
         $source = $this->pathFor($media);
         $mime = (string) $media['mime'];
         $maxWidth = max(64, min(2400, $maxWidth));
         if (!str_starts_with($mime, 'image/') || !is_file($source)
-            || (int) ($media['width'] ?? 0) <= $maxWidth || !function_exists('imagecreatetruecolor')) {
+            || ($cropHeight === null && (int) ($media['width'] ?? 0) <= $maxWidth)
+            || !function_exists('imagecreatetruecolor')) {
             return [$source, $mime];
         }
         $loader = match ($mime) {
@@ -196,18 +233,39 @@ final class MediaService
         $dir = $this->storageDir() . '/variants';
         if (!is_dir($dir)) mkdir($dir, 0750, true);
         $stamp = substr(hash('sha256', (string) filemtime($source) . ':' . (string) filesize($source)), 0, 12);
-        $target = $dir . '/' . (int) $media['id'] . '-' . $maxWidth . '-' . $stamp . '.' . $ext;
+        $cropHeight = $cropHeight !== null ? max(64, min(2400, $cropHeight)) : null;
+        $target = $dir . '/' . (int) $media['id'] . '-' . $maxWidth . ($cropHeight ? 'x' . $cropHeight : '') . '-' . $stamp . '.' . $ext;
         if (is_file($target)) return [$target, $mime];
 
         $src = @$loader($source);
         if (!$src) return [$source, $mime];
         $width = imagesx($src); $height = imagesy($src);
-        $newHeight = max(1, (int) round($height * ($maxWidth / $width)));
+        if ($cropHeight !== null && ($width < $maxWidth || $height < $cropHeight)) {
+            $scale = min(1, $width / $maxWidth, $height / $cropHeight);
+            $maxWidth = max(1, (int) floor($maxWidth * $scale));
+            $cropHeight = max(1, (int) floor($cropHeight * $scale));
+        }
+        $newHeight = $cropHeight ?? max(1, (int) round($height * ($maxWidth / $width)));
         $dest = imagecreatetruecolor($maxWidth, $newHeight);
         if (in_array($mime, ['image/png', 'image/gif', 'image/webp'], true)) {
             imagealphablending($dest, false); imagesavealpha($dest, true);
         }
-        imagecopyresampled($dest, $src, 0, 0, 0, 0, $maxWidth, $newHeight, $width, $height);
+        if ($cropHeight !== null) {
+            $sourceRatio = $width / $height;
+            $targetRatio = $maxWidth / $cropHeight;
+            if ($sourceRatio > $targetRatio) {
+                $cropH = $height; $cropW = (int) round($height * $targetRatio);
+                $maxX = max(0, $width - $cropW);
+                $srcX = (int) round($maxX * ((float) ($media['focal_x'] ?? 50) / 100)); $srcY = 0;
+            } else {
+                $cropW = $width; $cropH = (int) round($width / $targetRatio);
+                $maxY = max(0, $height - $cropH);
+                $srcY = (int) round($maxY * ((float) ($media['focal_y'] ?? 50) / 100)); $srcX = 0;
+            }
+            imagecopyresampled($dest, $src, 0, 0, $srcX, $srcY, $maxWidth, $cropHeight, $cropW, $cropH);
+        } else {
+            imagecopyresampled($dest, $src, 0, 0, 0, 0, $maxWidth, $newHeight, $width, $height);
+        }
         $ok = $mime === 'image/jpeg' ? @$writer($dest, $target, 86)
             : ($mime === 'image/webp' ? @$writer($dest, $target, 84) : @$writer($dest, $target));
         imagedestroy($src); imagedestroy($dest);
@@ -217,16 +275,27 @@ final class MediaService
     }
 
     /** @return list<array> */
-    public function list(string $folder = '', int $limit = 200): array
+    public function list(string $folder = '', int $limit = 200, string $search = '', string $tag = ''): array
     {
         $table = $this->db->table('media');
-        if ($folder === '') {
-            return $this->db->fetchAll("SELECT * FROM `{$table}` ORDER BY id DESC LIMIT " . (int) $limit);
+        $where = []; $params = [];
+        if ($folder !== '') { $where[] = 'folder = ?'; $params[] = $folder; }
+        if ($search !== '') { $where[] = '(original_name LIKE ? OR alt_text LIKE ? OR caption LIKE ?)'; $needle = '%' . $search . '%'; array_push($params, $needle, $needle, $needle); }
+        if ($tag !== '') { $where[] = 'tags_json LIKE ?'; $params[] = '%"' . str_replace(['%', '_'], ['\\%', '\\_'], mb_strtolower($tag)) . '"%'; }
+        $sql = "SELECT * FROM `{$table}`" . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
+            . ' ORDER BY id DESC LIMIT ' . max(1, min(500, $limit));
+        return $this->db->fetchAll($sql, $params);
+    }
+
+    /** @return list<string> */
+    public function tags(): array
+    {
+        $tags = [];
+        foreach ($this->db->fetchAll('SELECT tags_json FROM `' . $this->db->table('media') . '` WHERE tags_json IS NOT NULL') as $row) {
+            $decoded = json_decode((string) $row['tags_json'], true);
+            if (is_array($decoded)) foreach ($decoded as $tag) $tags[(string) $tag] = true;
         }
-        return $this->db->fetchAll(
-            "SELECT * FROM `{$table}` WHERE folder = ? ORDER BY id DESC LIMIT " . (int) $limit,
-            [$folder]
-        );
+        $out = array_keys($tags); sort($out, SORT_NATURAL | SORT_FLAG_CASE); return $out;
     }
 
     private function clearVariants(int $id): void

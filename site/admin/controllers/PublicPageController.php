@@ -132,9 +132,11 @@ final class PublicPageController extends Controller
 
     private function renderNotFound(Request $r): string
     {
-        $v = $this->c->get(View::class);
-        $this->shareGlobals($v, $r);
-        return $v->renderInLayout('theme:404', 'theme:layout', ['pages' => $this->publishedNav()]);
+        return \Core\Branding\StatusPage::render(
+            404, 'This trail ends here.',
+            'The page may have moved, changed its name, or drifted out with the tide.',
+            $r->routeBase(), (string) $this->settings()->get('site.name', 'Website')
+        );
     }
 
     private function shareGlobals(View $v, Request $r): void

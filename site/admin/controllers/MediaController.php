@@ -54,7 +54,13 @@ final class MediaController extends Controller
                     'alt_text' => $r->string('alt_text'),
                     'caption'  => $r->string('caption'),
                 ], 'id = ?', [(int) $r->string('id')]);
+                $media->organize((int) $r->string('id'), $r->string('folder'), $r->string('tags'),
+                    (float) $r->input('focal_x', 50), (float) $r->input('focal_y', 50));
                 $this->flash('ok', 'Metadata saved.');
+            } elseif ($action === 'bulk') {
+                $ids = $r->input('ids', []);
+                $count = $media->bulkOrganize(is_array($ids) ? $ids : [], $r->string('folder'), $r->string('tags'));
+                $this->flash($count ? 'ok' : 'error', $count ? "Updated {$count} media item(s)." : 'Select at least one media item.');
             } elseif ($action === 'replace') {
                 if (($err = $this->uploadError($r, 'replacement')) === null) {
                     $err = $media->replace((int) $r->string('id'), $r->files['replacement'], $u->id);
@@ -65,8 +71,10 @@ final class MediaController extends Controller
         }
 
         return $this->page($r, 'media/index', [
-            'items'   => $media->list($r->string('folder')),
+            'items'   => $media->list($r->string('folder'), 200, $r->string('q'), $r->string('tag')),
             'folders' => $this->folders(),
+            'tags' => $media->tags(),
+            'mediaService' => $media,
             'confirm' => (int) $r->input('confirm', 0),
         ], 'Media');
     }
@@ -117,6 +125,19 @@ final class MediaController extends Controller
         $media = $this->svc()->find($id);
         if (!$media || (int) $media['is_private'] === 1) return Response::notFound();
         [$path, $mime] = $this->svc()->variant($media, (int) ($r->attributes['width'] ?? 640));
+        if (!is_file($path)) return Response::notFound();
+        return Response::html('')->header('Content-Type', $mime)
+            ->header('Content-Length', (string) filesize($path))
+            ->header('Cache-Control', 'public, max-age=604800, immutable')
+            ->setBody((string) file_get_contents($path));
+    }
+
+    public function serveCrop(Request $r): Response
+    {
+        $id = (int) ($r->attributes['id'] ?? 0);
+        $media = $this->svc()->find($id);
+        if (!$media || (int) $media['is_private'] === 1) return Response::notFound();
+        [$path, $mime] = $this->svc()->variant($media, (int) ($r->attributes['width'] ?? 640), (int) ($r->attributes['height'] ?? 360));
         if (!is_file($path)) return Response::notFound();
         return Response::html('')->header('Content-Type', $mime)
             ->header('Content-Length', (string) filesize($path))

@@ -303,7 +303,9 @@ final class Application
         if ($this->inMaintenance($request)) {
             return $this->withSecurityHeaders(
                 Response::html(
-                    '<h1>Maintenance</h1><p>This site is briefly offline for maintenance. Back shortly.</p>',
+                    (new \Core\Branding\Attribution())->apply(\Core\Branding\StatusPage::render(503, 'We’re making things better.',
+                        'A little work is happening behind the scenes. Please check back shortly.',
+                        $request->routeBase(), $this->siteName(), null, 'Check again', '')),
                     503
                 )->header('Retry-After', '120')
             );
@@ -311,8 +313,9 @@ final class Application
         if ($this->licenseBlocked($request)) {
             return $this->withSecurityHeaders(
                 Response::html(
-                    '<h1>Site unavailable</h1><p>This website\'s license is no longer active. '
-                    . 'If you are the site owner, sign in to the administration area or contact Cajunwebpro.com support.</p>',
+                    (new \Core\Branding\Attribution())->apply(\Core\Branding\StatusPage::render(503, 'This site is taking a pause.',
+                        'The owner can sign in to review the site status or contact website support.',
+                        $request->routeBase(), $this->siteName(), null, 'Check again', '')),
                     503
                 )->header('Retry-After', '300')
             );
@@ -573,6 +576,7 @@ final class Application
         $this->router->get('/sitemap.xml', fn (Request $r) => (new \Admin\Controllers\SitemapController($c))->sitemap($r));
         $this->router->get('/robots.txt', fn (Request $r) => (new \Admin\Controllers\SitemapController($c))->robots($r));
         $this->router->get('/media/{id:\d+}/w/{width:\d+}/{name:.*}', fn (Request $r) => (new \Admin\Controllers\MediaController($c))->serveVariant($r));
+        $this->router->get('/media/{id:\d+}/crop/{width:\d+}x{height:\d+}/{name:.*}', fn (Request $r) => (new \Admin\Controllers\MediaController($c))->serveCrop($r));
         $this->router->get('/media/{id:\d+}/{name:.*}', fn (Request $r) => (new \Admin\Controllers\MediaController($c))->serve($r));
         $this->router->get('/preview/{token:[a-f0-9]{48}}', fn (Request $r) => (new \Admin\Controllers\PublicPageController($c))->preview($r));
         $this->router->post('/forms/{id:\d+}/submit', fn (Request $r) => (new \Admin\Controllers\FormsController($c))->submit($r));
@@ -662,22 +666,20 @@ final class Application
                 500
             );
         }
-        return Response::html(
-            '<!doctype html><html lang="en"><head><meta charset="utf-8">'
-            . '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            . '<title>Something went wrong</title><style>'
-            . ':root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;'
-            . 'padding:1.5rem;background:radial-gradient(circle at top,#17324b,#07111d 60%);color:#e5eef7;'
-            . 'font-family:system-ui,-apple-system,sans-serif}.error-card{width:min(36rem,100%);padding:2rem;'
-            . 'border:1px solid #ffffff1f;border-radius:1rem;background:#0d1c2bdd;box-shadow:0 24px 70px #0008}'
-            . 'h1{margin:0 0 .75rem;font:700 1.65rem Georgia,serif}p{color:#b7c7d8;line-height:1.6}'
-            . 'code{display:inline-block;padding:.25rem .45rem;border-radius:.35rem;background:#050b12;color:#7dd3fc}'
-            . 'a{color:#7dd3fc}</style></head><body><main class="error-card"><h1>Something went wrong</h1>'
-            . '<p>The error has been logged. Give this reference to the site administrator: '
-            . '<code>' . htmlspecialchars($reference, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</code>.</p>'
-            . '<p><a href="">Reload this page</a></p></main></body></html>',
-            500
-        );
+        return Response::html((new \Core\Branding\Attribution())->apply(\Core\Branding\StatusPage::render(
+            500, 'That wasn’t supposed to happen.',
+            'The issue has been recorded. Try the page once more, or share the reference with the site administrator.',
+            $this->request?->routeBase() ?? '', $this->siteName(), $reference, 'Try again', ''
+        )), 500);
+    }
+
+    private function siteName(): string
+    {
+        try {
+            return (string) $this->container->get(SettingsRepository::class)->get('site.name', 'Website');
+        } catch (\Throwable) {
+            return (string) $this->config->get('app.name', 'Website');
+        }
     }
 
     /** Apply only when this build's latest core migration is absent. */

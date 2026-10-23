@@ -26,13 +26,15 @@ installed through the Module Manager.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
-- **Status**: pre-1.0 development. See `PROJECT_STATUS.md` for the honest
-  milestone state and `docs/ROADMAP.md` for the acceptance sequence.
+- **Status**: `0.9.0-dev` release candidate. The `0.1.15` through `0.8`
+  feature milestones are implemented; 0.9 is the compatibility and release
+  gate before 1.0. See `PROJECT_STATUS.md` and `docs/ROADMAP.md`.
 
 ## Quick start (development)
 
 ```bash
 composer install
+php tools/release-gate.php
 php tools/lint.php
 vendor/bin/phpunit --testsuite unit     # unit tests (no DB needed)
 vendor/bin/phpunit --testsuite package  # package/manifest tests

@@ -1,11 +1,15 @@
 # Project Status
 
-**Current**: M0–M6 implemented and hardened, plus the first commercial
-industry implementation: `examples/industry-catering`. The catering package
-contains a complete editorial public site, menu/package management, a secure
-multi-step quote workflow, and catering lead administration. Pre-1.0 — version
-`0.8.0-dev`; PHP 8.4/8.5, MySQL 8.4, MariaDB 11.4, core-only boot,
-and release-artifact CI are green.
+**Current**: `0.9.0-dev` release candidate. The planned 0.1.15 through 0.8
+core milestones are implemented in eight focused commits. The 0.9 gate adds
+cache-safety hardening, cumulative update metadata, offline reproducible build
+support, and a dependency-free release contract check. Stable 1.0 packaging
+and final CI evidence are the remaining steps in this release line.
+
+The first industry implementation remains `examples/industry-catering`: a
+complete editorial public site, menu/package management, secure multi-step
+quote workflow, and catering lead administration. The universal core remains
+industry-neutral.
 
 ## Baseline
 

@@ -31,7 +31,8 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: vendor
-          key: composer-${{ matrix.php }}-${{ hashFiles('composer.json') }}
+          key: composer-${{ matrix.php }}-${{ hashFiles('composer.json', 'composer.lock') }}
+      - run: php tools/release-gate.php
       - run: composer install --no-interaction --prefer-dist
       - run: php tools/lint.php
       - run: vendor/bin/phpunit --testsuite unit
@@ -64,7 +65,8 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: vendor
-          key: composer-${{ matrix.php }}-${{ hashFiles('composer.json') }}
+          key: composer-${{ matrix.php }}-${{ hashFiles('composer.json', 'composer.lock') }}
+      - run: php tools/release-gate.php
       - run: composer install --no-interaction --prefer-dist
       - name: Wait for database (PDO poll)
         run: |

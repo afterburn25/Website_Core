@@ -93,7 +93,9 @@ final class PublicPageController extends Controller
             'isHome'  => $isHome,
             'pages'   => $this->publishedNav(),
         ]);
-        return Response::html($body);
+        // Core-managed published pages contain no session-bound form state,
+        // so Application may add an ETag and a short shared-cache policy.
+        return Response::html($body)->header('X-WC-Cacheable', 'public');
     }
 
     /**

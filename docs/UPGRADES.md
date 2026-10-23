@@ -39,6 +39,13 @@ capability):
 4. The controller runs pending core migrations (`Migrator`) and records
    `core.update` in the audit log.
 
+The 1.0 update is cumulative from `0.1.14-dev` and includes migrations 0009
+(admin notices), 0010 (publishing/trash/menu workflow), and 0011 (SEO 404
+insights). The build manifest declares that real source floor rather than the
+target version, so an older supported installation can pass inspection.
+Release operators can intentionally raise the floor with
+`WC_UPDATE_MIN_CORE=<version>`.
+
 Maintenance windows are owner-driven: creating
 `storage/maintenance.flag` returns 503 + `Retry-After` for every
 non-admin request while it exists (authenticated operators keep
@@ -68,6 +75,10 @@ to `trust.allow_unsigned=false`: an unsigned build refuses until the
 owner configures `trust.public_keys` for signed builds, or explicitly
 opts back into unsigned artifacts (development posture — the shipped
 `config.example.php` keeps `allow_unsigned=true` for local use).
+
+For an offline/reproducible build, `WC_BUILD_VENDOR_DIR` may point to a
+previously verified production-only Composer vendor tree. The builder requires
+both `autoload.php` and Composer installed metadata before it will use it.
 
 ## Not yet implemented (roadmap)
 

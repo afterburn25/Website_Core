@@ -3,6 +3,25 @@
 Milestones toward a tested commercial 1.0 of the UNIVERSAL CORE. Stages
 adapt to real dependencies; scope is preserved, not deferred silently.
 
+## 0.1.15 → 1.0 delivery line
+
+| Version | Scope | State | Git evidence |
+|---|---|---|---|
+| 0.1.15 | version and installation integrity | complete | `bdd67f2` |
+| 0.2 | core admin search, notices, dashboard | complete | `a08d09c` |
+| 0.3 | publishing workflow, trash, editable menus/submenus | complete | `7f9c95f` |
+| 0.4 | media derivatives/replacement and shared branding | complete | `89dd163` |
+| 0.5 | package hooks, upgrade UX, immutable Cajun Web Pro footer | complete | `2cd9346` |
+| 0.6 | session controls, MFA policy, security headers | complete | `b253586` |
+| 0.7 | operations, queue controls, automatic backups and safer restore | complete | `14519bf` |
+| 0.8 | SEO insights, structured data, redirects and cache support | complete | `3c41b71` |
+| 0.9 | release gate, compatibility hardening, cumulative-update metadata | in progress | current branch |
+| 1.0 | stable version, packages, checksums, release notes and branch handoff | pending 0.9 validation | current branch |
+
+The immutable footer is core code, not an editable setting or theme field.
+Every public HTML response receives both required links to
+`https://cajunwebpro.com`; modules cannot remove it through the supported API.
+
 | ID | Milestone | State | Evidence |
 |----|-----------|-------|----------|
 | M0 | Baseline | done | boundaries/architecture recorded, runnable bootstrap, CI green |

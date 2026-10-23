@@ -1,5 +1,24 @@
 # Session Handoff
 
+## 2026-10-23 — 0.1.15 through 0.9 release-candidate build
+
+- Delivered focused core milestones for integrity (`bdd67f2`), the admin
+  platform (`a08d09c`), publishing and nested editable menus (`7f9c95f`),
+  shared media/branding (`89dd163`), package integration plus immutable Cajun
+  Web Pro attribution (`2cd9346`), admin security (`b253586`), operations and
+  recovery (`14519bf`), and SEO/performance (`3c41b71`).
+- The required footer is code-owned and injected into every public HTML
+  response: “Website Design & Development by Cajun Web Pro LLC” and “Want a
+  website like this for your business? Let’s build yours.” Both named links
+  point to `https://cajunwebpro.com`; no admin setting can edit it.
+- Hardened public caching for 0.9: only controller-opted anonymous pages get
+  shared caching/ETags. Module forms, previews, and any unmarked HTML are
+  private/no-store so session CSRF values cannot enter a shared cache.
+- Added `tools/release-gate.php`, Composer-lock-aware CI caches, a verified
+  offline production-vendor build input, and cumulative update metadata with
+  a `0.1.14-dev` default floor. Stable 1.0 packaging and CI verification are
+  the next release steps.
+
 ## 2026-10-23 — ownership-independent installer (`0.1.6-dev`)
 
 - Live verification at `demo.cajunwebpro.com/catering` showed both canonical

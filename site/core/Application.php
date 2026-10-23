@@ -81,7 +81,7 @@ final class Application
                         . e($licenseStatus['license_error'] ?? 'License is not valid.')
                         . ' Please contact Cajunwebpro.com support.</div>';
                     $body = str_replace('</body>', $warning . '</body>', $body);
-                    $response = Response::html($body, $response->status(), $response->headers());
+                    $response->setBody($body);
                 }
             }
         } catch (\Throwable $e) {
@@ -325,8 +325,14 @@ final class Application
         if ($publicRequest) {
             $contentType = strtolower((string) ($response->headers()['Content-Type'] ?? 'text/html'));
             if (str_contains($contentType, 'text/html')) {
+                // Public HTML is private by default because an industry
+                // module may render a session-bound CSRF token. Controllers
+                // opt safe, anonymous pages into shared caching with this
+                // internal marker; it is removed before the response leaves.
+                $cacheable = ($response->headers()['X-WC-Cacheable'] ?? '') === 'public';
+                $response->removeHeader('X-WC-Cacheable');
                 $response->setBody((new \Core\Branding\Attribution())->apply($response->body()));
-                if ($request->method === 'GET' && $response->status() === 200) {
+                if ($cacheable && $request->method === 'GET' && $response->status() === 200) {
                     $etag = '"' . hash('sha256', $response->body()) . '"';
                     $response->header('ETag', $etag)
                         ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
@@ -334,6 +340,8 @@ final class Application
                         $response = (new Response('', 304))->header('ETag', $etag)
                             ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
                     }
+                } elseif ($response->status() !== 304) {
+                    $response->header('Cache-Control', 'private, no-store');
                 }
             }
         }

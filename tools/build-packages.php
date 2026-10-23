@@ -30,6 +30,19 @@ declare(strict_types=1);
 /** Build a clean production-only Composer vendor tree and return its path. */
 function buildProductionVendor(string $root): string
 {
+    $override = trim((string) getenv('WC_BUILD_VENDOR_DIR'));
+    if ($override !== '') {
+        $resolved = realpath($override);
+        if ($resolved === false
+            || !is_file($resolved . '/autoload.php')
+            || !is_file($resolved . '/composer/installed.php')) {
+            fwrite(STDERR, "WC_BUILD_VENDOR_DIR is not a complete Composer vendor tree.\n");
+            exit(1);
+        }
+        echo "prod vendor: verified offline tree at {$resolved}\n";
+        return $resolved;
+    }
+
     $tmpRoot = sys_get_temp_dir() . '/wc-build-' . getmypid() . '-' . bin2hex(random_bytes(4));
     @mkdir($tmpRoot, 0777, true);
     copy($root . '/composer.json', $tmpRoot . '/composer.json');
@@ -307,7 +320,9 @@ $manifest = [
     // metadata and archives declaring a floor newer than the running core
     // are refused.
     'expires'  => gmdate('Y-m-d\TH:i:s\Z', time() + 30 * 86400),
-    'min_core' => $ver,
+    // Updates are cumulative from the oldest schema this release supports.
+    // A target-version floor would make every genuine upgrade impossible.
+    'min_core' => trim((string) getenv('WC_UPDATE_MIN_CORE')) ?: '0.1.14-dev',
 ];
 $signKey = getenv('WC_UPDATE_SIGN_KEY');
 if ($signKey && extension_loaded('sodium')) {

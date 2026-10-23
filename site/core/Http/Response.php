@@ -51,6 +51,16 @@ final class Response
         return $this;
     }
 
+    public function removeHeader(string $name): self
+    {
+        foreach (array_keys($this->headers) as $existing) {
+            if (strcasecmp($existing, $name) === 0) {
+                unset($this->headers[$existing]);
+            }
+        }
+        return $this;
+    }
+
     public function setBody(string $body): self
     {
         $this->body = $body;

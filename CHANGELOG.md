@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.0-dev (unreleased)
+
+### Added — release candidate and compatibility gate
+- Added a dependency-free release gate for version alignment, manifests, migrations, installer cleanup, immutable attribution, cache safety, documentation, and packaging contracts.
+- Added an offline, verified production-vendor input for reproducible package builds.
+- Added cumulative-update compatibility metadata beginning at `0.1.14-dev`, configurable per release with `WC_UPDATE_MIN_CORE`.
+- CI now invalidates Composer caches when either `composer.json` or `composer.lock` changes.
+
+### Fixed
+- Public HTML caching is now explicit opt-in; industry forms containing session-bound CSRF tokens remain private and no-store.
+- Admin license notices now preserve the original response headers instead of reconstructing the response.
+
 ## 0.8.0-dev (unreleased)
 
 ### Added — SEO and public performance

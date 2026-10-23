@@ -394,6 +394,10 @@ jobs:
           ] as $need){
             if($z->locateName($need)===false){fwrite(STDERR,"catering TEST-BUNDLE missing $need\n");exit(1);}
           }
+          $logo=$z->getFromName("assets/images/cajunwebpro-logo.png");
+          if(!is_string($logo)||strlen($logo)<26||ord($logo[25])!==6){
+            fwrite(STDERR,"CajunWebPro logo is not a transparent-capable RGBA PNG\n");exit(1);
+          }
           echo "catering TEST-BUNDLE contract OK: ".basename($path)."\n";'
       - name: Upload catering TEST-BUNDLE
         uses: actions/upload-artifact@v4

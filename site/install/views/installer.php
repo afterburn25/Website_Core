@@ -35,8 +35,8 @@ a{color:var(--gold-2)}
 .brand-panel{position:relative;padding:38px;min-width:0;background:linear-gradient(165deg,rgba(17,47,76,.97),rgba(7,18,32,.98));border-right:1px solid var(--line)}
 .brand-panel:after{content:"";position:absolute;inset:auto -70px -110px auto;width:280px;height:280px;border-radius:50%;border:52px solid rgba(215,170,80,.06)}
 .brand-sticky{position:sticky;top:32px;z-index:1}
-.logo-card{display:flex;align-items:center;justify-content:center;min-height:112px;padding:18px 22px;border-radius:18px;background:linear-gradient(145deg,#fff,#e8eef5);box-shadow:0 16px 42px rgba(0,0,0,.26)}
-.brand-logo{display:block;width:100%;height:auto;max-height:88px;object-fit:contain}
+.logo-card{display:flex;align-items:center;justify-content:flex-start;min-height:96px;padding:0;background:transparent}
+.brand-logo{display:block;width:min(100%,390px);height:auto;max-height:100px;object-fit:contain;object-position:left center;filter:drop-shadow(0 12px 24px rgba(0,0,0,.28))}
 .eyebrow{margin:28px 0 8px;color:var(--gold-2);font-size:.75rem;font-weight:850;letter-spacing:.14em;text-transform:uppercase}
 .brand-panel h1{margin:0;font:700 clamp(2.25rem,4vw,4.4rem)/.98 Georgia,"Times New Roman",serif;letter-spacing:-.045em}
 .brand-copy{max-width:32rem;margin:20px 0 30px;color:#bdd0e3;line-height:1.75}
@@ -57,9 +57,9 @@ a{color:var(--gold-2)}
 .section-title{display:flex;align-items:center;gap:12px;min-width:0}.section-index{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(145deg,#d8ac56,#9c6d24);color:#08111d;font-weight:900;font-size:.82rem}
 .section-title h3{margin:0;font-size:1rem;letter-spacing:.015em}.section-note{color:var(--muted);font-size:.79rem;text-align:right}
 .checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:18px;margin:0;list-style:none}
-.check{min-width:0;display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;padding:12px;border:1px solid rgba(86,121,154,.26);border-radius:12px;background:rgba(3,13,24,.25)}
+.check{min-width:0;display:grid;grid-template-columns:28px minmax(0,1fr);gap:11px;padding:13px;border:1px solid rgba(86,121,154,.26);border-radius:12px;background:rgba(3,13,24,.25)}
 .check-icon{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;font-weight:900}.check.ok .check-icon{background:rgba(61,213,152,.14);color:var(--green)}.check.bad .check-icon{background:rgba(255,122,134,.13);color:var(--red)}.check.warn .check-icon{background:rgba(255,203,112,.12);color:var(--amber)}
-.check-name{display:block;color:#e8f0f8;font-size:.86rem;font-weight:750}.check-detail{display:block;min-width:0;margin-top:3px;color:#91a7bd;font-size:.75rem;line-height:1.45;overflow-wrap:anywhere;word-break:break-word}
+.check-copy{min-width:0}.check-name{display:block;margin:1px 0 7px;color:#e8f0f8;font-size:.86rem;font-weight:800;line-height:1.25}.check-detail{display:block;min-width:0;padding-top:7px;border-top:1px solid rgba(116,148,178,.18);color:#91a7bd;font-size:.75rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word}.check-detail.is-path{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#acc6df}
 .section-body{padding:22px}
 .field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.field-grid.three{grid-template-columns:1.2fr .65fr .8fr}.field.full{grid-column:1/-1}.field{min-width:0}
 label{display:flex;justify-content:space-between;gap:10px;margin:0 0 8px;color:#dce7f2;font-size:.83rem;font-weight:750}.optional{color:#7089a2;font-weight:550}
@@ -120,7 +120,11 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
                 <?php $state = $check['ok'] ? 'ok' : ($check['required'] ? 'bad' : 'warn'); ?>
                 <li class="check <?= $state ?>">
                     <span class="check-icon" aria-hidden="true"><?= $check['ok'] ? '✓' : ($check['required'] ? '×' : '!') ?></span>
-                    <span><span class="check-name"><?= e($check['name']) ?></span><span class="check-detail"><?= e($check['detail']) ?></span></span>
+                    <?php $detailIsPath = str_starts_with((string) $check['detail'], '/'); ?>
+                    <div class="check-copy">
+                        <div class="check-name"><?= e($check['name']) ?></div>
+                        <div class="check-detail<?= $detailIsPath ? ' is-path' : '' ?>"><?= e($check['detail']) ?></div>
+                    </div>
                 </li>
                 <?php endforeach; ?>
             </ul>

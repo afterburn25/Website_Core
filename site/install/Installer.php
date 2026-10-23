@@ -178,7 +178,7 @@ final class Installer
         $add(
             'Installer writable (automatic cleanup)',
             is_writable(WC_ROOT) && is_writable(WC_ROOT . '/install'),
-            'Setup removes install/ and install.php; the site stays locked if manual cleanup is required',
+            'Automatic cleanup removes install/ and install.php. The site stays locked if manual cleanup is required.',
             false
         );
 
@@ -578,7 +578,7 @@ final class Installer
             . 'font-family:Inter,system-ui,sans-serif;padding:24px}.done{width:min(620px,100%);box-sizing:border-box;padding:42px;border:1px solid #244267;'
             . 'border-radius:24px;background:linear-gradient(145deg,#10233a,#091525);box-shadow:0 28px 80px #0008}.mark{width:58px;height:58px;'
             . 'display:grid;place-items:center;border-radius:50%;background:#1b8f66;color:white;font-size:30px}h1{font-size:clamp(2rem,5vw,3.2rem);'
-            . 'margin:.7rem 0}.logo{display:block;width:min(330px,82%);height:auto;margin-bottom:28px;padding:12px 16px;border-radius:14px;background:#fff}'
+            . 'margin:.7rem 0}.logo{display:block;width:min(390px,88%);height:auto;margin-bottom:28px;filter:drop-shadow(0 12px 24px #0007)}'
             . 'p{color:#b9c9dc;line-height:1.7}strong{color:#fff}a{display:inline-flex;margin-top:14px;padding:14px 22px;'
             . 'border-radius:12px;background:#d6a94f;color:#07111f;text-decoration:none;font-weight:800}</style>'
             . '</head><body><main class="done"><img class="logo" src="' . e_attr($logoUrl) . '" alt="CajunWebPro — Web Design &amp; Development">'
@@ -651,7 +651,7 @@ final class Installer
             . 'border:1px solid #6f5423;background:linear-gradient(145deg,#172333,#0b1523);box-shadow:0 30px 90px #0009}h1{margin:.4rem 0 1rem;'
             . 'font-size:clamp(2rem,5vw,3rem)}.flag{display:inline-block;padding:7px 11px;border-radius:999px;background:#4b3513;color:#ffd98a;'
             . 'font-weight:800;font-size:.76rem;letter-spacing:.08em}p,li{color:#c7d3e2;line-height:1.7}code{overflow-wrap:anywhere;color:#ffe0a0}strong{color:white}'
-            . '.logo{display:block;width:min(330px,82%);height:auto;margin-bottom:26px;padding:12px 16px;border-radius:14px;background:#fff}'
+            . '.logo{display:block;width:min(390px,88%);height:auto;margin-bottom:26px;filter:drop-shadow(0 12px 24px #0007)}'
             . '</style></head><body><main class="box"><img class="logo" src="' . e_attr($logoUrl) . '" alt="CajunWebPro — Web Design &amp; Development">'
             . '<span class="flag">SITE SAFELY LOCKED</span>'
             . '<h1>One cleanup step remains</h1><p>The website was installed, but PHP could not remove <strong>' . $items . '</strong>. '

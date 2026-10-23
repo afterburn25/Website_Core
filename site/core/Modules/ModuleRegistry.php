@@ -237,6 +237,18 @@ final class ModuleRegistry
         return $out;
     }
 
+    /** @return array<string,array> page blocks contributed by enabled packages */
+    public function pageBlocks(): array
+    {
+        $out = [];
+        foreach ($this->contexts as $ctx) {
+            foreach ($ctx->pageBlocks() as $type => $definition) {
+                if (!isset($out[$type])) $out[$type] = $definition;
+            }
+        }
+        return $out;
+    }
+
     /** @return list<array> evaluated package dashboard widgets */
     public function dashboardWidgets(): array
     {

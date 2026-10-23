@@ -65,9 +65,16 @@ final class PagesController extends Controller
             $slug = trim($slug, '-');
             $body = (string) ($r->post['body'] ?? '');
             $body = (new \Core\Content\Sanitizer())->html($body);
+            $blocks = new \Core\Content\PageBlocks(
+                $db,
+                $this->c->get(\Core\Modules\ModuleRegistry::class)
+            );
+            [$blocksJson, $blocksError] = $blocks->normalize((string) ($r->post['blocks_json'] ?? '[]'));
 
             if ($title === '' || $slug === '') {
                 $error = 'Title and slug are required.';
+            } elseif ($blocksError !== null) {
+                $error = $blocksError;
             } elseif ($this->slugTaken($slug, $id)) {
                 $error = 'That slug is already in use.';
             } elseif ($this->slugShadowed($slug)) {
@@ -84,16 +91,17 @@ final class PagesController extends Controller
                     // Save a revision before overwriting (revision recovery).
                     $db->insert('page_revisions', [
                         'page_id' => $id, 'title' => $page['title'], 'body' => $page['body'],
+                        'blocks_json' => $page['blocks_json'] ?? null,
                         'saved_by' => $this->user()->id, 'created_at' => date('Y-m-d H:i:s'),
                     ]);
                     $db->update('pages', array_merge([
-                        'title' => $title, 'slug' => $slug, 'body' => $body,
+                        'title' => $title, 'slug' => $slug, 'body' => $body, 'blocks_json' => $blocksJson,
                         'updated_by' => $this->user()->id,
                         'updated_at' => date('Y-m-d H:i:s'),
                     ], $seo), 'id = ?', [$id]);
                 } else {
                     $id = (int) $db->insert('pages', array_merge([
-                        'title' => $title, 'slug' => $slug, 'body' => $body,
+                        'title' => $title, 'slug' => $slug, 'body' => $body, 'blocks_json' => $blocksJson,
                         'status' => 'draft',
                         'updated_by' => $this->user()->id,
                         'created_at' => date('Y-m-d H:i:s'),
@@ -116,6 +124,9 @@ final class PagesController extends Controller
             'page'      => $page,
             'error'     => $error,
             'revisions' => $revisions,
+            'blockDefinitions' => (new \Core\Content\PageBlocks(
+                $db, $this->c->get(\Core\Modules\ModuleRegistry::class)
+            ))->definitions(),
         ], $page ? 'Edit page' : 'New page');
     }
 
@@ -151,10 +162,12 @@ final class PagesController extends Controller
         if ($page) {
             $db->insert('page_revisions', [
                 'page_id' => $id, 'title' => $page['title'], 'body' => $page['body'],
+                'blocks_json' => $page['blocks_json'] ?? null,
                 'saved_by' => $this->user()->id, 'created_at' => date('Y-m-d H:i:s'),
             ]);
             $db->update('pages', [
                 'title' => $rev['title'], 'body' => $rev['body'], 'status' => 'draft',
+                'blocks_json' => $rev['blocks_json'] ?? null,
                 'updated_by' => $this->user()->id, 'updated_at' => date('Y-m-d H:i:s'),
             ], 'id = ?', [$id]);
         }
@@ -222,6 +235,7 @@ final class PagesController extends Controller
         while ($this->slugTaken($slug, 0)) $slug = (string) $page['slug'] . '-copy-' . $suffix++;
         $copy = [
             'slug' => $slug, 'title' => $page['title'] . ' (Copy)', 'body' => $page['body'],
+            'blocks_json' => $page['blocks_json'] ?? null,
             'status' => 'draft', 'meta_title' => $page['meta_title'],
             'meta_description' => $page['meta_description'], 'updated_by' => $this->user()->id,
             'published_at' => null, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),

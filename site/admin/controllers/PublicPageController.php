@@ -43,6 +43,9 @@ final class PublicPageController extends Controller
         }
         $v = $this->c->get(View::class);
         $this->shareGlobals($v, $r);
+        $page['rendered_blocks'] = (new \Core\Content\PageBlocks(
+            $this->db(), $this->c->get(\Core\Modules\ModuleRegistry::class)
+        ))->render($page['blocks_json'] ?? null, $r->basePath);
         $body = $v->renderInLayout('theme:page', 'theme:layout', [
             'page' => $page, 'isHome' => false, 'pages' => $this->publishedNav(),
             'isPreview' => true,
@@ -87,6 +90,9 @@ final class PublicPageController extends Controller
                 $page['og_image_url'] = $r->basePath . '/media/' . (int) $media['id'] . '/' . rawurlencode((string) $media['filename']);
             }
         }
+        $page['rendered_blocks'] = (new \Core\Content\PageBlocks(
+            $this->db(), $this->c->get(\Core\Modules\ModuleRegistry::class)
+        ))->render($page['blocks_json'] ?? null, $r->basePath);
 
         $body = $v->renderInLayout('theme:page', 'theme:layout', [
             'page'    => $page,

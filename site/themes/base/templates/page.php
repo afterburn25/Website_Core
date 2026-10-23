@@ -1,5 +1,6 @@
 <?php /** @var array $page @var bool $isHome */ ?>
-<article class="page">
+<article class="page<?= !empty($page['rendered_blocks']) ? ' page-builder' : '' ?>">
+<?php if (empty($page['rendered_blocks'])): ?>
 <h1><?= e($page['title']) ?></h1>
 <div class="page-body">
 <?php
@@ -9,4 +10,7 @@
 echo $page['body'] ?? '';
 ?>
 </div>
+<?php else: ?>
+<?= $page['rendered_blocks'] ?>
+<?php endif; ?>
 </article>

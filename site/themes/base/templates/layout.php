@@ -66,7 +66,7 @@ $renderMenu($pages ?? []);
 ?>
 </nav>
 </header>
-<main>
+<main<?= !empty($page['rendered_blocks']) ? ' class="builder-main"' : '' ?>>
 <?= $content ?>
 </main>
 <footer class="site-footer">

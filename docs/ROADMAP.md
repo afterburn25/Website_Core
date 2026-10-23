@@ -18,6 +18,7 @@ adapt to real dependencies; scope is preserved, not deferred silently.
 | 0.9 | release gate, compatibility hardening, cumulative-update metadata | complete | commit “Harden the 0.9 release candidate” |
 | 1.0 | stable version, packages, checksums, release notes and branch handoff | complete | commit “Release Website Core 1.0.0” |
 | 1.0.1 | existing-install schema boot repair and traceable production errors | complete | commit “Repair admin schema drift on boot” |
+| 1.1 | visual block composer, full-width layouts, revision-safe block data and module block registration | complete | commit “Build the 1.1 visual page composer” |
 
 The immutable footer is core code, not an editable setting or theme field.
 Every public HTML response receives both required links to

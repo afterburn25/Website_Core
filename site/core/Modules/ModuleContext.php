@@ -27,6 +27,8 @@ final class ModuleContext
     private array $searchProviders = [];
     /** @var list<array{key:string,label:string,provider:callable}> */
     private array $healthChecks = [];
+    /** @var array<string,array{label:string,fields:array,renderer:callable,package:string}> */
+    private array $pageBlocks = [];
 
     /**
      * @param callable|null $adminMiddleware combined auth+CSRF pipeline for
@@ -159,6 +161,15 @@ final class ModuleContext
         $this->healthChecks[] = compact('key', 'label', 'provider');
     }
 
+    /** Register an industry-specific block for the core visual composer. */
+    public function pageBlock(string $type, string $label, array $fields, callable $renderer): void
+    {
+        if (!preg_match('/^[a-z][a-z0-9_]{1,79}$/', $type)) {
+            throw new \InvalidArgumentException('Block type must use lowercase letters, numbers and underscores.');
+        }
+        $this->pageBlocks[$type] = compact('label', 'fields', 'renderer') + ['package' => $this->packageId];
+    }
+
     /** Declare a capability this package adds; owner always holds it and
      * admin does by default — a package can never grant itself core caps. */
     public function permission(string $capability, string $description = ''): void
@@ -232,4 +243,5 @@ final class ModuleContext
     public function dashboardWidgets(): array { return $this->dashboardWidgets; }
     public function searchProviders(): array { return $this->searchProviders; }
     public function healthChecks(): array { return $this->healthChecks; }
+    public function pageBlocks(): array { return $this->pageBlocks; }
 }

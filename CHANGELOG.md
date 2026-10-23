@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0 — 2026-10-23
+
+- Added a visual, drag-order page composer with eleven responsive core block
+  types, hide/show controls, full-width rendering, and legacy-body fallback.
+- Block documents are normalized and sanitized on the server, retained in
+  page revisions and duplicates, and rendered through the active theme.
+- Added `ModuleContext::pageBlock()` so enabled industry packages can provide
+  specialized block schemas and trusted renderers without modifying core.
+
 ## 1.0.1 — 2026-10-23
 
 - Automatically apply pending core database migrations during installed-site

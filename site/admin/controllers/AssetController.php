@@ -7,10 +7,10 @@ use Core\Http\Request;
 use Core\Http\Response;
 
 /**
- * Namespaced public asset resolver: /_a/themes/<theme>/<path> and
- * /_a/modules/<package-id>/<path>. Only allowlisted extensions are served,
- * paths are realpath-constrained to their package root, and no directory
- * listing is possible.
+ * Namespaced public asset resolver: /_a/core/<path>,
+ * /_a/themes/<theme>/<path>, and /_a/modules/<package-id>/<path>. Only
+ * allowlisted extensions are served, paths are realpath-constrained to their
+ * package root, and no directory listing is possible.
  */
 final class AssetController extends Controller
 {
@@ -36,7 +36,10 @@ final class AssetController extends Controller
             return Response::notFound();
         }
 
-        if (preg_match('#^themes/([^/]+)/(.+)$#', $path, $m)) {
+        if (preg_match('#^core/(.+)$#', $path, $m)) {
+            $base = realpath(WC_ROOT . '/assets');
+            $file = $base ? realpath($base . '/' . $m[1]) : false;
+        } elseif (preg_match('#^themes/([^/]+)/(.+)$#', $path, $m)) {
             $base = realpath(WC_THEMES . '/' . $m[1]);
             $file = $base ? realpath($base . '/' . $m[2]) : false;
         } elseif (preg_match('#^modules/([^/]+)/(.+)$#', $path, $m)) {
@@ -108,7 +111,7 @@ final class AssetController extends Controller
                     }
                     $segments[] = $segment;
                 }
-                if ($segments === [] || !in_array($segments[0], ['modules', 'themes'], true)) {
+                if ($segments === [] || !in_array($segments[0], ['core', 'modules', 'themes'], true)) {
                     return $match[0];
                 }
 

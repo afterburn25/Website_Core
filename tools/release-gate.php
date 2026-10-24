@@ -84,6 +84,7 @@ foreach ([
     'README.md', 'CHANGELOG.md', 'PROJECT_STATUS.md', 'SESSION_HANDOFF.md',
     'docs/ROADMAP.md', 'docs/RELEASE_CHECKLIST.md', 'docs/COMPATIBILITY.md',
     'docs/UPGRADES.md', 'docs/BRANDING.md', 'docs/SECURITY.md',
+    'docs/COMMERCIAL_HARDENING.md',
 ] as $doc) {
     $ok(is_file($root . '/' . $doc), 'Required release documentation missing: ' . $doc);
 }
@@ -99,6 +100,12 @@ $ok(str_contains($attribution, 'Let’s build yours.'),
 $application = $read($root . '/site/core/Application.php');
 $ok(str_contains($application, "X-WC-Cacheable") && str_contains($application, "private, no-store"),
     'Public HTML must use explicit cache opt-in and private-by-default behavior.');
+$adminLayout = $read($root . '/site/admin/views/layouts/admin.php');
+$ok(str_contains($adminLayout, '/_a/core/css/admin.css')
+    && str_contains($adminLayout, '/_a/core/js/admin.js')
+    && is_file($root . '/site/assets/css/admin.css')
+    && is_file($root . '/site/assets/js/admin.js'),
+    'Versioned Core admin design assets are missing or not wired.');
 $ok(is_file($root . '/site/install.php') && is_file($root . '/site/install/index.php'),
     'Deployment source must include the self-removing installer entry points.');
 $installerCleanup = $read($root . '/site/includes/installer-cleanup.php');

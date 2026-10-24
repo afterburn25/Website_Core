@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.2 — 2026-10-23
+
+- Froze broad feature development and established a permanent, ordered
+  commercial-hardening audit for every existing Core surface.
+- Rebuilt the shared administration shell around versioned Core CSS and
+  JavaScript served through the constrained, rewrite-independent asset route.
+- Added a polished responsive sidebar/topbar, accessible mobile navigation,
+  persistent category/scroll state, clearer page hierarchy, compact account
+  actions, announced/dismissible alerts, and comprehensive shared UI states.
+- Turned passive dashboard metrics into real management links and added useful
+  quick actions for existing content, media, navigation, and settings flows.
+- Expanded automated contracts for Core admin asset delivery, keyboard/mobile
+  controls, external assets, focus visibility, and reduced motion.
+
 ## 2.0.1 — 2026-10-24
 
 - Renamed the Website-category admin item and page to **Navigation Menu** so

@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use Admin\Controllers\AssetController;
+use Core\Container;
+use Core\Http\Request;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
@@ -28,5 +30,18 @@ final class AssetControllerTest extends TestCase
         );
         self::assertStringContainsString('url("https://example.test/image.webp")', $rewritten);
         self::assertStringContainsString('url(data:image/png;base64,abc)', $rewritten);
+    }
+
+    public function testCoreAdminAssetsUseTheConstrainedAssetRoute(): void
+    {
+        $request = new Request('GET', '/_a/core/css/admin.css', '', [], [], [], [], []);
+        $request->attributes['path'] = 'core/css/admin.css';
+
+        $response = (new AssetController(new Container()))->serve($request);
+
+        self::assertSame(200, $response->status());
+        self::assertStringContainsString('--admin-sidebar', $response->body());
+        self::assertSame('text/css', $response->headers()['Content-Type'] ?? null);
+        self::assertSame('nosniff', $response->headers()['X-Content-Type-Options'] ?? null);
     }
 }

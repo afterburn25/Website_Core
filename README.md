@@ -26,10 +26,10 @@ installed through the Module Manager.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
-- **Status**: `2.0.1`. The stable core now includes visual composition,
-  editorial approvals, scoped integrations, an agency dashboard, signed
-  catalogs, managed updates and a visual navigation-tree editor. See
-  `PROJECT_STATUS.md`, `docs/ROADMAP.md`, and `docs/2.0.1_RELEASE_NOTES.md`.
+- **Status**: `2.0.2` commercial hardening. Broad feature development is
+  frozen while every existing workflow is completed, polished, and verified
+  screen by screen. See `PROJECT_STATUS.md`, `docs/COMMERCIAL_HARDENING.md`,
+  and `docs/2.0.2_RELEASE_NOTES.md`.
 
 ## Quick start (development)
 
@@ -68,6 +68,8 @@ php tools/build-web-installer.php \
 | `docs/INSTALLATION.md` | Installer + ownership claim model |
 | `docs/1.0_RELEASE_NOTES.md` | Stable release contents and upgrade notes |
 | `docs/2.0.1_RELEASE_NOTES.md` | Module-owned navigation defaults and editable Core takeover |
+| `docs/2.0.2_RELEASE_NOTES.md` | Commercial hardening program and polished administration shell |
+| `docs/COMMERCIAL_HARDENING.md` | Ordered screen-by-screen audit and commercial completion gates |
 | `docs/MODULE_API.md` | Supported extension API surface |
 | `docs/MODULE_REPOSITORY.md` | Authoritative module branches, folders, versioning and release sync |
 | `docs/PACKAGE_SPEC.md` | addon.json manifest schema v1 |

@@ -2,6 +2,9 @@
 
 From a clean, tested commit — never a renamed scaffold.
 
+Before starting this checklist, every applicable surface in
+`docs/COMMERCIAL_HARDENING.md` must be **verified**, not merely implemented.
+
 1. Run `php tools/release-gate.php`; all versions, manifests, migrations,
    installer cleanup, immutable attribution and packaging contracts must pass.
 2. All milestone acceptance evidence present (PROJECT_STATUS + test runs).

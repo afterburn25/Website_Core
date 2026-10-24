@@ -1,10 +1,17 @@
 # Project Status
 
-**Current**: `2.0.1`. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.2` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
 produces checksummed installation and update artifacts.
+
+Version 2.0.2 begins the feature-frozen commercial-hardening program recorded
+in `docs/COMMERCIAL_HARDENING.md`. Existing surfaces are now completed one at a
+time against functional, data, security, UX, visual, accessibility,
+operational, and packaged-release gates. The first pass replaces the embedded
+developer-style admin shell with a versioned responsive design system and
+wires dashboard summaries to their real management workflows.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

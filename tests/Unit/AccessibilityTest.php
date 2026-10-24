@@ -67,17 +67,24 @@ final class AccessibilityTest extends TestCase
     public function testAdminLayoutAccessibilityControls(): void
     {
         $adminLayout = (string) file_get_contents(WC_ROOT . '/admin/views/layouts/admin.php');
+        $adminCss = (string) file_get_contents(WC_ROOT . '/assets/css/admin.css');
+        $adminJs = (string) file_get_contents(WC_ROOT . '/assets/js/admin.js');
         $this->assertStringContainsString('aria-label="Admin"', $adminLayout, 'admin nav labelled');
         $this->assertStringContainsString('aria-current="page"', $adminLayout, 'active page is exposed to assistive technology');
         $this->assertStringContainsString('<details class="nav-group"', $adminLayout, 'admin categories are collapsible');
         $this->assertStringContainsString(' data-nav-group=', $adminLayout, 'admin categories have persistent identities');
         $this->assertStringContainsString(' open>', $adminLayout, 'admin categories default expanded');
-        $this->assertStringContainsString('wc-admin-nav-state-v1', $adminLayout, 'admin category state persists');
+        $this->assertStringContainsString('wc-admin-nav-state-v1', $adminJs, 'admin category state persists');
         $this->assertStringContainsString('target="_blank"', $adminLayout, 'public site opens in a new tab');
         $this->assertStringContainsString('rel="noopener"', $adminLayout, 'new tab cannot control admin tab');
         $this->assertStringContainsString('aria-label="Installed versions"', $adminLayout, 'version summary is labelled');
-        $this->assertStringContainsString('focus-visible', $adminLayout, 'focus-visible outlines present');
-        $this->assertStringContainsString('prefers-reduced-motion', $adminLayout, 'reduced-motion support present');
+        $this->assertStringContainsString('class="skip-link"', $adminLayout, 'keyboard users can skip navigation');
+        $this->assertStringContainsString('aria-controls="admin-sidebar"', $adminLayout, 'mobile menu controls its target');
+        $this->assertStringContainsString('data-admin-nav-close', $adminLayout, 'mobile menu has a close control');
+        $this->assertStringContainsString('role="<?= $flashOk ? \'status\' : \'alert\' ?>"', $adminLayout, 'flash messages announce status');
+        $this->assertStringContainsString('focus-visible', $adminCss, 'focus-visible outlines present');
+        $this->assertStringContainsString('prefers-reduced-motion', $adminCss, 'reduced-motion support present');
+        $this->assertStringContainsString("event.key === 'Escape'", $adminJs, 'mobile menu closes from the keyboard');
     }
 
     public function testAdminLayoutRendersLaunchActionAndVersions(): void
@@ -95,7 +102,7 @@ final class AccessibilityTest extends TestCase
                 'route' => '/admin', 'label' => 'Dashboard', 'cap' => null,
                 'group' => 'Overview', 'group_key' => 'core-overview', 'package' => null,
             ]],
-            'currentPath' => '/admin', 'basePath' => '/catering',
+            'currentPath' => '/admin', 'basePath' => '/catering/index.php?p=',
             'user' => null, 'csrf' => new \Core\Security\Csrf(),
             'pageTitle' => 'Dashboard', 'siteName' => 'Catering Test',
             'coreVersion' => '0.1.14-dev',
@@ -103,7 +110,9 @@ final class AccessibilityTest extends TestCase
             'flash' => null,
         ]);
 
-        $this->assertStringContainsString('href="/catering/" target="_blank" rel="noopener"', $html);
+        $this->assertStringContainsString('href="/catering/index.php?p=/" target="_blank" rel="noopener"', $html);
+        $this->assertStringContainsString('/catering/index.php?p=/_a/core/css/admin.css&amp;v=', $html);
+        $this->assertStringContainsString('/catering/index.php?p=/_a/core/js/admin.js&amp;v=', $html);
         $this->assertStringContainsString('Website Core</strong><span>0.1.14-dev', $html);
         $this->assertStringContainsString('Catering Website</strong><span>0.1.14', $html);
     }

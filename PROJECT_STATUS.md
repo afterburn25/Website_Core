@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.11` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.12` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -68,6 +68,13 @@ before loading Application, resets OPcache and force-invalidates every Core and
 admin PHP file when that version changes. Hosts with timestamp validation
 disabled can no longer mix a new bootstrap/version with an old cached routing
 or controller graph.
+
+Version 2.0.12 closes the remaining class-cache loophole on shared hosts that
+disable or ignore OPcache management functions. Bootstrap and the Core
+autoloader now load PHP through version-specific private runtime paths, so a
+new deployment cannot reuse bytecode compiled for an older Core version.
+Authenticated administrators also receive safe expandable exception details
+on admin-only 500 pages, while public error pages retain opaque references.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

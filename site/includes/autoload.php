@@ -29,6 +29,10 @@ final class CoreAutoload
                     $path = $dir . implode(DIRECTORY_SEPARATOR, $segments) . '.php';
                 }
                 if (is_file($path)) {
+                    if (function_exists('wc_runtime_code_mirror')
+                        && defined('WC_CONFIG') && defined('WC_VERSION')) {
+                        $path = wc_runtime_code_mirror($path, WC_CONFIG, WC_VERSION);
+                    }
                     require $path;
                 }
                 return;

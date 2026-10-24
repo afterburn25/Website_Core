@@ -48,5 +48,10 @@ final class AdminExperienceTest extends TestCase
         $bootstrap = (string) file_get_contents(WC_ROOT . '/includes/bootstrap.php');
         $this->assertStringContainsString('runtime-code-cache.php', $bootstrap);
         $this->assertStringContainsString('wc_refresh_runtime_code_cache', $bootstrap);
+        $this->assertStringContainsString('runtime-code-loader.php', $bootstrap);
+        $this->assertStringContainsString('wc_runtime_code_mirror', $bootstrap);
+        $this->assertStringContainsString('wc_runtime_code_mirror', (string) file_get_contents(
+            WC_ROOT . '/includes/autoload.php'
+        ));
     }
 }

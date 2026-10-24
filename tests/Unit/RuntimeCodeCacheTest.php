@@ -20,10 +20,10 @@ final class RuntimeCodeCacheTest extends TestCase
         file_put_contents($root . '/core/Application.php', '<?php return true;');
         file_put_contents($root . '/admin/controllers/DemoController.php', '<?php return true;');
 
-        \wc_refresh_runtime_code_cache($root, $config, '2.0.11');
+        \wc_refresh_runtime_code_cache($root, $config, '2.0.12');
 
         $marker = $config . '/.runtime-code-version';
         $this->assertFileExists($marker);
-        $this->assertSame('2.0.11', trim((string) file_get_contents($marker)));
+        $this->assertSame('2.0.12', trim((string) file_get_contents($marker)));
     }
 }

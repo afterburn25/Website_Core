@@ -728,11 +728,16 @@ final class Application
                 500
             );
         }
-        return Response::html((new \Core\Branding\Attribution())->apply(\Core\Branding\StatusPage::render(
+        $page = (new \Core\Branding\Attribution())->apply(\Core\Branding\StatusPage::render(
             500, 'That wasn’t supposed to happen.',
             'The issue has been recorded. Try the page once more, or share the reference with the site administrator.',
             $this->request?->routeBase() ?? '', $this->siteName(), $reference, 'Try again', ''
-        )), 500);
+        ));
+        $detail = $this->authenticatedErrorDetail($e);
+        if ($detail !== null) {
+            $page = str_replace('</main>', $detail . '</main>', $page);
+        }
+        return Response::html($page, 500);
     }
 
     private function siteName(): string
@@ -760,18 +765,52 @@ final class Application
         (new Migrator($db, WC_ROOT . '/database/migrations'))->migrate();
     }
 
+    /**
+     * Authenticated owners get the actual exception on an admin error page.
+     * Public visitors still receive only the opaque reference.
+     */
+    private function authenticatedErrorDetail(\Throwable $e): ?string
+    {
+        if ($this->request === null || !str_starts_with($this->request->path, '/admin')
+            || !$this->container->has(AuthService::class)) {
+            return null;
+        }
+        try {
+            if ($this->container->get(AuthService::class)->user() === null) {
+                return null;
+            }
+        } catch (\Throwable) {
+            return null;
+        }
+        $message = get_class($e) . ': ' . $e->getMessage()
+            . "\n" . $e->getFile() . ':' . $e->getLine();
+        return '<details style="margin:1.25rem auto;max-width:760px;text-align:left">'
+            . '<summary style="cursor:pointer;font-weight:700">Technical details for the signed-in administrator</summary>'
+            . '<pre style="white-space:pre-wrap;overflow-wrap:anywhere;padding:1rem;border-radius:.75rem;background:#111827;color:#e5e7eb">'
+            . htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+            . '</pre></details>';
+    }
+
     /** Best-effort local log that preserves the same reference shown on screen. */
     private function writeApplicationError(string $line): void
     {
         $storage = (string) $this->config->get('paths.storage', WC_ROOT . '/storage');
-        $directory = rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'logs';
-        if (!is_dir($directory) && !@mkdir($directory, 0700, true) && !is_dir($directory)) {
-            return;
+        $directories = [
+            rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'logs',
+            rtrim(WC_CONFIG, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'logs',
+        ];
+        foreach (array_unique($directories) as $directory) {
+            if (!is_dir($directory) && !@mkdir($directory, 0700, true) && !is_dir($directory)) {
+                continue;
+            }
+            $written = @file_put_contents(
+                $directory . DIRECTORY_SEPARATOR . 'application.log',
+                '[' . gmdate('Y-m-d\TH:i:s\Z') . '] ' . $line . PHP_EOL,
+                FILE_APPEND | LOCK_EX,
+            );
+            if ($written !== false) {
+                return;
+            }
         }
-        @file_put_contents(
-            $directory . DIRECTORY_SEPARATOR . 'application.log',
-            '[' . gmdate('Y-m-d\TH:i:s\Z') . '] ' . $line . PHP_EOL,
-            FILE_APPEND | LOCK_EX,
-        );
     }
 }

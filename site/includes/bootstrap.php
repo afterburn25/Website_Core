@@ -17,7 +17,7 @@ define('WC_CORE', WC_ROOT . '/core');
 define('WC_THEMES', WC_ROOT . '/themes');
 define('WC_MODULES', WC_ROOT . '/modules');
 define('WC_INSTALLED_LOCK', WC_CONFIG . '/installed.lock');
-define('WC_VERSION', '2.0.11');
+define('WC_VERSION', '2.0.12');
 define('WC_API_VERSION', 1);
 // Latest core migration bundled with this code. Installed sites compare this
 // marker with the migration journal during boot so a manual shared-hosting
@@ -27,8 +27,9 @@ define('WC_SCHEMA_VERSION', '2026_10_23_0022');
 require_once __DIR__ . '/runtime-code-cache.php';
 wc_refresh_runtime_code_cache(WC_ROOT, WC_CONFIG, WC_VERSION);
 
-require __DIR__ . '/autoload.php';
-require __DIR__ . '/helpers.php';
+require_once __DIR__ . '/runtime-code-loader.php';
+require wc_runtime_code_mirror(__DIR__ . '/autoload.php', WC_CONFIG, WC_VERSION);
+require wc_runtime_code_mirror(__DIR__ . '/helpers.php', WC_CONFIG, WC_VERSION);
 
 // Composer dependencies — bundled at site/vendor in deployment packages,
 // repo-root vendor during development. Both locations stay non-public.

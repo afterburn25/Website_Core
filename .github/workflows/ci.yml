@@ -448,6 +448,7 @@ jobs:
             "index.php",
             "includes/bootstrap.php",
             "includes/runtime-code-cache.php",
+            "includes/runtime-code-loader.php",
             "core/Application.php",
             "admin/controllers/SystemToolsController.php",
             "admin/controllers/ModulesController.php",
@@ -471,8 +472,8 @@ jobs:
       - name: Upload catering shared-host repair
         uses: actions/upload-artifact@v4
         with:
-          name: Website-Core-Catering-2.0.11-REPAIR-UPLOAD
-          path: /tmp/dist/Website-Core-catering-2.0.11-REPAIR-UPLOAD.zip
+          name: Website-Core-Catering-2.0.12-REPAIR-UPLOAD
+          path: /tmp/dist/Website-Core-catering-2.0.12-REPAIR-UPLOAD.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 30

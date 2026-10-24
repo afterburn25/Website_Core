@@ -19,9 +19,14 @@ Before starting this checklist, every applicable surface in
    - `Website-Core-VERSION-UPDATE.zip` — same payload + `update.json`
      (per-file sha256 manifest, signed when `WC_UPDATE_SIGN_KEY` is set);
      apply never touches config/keys/content/storage/installed packages.
-   - `Website-Core-INDUSTRY-VERSION-REPAIR-UPLOAD.zip` — installer-free
-     Core runtime plus one industry at its exact installed path for recovering
-     partial shared-host file copies; runtime site data remains excluded.
+   - `Website-Core-INDUSTRY-VERSION-REPAIR-UPLOAD.zip` — Core runtime,
+     browser installer, and one industry at its exact installed path for
+     recovering partial shared-host file copies; runtime site data remains
+     excluded.
+   - Every downloadable artifact is one directly usable ZIP. It must contain
+     the payload at its root and must not contain another ZIP. GitHub Actions
+     uploads extracted staging directories, including hidden guard files, so
+     the Actions-generated download ZIP is the deployable package itself.
    - Separately versioned example package ZIPs (never inside
      COMPLETE-UPLOAD) + `SHA256SUMS.txt` + `SBOM.json` (CycloneDX 1.5,
      runtime deps only — emitted by `tools/sbom.php`, CI-asserted).

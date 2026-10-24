@@ -17,9 +17,9 @@ declare(strict_types=1);
  *                                            modules/themes are not members)
  *   Website-Core-Package-NAME-VERSION.zip    one per reference example
  *   Website-Core-NAME-VERSION-REPAIR-UPLOAD.zip
- *                                            core runtime + one industry,
- *                                            without installer entry files;
- *                                            extract into an installed site
+ *                                            core runtime + browser installer
+ *                                            + one industry; extract directly
+ *                                            into the web directory
  *   SHA256SUMS.txt                           checksum manifest for all zips
  *
  * Usage: php tools/build-packages.php [outdir]
@@ -381,16 +381,14 @@ foreach (glob($root . '/examples/*', GLOB_ONLYDIR) as $dir) {
     $sums[] = $zipPath;
 
     // Shared-host repair upload: a complete current Core runtime plus the
-    // selected industry at its exact live destination. It intentionally
-    // omits install.php and install/ so repairing an installed site cannot
-    // reopen or reintroduce the installer. Runtime config/data remain
-    // excluded through the same release filter as COMPLETE-UPLOAD.
+    // browser installer and selected industry at its exact live destination.
+    // Runtime config/data remain excluded through the same release filter as
+    // COMPLETE-UPLOAD. Installed sites keep the installer disabled through the
+    // existing config + installed.lock guard.
     if (($m['type'] ?? null) === 'industry') {
         $repair = "{$out}/Website-Core-{$inner}-{$ver}-REPAIR-UPLOAD.zip";
         $n = buildZip($repair, $root . '/site', function (string $rel) use ($skipRuntime) {
-            if ($skipRuntime($rel)
-                || $rel === 'install.php'
-                || str_starts_with($rel, 'install/')) {
+            if ($skipRuntime($rel)) {
                 return null;
             }
             return $rel;

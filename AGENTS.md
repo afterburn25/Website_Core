@@ -15,6 +15,17 @@ add-ons + themes) for shared hosting. `site/` is the deployable web root.
 - Root PHP entries are thin and allowlisted; logic lives in `site/core/`.
 - Packages use ONLY the `ModuleContext` API (docs/MODULE_API.md).
 
+## Non-negotiable delivery rules
+
+- Every downloadable build is one directly usable ZIP. Never place a ZIP file
+  inside another ZIP. For GitHub Actions artifacts, upload the extracted
+  payload directory so GitHub's generated download ZIP is the package itself.
+- Every complete, bundle, and repair upload includes the browser installer:
+  `install.php`, `install/index.php`, `core/Install/Installer.php`, and
+  `core/Install/views/installer.php`. Installed sites remain protected by the
+  existing configuration plus installation-lock checks.
+- CI must inspect these rules before publishing any artifact. Do not weaken or
+  bypass the packaging contract in a later session.
 ## Verify
 
 ```bash

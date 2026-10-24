@@ -429,13 +429,23 @@ jobs:
             fwrite(STDERR,"installer cleanup/recheck contract invalid\n");exit(1);
           }
           echo "catering TEST-BUNDLE contract OK: ".basename($path)."\n";'
+      - name: Stage directly usable catering TEST-BUNDLE
+        run: |
+          rm -rf /tmp/catering-test-artifact
+          mkdir -p /tmp/catering-test-artifact
+          unzip -q /tmp/catering-test-dist/Website-Core-catering-*-TEST-BUNDLE.zip -d /tmp/catering-test-artifact
+          test -f /tmp/catering-test-artifact/install.php
+          test -f /tmp/catering-test-artifact/install/index.php
+          test -f /tmp/catering-test-artifact/core/Install/Installer.php
+          test -z "$(find /tmp/catering-test-artifact -type f -name '*.zip' -print -quit)"
       - name: Upload catering TEST-BUNDLE
         uses: actions/upload-artifact@v4
         with:
           name: Website-Core-Catering-TEST-BUNDLE
-          path: /tmp/catering-test-dist/*TEST-BUNDLE.zip
+          path: /tmp/catering-test-artifact/
           if-no-files-found: error
           compression-level: 0
+          include-hidden-files: true
           retention-days: 30
       - name: Inspect catering shared-host repair upload
         run: |
@@ -446,6 +456,10 @@ jobs:
           if($z->open($path)!==true){fwrite(STDERR,"catering REPAIR-UPLOAD unreadable\n");exit(1);}
           foreach([
             "index.php",
+            "install.php",
+            "install/index.php",
+            "core/Install/Installer.php",
+            "core/Install/views/installer.php",
             "includes/bootstrap.php",
             "includes/runtime-code-cache.php",
             "includes/runtime-code-loader.php",
@@ -464,7 +478,7 @@ jobs:
           ] as $need){
             if($z->locateName($need)===false){fwrite(STDERR,"REPAIR-UPLOAD missing $need\n");exit(1);}
           }
-          foreach(["install.php","install/index.php","config/config.php"] as $forbidden){
+          foreach(["config/config.php"] as $forbidden){
             if($z->locateName($forbidden)!==false){fwrite(STDERR,"REPAIR-UPLOAD contains $forbidden\n");exit(1);}
           }
           $manifest=json_decode((string)$z->getFromName("modules/industries/industry-catering/addon.json"),true);
@@ -473,13 +487,23 @@ jobs:
             fwrite(STDERR,"REPAIR-UPLOAD catering version does not match source snapshot\n");exit(1);
           }
           echo "catering REPAIR-UPLOAD contract OK: ".basename($path)."\n";'
+      - name: Stage directly usable catering shared-host repair
+        run: |
+          rm -rf /tmp/catering-repair-artifact
+          mkdir -p /tmp/catering-repair-artifact
+          unzip -q /tmp/dist/Website-Core-catering-2.0.14-REPAIR-UPLOAD.zip -d /tmp/catering-repair-artifact
+          test -f /tmp/catering-repair-artifact/install.php
+          test -f /tmp/catering-repair-artifact/install/index.php
+          test -f /tmp/catering-repair-artifact/core/Install/Installer.php
+          test -z "$(find /tmp/catering-repair-artifact -type f -name '*.zip' -print -quit)"
       - name: Upload catering shared-host repair
         uses: actions/upload-artifact@v4
         with:
           name: Website-Core-Catering-2.0.14-REPAIR-UPLOAD
-          path: /tmp/dist/Website-Core-catering-2.0.14-REPAIR-UPLOAD.zip
+          path: /tmp/catering-repair-artifact/
           if-no-files-found: error
           compression-level: 0
+          include-hidden-files: true
           retention-days: 30
       - name: Artifact contract assertions
         run: |

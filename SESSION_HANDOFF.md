@@ -1,5 +1,18 @@
 # Session Handoff
 
+## Permanent packaging rule
+
+- All user-facing build downloads are a single directly usable ZIP. Never put
+  a ZIP inside another ZIP. GitHub Actions must upload an extracted staging
+  directory so its generated download archive contains the deployable files
+  at the archive root.
+- Complete uploads, testing/licensed bundles, and repair uploads must include
+  the browser installer (`install.php`, `install/index.php`, and the Core
+  installer implementation/views). Installed sites rely on the existing
+  configuration and installation lock to keep setup disabled.
+- CI stages and inspects the downloadable payload, rejects nested ZIP files,
+  requires installer files, and preserves hidden `.htaccess` guard files.
+
 ## 2.0.14 subfolder assets and SEO recovery
 
 - The shared administrator shell now anchors Core CSS and JavaScript to the

@@ -17,9 +17,10 @@
 
 - Synchronized `cajunwebpro/landscaping` 1.0.0 runtime source from
   `Core_Mods/module/landscaping` commit
-  `03699e8ab9d9e2b31dec397a38940df1efe4615d`.
+  `be009de567286b16ea60e4188b6e7eb34f482b83`.
 - Verified module release digest:
-  `ed6277357589ca684296f821f5fdb20bc1cbedfc69d82dbdcaf3d7f9e9a964f3`.
+  `05639d1c98002b33a0aeabfbb728802095c14cc3028280214c7e1572670d8627`.
+- Final Core_Mods CI passed in run `40125724520`.
 - Added Bold Outdoors as the default and Estate Green, Neighborhood Lawn, and
   Earth & Stone as separately packaged 1.0.0 themes.
 - Added package install/render/estimate coverage, native MySQL/MariaDB

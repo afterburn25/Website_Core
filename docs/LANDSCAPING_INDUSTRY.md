@@ -4,10 +4,12 @@
 
 - Module: `cajunwebpro/landscaping` 1.0.0
 - Core_Mods branch: `module/landscaping`
-- Core_Mods commit: `03699e8ab9d9e2b31dec397a38940df1efe4615d`
+- Core_Mods commit: `be009de567286b16ea60e4188b6e7eb34f482b83`
 - Module release SHA-256:
-  `ed6277357589ca684296f821f5fdb20bc1cbedfc69d82dbdcaf3d7f9e9a964f3`
+  `05639d1c98002b33a0aeabfbb728802095c14cc3028280214c7e1572670d8627`
 - Core compatibility: `>=2.0.7,<3.0.0`
+- Final module CI:
+  [run 40125724520](https://github.com/afterburn25/Core_Mods/actions/runs/40125724520)
 
 The `examples/industry-landscaping` snapshot contains the exact deployable
 runtime source from the verified Core_Mods release. Development history,

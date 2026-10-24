@@ -394,6 +394,22 @@ final class ReferencePackagesTest extends TestCase
         $this->assertSame(120, (int) $row['guest_count']);
     }
 
+    public function testCateringReferencePackageFitsSharedHostingUploadCeiling(): void
+    {
+        $zip = $this->zipDir(
+            WC_ROOT . '/../examples/industry-catering',
+            'catering',
+            'catering-size-check.zip'
+        );
+        $size = filesize($zip);
+        $this->assertNotFalse($size);
+        $this->assertLessThanOrEqual(
+            2 * 1024 * 1024,
+            (int) $size,
+            'Catering package must fit the common shared-hosting 2 MB upload ceiling.'
+        );
+    }
+
     public function testCateringNavigationInitializationPreservesExistingMenu(): void
     {
         $this->installEnable('industry-catering', 'catering', 'cajunwebpro/catering');

@@ -26,6 +26,7 @@ final class ReferencePackagesTest extends TestCase
     private PackageManager $pm;
     private ModuleRegistry $registry;
     private Router $router;
+    private \Core\Settings\SettingsRepository $serviceSettings;
 
     protected function setUp(): void
     {
@@ -101,6 +102,7 @@ final class ReferencePackagesTest extends TestCase
     private function services(): callable
     {
         $settings = new \Core\Settings\SettingsRepository($this->db);
+        $this->serviceSettings = $settings;
         $configFile = $this->tmp . '/test-config.php';
         file_put_contents($configFile, '<?php return ' . var_export([
             'paths' => ['storage' => $this->tmp . '/storage'],
@@ -268,7 +270,7 @@ final class ReferencePackagesTest extends TestCase
         $this->assertGreaterThan(0, (int) $this->db->fetchColumn(
             'SELECT COUNT(*) FROM `' . $this->db->table('catering_menu_items') . '`'
         ));
-        $settings = new \Core\Settings\SettingsRepository($this->db);
+        $settings = $this->serviceSettings;
         $logoId = (int) $settings->get('brand.logo_media_id', 0);
         $this->assertGreaterThan(0, $logoId);
         $this->assertSame('catering-co-logo.png', $this->db->fetchColumn(

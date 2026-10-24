@@ -618,9 +618,9 @@ final class Application
             // A dedicated class path prevents stale shared-host OPcache from
             // retaining a pre-repair SystemController after files are
             // replaced through a hosting panel.
-            $r->get('/health', fn (Request $req) => (new \Admin\Controllers\SystemToolsController($c))->health($req), [$auth]);
+            $r->get('/health', fn (Request $req) => (new \Admin\Controllers\HealthController($c))->index($req), [$auth]);
             $r->get('/system/diagnostics', fn (Request $req) => (new \Admin\Controllers\SystemToolsController($c))->diagnostics($req), [$auth]);
-            $r->get('/audit', fn (Request $req) => (new \Admin\Controllers\SystemToolsController($c))->audit($req), [$auth]);
+            $r->get('/audit', fn (Request $req) => (new \Admin\Controllers\AuditController($c))->index($req), [$auth]);
             $r->get('/updates', fn (Request $req) => (new \Admin\Controllers\UpdatesController($c))->index($req), [$auth]);
             $r->post('/updates/stage', fn (Request $req) => (new \Admin\Controllers\UpdatesController($c))->stage($req), [$auth, $csrfCheck]);
             $r->post('/updates/apply', fn (Request $req) => (new \Admin\Controllers\UpdatesController($c))->apply($req), [$auth, $csrfCheck]);

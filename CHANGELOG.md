@@ -15,6 +15,12 @@
   and job-monitoring areas with responsive commercial-product styling.
 - Repairs the standalone server-error-page test fixture so its temporary
   installation root exists before `.htaccess` provisioning is exercised.
+- Moves System Health and Audit to fresh dedicated controllers and isolates
+  their data access so one broken query cannot take down either workspace.
+- Makes Health collector and Audit query failures render useful partial or
+  empty states with actionable administrator warnings.
+- Registers a front-controller fatal shutdown renderer so the bundled branded
+  500 page works even when a shared host ignores `.htaccess` ErrorDocument.
 
 ## 2.0.13 — 2026-10-24
 

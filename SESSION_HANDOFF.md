@@ -1,5 +1,19 @@
 # Session Handoff
 
+## 2.0.14 Health and fatal-page recovery
+
+- Hosted `/admin/health` and `/admin/audit` returned bare HTTP 500 responses,
+  and the host did not honor
+  the dynamically provisioned `.htaccess` custom error mapping.
+- Health now uses a fresh `HealthController`; Audit uses a fresh
+  `AuditController`. Their data sources are isolated so
+  the page renders partial results and warnings instead of throwing.
+- `index.php` registers a shutdown fallback before bootstrap. Fatal PHP errors
+  directly render `errors/500.html` with subfolder-correct assets and links,
+  independent of Apache/LiteSpeed `ErrorDocument` support.
+- Build and distribute the 2.0.14 catering REPAIR-UPLOAD, then verify the
+  authenticated Health and Audit routes on the live host.
+
 ## 2.0.14 commercial admin polish
 
 - Second cross-surface commercial presentation pass; no new product domain.

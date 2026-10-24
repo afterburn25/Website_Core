@@ -6,81 +6,9 @@ namespace Admin\Controllers;
 use Core\Http\Request;
 use Core\Http\Response;
 
-/**
- * Health + audit views: real versions, queue depth/age, backup state,
- * failed packages, storage — no invented metrics.
- */
+/** Audit history and downloadable support diagnostics. */
 final class SystemToolsController extends Controller
 {
-    public function health(Request $r): Response
-    {
-        $u = $this->user();
-        if (!$u || !$this->auth()->has($u, 'system.view')) {
-            return $this->forbidden();
-        }
-        $db = $this->db();
-        $storage = (string) $this->c->get(\Core\Config::class)->get('paths.storage', WC_ROOT . '/storage');
-
-        $jobs = $this->c->get(\Core\Jobs\JobQueue::class)->counts();
-        $oldestPending = $db->fetchColumn(
-            'SELECT MIN(run_after) FROM `' . $db->table('jobs') . "` WHERE status IN ('pending','uncertain')"
-        );
-        $backups = glob($storage . '/backups/backup-*.zip') ?: [];
-        $latestBackup = $backups === [] ? null : max(array_map('filemtime', $backups));
-        $failedPackages = $db->fetchAll(
-            'SELECT package_id, state FROM `' . $db->table('packages') . "` WHERE state IN ('failed','upgrading')"
-        );
-        $driver = $db->driver();
-        $dbVersion = $driver === 'sqlite'
-            ? 'SQLite ' . (string) $db->pdo()->query('SELECT sqlite_version()')->fetchColumn()
-            : (string) $db->pdo()->query('SELECT VERSION()')->fetchColumn();
-
-        $mailRows = $db->fetchAll(
-            'SELECT `to`, subject, status, attempts, last_error, created_at, sent_at'
-            . ' FROM `' . $db->table('system_messages') . '` ORDER BY id DESC LIMIT 20'
-        );
-
-        return $this->page($r, 'system/health', [
-            'mailRows' => $mailRows,
-            'integrity' => $this->c->get(\Core\System\Integrity::class)->report(),
-            'moduleHealth' => $this->c->get(\Core\Modules\ModuleRegistry::class)->healthChecks(),
-            'checks' => [
-                'Core version'     => defined('WC_VERSION') ? WC_VERSION : '?',
-                'PHP'              => PHP_VERSION,
-                'Database'         => $driver . ' — ' . $dbVersion,
-                'Pending jobs'     => (string) ($jobs['pending'] + $jobs['uncertain']),
-                'Oldest pending job' => $oldestPending ? date('Y-m-d H:i:s', (int) $oldestPending) : '—',
-                'Failed jobs'      => (string) $jobs['failed'],
-                'Latest backup'    => $latestBackup ? date('Y-m-d H:i:s', (int) $latestBackup) : 'none yet',
-                'Failed/quarantined packages' => $failedPackages === [] ? 'none'
-                    : implode(', ', array_map(fn ($p) => $p['package_id'] . ' (' . $p['state'] . ')', $failedPackages)),
-                'Storage writable' => is_writable($storage) ? 'yes' : 'NO',
-                'Disk free'        => function_exists('disk_free_space')
-                    ? round(disk_free_space(WC_ROOT) / 1048576) . ' MB' : 'n/a',
-            ],
-        ], 'System health');
-    }
-
-    public function audit(Request $r): Response
-    {
-        $u = $this->user();
-        if (!$u || !$this->auth()->has($u, 'audit.view')) {
-            return $this->forbidden();
-        }
-        $search = mb_substr($r->string('q'), 0, 190);
-        $where = ''; $params = [];
-        if ($search !== '') {
-            $where = ' WHERE event LIKE ? OR detail LIKE ?';
-            $params = ['%' . $search . '%', '%' . $search . '%'];
-        }
-        $table = $this->db()->table('audit_log');
-        $total = (int) $this->db()->fetchColumn('SELECT COUNT(*) FROM `' . $table . '`' . $where, $params);
-        $pages = max(1, (int) ceil($total / 50));
-        $page = max(1, min($pages, (int) $r->input('page', 1)));
-        $rows = $this->db()->fetchAll('SELECT * FROM `' . $table . '`' . $where . ' ORDER BY id DESC LIMIT 50 OFFSET ' . (($page - 1) * 50), $params);
-        return $this->page($r, 'system/audit', ['rows' => $rows, 'search' => $search, 'total' => $total, 'page' => $page, 'pages' => $pages], 'Audit log');
-    }
-
     /**
      * Support diagnostics: plain-text bundle of versions, package states,
      * queue counts, and journal tails. Config KEYS are listed, values

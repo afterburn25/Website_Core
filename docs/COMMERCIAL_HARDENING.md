@@ -56,7 +56,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 9 | Privacy and integrations | Consent behavior, privacy requests, API keys, webhooks, scopes, delivery failures, exports and secret rotation | code complete — 2.0.6; packaged-browser check pending |
 | 10 | Modules and marketplace | Install/upgrade/enable/disable/uninstall/purge, dependency errors, protected Core, recovery mode, catalog trust and rollback | code complete — 2.0.6; packaged-browser check pending |
 | 11 | Backups and operations | Create/delete/restore, remote replication, queue states, retries, schedules, interrupted operations, disaster recovery | code complete — 2.0.6; packaged-browser check pending |
-| 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | code complete — 2.0.6; packaged-browser check pending |
+| 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | code complete through 2.0.14; packaged-browser check pending |
 | 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | code complete — 2.0.6; packaged-browser check pending |
 | 14 | Installer and reinstall/upgrade | Single-page polish, database test, HTTPS, safe writable-path provisioning, existing DB handling, cleanup and manual recheck | code complete — 2.0.6; packaged-host check pending |
 | 15 | Industry-module contract | Module admin category, default navigation takeover, shared services, uninstall/reinstall, compatibility and isolated failure | code complete — 2.0.6; packaged-module check pending |
@@ -123,6 +123,24 @@ run against packaged builds; code-complete does not mean externally verified.
       values remain stored rather than being erased by a transport change.
 - [ ] Packaged browser verification covers keyboard use, confirmation cancel,
       mobile navigation, sidebar/density persistence, and switch mutations.
+
+## 2.0.14 — diagnostic and fatal-page recovery acceptance
+
+- [x] Health runs from a fresh dedicated controller path.
+- [x] Audit runs from a separate dedicated controller and preserves a usable
+      workspace when its history query cannot complete.
+- [x] Queue, backup, package, database, mail, integrity, extension-health, and
+      disk collectors fail independently and preserve a usable partial report.
+- [x] Collector failures are logged privately and summarized without exposing
+      server paths or credentials in ordinary page output.
+- [x] The front controller installs a shutdown renderer before loading cleanup
+      or bootstrap code and serves the offline branded 500 page for fatal PHP
+      startup failures.
+- [x] Fatal fallback assets, retry, and administrator-login URLs are rewritten
+      for root and subfolder installations.
+- [ ] Hosted verification covers `/admin/health`, `/admin/audit`, and a
+      controlled front-controller fatal on the target LiteSpeed/shared-host
+      configuration.
 
 ## 2.0.4 — maintenance administrator access repair
 

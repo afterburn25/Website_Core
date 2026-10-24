@@ -91,6 +91,16 @@ switch pattern across maintenance, security, forms, privacy, integrations,
 accounts, and modules. Dependent mail/privacy fields are explained and gated
 without discarding inactive credentials.
 
+Version 2.0.14 also makes System Health and Audit recovery-safe tools. Each diagnostic
+collector is isolated in a new controller, so a broken optional table, package
+provider, backup path, version query, or disk-space call becomes a visible
+warning while the rest of the report still loads. The front controller also
+registers a fatal-error renderer before bootstrap, giving PHP startup failures
+the bundled branded 500 page on hosts that ignore dynamic `ErrorDocument`
+configuration.
+Audit uses its own controller and converts schema/query failure into an
+actionable warning without changing or discarding any audit records.
+
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before
 admin services query new tables, preventing the login-succeeds/dashboard-500

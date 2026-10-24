@@ -1,8 +1,15 @@
 # Catering Industry Package
 
-`examples/industry-catering` is the first customer-facing industry package
-for Website Core. Its package id is `cajunwebpro/catering` and its build name
-is `catering`.
+The Catering Website is the first customer-facing industry package for Website
+Core. Its authoritative development source is
+`afterburn25/Core_Mods`, branch `module/catering`, folder
+`modules/industry-catering/`. Its package id is `cajunwebpro/catering` and its
+build name is `catering`.
+
+`examples/industry-catering` is the synchronized, tested release snapshot used
+by this repository's combined bundle builder. Module changes must be released
+in Core_Mods first and then synchronized under the contract in
+`docs/MODULE_REPOSITORY.md`.
 
 ## Visual direction
 

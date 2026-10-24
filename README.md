@@ -68,6 +68,7 @@ php tools/build-web-installer.php \
 | `docs/INSTALLATION.md` | Installer + ownership claim model |
 | `docs/1.0_RELEASE_NOTES.md` | Stable release contents and upgrade notes |
 | `docs/MODULE_API.md` | Supported extension API surface |
+| `docs/MODULE_REPOSITORY.md` | Authoritative module branches, folders, versioning and release sync |
 | `docs/PACKAGE_SPEC.md` | addon.json manifest schema v1 |
 | `docs/LICENSING_API.md` | Bundle/DRM licensing contract |
 | `docs/INTEGRATIONS_API.md` | API keys, endpoints and signed webhooks |

@@ -46,6 +46,10 @@ Request → index.php → bootstrap.php → Application
 - **Modules** (`Core\Modules\*`) — addon.json manifest validation
   (schema v1), registry discovery + lifecycle states + journal,
   deterministic dependency-ordered boot, quarantine of throwing providers.
+  Module development is authoritative in `afterburn25/Core_Mods`: every
+  module has its own `module/<slug>` branch and `modules/<module-id>/` folder.
+  `examples/` contains synchronized, tested release snapshots for Core bundle
+  construction rather than the live module-development history.
 - **Jobs** (`Core\Jobs\*`) — durable queue with worker leases, bounded
   batches, linear backoff, uncertain-state marking. Runner: `site/cron.php`
   (CLI or token-guarded HTTP) — at-least-once, handlers idempotent.
@@ -82,3 +86,6 @@ Request → index.php → bootstrap.php → Application
 `Core\*` → `site/core/`, `Admin\*` → `site/admin/`; the installer is
 `Core\Install\*` under `site/core/Install/`. Module PSR-4 prefixes are
 registered per-manifest.
+
+See `docs/MODULE_REPOSITORY.md` for the source, version, documentation, and
+release synchronization contract between this repository and Core_Mods.

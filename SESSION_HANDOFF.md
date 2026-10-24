@@ -1,5 +1,21 @@
 # Session Handoff
 
+## 2026-10-24 — dedicated Core_Mods repository
+
+- Industry-module development moved to `afterburn25/Core_Mods`. Repository
+  `main` owns shared standards, templates, registry, and validation; each
+  module owns a long-lived `module/<slug>` branch and a separate
+  `modules/<module-id>/` folder.
+- Catering is authoritative on `module/catering` under
+  `modules/industry-catering/`, with source, roadmap, status, changelog,
+  testing record, handoff, and the current versioned module ZIP. This Core
+  repository retains `examples/industry-catering/` only as the tested snapshot
+  used by combined release builders.
+- When module behavior changes, increment its own manifest version and release
+  it in Core_Mods first. Synchronize the snapshot into Core in a separate,
+  traceable commit, run Core's complete CI matrix, and record the source module
+  branch, commit, version, and release digest.
+
 ## 2026-10-23 — Website Core 1.8 through 2.0
 
 - Version 1.8 completed custom roles and permissions, editorial review notes,

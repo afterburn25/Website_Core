@@ -39,8 +39,11 @@ final class AdminExperienceTest extends TestCase
         $this->assertStringContainsString('Finalize update', $modules);
 
         $updates = (string) file_get_contents(WC_ROOT . '/admin/views/system/updates.php');
-        $systemController = (string) file_get_contents(WC_ROOT . '/admin/controllers/SystemController.php');
+        $systemController = (string) file_get_contents(WC_ROOT . '/admin/controllers/SystemToolsController.php');
         $this->assertStringContainsString('Update workspace needs attention.', $updates);
         $this->assertStringContainsString('update page recovery', $systemController);
+        $this->assertStringContainsString('SystemToolsController', (string) file_get_contents(
+            WC_ROOT . '/core/Application.php'
+        ));
     }
 }

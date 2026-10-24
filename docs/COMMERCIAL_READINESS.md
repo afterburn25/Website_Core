@@ -72,7 +72,7 @@ Website Core is intentionally simple for shared hosting constraints:
   Platform performs adequately for ordinary business websites on shared
   hosting without external dependencies.
 - **OPcache integration**: opcache is reset after core updates
-  (`opcache_reset()` in SystemController) to ensure new code is loaded.
+  (`opcache_reset()` in SystemToolsController) to ensure new code is loaded.
 - **Database indexes**: Migration 0005 adds hot-path indexes on jobs,
   system_messages, page_revisions, menu_items, and media_usage.
 - **No N+1 queries**: All database access uses prepared statements with

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.10 — 2026-10-24
+
+- Moves Health, Diagnostics, Audit, and Core Updates routes to the fresh
+  `SystemToolsController` class/file path.
+- Forces shared-host OPcache/autoloaders to load the repaired System tools
+  implementation after hosting-panel file replacement instead of retaining a
+  stale cached `SystemController`.
+- Keeps the 2.0.9 fail-safe update-workspace handling intact on the new path.
+- Adds an administration routing regression contract for the replacement
+  controller.
+
 ## 2.0.9 — 2026-10-24
 
 - Prevents `/admin/updates` from returning HTTP 500 when shared-host storage

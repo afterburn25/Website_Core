@@ -10,7 +10,7 @@ use Core\Http\Response;
  * Health + audit views: real versions, queue depth/age, backup state,
  * failed packages, storage — no invented metrics.
  */
-final class SystemController extends Controller
+final class SystemToolsController extends Controller
 {
     public function health(Request $r): Response
     {

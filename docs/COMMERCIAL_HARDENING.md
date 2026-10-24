@@ -115,7 +115,8 @@ underlying code already exists.
 - [x] Logged-out `/admin` requests are redirected by the normal authentication
       middleware to the rewrite-independent subfolder login URL.
 - [x] Protected admin pages still require an authenticated administrator.
-- [ ] PHP 8.4/8.5, MySQL, MariaDB, package, and artifact CI pass.
+- [x] PHP 8.4/8.5, MySQL, MariaDB, Core-only boot, package, and artifact CI
+      pass (GitHub Actions run 408, run ID `40048346083`).
 - [ ] Hosted browser verification confirms login, logout, and login-again while
       maintenance mode remains enabled.
 

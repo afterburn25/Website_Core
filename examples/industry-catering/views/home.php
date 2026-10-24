@@ -1,4 +1,4 @@
-<?php /** @var array $featuredItems @var array $packages @var string $basePath */ ?>
+<?php /** @var array $featuredItems @var array $packages @var string $basePath @var string $assetBase */ ?>
 <section class="c-hero c-hero-home">
 <div class="c-hero-shade"></div>
 <div class="c-hero-content">
@@ -33,7 +33,7 @@
 <div class="c-section-heading"><div><p class="c-eyebrow">A taste of what’s possible</p><h2 id="signature-menu-title">Signature selections</h2><p>Seasonal ingredients, inspired cuisine, beautifully presented.</p></div><a class="c-button c-button-green" href="<?= e_attr($basePath) ?>/menus">Explore Our Menus</a></div>
 <div class="c-card-grid c-card-grid-three">
 <?php foreach ($featuredItems as $index => $item): ?>
-<article class="c-dish-card c-reveal"><div class="c-dish-photo c-dish-photo-<?= $index + 1 ?>"></div><div class="c-card-body">
+<article class="c-dish-card c-reveal"><?php if (!empty($item['image'])): ?><img class="c-dish-photo" src="<?= e_attr($assetBase . '/assets/images/menu/' . rawurlencode((string) $item['image'])) ?>" alt="<?= e_attr($item['name']) ?>" loading="lazy" width="1200" height="800"><?php else: ?><div class="c-dish-photo c-dish-photo-<?= $index + 1 ?>" role="img" aria-label="<?= e_attr($item['name']) ?>"></div><?php endif; ?><div class="c-card-body">
 <?php if ($item['dietary'] !== ''): ?><div class="c-chips"><?php foreach (explode(',', (string) $item['dietary']) as $tag): ?><span><?= e(trim($tag)) ?></span><?php endforeach; ?></div><?php endif; ?>
 <h3><?= e($item['name']) ?></h3><p><?= e($item['description']) ?></p><div class="c-price">From $<?= e(number_format(((int) $item['price_cents']) / 100, 2)) ?> <?= e($item['price_unit']) ?></div>
 </div></article>

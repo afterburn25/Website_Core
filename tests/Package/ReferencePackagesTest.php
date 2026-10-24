@@ -267,8 +267,21 @@ final class ReferencePackagesTest extends TestCase
         $this->assertTrue($this->db->tableExists('catering_menu_items'));
         $this->assertTrue($this->db->tableExists('catering_packages'));
         $this->assertTrue($this->db->tableExists('catering_inquiries'));
-        $this->assertGreaterThan(0, (int) $this->db->fetchColumn(
+        $this->assertSame(10, (int) $this->db->fetchColumn(
             'SELECT COUNT(*) FROM `' . $this->db->table('catering_menu_items') . '`'
+        ));
+        $menuColumns = array_column(
+            $this->db->fetchAll('PRAGMA table_info(`' . $this->db->table('catering_menu_items') . '`)'),
+            'name'
+        );
+        $this->assertContains('image', $menuColumns);
+        $this->assertSame(10, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('catering_menu_items') . '` WHERE image IS NOT NULL AND image <> ?',
+            ['']
+        ));
+        $this->assertSame(0, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('catering_menu_items') . '` WHERE slug IN (?, ?)',
+            ['garden-crostini', 'herb-crusted-salmon']
         ));
         $settings = $this->serviceSettings;
         $logoId = (int) $settings->get('brand.logo_media_id', 0);
@@ -323,6 +336,8 @@ final class ReferencePackagesTest extends TestCase
         $this->assertStringContainsString('/index.php?p=/_a/modules/catering/assets/css/catering.css', $home->body());
         $this->assertStringContainsString('class="c-brand-logo"', $home->body());
         $this->assertStringContainsString('/media/' . $logoId . '/w/480/catering-co-logo.png', $home->body());
+        $this->assertStringContainsString('Chicken &amp; Andouille Gumbo', $home->body());
+        $this->assertStringContainsString('chicken-andouille-gumbo.webp', $home->body());
         $this->assertStringContainsString('class="c-footer-nav"', $home->body());
         $this->assertStringContainsString('All rights reserved.', $home->body());
         $this->assertStringNotContainsString('class="c-footer-social"', $home->body());
@@ -345,7 +360,12 @@ final class ReferencePackagesTest extends TestCase
 
         $menu = $this->req('GET', '/menus/plated-entrees');
         $this->assertSame(200, $menu->status());
-        $this->assertStringContainsString('Herb-Crusted Salmon', $menu->body());
+        $this->assertStringContainsString('Chicken &amp; Andouille Gumbo', $menu->body());
+        $this->assertStringContainsString('Crawfish Étouffée', $menu->body());
+        $this->assertStringContainsString('Crawfish Bisque', $menu->body());
+        $this->assertStringContainsString('Blackened Redfish', $menu->body());
+        $this->assertStringContainsString('chicken-andouille-gumbo.webp', $menu->body());
+        $this->assertStringNotContainsString('Herb-Crusted Salmon', $menu->body());
 
         $_SESSION['_wc_csrf'] = 'catering-test-token';
         $quote = $this->req('POST', '/request-a-quote', [
@@ -390,6 +410,47 @@ final class ReferencePackagesTest extends TestCase
         $home = $this->req('GET', '/');
         $this->assertStringContainsString('Custom Home', $home->body());
         $this->assertStringNotContainsString('Our Story', $home->body());
+    }
+
+    public function testCateringCajunMenuMigrationPreservesCustomItems(): void
+    {
+        $migrationDir = WC_ROOT . '/../examples/industry-catering/migrations';
+        $foundation = require $migrationDir . '/0001_catering.php';
+        $foundation->up($this->db);
+        $categoryId = (int) $this->db->fetchColumn(
+            'SELECT id FROM `' . $this->db->table('catering_menu_categories') . '` WHERE slug = ?',
+            ['seasonal-small-plates']
+        );
+        $this->db->insert('catering_menu_items', [
+            'category_id' => $categoryId,
+            'slug' => 'client-family-recipe',
+            'name' => 'Client Family Recipe',
+            'description' => 'Administrator-created content.',
+            'price_cents' => 1500,
+            'price_unit' => 'per guest',
+            'dietary' => '',
+            'featured' => 0,
+            'visible' => 1,
+            'sort_order' => 90,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        (new Migrator($this->db, $migrationDir))->migrate();
+
+        $custom = $this->db->fetch(
+            'SELECT * FROM `' . $this->db->table('catering_menu_items') . '` WHERE slug = ?',
+            ['client-family-recipe']
+        );
+        $this->assertNotNull($custom);
+        $this->assertSame('Client Family Recipe', $custom['name']);
+        $this->assertSame('', (string) ($custom['image'] ?? ''));
+        $this->assertSame('Chicken & Andouille Gumbo', $this->db->fetchColumn(
+            'SELECT name FROM `' . $this->db->table('catering_menu_items') . '` WHERE slug = ?',
+            ['chicken-andouille-gumbo']
+        ));
+        $this->assertSame(11, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('catering_menu_items') . '`'
+        ));
     }
 
     public function testThemesValidateAsPackages(): void

@@ -17,6 +17,19 @@ use Core\View\View;
 
 final class CateringController
 {
+    private const DISH_IMAGES = [
+        'boudin-balls.webp' => 'Boudin Balls',
+        'crawfish-bread.webp' => 'Crawfish Bread',
+        'cajun-shrimp-grits-bites.webp' => 'Cajun Shrimp & Grits Bites',
+        'chicken-andouille-gumbo.webp' => 'Chicken & Andouille Gumbo',
+        'crawfish-etouffee.webp' => 'Crawfish Étouffée',
+        'crawfish-bisque.webp' => 'Crawfish Bisque',
+        'shrimp-fettuccine.webp' => 'Shrimp Fettuccine',
+        'cajun-jambalaya.webp' => 'Cajun Jambalaya',
+        'blackened-redfish.webp' => 'Blackened Redfish',
+        'bananas-foster-bread-pudding.webp' => 'Bananas Foster Bread Pudding',
+    ];
+
     private const STATUSES = [
         'new', 'reviewing', 'more-info', 'quote-in-progress', 'quote-sent',
         'accepted', 'deposit-pending', 'booked', 'completed', 'declined', 'cancelled',
@@ -197,6 +210,7 @@ final class CateringController
         [$categories, $items] = $this->menuData(false);
         return $this->adminPage($request, 'admin-menus', [
             'categories' => $categories, 'items' => $items,
+            'dishImages' => self::DISH_IMAGES,
             'saved' => $request->string('saved') === '1',
         ], 'Catering Menus');
     }
@@ -223,6 +237,10 @@ final class CateringController
         } elseif ($action === 'add_item') {
             $name = mb_substr($request->string('name'), 0, 190);
             $categoryId = (int) $request->string('category_id');
+            $image = $request->string('image');
+            if (!array_key_exists($image, self::DISH_IMAGES)) {
+                $image = '';
+            }
             $categoryExists = $db->fetchColumn(
                 'SELECT COUNT(*) FROM `' . $db->table('catering_menu_categories') . '` WHERE id = ?',
                 [$categoryId]
@@ -236,6 +254,7 @@ final class CateringController
                     'price_cents' => max(0, (int) round(((float) $request->string('price', '0')) * 100)),
                     'price_unit' => mb_substr($request->string('price_unit', 'per person'), 0, 80),
                     'dietary' => mb_substr($request->string('dietary'), 0, 255),
+                    'image' => $image,
                     'featured' => $request->string('featured') === '1' ? 1 : 0,
                     'visible' => 1,
                     'sort_order' => (int) $request->string('sort_order', '0'),
@@ -419,6 +438,7 @@ final class CateringController
         $view->share('user', $auth->user());
         $view->share('csrf', $this->ctx->service(Csrf::class));
         $view->share('basePath', $request->routeBase());
+        $view->share('assetBase', $this->ctx->assetBase($request->basePath));
         $view->share('frontController', rtrim($request->basePath, '/') . '/index.php');
         $view->share('currentPath', $request->path);
         $view->share('nav', $this->ctx->service(Nav::class)->visible($auth->user()));

@@ -3,7 +3,7 @@
   "id": "cajunwebpro/catering",
   "type": "industry",
   "name": "Catering Website",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "license": "PROPRIETARY",
   "requires": { "core": ">=2.0.5,<3.0.0", "api": 1 },
   "provider": "CajunWebPro\\Catering\\Provider",
@@ -17,7 +17,17 @@
       "assets/images/plated-dinner.webp",
       "assets/images/wedding-table.webp",
       "assets/images/corporate-service.webp",
-      "assets/images/catering-co-logo.png"
+      "assets/images/catering-co-logo.png",
+      "assets/images/menu/boudin-balls.webp",
+      "assets/images/menu/crawfish-bread.webp",
+      "assets/images/menu/cajun-shrimp-grits-bites.webp",
+      "assets/images/menu/chicken-andouille-gumbo.webp",
+      "assets/images/menu/crawfish-etouffee.webp",
+      "assets/images/menu/crawfish-bisque.webp",
+      "assets/images/menu/shrimp-fettuccine.webp",
+      "assets/images/menu/cajun-jambalaya.webp",
+      "assets/images/menu/blackened-redfish.webp",
+      "assets/images/menu/bananas-foster-bread-pudding.webp"
     ]
   },
   "capabilities": ["catering.manage", "catering.inquiries"]

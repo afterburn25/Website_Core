@@ -51,3 +51,15 @@
 /* Keep the transparent module logo free of a boxed background on dark footers. */
 .c-footer-logo-frame{padding:0;border-radius:0;background:transparent}
 .c-footer-logo-frame .c-brand-logo{max-width:230px;max-height:78px;filter:brightness(1.35) saturate(1.05) drop-shadow(0 3px 8px rgba(0,0,0,.3))}
+
+/* Dish-specific Cajun menu photography. */
+.c-menu-list{gap:2rem}
+.c-menu-list article,.c-menu-detail-list article{display:block;overflow:hidden;padding:0;background:#fff;border:1px solid var(--line);box-shadow:0 8px 28px rgba(31,40,33,.06)}
+.c-menu-item-photo,.c-menu-detail-photo{display:block;width:100%;aspect-ratio:3/2;object-fit:cover}
+.c-menu-item-copy{padding:1.25rem 1.35rem}
+.c-menu-list h3{font-size:1.35rem;margin-top:0}
+.c-menu-list article .c-menu-item-copy>p:not(.c-menu-price),.c-menu-detail-list article .c-menu-item-copy>p:not(.c-menu-price){font-size:.85rem;color:var(--muted);margin:.2rem 0 .7rem}
+.c-menu-price{text-align:left;margin:.9rem 0 0}
+.c-menu-price small{display:inline;margin-left:.35rem}
+.c-menu-detail-list{display:grid;gap:1.5rem}
+.c-menu-detail-list h2{font-size:1.65rem;margin:0}

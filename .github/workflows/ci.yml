@@ -437,6 +437,44 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
+      - name: Inspect catering shared-host repair upload
+        run: |
+          php -r '
+          $path=glob("/tmp/dist/Website-Core-catering-*-REPAIR-UPLOAD.zip")[0]??null;
+          if($path===null){fwrite(STDERR,"catering REPAIR-UPLOAD missing\n");exit(1);}
+          $z=new ZipArchive();
+          if($z->open($path)!==true){fwrite(STDERR,"catering REPAIR-UPLOAD unreadable\n");exit(1);}
+          foreach([
+            "index.php",
+            "includes/bootstrap.php",
+            "core/Application.php",
+            "admin/controllers/SystemController.php",
+            "admin/controllers/ModulesController.php",
+            "admin/views/system/updates.php",
+            "admin/views/modules/index.php",
+            "vendor/autoload.php",
+            "modules/industries/catering/addon.json",
+            "modules/industries/catering/migrations/0002_cajun_menu_images.php",
+            "modules/industries/catering/assets/images/menu/chicken-andouille-gumbo.webp"
+          ] as $need){
+            if($z->locateName($need)===false){fwrite(STDERR,"REPAIR-UPLOAD missing $need\n");exit(1);}
+          }
+          foreach(["install.php","install/index.php","config/config.php"] as $forbidden){
+            if($z->locateName($forbidden)!==false){fwrite(STDERR,"REPAIR-UPLOAD contains $forbidden\n");exit(1);}
+          }
+          $manifest=json_decode((string)$z->getFromName("modules/industries/catering/addon.json"),true);
+          if(($manifest["version"]??null)!=="0.1.23"){
+            fwrite(STDERR,"REPAIR-UPLOAD catering version invalid\n");exit(1);
+          }
+          echo "catering REPAIR-UPLOAD contract OK: ".basename($path)."\n";'
+      - name: Upload catering shared-host repair
+        uses: actions/upload-artifact@v4
+        with:
+          name: Website-Core-Catering-2.0.8-REPAIR-UPLOAD
+          path: /tmp/dist/Website-Core-catering-2.0.8-REPAIR-UPLOAD.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
       - name: Artifact contract assertions
         run: |
           php -r '

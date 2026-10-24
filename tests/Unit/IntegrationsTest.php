@@ -38,7 +38,7 @@ final class IntegrationsTest extends TestCase
     {
         $transfer = new SiteTransfer($this->db);
         $counts = $transfer->import(['format' => 'website-core-site', 'version' => 1,
-            'settings' => ['site.name' => 'Imported Site', 'security.app_key' => 'never'],
+            'settings' => ['site.name' => 'Imported Site', 'footer.copyright' => '© {year} Imported Site', 'security.app_key' => 'never'],
             'pages' => [['slug' => 'about-us', 'title' => 'About', 'body' => '<p>Hello</p><script>bad()</script>', 'status' => 'published']]]);
         $this->assertSame(1, $counts['pages']);
         $page = $this->db->fetch('SELECT * FROM `wc_pages` WHERE slug = ?', ['about-us']);
@@ -46,6 +46,7 @@ final class IntegrationsTest extends TestCase
         $this->assertStringNotContainsString('<script', (string) $page['body']);
         $document = $transfer->export();
         $this->assertSame('Imported Site', $document['settings']['site.name']);
+        $this->assertSame('© {year} Imported Site', $document['settings']['footer.copyright']);
         $this->assertArrayNotHasKey('security.app_key', $document['settings']);
     }
 }

@@ -398,11 +398,15 @@ final class CateringController
             'basePath' => $this->ctx->routeBase($request->basePath),
             'assetBase' => $this->ctx->assetBase($request->basePath),
             'currentPath' => rtrim($request->path, '/') ?: '/',
-            'siteName' => (string) $settings->get('site.name', 'Maison & Meadow Catering'),
+            'siteName' => (string) $settings->get('site.name', 'Catering Co.'),
             'tagline' => (string) $settings->get('site.tagline', 'Gather beautifully.'),
             'phone' => (string) $settings->get('catering.phone', '(555) 123-4567'),
             'contactEmail' => (string) $settings->get('site.contact_email', 'hello@example.com'),
             'navigation' => $this->navigation(),
+            'footerNavigation' => $this->ctx->navigationTree('footer'),
+            'brandLogoUrl' => $this->ctx->brandAssetUrl($request, 'logo', 480),
+            'faviconUrl' => $this->ctx->brandAssetUrl($request, 'favicon'),
+            'copyrightNotice' => $this->ctx->copyrightNotice((string) $settings->get('site.name', 'Catering Co.')),
             'page' => [
                 'title' => $title,
                 'meta_title' => $title,
@@ -434,6 +438,8 @@ final class CateringController
         $view->share('currentPath', $request->path);
         $view->share('nav', $this->ctx->service(Nav::class)->visible($auth->user()));
         $view->share('siteName', $this->settings()->get('site.name', 'Website Core'));
+        $view->share('brandLogoUrl', $this->ctx->brandAssetUrl($request, 'logo', 480));
+        $view->share('faviconUrl', $this->ctx->brandAssetUrl($request, 'favicon'));
         $view->share('pageTitle', $title);
         $view->share('flash', null);
         return Response::html($view->renderInLayout($this->ns . ':' . $template, 'admin:layouts/admin', $data));

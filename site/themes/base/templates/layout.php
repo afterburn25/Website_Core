@@ -1,5 +1,5 @@
 <?php
-/** @var string $content @var string $siteName @var string $tagline @var string $basePath @var array $pages @var array|null $page */
+/** @var string $content @var string $siteName @var string $tagline @var string $basePath @var array $pages @var array|null $page @var array $footerNavigation @var string $copyrightNotice */
 $brandLogoUrl = $brandLogoUrl ?? null;
 $faviconUrl = $faviconUrl ?? null;
 $socialImageUrl = $socialImageUrl ?? null;
@@ -76,7 +76,8 @@ $renderMenu($pages ?? []);
 <?= $content ?>
 </main>
 <footer class="site-footer">
-<p><?= e($siteName) ?> — <?= e(__('site.powered_by')) ?></p>
+<?php if (!empty($footerNavigation)): ?><nav class="footer-nav" aria-label="Footer"><?php $renderMenu($footerNavigation); ?></nav><?php endif; ?>
+<p><?= e($copyrightNotice ?? ('© ' . date('Y') . ' ' . $siteName . '. All rights reserved.')) ?></p>
 </footer>
 <script>document.querySelectorAll('[data-open-window]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();window.open(link.href,'wc-nav-window','noopener,noreferrer,width=1200,height=800,resizable=yes,scrollbars=yes');}));</script>
 </body>

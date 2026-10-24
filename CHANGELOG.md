@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.0.5 — 2026-10-24
+
+- Added Module API v1 `brandAssets()` and `brandAssetUrl()` methods. Industry
+  modules may declare starting logo/favicon/social-image files; Core safely
+  copies them into Media once and permanently owns the editable selections.
+- Preserved administrator choices: existing brand media is never overwritten,
+  and an intentionally cleared module default is never restored on a later
+  request or package update.
+- Added direct logo and favicon upload controls, current-asset previews, Media
+  selectors, and ICO support to Website → Appearance.
+- Wired the selected Core logo and favicon into the shared administration
+  shell, base public theme, and catering public/admin layouts with accessible
+  fallbacks.
+- Updated the catering module snapshot to `0.1.18` with the approved
+  transparent generic **CATERING CO.** logo and Core `>=2.0.5,<3.0.0` range.
+- Added path-confinement, one-time import, source-preservation, Appearance UI,
+  and reference-package regression coverage for the branding handoff.
+- Expanded Website → Navigation Menu with isolated **Header menu** and
+  **Footer menu** editors using the same visual tree, link sources, nesting,
+  ordering, and target controls.
+- Added a plain-text custom copyright notice in Website → Appearance with
+  `{year}` and `{site_name}` tokens; the mandatory Cajun Web Pro attribution
+  remains independently enforced by Core.
+- Catering now seeds an editable footer menu once and renders the current
+  Core-managed footer links and copyright notice.
+
 ## 2.0.4 — 2026-10-23
 
 - Kept the complete `/admin` namespace reachable while public maintenance

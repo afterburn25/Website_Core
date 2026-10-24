@@ -54,6 +54,14 @@ abstract class Controller
         $v->share('nav', $this->visibleNav());
         $v->share('pageTitle', $title);
         $v->share('siteName', $this->settings()->get('site.name', 'Website Core'));
+        try {
+            $brand = $this->c->get(\Core\Branding\BrandAssets::class);
+            $v->share('brandLogoUrl', $brand->url($r, 'logo', 480));
+            $v->share('faviconUrl', $brand->url($r, 'favicon'));
+        } catch (\Throwable) {
+            $v->share('brandLogoUrl', null);
+            $v->share('faviconUrl', null);
+        }
         $coreVersion = defined('WC_VERSION') ? WC_VERSION : 'development';
         $industryVersions = [];
         try {

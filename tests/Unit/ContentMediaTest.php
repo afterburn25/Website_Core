@@ -153,6 +153,21 @@ final class ContentMediaTest extends TestCase
         $this->assertSame('About', $tree[0]['label']);
     }
 
+    public function testHeaderAndFooterMenuLocationsRemainIsolated(): void
+    {
+        $menu = new MenuService($this->db);
+        $headerId = $menu->ensureLocation('primary', 'Primary');
+        $footerId = $menu->ensureLocation('footer', 'Footer');
+        [$headerItem] = $menu->addItem($headerId, 'Home', '/', null, 0);
+        [$footerItem] = $menu->addItem($footerId, 'Privacy', '/privacy', null, 0);
+
+        $this->assertTrue($menu->itemBelongsToMenu($headerItem, $headerId));
+        $this->assertFalse($menu->itemBelongsToMenu($headerItem, $footerId));
+        $this->assertSame(['Home'], array_column($menu->tree('primary'), 'label'));
+        $this->assertSame(['Privacy'], array_column($menu->tree('footer'), 'label'));
+        $this->assertTrue($menu->itemBelongsToMenu($footerItem, $footerId));
+    }
+
     public function testMenuItemsCanBeEditedAndCircularParentsAreRejected(): void
     {
         $menu = new MenuService($this->db);

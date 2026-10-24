@@ -17,8 +17,13 @@ final class NavigationController extends Controller
         }
         $menus = new MenuService($this->db());
         $redirects = new \Core\Content\RedirectService($this->db());
-        $location = 'primary';
-        $menuId = $menus->ensureLocation($location, 'Primary navigation');
+        $location = in_array($r->string('location', 'primary'), ['primary', 'footer'], true)
+            ? $r->string('location', 'primary') : 'primary';
+        $locationMeta = [
+            'primary' => ['label' => 'Header menu', 'menu_label' => 'Primary navigation'],
+            'footer' => ['label' => 'Footer menu', 'menu_label' => 'Footer navigation'],
+        ];
+        $menuId = $menus->ensureLocation($location, $locationMeta[$location]['menu_label']);
 
         if ($r->isPost()) {
             $action = $r->string('action');
@@ -33,8 +38,13 @@ final class NavigationController extends Controller
                 );
                 $this->flash($err ? 'error' : 'ok', $err ?? 'Menu item added.');
             } elseif ($action === 'save') {
+                $itemId = (int) $r->string('id');
+                if (!$menus->itemBelongsToMenu($itemId, $menuId)) {
+                    $this->flash('error', 'That link does not belong to the selected menu.');
+                    return $this->redirect($r, '/admin/navigation?location=' . rawurlencode($location));
+                }
                 [$ok, $err] = $menus->updateItem(
-                    (int) $r->string('id'),
+                    $itemId,
                     $r->string('label'),
                     $r->string('url'),
                     ($p = $r->string('parent_id')) !== '' ? (int) $p : null,
@@ -51,8 +61,13 @@ final class NavigationController extends Controller
                     $this->flash('error', 'Menu tree data was invalid. Reload and try again.');
                 }
             } elseif ($action === 'delete') {
-                $menus->deleteItem((int) $r->string('id'));
-                $this->flash('ok', 'Menu item removed.');
+                $itemId = (int) $r->string('id');
+                if ($menus->itemBelongsToMenu($itemId, $menuId)) {
+                    $menus->deleteItem($itemId);
+                    $this->flash('ok', 'Menu item removed.');
+                } else {
+                    $this->flash('error', 'That link does not belong to the selected menu.');
+                }
             } elseif ($action === 'redirect_add') {
                 [$ok, $err] = $redirects->save(
                     null,
@@ -66,7 +81,7 @@ final class NavigationController extends Controller
                 $redirects->delete((int) $r->string('id'));
                 $this->flash('ok', 'Redirect removed.');
             }
-            return $this->redirect($r, '/admin/navigation');
+            return $this->redirect($r, '/admin/navigation?location=' . rawurlencode($location));
         }
 
         $items = $menus->itemsFor($location);
@@ -86,6 +101,8 @@ final class NavigationController extends Controller
             'tree'      => $menus->tree($location),
             'depths'    => $depths,
             'menuId'    => $menuId,
+            'location'  => $location,
+            'locationMeta' => $locationMeta,
             'pages'     => $this->db()->fetchAll('SELECT id,title,slug,status FROM `' . $this->db()->table('pages') . '` WHERE deleted_at IS NULL ORDER BY title'),
             'redirects' => $redirects->all(),
         ], 'Navigation Menu');

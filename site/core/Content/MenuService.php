@@ -59,6 +59,14 @@ final class MenuService
         return $id === false ? null : (int) $id;
     }
 
+    public function itemBelongsToMenu(int $itemId, int $menuId): bool
+    {
+        return (bool) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('menu_items') . '` WHERE id = ? AND menu_id = ?',
+            [$itemId, $menuId]
+        );
+    }
+
     public function ensureLocation(string $location, string $label): int
     {
         $id = $this->menuId($location);

@@ -201,7 +201,11 @@ final class Application
             $this->config,
             $systemMail,
         ));
-        $this->container->instance(\Core\Media\MediaService::class, new \Core\Media\MediaService($db, $this->config));
+        $mediaService = new \Core\Media\MediaService($db, $this->config);
+        $this->container->instance(\Core\Media\MediaService::class, $mediaService);
+        $this->container->instance(\Core\Branding\BrandAssets::class, new \Core\Branding\BrandAssets(
+            $db, $this->container->get(SettingsRepository::class), $mediaService
+        ));
         $this->container->instance(\Core\Content\MenuService::class, new \Core\Content\MenuService($db));
         $this->container->instance(\Core\Content\PublishingService::class, new \Core\Content\PublishingService($db));
         $this->container->instance(\Core\Agency\AgencyService::class, new \Core\Agency\AgencyService($db, $this->config));
@@ -476,6 +480,7 @@ final class Application
             fn () => (string) $this->container->get(SettingsRepository::class)->get('theme.active', 'base'),
             $themesRoot,
             basename((string) ($registry->all()[$packageId]['dir'] ?? '')),
+            (string) ($registry->all()[$packageId]['dir'] ?? ''),
         );
 
         // Recovery mode: a flag file in storage (created from the Modules

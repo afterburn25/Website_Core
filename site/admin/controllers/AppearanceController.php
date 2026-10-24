@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 namespace Admin\Controllers;
 
+use Core\Branding\BrandAssets;
 use Core\Http\Request;
 use Core\Http\Response;
+use Core\Media\MediaService;
 use Core\Modules\ModuleRegistry;
 
 /**
@@ -28,6 +30,7 @@ final class AppearanceController extends Controller
                 $themes[$id] = $info;
             }
         }
+        $brand = $this->c->get(BrandAssets::class);
         return $this->page($r, 'appearance/index', [
             'themes' => $themes,
             'active' => (string) $this->settings()->get('theme.active', 'base'),
@@ -40,11 +43,17 @@ final class AppearanceController extends Controller
                 'radius' => (string) $this->settings()->get('design.radius', '8'),
                 'header_layout' => (string) $this->settings()->get('design.header_layout', 'classic'),
                 'footer_layout' => (string) $this->settings()->get('design.footer_layout', 'centered'),
+                'copyright' => (string) $this->settings()->get('footer.copyright', ''),
             ],
             'mediaItems' => $this->db()->fetchAll(
                 'SELECT id, original_name FROM `' . $this->db()->table('media')
                 . "` WHERE is_private = 0 AND mime LIKE 'image/%' ORDER BY id DESC LIMIT 200"
             ),
+            'brandPreviews' => [
+                'logo' => $brand->url($r, 'logo', 480),
+                'favicon' => $brand->url($r, 'favicon'),
+                'social' => $brand->url($r, 'social', 1200),
+            ],
         ], 'Appearance');
     }
 
@@ -88,6 +97,27 @@ final class AppearanceController extends Controller
             }
             $ids[$field] = $value > 0 ? $value : null;
         }
+
+        $created = [];
+        foreach (['logo_upload' => 'logo_media_id', 'favicon_upload' => 'favicon_media_id'] as $upload => $field) {
+            $file = $r->files[$upload] ?? null;
+            if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
+            if ($error = $this->uploadError($r, $upload)) {
+                foreach ($created as $id) $this->c->get(MediaService::class)->delete($id);
+                $this->flash('error', ucfirst(str_replace('_', ' ', $upload)) . ': ' . $error);
+                return $this->redirect($r, '/admin/appearance');
+            }
+            [$id, $error] = $this->c->get(MediaService::class)->store($file, $u->id, false, 'Branding');
+            $record = $id ? $this->c->get(MediaService::class)->find($id) : null;
+            if ($error !== null || $id === null || !$record || !str_starts_with((string) $record['mime'], 'image/')) {
+                if ($id) $this->c->get(MediaService::class)->delete($id);
+                foreach ($created as $createdId) $this->c->get(MediaService::class)->delete($createdId);
+                $this->flash('error', ucfirst(str_replace('_', ' ', $upload)) . ': ' . ($error ?? 'Choose a supported image file.'));
+                return $this->redirect($r, '/admin/appearance');
+            }
+            $created[] = $id;
+            $ids[$field] = $id;
+        }
         foreach ($ids as $field => $value) $this->settings()->set('brand.' . $field, $value);
         $this->settings()->set('design.primary_color', $primary);
         $this->settings()->set('design.accent_color', $accent);
@@ -96,6 +126,12 @@ final class AppearanceController extends Controller
         $footer = in_array($r->string('footer_layout'), ['centered', 'split', 'minimal'], true) ? $r->string('footer_layout') : 'centered';
         $this->settings()->set('design.header_layout', $header);
         $this->settings()->set('design.footer_layout', $footer);
+        $copyright = strip_tags($r->string('copyright'));
+        $copyright = trim((string) preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $copyright));
+        if (mb_strlen($copyright) > 240) {
+            $copyright = mb_substr($copyright, 0, 240);
+        }
+        $this->settings()->set('footer.copyright', $copyright);
 
         $this->db()->run('DELETE FROM `' . $this->db()->table('media_usage') . '` WHERE context = ?', ['core.branding']);
         foreach (array_filter($ids) as $id) {
@@ -105,7 +141,7 @@ final class AppearanceController extends Controller
             ]);
         }
         $this->c->get(\Core\Audit\AuditLog::class)->record('appearance.branding', $u->id, ['media' => array_values(array_filter($ids))]);
-        $this->flash('ok', 'Brand assets and design tokens saved.');
+        $this->flash('ok', 'Brand assets, footer identity, and design tokens saved.');
         return $this->redirect($r, '/admin/appearance');
     }
 }

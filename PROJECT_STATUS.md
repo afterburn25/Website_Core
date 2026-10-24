@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.4` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.5` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -22,6 +22,16 @@ testing: the complete admin namespace now bypasses the public maintenance
 intercept, so a logged-out `/admin` request can reach the existing auth
 middleware and administrator login page. Protected admin screens still
 require authentication normally.
+
+Version 2.0.5 completes the brand-asset handoff between industry modules and
+Core. A module may supply initial logo/favicon/social files, Core imports them
+into its protected Media storage exactly once, and administrators thereafter
+own the selections in Website → Appearance. Direct logo/favicon uploads,
+previews, the shared admin logo/favicon, and the catering public layout all use
+the same Core-owned settings without allowing module updates to overwrite or
+repopulate an administrator's choices. The release also completes separate
+visual header/footer menu editing and a token-aware custom copyright field;
+the required Cajun Web Pro attribution remains separately enforced.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before
@@ -70,6 +80,11 @@ Menu** inside the Core-owned Website category. The reusable Module API now lets
 each industry module declare its approved starting links. Core imports that
 declaration exactly once, takes over the editable stored copy, and never
 repopulates a menu that an administrator later clears intentionally.
+
+The 2.0.5 maintenance release applies the same default-then-Core-ownership
+model to brand assets. The catering `0.1.18` snapshot supplies its generic
+transparent CATERING CO. logo and starting footer navigation, while Core owns
+all later branding, footer-link, and copyright changes.
 
 The first industry implementation remains `examples/industry-catering`: a
 complete editorial public site, menu/package management, secure multi-step

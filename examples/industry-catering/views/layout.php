@@ -1,6 +1,8 @@
 <?php
 /** @var string $content @var string $siteName @var string $tagline @var string $basePath @var string $assetBase
- * @var string $currentPath @var string $phone @var string $contactEmail @var array $page @var array $navigation */
+ * @var string $currentPath @var string $phone @var string $contactEmail @var array $page @var array $navigation
+ * @var array $footerNavigation @var string $copyrightNotice
+ * @var string|null $brandLogoUrl @var string|null $faviconUrl */
 $asset = $assetBase;
 $assetVersion = rawurlencode(defined('WC_VERSION') ? WC_VERSION : 'development');
 $renderNavigation = function (array $items, bool $child = false) use (&$renderNavigation, $basePath, $currentPath): void {
@@ -20,6 +22,20 @@ $renderNavigation = function (array $items, bool $child = false) use (&$renderNa
     }
     echo '</ul>';
 };
+$renderFooterNavigation = function (array $items, bool $child = false) use (&$renderFooterNavigation, $basePath): void {
+    echo '<ul class="' . ($child ? 'c-footer-nav-children' : 'c-footer-nav') . '">';
+    foreach ($items as $item) {
+        $url = (string) ($item['url'] ?? '/');
+        $href = str_starts_with($url, '/') ? $basePath . $url : $url;
+        $target = (string) ($item['target'] ?? 'self');
+        $attrs = $target === 'tab' ? ' target="_blank" rel="noopener noreferrer"'
+            : ($target === 'window' ? ' target="wc-nav-window" rel="noopener noreferrer" data-open-window' : '');
+        echo '<li><a href="' . e_url($href) . '"' . $attrs . '>' . e((string) ($item['label'] ?? '')) . '</a>';
+        if (!empty($item['children']) && is_array($item['children'])) $renderFooterNavigation($item['children'], true);
+        echo '</li>';
+    }
+    echo '</ul>';
+};
 ?>
 <!doctype html>
 <html lang="en">
@@ -29,15 +45,20 @@ $renderNavigation = function (array $items, bool $child = false) use (&$renderNa
 <title><?= e(($page['title'] ?? '') !== 'Home' ? ($page['title'] ?? '') . ' — ' : '') ?><?= e($siteName) ?></title>
 <meta name="description" content="<?= e_attr($page['meta_description'] ?? '') ?>">
 <?php if (!empty($page['noindex'])): ?><meta name="robots" content="noindex,nofollow"><?php endif; ?>
+<?php if (!empty($faviconUrl)): ?><link rel="icon" href="<?= e_attr($faviconUrl) ?>"><?php endif; ?>
 <link rel="stylesheet" href="<?= e_attr($asset . '/assets/css/catering.css&v=' . $assetVersion) ?>">
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
 <header class="c-site-header" data-site-header>
 <a class="c-brand" href="<?= e_attr($basePath) ?>/" aria-label="<?= e_attr($siteName) ?> home">
+<?php if (!empty($brandLogoUrl)): ?>
+<img class="c-brand-logo" src="<?= e_attr($brandLogoUrl) ?>" alt="<?= e_attr($siteName) ?>">
+<?php else: ?>
 <span class="c-brand-name"><?= e($siteName) ?></span>
 <span class="c-brand-rule"></span>
 <span class="c-brand-kind">Catering</span>
+<?php endif; ?>
 </a>
 <button class="c-nav-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" data-nav-toggle>
 <span></span><span></span><span></span><span class="sr-only">Open navigation</span>
@@ -62,15 +83,16 @@ $renderNavigation = function (array $items, bool $child = false) use (&$renderNa
 <div class="c-footer-grid">
 <div>
 <a class="c-brand c-brand-footer" href="<?= e_attr($basePath) ?>/">
+<?php if (!empty($brandLogoUrl)): ?><span class="c-footer-logo-frame"><img class="c-brand-logo" src="<?= e_attr($brandLogoUrl) ?>" alt="<?= e_attr($siteName) ?>"></span><?php else: ?>
 <span class="c-brand-name"><?= e($siteName) ?></span><span class="c-brand-kind">Catering</span>
+<?php endif; ?>
 </a>
 <p><?= e($tagline) ?> Thoughtful food and gracious hospitality for weddings, corporate events, and private celebrations.</p>
 </div>
-<div><h2>Explore</h2><a href="<?= e_attr($basePath) ?>/menus">Menus</a><a href="<?= e_attr($basePath) ?>/services">Services</a><a href="<?= e_attr($basePath) ?>/packages">Packages</a><a href="<?= e_attr($basePath) ?>/gallery">Gallery</a></div>
-<div><h2>Plan</h2><a href="<?= e_attr($basePath) ?>/request-a-quote">Request a Quote</a><a href="<?= e_attr($basePath) ?>/service-area">Service Area</a><a href="<?= e_attr($basePath) ?>/faq">FAQ</a><a href="<?= e_attr($basePath) ?>/contact">Contact</a></div>
+<div class="c-footer-links"><h2>Explore</h2><?php $renderFooterNavigation($footerNavigation ?? []); ?></div>
 <div><h2>Get in touch</h2><a href="tel:<?= e_attr((string) preg_replace('/[^0-9+]/', '', $phone)) ?>"><?= e($phone) ?></a><a href="mailto:<?= e_attr($contactEmail) ?>"><?= e($contactEmail) ?></a><p>Consultations by appointment.</p></div>
 </div>
-<div class="c-footer-bottom"><span>© <?= date('Y') ?> <?= e($siteName) ?></span><span>Demo content should be replaced before launch.</span></div>
+<div class="c-footer-bottom"><span><?= e($copyrightNotice) ?></span><span>Demo content should be replaced before launch.</span></div>
 </footer>
 <script src="<?= e_attr($asset . '/assets/js/catering.js&v=' . $assetVersion) ?>" defer></script>
 </body>

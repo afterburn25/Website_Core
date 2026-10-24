@@ -29,7 +29,7 @@ lives at `sdk/schema/addon.schema.json`.
 | `psr4` | object | prefix → dir, registered at boot |
 | `capabilities` | list | declared capability tokens (`area.action`) — documentation/policy, not sandboxing |
 | `migrations` | path/list | module-owned migration source |
-| `assets` | object | `css`/`js` lists served via `/_a/modules/<id>/...` |
+| `assets` | object | `css`/`js`/`images` lists served via `/_a/modules/<id>/...`; module-supplied brand defaults must be listed here and declared through Module API |
 | `integrity.files` | object | path → sha256 for post-extract verification |
 | `templates` | list | theme: named template inventory |
 | `tokens` | object | theme: design tokens (fonts/colors/radius/...) |

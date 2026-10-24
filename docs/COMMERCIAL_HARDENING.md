@@ -45,13 +45,13 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 
 | Order | Surface | Commercial completion focus | Status |
 | --- | --- | --- | --- |
-| 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete — 2.0.4; packaged-browser check pending |
+| 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete through 2.0.5; packaged-browser check pending |
 | 2 | Content list and page editor | Page lifecycle, visual blocks, preview, publish/review/schedule, revisions, duplication, trash/restore, validation, unsaved-state protection | code complete — 2.0.3; packaged-browser check pending |
 | 3 | Media library | Upload failures, folders/tags, bulk operations, focal points/crops, usage, replacement, empty states, file limits | queued |
 | 4 | Navigation Menu | Existing-menu import, tree editing, targets, page/external links, nesting, keyboard alternatives, validation, public rendering | queued |
 | 5 | Forms and submissions | Field builder, validation, notifications, spam controls, consent evidence, inbox, filters, read state, archive/export | queued |
 | 6 | SEO, redirects, translations, patterns | Actionable audits, previews, redirect import/export, localized content, reusable layouts, errors and conflicts | queued |
-| 7 | Appearance and public theme | Branding, theme preview/activation, header/footer layouts, responsive output, attribution, status/error pages | queued |
+| 7 | Appearance and public theme | Branding, theme preview/activation, header/footer layouts, responsive output, attribution, status/error pages | in progress — brand asset handoff/upload complete in 2.0.5 |
 | 8 | Administrators, roles, profile, security | Account lifecycle, role safety, capability clarity, MFA, sessions, recovery, lockouts, audit evidence | queued |
 | 9 | Privacy and integrations | Consent behavior, privacy requests, API keys, webhooks, scopes, delivery failures, exports and secret rotation | queued |
 | 10 | Modules and marketplace | Install/upgrade/enable/disable/uninstall/purge, dependency errors, protected Core, recovery mode, catalog trust and rollback | queued |
@@ -119,4 +119,26 @@ underlying code already exists.
       pass (GitHub Actions run 408, run ID `40048346083`).
 - [ ] Hosted browser verification confirms login, logout, and login-again while
       maintenance mode remains enabled.
+
+## 2.0.5 — brand ownership and upload acceptance
+
+- [x] Industry modules may declare package-relative starting logo, favicon,
+      and social images through Module API v1.
+- [x] Core confines, validates, and copies defaults into its own Media storage;
+      package files remain intact.
+- [x] Existing brand selections are never overwritten, and a deliberately
+      cleared default remains cleared after later boots and upgrades.
+- [x] Website → Appearance directly uploads logo/favicon files, shows current
+      previews, retains Media selectors, rejects non-image content, and tracks
+      brand usage.
+- [x] The selected logo and favicon render in the shared Core admin shell,
+      base public theme, and catering public/admin layouts with fallbacks.
+- [x] Catering 0.1.18 carries the transparent CATERING CO. default and requires
+      Core `>=2.0.5,<3.0.0`.
+- [x] Header and footer menus are separately editable through the polished
+      visual tree, and module defaults are imported once per location.
+- [x] Appearance stores a plain-text token-aware copyright notice while the
+      mandatory Cajun Web Pro attribution remains immutable and separate.
+- [ ] Packaged subfolder browser verification covers upload, replace, clear,
+      public header/footer, favicon, Core admin, and module admin rendering.
 

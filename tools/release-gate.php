@@ -109,6 +109,21 @@ $ok(str_contains($adminLayout, '/_a/core/css/admin.css')
     && is_file($root . '/site/assets/css/admin.css')
     && is_file($root . '/site/assets/js/admin.js'),
     'Versioned Core admin design assets are missing or not wired.');
+$moduleContext = $read($root . '/site/core/Modules/ModuleContext.php');
+$brandAssets = $read($root . '/site/core/Branding/BrandAssets.php');
+$cateringManifest = json_decode($read($root . '/examples/industry-catering/addon.json'), true);
+$ok(str_contains($moduleContext, 'function brandAssets(')
+    && str_contains($moduleContext, 'function brandAssetUrl(')
+    && str_contains($brandAssets, 'branding.seeded.')
+    && is_file($root . '/examples/industry-catering/assets/images/catering-co-logo.png')
+    && in_array('assets/images/catering-co-logo.png', (array) ($cateringManifest['assets']['images'] ?? []), true),
+    'Core-owned module branding contract or catering starter logo is missing.');
+$appearanceView = $read($root . '/site/admin/views/appearance/index.php');
+$ok(str_contains($appearanceView, 'logo_upload')
+    && str_contains($appearanceView, 'favicon_upload')
+    && str_contains($adminLayout, 'brandLogoUrl')
+    && str_contains($adminLayout, 'faviconUrl'),
+    'Direct branding uploads or shared admin logo/favicon rendering are missing.');
 $pageEditor = $read($root . '/site/admin/views/pages/edit.php');
 $ok(str_contains($pageEditor, '/_a/core/js/page-editor.js')
     && is_file($root . '/site/assets/js/page-editor.js')

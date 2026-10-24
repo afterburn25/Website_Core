@@ -22,6 +22,7 @@ final class MediaService
         'jpg' => ['image/jpeg'], 'jpeg' => ['image/jpeg'],
         'png' => ['image/png'], 'gif' => ['image/gif'],
         'webp' => ['image/webp'],
+        'ico' => ['image/x-icon', 'image/vnd.microsoft.icon'],
         'pdf' => ['application/pdf'],
         'txt' => ['text/plain'],
     ];
@@ -102,6 +103,38 @@ final class MediaService
             'created_at' => date('Y-m-d H:i:s'),
         ]);
         return [$id, null];
+    }
+
+    /**
+     * Import a trusted local file through the exact same validation pipeline
+     * as a browser upload. The source is copied first, so package assets are
+     * never moved out of an installed module.
+     * @return array{0:?int,1:?string}
+     */
+    public function importFile(
+        string $source,
+        ?int $adminId = null,
+        string $folder = '',
+        ?string $originalName = null,
+    ): array {
+        if (!is_file($source) || !is_readable($source)) {
+            return [null, 'Import source is unavailable.'];
+        }
+        $temporary = tempnam(sys_get_temp_dir(), 'wc-media-');
+        if ($temporary === false || !@copy($source, $temporary)) {
+            if (is_string($temporary)) @unlink($temporary);
+            return [null, 'Could not prepare the file for import.'];
+        }
+        try {
+            return $this->store([
+                'tmp_name' => $temporary,
+                'name' => $originalName ?? basename($source),
+                'size' => (int) filesize($temporary),
+                'error' => UPLOAD_ERR_OK,
+            ], $adminId, false, $folder);
+        } finally {
+            if (is_file($temporary)) @unlink($temporary);
+        }
     }
 
     public function find(int $id): ?array

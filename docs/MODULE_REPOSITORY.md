@@ -56,3 +56,14 @@ For each synchronization:
 
 Never make an untracked module hotfix only in Core. Fix and release it in its
 Core_Mods branch, then synchronize the verified snapshot.
+
+## Shared module rules
+
+`Core_Mods/MOD_RULES.md` contract 1.1 applies the same ownership rule to
+navigation and branding: a module declares its suitable starting defaults,
+Core imports them once, and administrator changes remain authoritative. A
+module that ships brand defaults must use package-relative `brandAssets()`
+paths and render the current Core selection with `brandAssetUrl()`. Modules
+declare header and footer defaults as distinct menu locations, render the
+current Core trees, and use Core's copyright-notice API rather than shipping a
+hard-coded business copyright.

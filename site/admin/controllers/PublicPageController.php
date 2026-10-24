@@ -172,9 +172,12 @@ final class PublicPageController extends Controller
             'email' => (string) $this->settings()->get('site.contact_email', ''),
             'address' => (string) $this->settings()->get('site.address', ''),
         ]);
-        $v->share('brandLogoUrl', $this->brandMediaUrl($r, 'brand.logo_media_id', 480));
-        $v->share('faviconUrl', $this->brandMediaUrl($r, 'brand.favicon_media_id'));
-        $v->share('socialImageUrl', $this->brandMediaUrl($r, 'brand.social_media_id', 1200));
+        $brand = $this->c->get(\Core\Branding\BrandAssets::class);
+        $v->share('brandLogoUrl', $brand->url($r, 'logo', 480));
+        $v->share('faviconUrl', $brand->url($r, 'favicon'));
+        $v->share('socialImageUrl', $brand->url($r, 'social', 1200));
+        $v->share('copyrightNotice', $brand->copyrightNotice((string) $this->settings()->get('site.name', 'Website Core')));
+        $v->share('footerNavigation', (new \Core\Content\MenuService($this->db()))->tree('footer'));
         $primary = (string) $this->settings()->get('design.primary_color', '#0369a1');
         $accent = (string) $this->settings()->get('design.accent_color', '#0ea5e9');
         $radius = max(0, min(24, (int) $this->settings()->get('design.radius', 8)));
@@ -190,15 +193,4 @@ final class PublicPageController extends Controller
         $v->share('currentLocale',$locale);
     }
 
-    private function brandMediaUrl(Request $r, string $setting, ?int $width = null): ?string
-    {
-        $id = (int) $this->settings()->get($setting, 0);
-        if ($id < 1) return null;
-        $media = $this->db()->fetch(
-            'SELECT id, original_name FROM `' . $this->db()->table('media') . '` WHERE id = ? AND is_private = 0', [$id]
-        );
-        if (!$media) return null;
-        return $r->basePath . '/media/' . $id
-            . ($width ? '/w/' . $width : '') . '/' . rawurlencode((string) $media['original_name']);
-    }
 }

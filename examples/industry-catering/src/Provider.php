@@ -86,5 +86,18 @@ final class Provider
             ['label' => 'Gallery', 'url' => '/gallery'],
             ['label' => 'Contact', 'url' => '/contact'],
         ]);
+        $ctx->navigationMenu([
+            ['label' => 'Menus', 'url' => '/menus'],
+            ['label' => 'Services', 'url' => '/services'],
+            ['label' => 'Packages', 'url' => '/packages'],
+            ['label' => 'Gallery', 'url' => '/gallery'],
+            ['label' => 'Service Area', 'url' => '/service-area'],
+            ['label' => 'FAQ', 'url' => '/faq'],
+            ['label' => 'Contact', 'url' => '/contact'],
+            ['label' => 'Request a Quote', 'url' => '/request-a-quote'],
+        ], 'footer', 'Footer navigation');
+        $ctx->brandAssets([
+            'logo' => 'assets/images/catering-co-logo.png',
+        ]);
     }
 }

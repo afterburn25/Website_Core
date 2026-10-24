@@ -1,7 +1,7 @@
 <?php
 /** @var string $content @var array $nav @var string $currentPath @var string $basePath @var string $siteBasePath
   * @var \Core\Auth\AdminUser|null $user @var \Core\Security\Csrf $csrf
-  * @var string $pageTitle @var string $siteName @var string $coreVersion
+  * @var string $pageTitle @var string $siteName @var string $coreVersion @var string|null $brandLogoUrl @var string|null $faviconUrl
   * @var list<array{name:string,version:string}> $industryVersions @var int $noticeCount @var array|null $flash */
 $navGroups = [];
 $activeRoute = null;
@@ -33,6 +33,7 @@ foreach ($nav as $item) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title><?= e($pageTitle !== '' ? $pageTitle . ' — ' : '') ?><?= e($siteName) ?> Admin</title>
+<?php if (!empty($faviconUrl)): ?><link rel="icon" href="<?= e_attr($faviconUrl) ?>"><?php endif; ?>
 <link rel="stylesheet" href="<?= e_attr($basePath) ?>/_a/core/css/admin.css&amp;v=<?= e_attr($assetVersion) ?>">
 </head>
 <body>
@@ -41,7 +42,11 @@ foreach ($nav as $item) {
 <aside class="admin-sidebar" id="admin-sidebar" aria-label="Administration sidebar">
 <div class="sidebar-brand-row">
 <a class="brand" href="<?= e_attr($basePath) ?>/admin">
+<?php if (!empty($brandLogoUrl)): ?>
+<span class="brand-logo-frame"><img class="brand-logo" src="<?= e_attr($brandLogoUrl) ?>" alt="" aria-hidden="true"></span>
+<?php else: ?>
 <span class="brand-mark" aria-hidden="true">W</span>
+<?php endif; ?>
 <span class="brand-copy"><span class="brand-name"><?= e($siteName) ?></span><span class="brand-meta">Website administration</span></span>
 </a>
 <button class="sidebar-close" type="button" aria-label="Close administration menu" data-admin-nav-close>×</button>

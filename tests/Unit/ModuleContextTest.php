@@ -70,5 +70,25 @@ final class ModuleContextTest extends TestCase
         $this->assertSame(['Home', 'Services'], array_column($tree, 'label'));
         $this->assertSame('Events', $tree[1]['children'][0]['label']);
         $this->assertSame('acme/demo', $context->packageId());
+
+        $context->navigationMenu([
+            ['label' => 'Privacy', 'url' => '/privacy'],
+        ], 'footer', 'Footer navigation');
+        $this->assertSame(['Privacy'], array_column($context->navigationTree('footer'), 'label'));
+        $this->assertArrayHasKey('footer', $context->navigationMenus());
+    }
+
+    public function testModuleCanDeclareBrandDefaultsWithoutOwningCoreSettings(): void
+    {
+        $context = new ModuleContext('acme/demo', new Router(), new Dispatcher());
+        $context->brandAssets([
+            'logo' => 'assets/images/logo.png',
+            'favicon' => 'assets/images/favicon.ico',
+        ]);
+
+        $this->assertSame([
+            'logo' => 'assets/images/logo.png',
+            'favicon' => 'assets/images/favicon.ico',
+        ], $context->declaredBrandAssets());
     }
 }

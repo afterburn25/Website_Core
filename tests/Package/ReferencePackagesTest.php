@@ -101,6 +101,11 @@ final class ReferencePackagesTest extends TestCase
     private function services(): callable
     {
         $settings = new \Core\Settings\SettingsRepository($this->db);
+        $configFile = $this->tmp . '/test-config.php';
+        file_put_contents($configFile, '<?php return ' . var_export([
+            'paths' => ['storage' => $this->tmp . '/storage'],
+        ], true) . ';');
+        $media = new \Core\Media\MediaService($this->db, new \Core\Config($configFile));
         $view = new \Core\View\View();
         $view->addResolver('admin', fn (string $v): ?string =>
             is_file(WC_ROOT . '/admin/views/' . $v . '.php') ? WC_ROOT . '/admin/views/' . $v . '.php' : null);
@@ -115,6 +120,8 @@ final class ReferencePackagesTest extends TestCase
             \Core\Security\RateLimiter::class => new \Core\Security\RateLimiter($this->db),
             \Core\Admin\Nav::class => new \Core\Admin\Nav($this->registry, null),
             \Core\Content\ContentItems::class => new \Core\Content\ContentItems($this->db, $this->registry),
+            \Core\Media\MediaService::class => $media,
+            \Core\Branding\BrandAssets::class => new \Core\Branding\BrandAssets($this->db, $settings, $media),
         ];
         return fn (string $id) => $map[$id] ?? throw new \RuntimeException("unbound {$id}");
     }
@@ -126,10 +133,14 @@ final class ReferencePackagesTest extends TestCase
         $adminMw = fn (Request $r, callable $next) => Response::text('ADMIN-AUTH-REQUIRED', 302);
         $this->registry->bootEnabled(
             fn (string $p, string $d) => \CoreAutoload::register($p, $d),
-            fn (string $id) => new \Core\Modules\ModuleContext(
-                $id, $this->router, new \Core\Events\Dispatcher(), new \Core\Auth\Permissions(),
-                $adminMw, $services(\Core\View\View::class), $services, fn () => 'base',
-            )
+            function (string $id) use ($adminMw, $services): \Core\Modules\ModuleContext {
+                $info = $this->registry->all()[$id];
+                return new \Core\Modules\ModuleContext(
+                    $id, $this->router, new \Core\Events\Dispatcher(), new \Core\Auth\Permissions(),
+                    $adminMw, $services(\Core\View\View::class), $services, fn () => 'base',
+                    WC_THEMES, basename((string) $info['dir']), (string) $info['dir'],
+                );
+            }
         );
     }
 
@@ -257,11 +268,23 @@ final class ReferencePackagesTest extends TestCase
         $this->assertGreaterThan(0, (int) $this->db->fetchColumn(
             'SELECT COUNT(*) FROM `' . $this->db->table('catering_menu_items') . '`'
         ));
+        $settings = new \Core\Settings\SettingsRepository($this->db);
+        $logoId = (int) $settings->get('brand.logo_media_id', 0);
+        $this->assertGreaterThan(0, $logoId);
+        $this->assertSame('catering-co-logo.png', $this->db->fetchColumn(
+            'SELECT original_name FROM `' . $this->db->table('media') . '` WHERE id = ?', [$logoId]
+        ));
+        $this->assertTrue((bool) $settings->get('branding.seeded.cajunwebpro.catering', false));
         $navigation = new \Core\Content\MenuService($this->db);
         $tree = $navigation->tree('primary');
         $this->assertSame(
             ['Our Story', 'Menus', 'Services', 'Packages', 'Gallery', 'Contact'],
             array_column($tree, 'label')
+        );
+        $footerTree = $navigation->tree('footer');
+        $this->assertSame(
+            ['Menus', 'Services', 'Packages', 'Gallery', 'Service Area', 'FAQ', 'Contact', 'Request a Quote'],
+            array_column($footerTree, 'label')
         );
 
         [$updated, $error] = $navigation->updateItem(
@@ -288,6 +311,10 @@ final class ReferencePackagesTest extends TestCase
         // staged archive installs as modules/industries/catering, while the
         // manifest id remains cajunwebpro/catering.
         $this->assertStringContainsString('/index.php?p=/_a/modules/catering/assets/css/catering.css', $home->body());
+        $this->assertStringContainsString('class="c-brand-logo"', $home->body());
+        $this->assertStringContainsString('/media/' . $logoId . '/w/480/catering-co-logo.png', $home->body());
+        $this->assertStringContainsString('class="c-footer-nav"', $home->body());
+        $this->assertStringContainsString('All rights reserved.', $home->body());
 
         foreach (['/services', '/menus', '/packages', '/gallery', '/about', '/service-area', '/faq', '/contact', '/request-a-quote'] as $route) {
             $response = $this->req('GET', $route);

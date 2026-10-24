@@ -25,6 +25,9 @@ breaking changes bump the major and ship with a migration guide.
 | `healthCheck($key, $label, $provider)` | Contribute an isolated `ok`, `warn`, or `error` check to System Health. |
 | `navigationMenu($items, $location = 'primary', $label = 'Primary navigation')` | Declare a module-specific starting menu. Core imports it once into the editable navigation tree without overwriting an existing or intentionally cleared menu. |
 | `navigationTree($location = 'primary')` | Read the current Core-managed navigation tree for module rendering, falling back to the declared defaults before import. |
+| `brandAssets($assets)` | Declare package-relative starting `logo`, `favicon`, and/or `social` images. Core validates and copies them into Media once without overwriting or repopulating administrator choices. |
+| `brandAssetUrl($request, $role, $width = null)` | Resolve the current Core-owned public URL for a logo, favicon, or social image in module layouts. |
+| `copyrightNotice($siteName)` | Resolve Core's custom copyright text after expanding `{year}` and `{site_name}`. Escape it when rendering. |
 | `permission($capability, $description)` | Declare a package capability. Owner always holds it; `admin` does by default. Packages can never grant core capabilities. |
 | `views($dir)` | Register a view directory, resolving as `mod-<slug>:<name>`; active-theme overrides at `templates/modules/<pkg-id>/<name>.php` win, package views fall back. Returns the namespace. |
 | `service($id)` | Resolve a core service (`View`, `SettingsRepository`, `JobQueue`, `SystemMail`, `ContentItems`, …). Packages are trusted in-process code — this is the supported way to reach shared infrastructure. |
@@ -57,7 +60,44 @@ $ctx->navigationMenu([
 ```
 
 Public module layouts render `$ctx->navigationTree()` rather than maintaining
-a separate hard-coded header menu.
+a separate hard-coded header menu. Modules may also declare a footer location:
+
+```php
+$ctx->navigationMenu([
+    ['label' => 'Privacy', 'url' => '/privacy'],
+    ['label' => 'Contact', 'url' => '/contact'],
+], 'footer', 'Footer navigation');
+
+$footerLinks = $ctx->navigationTree('footer');
+$copyright = $ctx->copyrightNotice($siteName);
+```
+
+Core exposes both locations in Website → Navigation Menu. Header and footer
+defaults are imported independently and administrator changes remain final.
+
+### Module-supplied brand defaults
+
+An industry module may ship presentation-ready starting images, but it never
+owns the live brand settings. Core confines each path to the installed package,
+validates the image through the Media pipeline, copies it into protected Core
+storage, records its usage, and marks the package seed complete. Existing Core
+selections win. The marker remains when an administrator later clears an
+asset, so a request or upgrade cannot silently restore it.
+
+```php
+$ctx->brandAssets([
+    'logo' => 'assets/images/company-logo.png',
+    'favicon' => 'assets/images/favicon.png', // optional
+]);
+
+$logoUrl = $ctx->brandAssetUrl($request, 'logo', 480);
+$faviconUrl = $ctx->brandAssetUrl($request, 'favicon');
+```
+
+Use only package-relative paths declared in `addon.json` assets. Public and
+module-admin layouts must resolve the current Core value with
+`brandAssetUrl()`; they must not link directly to the shipped default after
+installation.
 
 ### Shared admin surfaces
 

@@ -4,9 +4,11 @@ declare(strict_types=1);
 namespace Core\Modules;
 
 use Core\Auth\Permissions;
+use Core\Branding\BrandAssets;
 use Core\Content\MenuService;
 use Core\Database\Connection;
 use Core\Events\Dispatcher;
+use Core\Http\Request;
 use Core\Routing\Router;
 use Core\Settings\SettingsRepository;
 use Core\View\View;
@@ -34,6 +36,8 @@ final class ModuleContext
     private array $pageBlocks = [];
     /** @var array<string,array{label:string,items:list<array>}> */
     private array $navigationMenus = [];
+    /** @var array<string,string> */
+    private array $brandAssets = [];
 
     /**
      * @param callable|null $adminMiddleware combined auth+CSRF pipeline for
@@ -52,6 +56,7 @@ final class ModuleContext
         private $activeTheme = null,
         private ?string $themesRoot = null,
         private ?string $assetNamespace = null,
+        private ?string $packageRoot = null,
     ) {}
 
     private function themesRoot(): string
@@ -241,6 +246,47 @@ final class ModuleContext
         return $defaults;
     }
 
+    /**
+     * Declare starting brand images stored inside this package. Core copies
+     * them into Media once, then owns the editable logo/favicon selections.
+     * Later package boots and updates never overwrite an administrator's
+     * selection or intentionally cleared value.
+     *
+     * @param array<string,string> $assets logo|favicon|social => relative path
+     */
+    public function brandAssets(array $assets): void
+    {
+        $allowed = ['logo' => true, 'favicon' => true, 'social' => true];
+        foreach ($assets as $role => $path) {
+            if (!isset($allowed[$role]) || !is_string($path) || trim($path) === '') {
+                throw new \InvalidArgumentException('Brand assets support logo, favicon, and social image paths.');
+            }
+            $this->brandAssets[$role] = trim($path);
+        }
+        if ($this->serviceResolver !== null) {
+            if ($this->packageRoot === null || $this->packageRoot === '') {
+                throw new \RuntimeException('Package root is required to import brand assets.');
+            }
+            $this->service(BrandAssets::class)->seed($this->packageId, $this->packageRoot, $this->brandAssets);
+        }
+    }
+
+    /** Resolve the current Core-owned brand asset for module layouts. */
+    public function brandAssetUrl(Request $request, string $role, ?int $width = null): ?string
+    {
+        if ($this->serviceResolver === null) return null;
+        return $this->service(BrandAssets::class)->url($request, $role, $width);
+    }
+
+    /** Resolve the Core-owned custom footer notice for an industry layout. */
+    public function copyrightNotice(string $siteName): string
+    {
+        if ($this->serviceResolver === null) {
+            return '© ' . date('Y') . ' ' . trim($siteName) . '. All rights reserved.';
+        }
+        return $this->service(BrandAssets::class)->copyrightNotice($siteName);
+    }
+
     /** @return list<array{label:string,url:string,target:string,children:list<array>}> */
     private function normalizeNavigationItems(array $items, int $depth = 0): array
     {
@@ -345,4 +391,5 @@ final class ModuleContext
     public function healthChecks(): array { return $this->healthChecks; }
     public function pageBlocks(): array { return $this->pageBlocks; }
     public function navigationMenus(): array { return $this->navigationMenus; }
+    public function declaredBrandAssets(): array { return $this->brandAssets; }
 }

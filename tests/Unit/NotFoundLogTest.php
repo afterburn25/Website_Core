@@ -21,8 +21,10 @@ final class NotFoundLogTest extends TestCase
         $rows = $log->top();
         $this->assertCount(1, $rows);
         $this->assertSame(2, (int) $rows[0]['hits']);
-        $this->assertSame(1, $log->clear());
+        $this->assertSame(1, $log->forget('/old-link/'));
         $this->assertSame([], $log->top());
+        $log->record('/another-missing-page');
+        $this->assertSame(1, $log->clear());
     }
 
     public function testInternalInfrastructurePathsAreNotSeoInsights(): void

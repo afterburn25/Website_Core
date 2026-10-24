@@ -34,6 +34,12 @@ final class AdminExperienceTest extends TestCase
         $this->assertStringContainsString('[data-copy-previous]', $script);
         $this->assertStringContainsString('responsive-table', $script);
 
+        $seo = (string) file_get_contents(WC_ROOT . '/admin/views/seo/index.php');
+        $this->assertStringContainsString('Dismiss without redirect', $seo);
+        $this->assertStringContainsString('Core assets and administration routes are excluded', $seo);
+        $this->assertStringContainsString("e(\$issue['help'])", $seo);
+        $this->assertStringContainsString('.seo-resolution-form', $css);
+
         $modules = (string) file_get_contents(WC_ROOT . '/admin/views/modules/index.php');
         $this->assertStringContainsString('Files changed outside Module Manager.', $modules);
         $this->assertStringContainsString('Finalize update', $modules);

@@ -52,6 +52,16 @@ final class NotFoundLog
         return $this->db->run('DELETE FROM `' . $this->db->table('not_found_log') . '`')->rowCount();
     }
 
+    public function forget(string $path): int
+    {
+        $path = '/' . ltrim(substr($path, 0, 500), '/');
+        $hash = hash('sha256', strtolower(rtrim($path, '/') ?: '/'));
+        return $this->db->run(
+            'DELETE FROM `' . $this->db->table('not_found_log') . '` WHERE path_hash = ?',
+            [$hash]
+        )->rowCount();
+    }
+
     /** Infrastructure routes are operational failures, not public SEO opportunities. */
     private function isInternalPath(string $path): bool
     {

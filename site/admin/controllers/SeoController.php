@@ -17,11 +17,20 @@ final class SeoController extends Controller
         $log = $this->c->get(NotFoundLog::class);
         if ($r->isPost()) {
             if ($r->string('action') === 'redirect') {
+                $source = $r->string('source');
                 [$ok, $error] = (new RedirectService($this->db()))->save(
-                    null, $r->string('source'), $r->string('target'), 301, $u->id
+                    null, $source, $r->string('target'), 301, $u->id
                 );
-                if ($ok) $this->audit('seo.redirect_created', ['source' => $r->string('source'), 'target' => $r->string('target')]);
+                if ($ok) {
+                    $log->forget($source);
+                    $this->audit('seo.redirect_created', ['source' => $source, 'target' => $r->string('target')]);
+                }
                 $this->flash($ok ? 'ok' : 'error', $error ?? 'Permanent redirect created.');
+            } elseif ($r->string('action') === 'dismiss_missing') {
+                $source = $r->string('source');
+                $count = $log->forget($source);
+                $this->audit('seo.not_found_path_dismissed', ['source' => $source]);
+                $this->flash('ok', $count > 0 ? 'Missing path dismissed.' : 'That path was already removed.');
             } elseif ($r->string('action') === 'clear') {
                 $count = $log->clear();
                 $this->audit('seo.not_found_log_cleared', ['count' => $count]);

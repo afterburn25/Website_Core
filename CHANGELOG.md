@@ -38,6 +38,8 @@
   SEO 404 insights while hiding historical infrastructure rows already logged.
 - Seeds new home pages with a descriptive title and search summary instead of
   an incomplete placeholder that immediately fails the SEO audit.
+- Polishes SEO insights with responsive tables, actionable issue guidance,
+  single-path dismissal, and automatic cleanup after creating a redirect.
 
 ## 2.0.13 — 2026-10-24
 

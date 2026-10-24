@@ -4,8 +4,11 @@ declare(strict_types=1);
 namespace Core\Modules;
 
 use Core\Auth\Permissions;
+use Core\Content\MenuService;
+use Core\Database\Connection;
 use Core\Events\Dispatcher;
 use Core\Routing\Router;
+use Core\Settings\SettingsRepository;
 use Core\View\View;
 
 /**
@@ -29,6 +32,8 @@ final class ModuleContext
     private array $healthChecks = [];
     /** @var array<string,array{label:string,fields:array,renderer:callable,package:string}> */
     private array $pageBlocks = [];
+    /** @var array<string,array{label:string,items:list<array>}> */
+    private array $navigationMenus = [];
 
     /**
      * @param callable|null $adminMiddleware combined auth+CSRF pipeline for
@@ -170,6 +175,101 @@ final class ModuleContext
         $this->pageBlocks[$type] = compact('label', 'fields', 'renderer') + ['package' => $this->packageId];
     }
 
+    /**
+     * Declare the module's starting navigation. Core imports the declaration
+     * into its editable menu once, without replacing an existing or
+     * intentionally cleared menu.
+     */
+    public function navigationMenu(
+        array $items,
+        string $location = 'primary',
+        string $label = 'Primary navigation',
+    ): void {
+        if (!preg_match('/^[a-z][a-z0-9_-]{1,79}$/', $location)) {
+            throw new \InvalidArgumentException('Navigation location must use lowercase letters, numbers, hyphens, and underscores.');
+        }
+        $items = $this->normalizeNavigationItems($items);
+        $this->navigationMenus[$location] = ['label' => trim($label), 'items' => $items];
+        if ($this->serviceResolver === null) {
+            return;
+        }
+
+        $settings = $this->service(SettingsRepository::class);
+        $marker = 'navigation.seeded.' . str_replace('/', '.', $this->packageId) . '.' . $location;
+        if ((bool) $settings->get($marker, false)) {
+            return;
+        }
+
+        $menus = new MenuService($this->service(Connection::class));
+        $menuId = $menus->ensureLocation($location, trim($label) ?: 'Navigation');
+        if ($menus->itemsFor($location) === []) {
+            $this->service(Connection::class)->transaction(function () use ($menus, $menuId, $items): void {
+                $insert = function (array $nodes, ?int $parentId = null) use (&$insert, $menus, $menuId): void {
+                    foreach ($nodes as $order => $item) {
+                        [$id, $error] = $menus->addItem(
+                            $menuId,
+                            $item['label'],
+                            $item['url'],
+                            $parentId,
+                            $order,
+                            $item['target'],
+                        );
+                        if ($error !== null || $id === null) {
+                            throw new \RuntimeException('Unable to initialize module navigation: ' . ($error ?? 'unknown error'));
+                        }
+                        $insert($item['children'], $id);
+                    }
+                };
+                $insert($items);
+            });
+        }
+        $settings->set($marker, true);
+    }
+
+    /** Return the Core-managed menu, or the module defaults before import. */
+    public function navigationTree(string $location = 'primary'): array
+    {
+        $defaults = $this->navigationMenus[$location]['items'] ?? [];
+        if ($this->serviceResolver === null) {
+            return $defaults;
+        }
+        $tree = (new MenuService($this->service(Connection::class)))->tree($location);
+        $marker = 'navigation.seeded.' . str_replace('/', '.', $this->packageId) . '.' . $location;
+        if ($tree !== [] || (bool) $this->service(SettingsRepository::class)->get($marker, false)) {
+            return $tree;
+        }
+        return $defaults;
+    }
+
+    /** @return list<array{label:string,url:string,target:string,children:list<array>}> */
+    private function normalizeNavigationItems(array $items, int $depth = 0): array
+    {
+        if ($depth > 5) {
+            throw new \InvalidArgumentException('Navigation defaults may be nested up to five levels.');
+        }
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item) || trim((string) ($item['label'] ?? '')) === '' || trim((string) ($item['url'] ?? '')) === '') {
+                throw new \InvalidArgumentException('Every navigation item requires a label and URL.');
+            }
+            $target = (string) ($item['target'] ?? 'self');
+            if (!in_array($target, ['self', 'tab', 'window'], true)) {
+                throw new \InvalidArgumentException('Navigation targets must be self, tab, or window.');
+            }
+            $children = $item['children'] ?? [];
+            if (!is_array($children)) {
+                throw new \InvalidArgumentException('Navigation item children must be an array.');
+            }
+            $normalized[] = [
+                'label' => trim((string) $item['label']),
+                'url' => trim((string) $item['url']),
+                'target' => $target,
+                'children' => $this->normalizeNavigationItems($children, $depth + 1),
+            ];
+        }
+        return $normalized;
+    }
+
     /** Declare a capability this package adds; owner always holds it and
      * admin does by default — a package can never grant itself core caps. */
     public function permission(string $capability, string $description = ''): void
@@ -244,4 +344,5 @@ final class ModuleContext
     public function searchProviders(): array { return $this->searchProviders; }
     public function healthChecks(): array { return $this->healthChecks; }
     public function pageBlocks(): array { return $this->pageBlocks; }
+    public function navigationMenus(): array { return $this->navigationMenus; }
 }

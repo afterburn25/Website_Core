@@ -88,6 +88,6 @@ final class NavigationController extends Controller
             'menuId'    => $menuId,
             'pages'     => $this->db()->fetchAll('SELECT id,title,slug,status FROM `' . $this->db()->table('pages') . '` WHERE deleted_at IS NULL ORDER BY title'),
             'redirects' => $redirects->all(),
-        ], 'Navigation');
+        ], 'Navigation Menu');
     }
 }

@@ -26,10 +26,10 @@ installed through the Module Manager.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
-- **Status**: `2.0.0`. The stable core now includes visual composition,
+- **Status**: `2.0.1`. The stable core now includes visual composition,
   editorial approvals, scoped integrations, an agency dashboard, signed
   catalogs, managed updates and a visual navigation-tree editor. See
-  `PROJECT_STATUS.md`, `docs/ROADMAP.md`, and `docs/2.0_RELEASE_NOTES.md`.
+  `PROJECT_STATUS.md`, `docs/ROADMAP.md`, and `docs/2.0.1_RELEASE_NOTES.md`.
 
 ## Quick start (development)
 
@@ -67,6 +67,7 @@ php tools/build-web-installer.php \
 | `docs/ARCHITECTURE.md` | Kernel, container, routing, module API design |
 | `docs/INSTALLATION.md` | Installer + ownership claim model |
 | `docs/1.0_RELEASE_NOTES.md` | Stable release contents and upgrade notes |
+| `docs/2.0.1_RELEASE_NOTES.md` | Module-owned navigation defaults and editable Core takeover |
 | `docs/MODULE_API.md` | Supported extension API surface |
 | `docs/MODULE_REPOSITORY.md` | Authoritative module branches, folders, versioning and release sync |
 | `docs/PACKAGE_SPEC.md` | addon.json manifest schema v1 |

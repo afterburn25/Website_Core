@@ -55,4 +55,20 @@ final class ModuleContextTest extends TestCase
         $this->assertSame('demo.view', $context->searchProviders()[0]['capability']);
         $this->assertSame('tables', $context->healthChecks()[0]['key']);
     }
+
+    public function testModuleCanDeclareItsDefaultNavigationWithoutCoreServices(): void
+    {
+        $context = new ModuleContext('acme/demo', new Router(), new Dispatcher());
+        $context->navigationMenu([
+            ['label' => 'Home', 'url' => '/'],
+            ['label' => 'Services', 'url' => '/services', 'children' => [
+                ['label' => 'Events', 'url' => '/services/events', 'target' => 'tab'],
+            ]],
+        ]);
+
+        $tree = $context->navigationTree();
+        $this->assertSame(['Home', 'Services'], array_column($tree, 'label'));
+        $this->assertSame('Events', $tree[1]['children'][0]['label']);
+        $this->assertSame('acme/demo', $context->packageId());
+    }
 }

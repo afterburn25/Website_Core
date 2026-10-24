@@ -257,11 +257,33 @@ final class ReferencePackagesTest extends TestCase
         $this->assertGreaterThan(0, (int) $this->db->fetchColumn(
             'SELECT COUNT(*) FROM `' . $this->db->table('catering_menu_items') . '`'
         ));
+        $navigation = new \Core\Content\MenuService($this->db);
+        $tree = $navigation->tree('primary');
+        $this->assertSame(
+            ['Our Story', 'Menus', 'Services', 'Packages', 'Gallery', 'Contact'],
+            array_column($tree, 'label')
+        );
+
+        [$updated, $error] = $navigation->updateItem(
+            (int) $tree[0]['id'], 'Our Story', '/about', null, 0, 'tab'
+        );
+        $this->assertTrue($updated, (string) $error);
+        [$updated, $error] = $navigation->updateItem(
+            (int) $tree[2]['id'], 'Services', '/services', (int) $tree[0]['id'], 0, 'self'
+        );
+        $this->assertTrue($updated, (string) $error);
+        [$updated, $error] = $navigation->updateItem(
+            (int) $tree[4]['id'], 'Gallery', '/gallery', null, 4, 'window'
+        );
+        $this->assertTrue($updated, (string) $error);
 
         $home = $this->req('GET', '/');
         $this->assertSame(200, $home->status());
         $this->assertStringContainsString('Gather', $home->body());
         $this->assertStringContainsString('Request a Quote', $home->body());
+        $this->assertStringContainsString('class="c-nav-children"', $home->body());
+        $this->assertStringContainsString('target="_blank" rel="noopener noreferrer"', $home->body());
+        $this->assertStringContainsString('data-open-window', $home->body());
         // Package asset URLs use the installed directory namespace. The
         // staged archive installs as modules/industries/catering, while the
         // manifest id remains cajunwebpro/catering.
@@ -302,6 +324,24 @@ final class ReferencePackagesTest extends TestCase
         $this->assertNotNull($row);
         $this->assertSame('new', $row['status']);
         $this->assertSame(120, (int) $row['guest_count']);
+    }
+
+    public function testCateringNavigationInitializationPreservesExistingMenu(): void
+    {
+        $this->installEnable('industry-catering', 'catering', 'cajunwebpro/catering');
+        $navigation = new \Core\Content\MenuService($this->db);
+        $menuId = $navigation->ensureLocation('primary', 'Primary navigation');
+        [$id, $error] = $navigation->addItem($menuId, 'Custom Home', '/', null, 0);
+        $this->assertNotNull($id, (string) $error);
+
+        $this->boot();
+
+        $tree = $navigation->tree('primary');
+        $this->assertCount(1, $tree);
+        $this->assertSame('Custom Home', $tree[0]['label']);
+        $home = $this->req('GET', '/');
+        $this->assertStringContainsString('Custom Home', $home->body());
+        $this->assertStringNotContainsString('Our Story', $home->body());
     }
 
     public function testThemesValidateAsPackages(): void

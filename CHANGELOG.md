@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.1 — 2026-10-24
+
+- Renamed the Website-category admin item and page to **Navigation Menu** so
+  the visual editor is immediately recognizable.
+- Updated the catering module snapshot to `0.1.16`: its current header links
+  are initialized into Core's primary menu once and shown in the editor, while
+  preserving existing customized menus and intentionally empty menus.
+- Added Module API v1 `navigationMenu()` and `navigationTree()` methods so
+  every industry module can own its starting menu while Core takes over the
+  editable stored copy after installation.
+- Wired the catering header to Core's nested menu tree with the selected
+  same-tab, new-tab, and dedicated new-window targets.
+
 ## 2.0.0 — 2026-10-23
 
 - Added an owner-only agency dashboard with encrypted remote credentials,

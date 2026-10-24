@@ -77,5 +77,14 @@ final class Provider
                 ? ['status' => 'ok', 'detail' => 'Ready']
                 : ['status' => 'error', 'detail' => 'Required table is missing'];
         });
+
+        $ctx->navigationMenu([
+            ['label' => 'Our Story', 'url' => '/about'],
+            ['label' => 'Menus', 'url' => '/menus'],
+            ['label' => 'Services', 'url' => '/services'],
+            ['label' => 'Packages', 'url' => '/packages'],
+            ['label' => 'Gallery', 'url' => '/gallery'],
+            ['label' => 'Contact', 'url' => '/contact'],
+        ]);
     }
 }

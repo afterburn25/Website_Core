@@ -7,9 +7,11 @@ Website Core and industry modules have separate development authorities:
 - Core: `afterburn25/Website_Core`
 - Modules: `afterburn25/Core_Mods`
 
-In Core_Mods, `main` contains the shared repository standard, module registry,
-documentation templates, and validation workflow. Every module is isolated in
-both a long-lived branch and a repository folder:
+In Core_Mods, `main` contains the versioned `MOD_RULES.md` contract, shared
+repository standard, module registry, creation templates, and validation
+workflow. Every new module begins with its own required `MODULE_RULES.md`
+creation preflight and is isolated in both a long-lived branch and a repository
+folder:
 
 ```text
 branch: module/<slug>
@@ -29,7 +31,7 @@ increment and changelog entry.
 Each module folder keeps:
 
 - Source and assets
-- `README.md` and `CHANGELOG.md`
+- `README.md`, `MODULE_RULES.md`, and `CHANGELOG.md`
 - Project status, roadmap, testing, and session-handoff documents
 - `releases/<module-id>-<version>.zip`
 - `releases/LATEST.json` with version, filename, Core/API compatibility, and

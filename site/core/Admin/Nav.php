@@ -32,7 +32,7 @@ final class Nav
             $this->core('/admin/patterns',   'Layout patterns','content.manage',        'Website',        'core-website'),
             $this->core('/admin/translations','Translations',  'content.manage',        'Website',        'core-website'),
             $this->core('/admin/forms',      'Forms',          'forms.manage',          'Website',        'core-website'),
-            $this->core('/admin/navigation', 'Navigation',     'navigation.manage',     'Website',        'core-website'),
+            $this->core('/admin/navigation', 'Navigation Menu','navigation.manage',     'Website',        'core-website'),
             $this->core('/admin/seo',        'SEO',            'navigation.manage',     'Website',        'core-website'),
             $this->core('/admin/media',      'Media',          'media.manage',          'Website',        'core-website'),
             $this->core('/admin/appearance', 'Appearance',     'appearance.manage',     'Design',         'core-design'),

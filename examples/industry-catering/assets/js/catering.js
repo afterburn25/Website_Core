@@ -10,6 +10,13 @@
     });
   }
 
+  document.querySelectorAll('[data-open-window]').forEach((link) => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      window.open(link.href, 'wc-nav-window', 'noopener,noreferrer,width=1200,height=800,resizable=yes,scrollbars=yes');
+    });
+  });
+
   const form = document.querySelector('[data-quote-form]');
   if (!form) return;
   const steps = [...form.querySelectorAll('[data-quote-step]')];

@@ -1,12 +1,25 @@
 <?php
 /** @var string $content @var string $siteName @var string $tagline @var string $basePath @var string $assetBase
- * @var string $currentPath @var string $phone @var string $contactEmail @var array $page */
+ * @var string $currentPath @var string $phone @var string $contactEmail @var array $page @var array $navigation */
 $asset = $assetBase;
 $assetVersion = rawurlencode(defined('WC_VERSION') ? WC_VERSION : 'development');
-$nav = [
-    ['Our Story', '/about'], ['Menus', '/menus'], ['Services', '/services'],
-    ['Packages', '/packages'], ['Gallery', '/gallery'], ['Contact', '/contact'],
-];
+$renderNavigation = function (array $items, bool $child = false) use (&$renderNavigation, $basePath, $currentPath): void {
+    echo '<ul class="' . ($child ? 'c-nav-children' : 'c-nav-root') . '">';
+    foreach ($items as $item) {
+        $url = (string) ($item['url'] ?? '/');
+        $href = str_starts_with($url, '/') ? $basePath . $url : $url;
+        $active = str_starts_with($url, '/') && ($currentPath === $url || ($url !== '/' && str_starts_with($currentPath, rtrim($url, '/') . '/')));
+        $target = (string) ($item['target'] ?? 'self');
+        $attrs = $target === 'tab' ? ' target="_blank" rel="noopener noreferrer"'
+            : ($target === 'window' ? ' target="wc-nav-window" rel="noopener noreferrer" data-open-window' : '');
+        echo '<li class="c-nav-item"><a href="' . e_url($href) . '"' . ($active ? ' aria-current="page"' : '') . $attrs . '>' . e((string) ($item['label'] ?? '')) . '</a>';
+        if (!empty($item['children']) && is_array($item['children'])) {
+            $renderNavigation($item['children'], true);
+        }
+        echo '</li>';
+    }
+    echo '</ul>';
+};
 ?>
 <!doctype html>
 <html lang="en">
@@ -30,10 +43,7 @@ $nav = [
 <span></span><span></span><span></span><span class="sr-only">Open navigation</span>
 </button>
 <nav id="primary-navigation" class="c-nav" aria-label="Primary" data-nav>
-<?php foreach ($nav as [$label, $url]): ?>
-<?php $active = $currentPath === $url || ($url !== '/about' && str_starts_with($currentPath, $url . '/')); ?>
-<a href="<?= e_attr($basePath . $url) ?>"<?= $active ? ' aria-current="page"' : '' ?>><?= e($label) ?></a>
-<?php endforeach; ?>
+<?php $renderNavigation($navigation); ?>
 </nav>
 <a class="c-button c-button-gold c-header-cta" href="<?= e_attr($basePath) ?>/request-a-quote">Request a Quote</a>
 </header>

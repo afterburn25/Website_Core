@@ -1,5 +1,23 @@
 # Session Handoff
 
+## 2026-10-24 — Website Core 2.0.1 navigation visibility
+
+- The Core Website category now labels `/admin/navigation` as **Navigation
+  Menu**, and the editor explains that its primary tree is the live website
+  header navigation.
+- Module API v1 now exposes `navigationMenu()` and `navigationTree()`. An
+  industry module owns its default links; Core imports them on first boot and
+  then owns the editable stored tree without overwriting custom or intentionally
+  empty navigation.
+- Catering module `0.1.16` uses that API for its six existing links and renders
+  Core's current tree instead of a second hard-coded header menu.
+- Module development remains authoritative in `Core_Mods` on
+  `module/catering`; the Core example is synchronized from that release before
+  combined bundle verification.
+- Core_Mods now carries versioned shared `MOD_RULES.md` plus a required local
+  `MODULE_RULES.md` creation preflight copied into every new module. Repository
+  CI rejects modules that omit or mismatch the rules contract.
+
 ## 2026-10-24 — dedicated Core_Mods repository
 
 - Industry-module development moved to `afterburn25/Core_Mods`. Repository

@@ -402,6 +402,7 @@ final class CateringController
             'tagline' => (string) $settings->get('site.tagline', 'Gather beautifully.'),
             'phone' => (string) $settings->get('catering.phone', '(555) 123-4567'),
             'contactEmail' => (string) $settings->get('site.contact_email', 'hello@example.com'),
+            'navigation' => $this->navigation(),
             'page' => [
                 'title' => $title,
                 'meta_title' => $title,
@@ -414,6 +415,12 @@ final class CateringController
         }
         $body = $view->render($this->ns . ':' . $template, array_merge($shared, $data));
         return Response::html($view->render($this->ns . ':layout', array_merge($shared, ['content' => $body])));
+    }
+
+    /** @return list<array> */
+    private function navigation(): array
+    {
+        return $this->ctx->navigationTree();
     }
 
     private function adminPage(Request $request, string $template, array $data, string $title): Response

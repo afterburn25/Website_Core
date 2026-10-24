@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.0`. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.1`. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -47,6 +47,12 @@ WebDAV backup replication.
 The 2.0 release adds an encrypted agency site registry, remote version/health
 checks, signed marketplace feeds, policy-driven managed updates, and a visual
 drag-and-drop navigation tree with page-aware links and explicit targets.
+
+The 2.0.1 maintenance release makes that editor unmistakable as **Navigation
+Menu** inside the Core-owned Website category. The reusable Module API now lets
+each industry module declare its approved starting links. Core imports that
+declaration exactly once, takes over the editable stored copy, and never
+repopulates a menu that an administrator later clears intentionally.
 
 The first industry implementation remains `examples/industry-catering`: a
 complete editorial public site, menu/package management, secure multi-step

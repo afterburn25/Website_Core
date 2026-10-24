@@ -23,6 +23,8 @@ breaking changes bump the major and ship with a migration guide.
 | `dashboardWidget($key, $label, $provider, $capability = null, $url = null)` | Contribute a capability-filtered live metric to the Core dashboard. |
 | `adminSearchProvider($provider, $capability = null)` | Contribute capability-filtered results to Core global search. |
 | `healthCheck($key, $label, $provider)` | Contribute an isolated `ok`, `warn`, or `error` check to System Health. |
+| `navigationMenu($items, $location = 'primary', $label = 'Primary navigation')` | Declare a module-specific starting menu. Core imports it once into the editable navigation tree without overwriting an existing or intentionally cleared menu. |
+| `navigationTree($location = 'primary')` | Read the current Core-managed navigation tree for module rendering, falling back to the declared defaults before import. |
 | `permission($capability, $description)` | Declare a package capability. Owner always holds it; `admin` does by default. Packages can never grant core capabilities. |
 | `views($dir)` | Register a view directory, resolving as `mod-<slug>:<name>`; active-theme overrides at `templates/modules/<pkg-id>/<name>.php` win, package views fall back. Returns the namespace. |
 | `service($id)` | Resolve a core service (`View`, `SettingsRepository`, `JobQueue`, `SystemMail`, `ContentItems`, …). Packages are trusted in-process code — this is the supported way to reach shared infrastructure. |
@@ -37,6 +39,25 @@ rebased onto the rewrite-independent asset route by the core asset server.
 Each enabled package receives its **own** `ModuleContext` stamped with its
 packageId — registrations are attributed to the package and aggregated by
 the `ModuleRegistry` (`adminNavItems()`, `jobHandlers()`, `contexts()`).
+
+### Module-owned navigation defaults
+
+Industry modules declare the navigation that suits their site. Core imports
+that declaration into **Website → Navigation Menu** the first time the module
+boots, then owns the saved copy so administrators can rename, reorder, nest,
+retarget, add, or remove links. Later module boots and upgrades never replace
+an existing menu or repopulate one the administrator intentionally cleared.
+
+```php
+$ctx->navigationMenu([
+    ['label' => 'Our Story', 'url' => '/about'],
+    ['label' => 'Menus', 'url' => '/menus'],
+    ['label' => 'Contact', 'url' => '/contact', 'target' => 'tab'],
+]);
+```
+
+Public module layouts render `$ctx->navigationTree()` rather than maintaining
+a separate hard-coded header menu.
 
 ### Shared admin surfaces
 

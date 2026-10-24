@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.7` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.8` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -44,6 +44,12 @@ profile workflow. The administration identity and catering footer now honor
 transparent logo artwork without boxed backgrounds. Appearance supplies
 fifteen common business networks and one global Header, Footer, or both
 placement control, while blank profiles remain absent from public markup.
+
+Version 2.0.8 closes the shared-host file-manager update gap. Module Manager
+detects when active package files report a different version than the database,
+offers a deliberate Finalize update action, runs pending module migrations,
+and preserves the package state. Normal ZIP upgrades now also keep enabled
+packages enabled and disabled packages disabled.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

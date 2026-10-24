@@ -25,9 +25,11 @@ final class ModulesController extends Controller
         $packages = $this->c->get(ModuleRegistry::class)->all();
         // Staged/removed/failed packages aren't on disk in a destination dir,
         // so the registry can't discover them — merge their DB records in.
+        $databasePackages = [];
         foreach ($this->db()->fetchAll(
-            'SELECT package_id, state, manifest FROM `' . $this->db()->table('packages') . '`'
+            'SELECT package_id, state, version, manifest FROM `' . $this->db()->table('packages') . '`'
         ) as $row) {
+            $databasePackages[(string) $row['package_id']] = $row;
             $storedManifest = json_decode((string) $row['manifest'], true) ?: [];
             if (!isset($packages[$row['package_id']])) {
                 $packages[$row['package_id']] = [
@@ -43,8 +45,21 @@ final class ModulesController extends Controller
                 $packages[$row['package_id']]['state'] = 'staged';
             }
         }
-        foreach ($packages as &$package) {
+        foreach ($packages as $packageId => &$package) {
             $package['upgrade'] = $package['state'] === 'staged' && is_string($package['dir']) && is_dir($package['dir']);
+            $databaseManifest = json_decode(
+                (string) ($databasePackages[$packageId]['manifest'] ?? ''),
+                true
+            ) ?: [];
+            $diskVersion = (string) ($package['manifest']['version'] ?? '');
+            $databaseVersion = (string) ($databaseManifest['version']
+                ?? $databasePackages[$packageId]['version']
+                ?? '');
+            $package['filesystem_update'] = $package['state'] !== 'staged'
+                && $databaseVersion !== ''
+                && $diskVersion !== ''
+                && $diskVersion !== $databaseVersion;
+            $package['database_version'] = $databaseVersion;
         }
         unset($package);
         $journal = $this->db()->fetchAll(
@@ -113,6 +128,7 @@ final class ModulesController extends Controller
         [$ok, $err] = match ($op) {
             'install'   => $m->install($id),
             'enable'    => $m->enable($id),
+            'finalize'  => $m->finalizeFilesystemUpdate($id),
             'disable'   => $m->disable($id),
             'uninstall' => $m->uninstall($id),
             'purge'     => $r->string('confirm') === $id

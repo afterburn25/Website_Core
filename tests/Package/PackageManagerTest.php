@@ -395,6 +395,78 @@ PHP;
         $this->assertFalse($this->db->tableExists('widgets_items'));
     }
 
+    public function testUpgradePreservesEnabledState(): void
+    {
+        $initial = $this->zip([
+            'widgets/addon.json' => $this->manifest(['version' => '1.0.0']),
+            'widgets/version.txt' => 'one',
+        ], 'widgets-1.zip');
+        $this->pm->stage($initial);
+        [$ok, $err] = $this->pm->install('acme/widgets');
+        $this->assertTrue($ok, (string) $err);
+        $this->pm->enable('acme/widgets');
+
+        $upgrade = $this->zip([
+            'widgets/addon.json' => $this->manifest(['version' => '1.1.0']),
+            'widgets/version.txt' => 'two',
+        ], 'widgets-2.zip');
+        $this->pm->stage($upgrade);
+        [$ok, $err] = $this->pm->install('acme/widgets');
+
+        $this->assertTrue($ok, (string) $err);
+        $this->assertSame('enabled', $this->state('acme/widgets'));
+        $this->assertSame('two', file_get_contents($this->tmp . '/addons/widgets/version.txt'));
+        $this->assertSame('1.1.0', $this->db->fetchColumn(
+            'SELECT version FROM `' . $this->db->table('packages') . '` WHERE package_id = ?',
+            ['acme/widgets']
+        ));
+    }
+
+    public function testFilesystemUpdateCanBeFinalizedWithMigrationsAndStatePreserved(): void
+    {
+        $initial = $this->zip([
+            'widgets/addon.json' => $this->manifest(['version' => '1.0.0']),
+        ], 'widgets-files-1.zip');
+        $this->pm->stage($initial);
+        $this->pm->install('acme/widgets');
+        $this->pm->enable('acme/widgets');
+
+        $migration = <<<'PHP'
+<?php
+return new class extends \Core\Database\Migration {
+    public function id(): string { return 'widgets_0002_filesystem_update'; }
+    public function description(): string { return 'filesystem update schema'; }
+    public function up(\Core\Database\Connection $db): void {
+        $db->pdo()->exec('CREATE TABLE IF NOT EXISTS `' . $db->table('widgets_direct') . '` (id INTEGER PRIMARY KEY)');
+    }
+};
+PHP;
+        $dir = $this->tmp . '/addons/widgets';
+        file_put_contents($dir . '/addon.json', $this->manifest([
+            'version' => '1.1.0',
+            'migrations' => 'migrations',
+        ]));
+        mkdir($dir . '/migrations', 0777, true);
+        file_put_contents($dir . '/migrations/0002_filesystem_update.php', $migration);
+
+        [$ok, $err] = $this->pm->finalizeFilesystemUpdate('acme/widgets');
+
+        $this->assertTrue($ok, (string) $err);
+        $this->assertSame('enabled', $this->state('acme/widgets'));
+        $this->assertTrue($this->db->tableExists('widgets_direct'));
+        $this->assertSame('1.1.0', $this->db->fetchColumn(
+            'SELECT version FROM `' . $this->db->table('packages') . '` WHERE package_id = ?',
+            ['acme/widgets']
+        ));
+        $journal = $this->db->fetch(
+            'SELECT result, detail FROM `' . $this->db->table('package_journal')
+            . '` WHERE package_id = ? AND operation = ? ORDER BY id DESC',
+            ['acme/widgets', 'filesystem-update']
+        );
+        $this->assertSame('ok', $journal['result']);
+        $this->assertStringContainsString('1.0.0 -> 1.1.0', $journal['detail']);
+    }
+
     private function state(string $id): string
     {
         return (string) $this->db->fetchColumn(

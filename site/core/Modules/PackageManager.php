@@ -168,8 +168,16 @@ final class PackageManager
                 $this->journal($id, 'stage', 'rejected', $blocked[1]);
                 return [null, $blocked[1]];
             }
+            $existing = $this->db->fetch(
+                'SELECT state FROM `' . $this->db->table('packages') . '` WHERE package_id = ?',
+                [$id]
+            );
+            $previousState = is_array($existing) ? (string) ($existing['state'] ?? '') : '';
             $this->recordPackage($manifest, 'staged');
-            $this->journal($id, 'stage', 'ok', dirname($manifestPath));
+            $this->journal($id, 'stage', 'ok', json_encode([
+                'dir' => dirname($manifestPath),
+                'previous_state' => $previousState,
+            ], JSON_UNESCAPED_SLASHES));
             return [dirname($manifestPath), null];
         } finally {
             $this->unlock();
@@ -244,7 +252,10 @@ final class PackageManager
                 . "` WHERE package_id = ? AND operation = 'stage' ORDER BY id DESC",
                 [$packageId]
             );
-            $stagedDir = $journal['detail'] ?? null;
+            $stageDetail = (string) ($journal['detail'] ?? '');
+            $stageMeta = json_decode($stageDetail, true);
+            $stagedDir = is_array($stageMeta) ? ($stageMeta['dir'] ?? null) : $stageDetail;
+            $previousState = is_array($stageMeta) ? (string) ($stageMeta['previous_state'] ?? '') : '';
             if (!is_string($stagedDir) || !is_dir($stagedDir)) {
                 return [false, 'Staged files not found — re-upload the package.'];
             }
@@ -313,10 +324,97 @@ final class PackageManager
                 }
             }
 
-            $this->recordPackage($manifest, 'installed');
+            $finalState = $upgrade && in_array($previousState, ['enabled', 'disabled'], true)
+                ? $previousState
+                : 'installed';
+            $this->recordPackage($manifest, $finalState);
             $this->journal($packageId, $upgrade ? 'upgrade' : 'install', 'ok', $dest);
             $this->fire($upgrade ? 'package.upgraded' : 'package.installed',
                 ['package' => $packageId, 'version' => (string) ($manifest['version'] ?? ''), 'dir' => $dest]);
+            return [true, null];
+        } finally {
+            $this->unlock();
+        }
+    }
+
+    /**
+     * Finalize a package whose files were replaced directly through a host
+     * file manager. The disk manifest is validated, module migrations run,
+     * and the database version/manifest is synchronized without changing
+     * the package's enabled/disabled state.
+     */
+    public function finalizeFilesystemUpdate(string $packageId): array
+    {
+        if (($blocked = $this->protectedOperation($packageId)) !== null) {
+            return $blocked;
+        }
+        if (!$this->lock()) {
+            return [false, 'Another package operation is in progress.'];
+        }
+        try {
+            $this->registry->discover();
+            $info = $this->registry->all()[$packageId] ?? null;
+            if ($info === null || !is_string($info['dir'] ?? null) || !is_dir($info['dir'])) {
+                return [false, 'Package files were not found in the active module directory.'];
+            }
+            if (($info['errors'] ?? []) !== []) {
+                $detail = implode(' ', $info['errors']);
+                $this->journal($packageId, 'filesystem-update', 'failed', $detail);
+                return [false, $detail];
+            }
+            $manifest = $info['manifest'];
+            $row = $this->db->fetch(
+                'SELECT state, version FROM `' . $this->db->table('packages') . '` WHERE package_id = ?',
+                [$packageId]
+            );
+            if (!is_array($row)) {
+                return [false, 'Package is not registered. Install it through Module Manager first.'];
+            }
+            $state = (string) ($row['state'] ?? 'installed');
+            if (!in_array($state, ['enabled', 'disabled', 'installed'], true)) {
+                return [false, 'Package state must be enabled, disabled, or installed before finalizing files.'];
+            }
+
+            [$licenseOk, $licenseError] = $this->checkLicense($packageId, $manifest);
+            if (!$licenseOk) {
+                $this->journal($packageId, 'filesystem-update', 'failed', $licenseError ?? 'License check failed');
+                return [false, $licenseError ?? 'License check failed'];
+            }
+
+            $migDir = trim((string) ($manifest['migrations'] ?? ''), '/');
+            if ($migDir !== '' && is_dir($info['dir'] . '/' . $migDir)) {
+                try {
+                    $applied = (new \Core\Database\Migrator(
+                        $this->db,
+                        $info['dir'] . '/' . $migDir
+                    ))->migrate();
+                    if ($applied !== []) {
+                        $this->journal($packageId, 'migrate', 'ok', implode(', ', $applied));
+                    }
+                } catch (\Throwable $e) {
+                    $this->journal($packageId, 'filesystem-update', 'failed', $e->getMessage());
+                    return [false, 'Package migration failed: ' . $e->getMessage()];
+                }
+            }
+
+            $oldVersion = (string) ($row['version'] ?? 'unknown');
+            $this->recordPackage($manifest, $state);
+            $newVersion = (string) ($manifest['version'] ?? 'unknown');
+            $this->journal(
+                $packageId,
+                'filesystem-update',
+                'ok',
+                $oldVersion . ' -> ' . $newVersion . '; state preserved as ' . $state
+            );
+            $this->fire('package.upgraded', [
+                'package' => $packageId,
+                'version' => $newVersion,
+                'dir' => $info['dir'],
+                'source' => 'filesystem',
+            ]);
+            if (function_exists('opcache_reset')) {
+                @opcache_reset();
+            }
             return [true, null];
         } finally {
             $this->unlock();

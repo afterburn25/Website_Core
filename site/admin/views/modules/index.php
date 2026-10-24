@@ -55,7 +55,14 @@ no package code runs — so you can log in and remove it. You can also create
 <td><?= e($protected ? 'core' : ($m['type'] ?? '?')) ?></td>
 <td><?= e($protected && defined('WC_VERSION') ? WC_VERSION : ($m['version'] ?? '?')) ?></td>
 <td><span class="badge <?= in_array($state, ['enabled', 'built-in'], true) ? 'ok' : ($state === 'failed' ? 'bad' : 'warn') ?>"><?= e($state) ?></span></td>
-<td class="err"><?= e(implode('; ', $info['errors'])) ?></td>
+<td class="err">
+<?php if (!empty($info['filesystem_update'])): ?>
+<strong>Files changed outside Module Manager.</strong><br>
+<span class="muted">Recorded <?= e($info['database_version']) ?>; files report <?= e($m['version'] ?? '?') ?>. Finalize to run migrations and synchronize the record.</span>
+<?php else: ?>
+<?= e(implode('; ', $info['errors'])) ?>
+<?php endif; ?>
+</td>
 <td>
 <?php
 $buttons = $protected ? [] : match ($state) {
@@ -67,6 +74,9 @@ $buttons = $protected ? [] : match ($state) {
     'removed'   => [['purge', 'Purge data']],
     default     => [],
 };
+if (!empty($info['filesystem_update'])) {
+    array_unshift($buttons, ['finalize', 'Finalize update']);
+}
 ?>
 <?php if ($protected): ?>
 <span class="muted">Required system component</span>

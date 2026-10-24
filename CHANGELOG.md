@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.8 — 2026-10-24
+
+- Detects module files replaced directly through a shared-hosting file manager
+  when their disk manifest differs from the registered database version.
+- Adds a safe **Finalize update** action that validates the active package,
+  runs pending migrations, synchronizes the manifest/version record, resets
+  OPcache, and preserves the module's current enabled or disabled state.
+- Preserves enabled and disabled states across ordinary staged ZIP upgrades;
+  an enabled industry site no longer needs a second manual enable step.
+- Records structured stage metadata while retaining compatibility with
+  packages staged by earlier Core releases.
+- Produces installer-free per-industry REPAIR-UPLOAD archives for recovering
+  partially copied shared-host installations in one root-level extraction.
+
 ## 2.0.7 — 2026-10-24
 
 - Enlarged and vertically stacked the administration logo, removed the

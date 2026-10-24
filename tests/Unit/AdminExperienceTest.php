@@ -33,5 +33,9 @@ final class AdminExperienceTest extends TestCase
         $this->assertStringContainsString('event.submitter?.dataset?.confirm', $script);
         $this->assertStringContainsString('[data-copy-previous]', $script);
         $this->assertStringContainsString('responsive-table', $script);
+
+        $modules = (string) file_get_contents(WC_ROOT . '/admin/views/modules/index.php');
+        $this->assertStringContainsString('Files changed outside Module Manager.', $modules);
+        $this->assertStringContainsString('Finalize update', $modules);
     }
 }

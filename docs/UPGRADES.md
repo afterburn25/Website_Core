@@ -11,6 +11,15 @@ matches an installed one follows the same inspect → install → verify path,
 with the operation journaled and serialized under the package-operation
 lock. See `docs/MODULE_API.md` and `docs/PACKAGE_SPEC.md`.
 
+When an administrator has already replaced a package directory through a
+shared-host file manager, Module Manager compares the active disk manifest
+with the registered database manifest. A version mismatch produces a
+**Finalize update** action. Finalizing validates the disk package, checks its
+license when applicable, runs pending migrations, synchronizes the stored
+manifest/version, resets OPcache, and preserves the existing enabled,
+disabled, or installed state. This is a recovery workflow; normal updates
+should still use Upload & stage so Core can validate before files become live.
+
 ## Core self-update (implemented)
 
 Admin → **Updates** (`/admin/updates`, owner-only `system.update`
@@ -57,6 +66,13 @@ honoring it.
 An update archive may never write `config/config.php`,
 `config/installed.lock`, `storage/`, `upload/`, or installed
 modules/themes — those stay site-owned.
+
+If the installed Core itself was only partially copied and the Updates route
+is unavailable, use the matching per-industry `REPAIR-UPLOAD` artifact. It is
+extracted at the installed web root, includes the complete Core runtime and
+industry files at their live path, and excludes installer entry files and
+runtime site data. Module Manager must then finalize the detected industry
+version mismatch.
 
 ## Recovery
 

@@ -7,6 +7,8 @@
 - Expands landscaping acceptance coverage across customer-data-preserving
   upgrades and uninstall, queued estimate mail, protected photo routes, and
   all four theme switches.
+- Runs the landscaping package install, enable, replacement, failed-migration
+  rollback, disable, and uninstall lifecycle against native MySQL and MariaDB.
 - Keeps the allowlisted Core asset route available during maintenance and
   license-denial states so login and authenticated administration retain their
   styles and JavaScript on root and subfolder installations.

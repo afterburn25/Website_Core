@@ -468,8 +468,9 @@ jobs:
             if($z->locateName($forbidden)!==false){fwrite(STDERR,"REPAIR-UPLOAD contains $forbidden\n");exit(1);}
           }
           $manifest=json_decode((string)$z->getFromName("modules/industries/industry-catering/addon.json"),true);
-          if(($manifest["version"]??null)!=="0.1.23"){
-            fwrite(STDERR,"REPAIR-UPLOAD catering version invalid\n");exit(1);
+          $source=json_decode((string)file_get_contents("examples/industry-catering/addon.json"),true);
+          if(!is_array($source)||($manifest["version"]??null)!==($source["version"]??null)){
+            fwrite(STDERR,"REPAIR-UPLOAD catering version does not match source snapshot\n");exit(1);
           }
           echo "catering REPAIR-UPLOAD contract OK: ".basename($path)."\n";'
       - name: Upload catering shared-host repair

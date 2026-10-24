@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.0.6 — 2026-10-24
+
+- Reworked the shared administration shell with destination icons, page-purpose
+  guidance, responsive tables, persistent navigation state, consistent loading
+  feedback, safer confirmations, polished cards, filters, and empty states.
+- Completed Media, Navigation Menu, and Forms workflows with pagination,
+  search/filter state, status transitions, selection feedback, organization,
+  field guidance, visual previews, and administrative audit evidence.
+- Polished SEO, translation, appearance, account/security, privacy,
+  integrations, modules, recovery, backup, operations, health, update, audit,
+  settings, marketplace, and agency screens around their real tasks.
+- Added direct mail-transport testing, webhook enable/disable and failed
+  delivery retry, searchable paginated audit history, and consistent auditing
+  of security-sensitive administrator mutations.
+- Fixed public-site launch links for subfolder and no-rewrite installations by
+  separating the real site base path from the administration route base.
+- Added acceptance coverage for the shared admin presentation contract,
+  immediate mail testing, filtered form submissions, Media pagination, and
+  webhook retry behavior.
+
 ## 2.0.5 — 2026-10-24
 
 - Added Module API v1 `brandAssets()` and `brandAssetUrl()` methods. Industry

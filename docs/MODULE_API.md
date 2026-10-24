@@ -1,5 +1,8 @@
 # Module API (extension API v1)
 
+All packages must also follow the permanent ownership, administration,
+lifecycle, and release rules in `MODULE_RULES.md`.
+
 Packages interact with core exclusively through `Core\Modules\ModuleContext`,
 passed to the package provider's `register()` at boot. Anything not on this
 surface is internal and may change without notice.

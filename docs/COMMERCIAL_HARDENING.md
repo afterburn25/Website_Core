@@ -45,21 +45,21 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 
 | Order | Surface | Commercial completion focus | Status |
 | --- | --- | --- | --- |
-| 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete through 2.0.5; packaged-browser check pending |
+| 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete through 2.0.6; packaged-browser check pending |
 | 2 | Content list and page editor | Page lifecycle, visual blocks, preview, publish/review/schedule, revisions, duplication, trash/restore, validation, unsaved-state protection | code complete — 2.0.3; packaged-browser check pending |
-| 3 | Media library | Upload failures, folders/tags, bulk operations, focal points/crops, usage, replacement, empty states, file limits | queued |
-| 4 | Navigation Menu | Existing-menu import, tree editing, targets, page/external links, nesting, keyboard alternatives, validation, public rendering | queued |
-| 5 | Forms and submissions | Field builder, validation, notifications, spam controls, consent evidence, inbox, filters, read state, archive/export | queued |
-| 6 | SEO, redirects, translations, patterns | Actionable audits, previews, redirect import/export, localized content, reusable layouts, errors and conflicts | queued |
-| 7 | Appearance and public theme | Branding, theme preview/activation, header/footer layouts, responsive output, attribution, status/error pages | in progress — brand asset handoff/upload complete in 2.0.5 |
-| 8 | Administrators, roles, profile, security | Account lifecycle, role safety, capability clarity, MFA, sessions, recovery, lockouts, audit evidence | queued |
-| 9 | Privacy and integrations | Consent behavior, privacy requests, API keys, webhooks, scopes, delivery failures, exports and secret rotation | queued |
-| 10 | Modules and marketplace | Install/upgrade/enable/disable/uninstall/purge, dependency errors, protected Core, recovery mode, catalog trust and rollback | queued |
-| 11 | Backups and operations | Create/delete/restore, remote replication, queue states, retries, schedules, interrupted operations, disaster recovery | queued |
-| 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | queued |
-| 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | queued |
-| 14 | Installer and reinstall/upgrade | Single-page polish, database test, HTTPS, safe writable-path provisioning, existing DB handling, cleanup and manual recheck | queued |
-| 15 | Industry-module contract | Module admin category, default navigation takeover, shared services, uninstall/reinstall, compatibility and isolated failure | queued |
+| 3 | Media library | Upload failures, folders/tags, bulk operations, focal points/crops, usage, replacement, empty states, file limits | code complete — 2.0.6; packaged-browser check pending |
+| 4 | Navigation Menu | Existing-menu import, tree editing, targets, page/external links, nesting, keyboard alternatives, validation, public rendering | code complete — 2.0.6; packaged-browser check pending |
+| 5 | Forms and submissions | Field builder, validation, notifications, spam controls, consent evidence, inbox, filters, read state, archive/export | code complete — 2.0.6; packaged-browser check pending |
+| 6 | SEO, redirects, translations, patterns | Actionable audits, previews, redirect import/export, localized content, reusable layouts, errors and conflicts | code complete — 2.0.6; packaged-browser check pending |
+| 7 | Appearance and public theme | Branding, theme preview/activation, header/footer layouts, responsive output, attribution, status/error pages | code complete — 2.0.6; packaged-browser check pending |
+| 8 | Administrators, roles, profile, security | Account lifecycle, role safety, capability clarity, MFA, sessions, recovery, lockouts, audit evidence | code complete — 2.0.6; packaged-browser check pending |
+| 9 | Privacy and integrations | Consent behavior, privacy requests, API keys, webhooks, scopes, delivery failures, exports and secret rotation | code complete — 2.0.6; packaged-browser check pending |
+| 10 | Modules and marketplace | Install/upgrade/enable/disable/uninstall/purge, dependency errors, protected Core, recovery mode, catalog trust and rollback | code complete — 2.0.6; packaged-browser check pending |
+| 11 | Backups and operations | Create/delete/restore, remote replication, queue states, retries, schedules, interrupted operations, disaster recovery | code complete — 2.0.6; packaged-browser check pending |
+| 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | code complete — 2.0.6; packaged-browser check pending |
+| 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | code complete — 2.0.6; packaged-browser check pending |
+| 14 | Installer and reinstall/upgrade | Single-page polish, database test, HTTPS, safe writable-path provisioning, existing DB handling, cleanup and manual recheck | code complete — 2.0.6; packaged-host check pending |
+| 15 | Industry-module contract | Module admin category, default navigation takeover, shared services, uninstall/reinstall, compatibility and isolated failure | code complete — 2.0.6; packaged-module check pending |
 | 16 | Final cross-browser release gate | Chrome/Edge/Firefox/Safari where available, mobile breakpoints, accessibility review, performance/load, clean-host install and oldest-supported upgrade | queued |
 
 ## 2.0.2 — shared shell acceptance
@@ -103,9 +103,9 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       conflict, preview, publish, schedule, duplicate, trash, restore, purge,
       and revision restore.
 
-The next implementation target after 2.0.3 verification is **Media library**.
-No later surface should be marked complete early merely because some of its
-underlying code already exists.
+Version 2.0.6 carries the same acceptance discipline through the remaining
+existing surfaces. Browser/host evidence stays explicitly pending until it is
+run against packaged builds; code-complete does not mean externally verified.
 
 ## 2.0.4 — maintenance administrator access repair
 
@@ -145,4 +145,26 @@ underlying code already exists.
       dual-placement icons; blank platforms create no placeholder or link.
 - [ ] Packaged subfolder browser verification covers upload, replace, clear,
       public header/footer, favicon, Core admin, and module admin rendering.
+
+## 2.0.6 — cross-surface completion acceptance
+
+- [x] Every Core administration destination has a consistent icon, purpose
+      statement, responsive data presentation, and persistent navigation.
+- [x] Media, menu, and form workspaces expose real filters, pagination,
+      status/selection feedback, explicit destructive confirmations, and
+      auditable mutations.
+- [x] SEO, translations, appearance, privacy, accounts, roles, integrations,
+      modules, marketplace, backups, operations, health, updates, audit,
+      settings, and agency screens use the shared presentation system.
+- [x] Mail settings include an immediate delivery test; failed webhooks can be
+      retried and disabled webhooks re-enabled without recreating secrets.
+- [x] Audit history supports search and pagination; newly completed mutation
+      paths record useful, non-secret evidence.
+- [x] Subfolder/no-rewrite public launch links use the site base rather than
+      accidentally inheriting the front-controller route base.
+- [x] Installer cleanup/recheck, protected Core package rules, module-owned
+      navigation/brand defaults, and isolated recovery behavior remain covered
+      by the release and package test suites.
+- [ ] Packaged browser/host acceptance completes the remaining visual and
+      real-host evidence for surfaces 1–15.
 

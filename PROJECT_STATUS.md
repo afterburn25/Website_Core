@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.5` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.6` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -32,6 +32,12 @@ the same Core-owned settings without allowing module updates to overwrite or
 repopulate an administrator's choices. The release also completes separate
 visual header/footer menu editing and a token-aware custom copyright field;
 the required Cajun Web Pro attribution remains separately enforced.
+
+Version 2.0.6 completes the first full cross-surface workflow and presentation
+pass: shared admin guidance and icons, Media/Navigation/Forms completion,
+searchable audit history, mail testing, webhook recovery, broader mutation
+auditing, and polished recovery/update/operations screens. Packaged browser
+acceptance on supported shared hosts remains the external release gate.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

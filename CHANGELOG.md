@@ -13,6 +13,8 @@
   dependent fields without erasing saved SMTP credentials.
 - Reorganizes Operations into clear availability, housekeeping, scheduling,
   and job-monitoring areas with responsive commercial-product styling.
+- Repairs the standalone server-error-page test fixture so its temporary
+  installation root exists before `.htaccess` provisioning is exercised.
 
 ## 2.0.13 — 2026-10-24
 

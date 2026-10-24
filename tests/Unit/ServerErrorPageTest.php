@@ -24,6 +24,7 @@ final class ServerErrorPageTest extends TestCase
     public function testSubfolderErrorDocumentIsProvisionedIdempotently(): void
     {
         $root = \WcProcessTmpDirs::make('wc-error-page-');
+        self::assertTrue(mkdir($root, 0755, true));
         file_put_contents($root . '/.htaccess', "Options -Indexes\n");
         $_SERVER['SCRIPT_NAME'] = '/catering/index.php';
 

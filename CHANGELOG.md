@@ -2,6 +2,9 @@
 
 ## 2.0.14 — 2026-10-24
 
+- Keeps the allowlisted Core asset route available during maintenance and
+  license-denial states so login and authenticated administration retain their
+  styles and JavaScript on root and subfolder installations.
 - Adds a persistent collapsible desktop sidebar and optional compact workspace
   density while retaining each administrator's expanded navigation groups.
 - Replaces browser-native destructive prompts with an accessible branded

@@ -118,6 +118,8 @@ run against packaged builds; code-complete does not mean externally verified.
       Modules.
 - [x] Substantial forms receive unsaved-work protection and length-limited
       fields expose live counts without changing server validation.
+- [x] Core CSS and JavaScript remain available through the subfolder-aware
+      allowlisted asset route during maintenance and license-denial states.
 - [x] Appearance previews newly selected logo/favicon files before save.
 - [x] SMTP and analytics controls expose only relevant inputs; inactive SMTP
       values remain stored rather than being erased by a transport change.

@@ -399,7 +399,8 @@ final class Application
 
     /**
      * storage/maintenance.flag blocks public traffic while leaving the whole
-     * admin namespace reachable. Admin authentication still runs normally:
+     * admin namespace and allowlisted asset route reachable. Admin
+     * authentication still runs normally:
      * logged-out requests such as /admin are redirected to /admin/login, and
      * protected screens still require a valid administrator session. Keeping
      * only the literal login route open would intercept /admin before its
@@ -413,7 +414,12 @@ final class Application
             return false;
         }
         $path = rtrim($request->path, '/') ?: '/';
-        if ($path === '/admin' || str_starts_with($path, '/admin/')) {
+        if (
+            $path === '/admin'
+            || str_starts_with($path, '/admin/')
+            || $path === '/_a'
+            || str_starts_with($path, '/_a/')
+        ) {
             return false;
         }
         return $this->container->get(AuthService::class)->user() === null;
@@ -428,7 +434,13 @@ final class Application
      */
     private function licenseBlocked(Request $request): bool
     {
-        if (str_starts_with(rtrim($request->path, '/') ?: '/', '/admin')) {
+        $path = rtrim($request->path, '/') ?: '/';
+        if (
+            $path === '/admin'
+            || str_starts_with($path, '/admin/')
+            || $path === '/_a'
+            || str_starts_with($path, '/_a/')
+        ) {
             return false;
         }
         try {

@@ -40,6 +40,8 @@ final class ApplicationMaintenanceTest extends TestCase
         self::assertFalse($method->invoke($app, $this->request('/admin/')));
         self::assertFalse($method->invoke($app, $this->request('/admin/login')));
         self::assertFalse($method->invoke($app, $this->request('/admin/settings')));
+        self::assertFalse($method->invoke($app, $this->request('/_a/core/css/admin.css')));
+        self::assertFalse($method->invoke($app, $this->request('/_a/core/js/admin.js')));
         self::assertTrue($method->invoke($app, $this->request('/')));
         self::assertTrue($method->invoke($app, $this->request('/services')));
         self::assertTrue($method->invoke($app, $this->request('/administrator')));
@@ -50,6 +52,11 @@ final class ApplicationMaintenanceTest extends TestCase
             '/catering/index.php?p=/admin/login',
             $response->headers()['Location'] ?? null
         );
+
+        $asset = $app->dispatch($this->request('/_a/core/css/admin.css'));
+        self::assertSame(200, $asset->status());
+        self::assertStringContainsString('text/css', $asset->headers()['Content-Type'] ?? '');
+        self::assertStringNotContainsString('A QUICK TUNE-UP', $asset->body());
     }
 
     private function request(string $path): Request

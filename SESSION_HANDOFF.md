@@ -5,6 +5,12 @@
 - The shared administrator shell now anchors Core CSS and JavaScript to the
   installation subfolder, so `/catering` no longer requests `/_a/...` from the
   domain root.
+- Live maintenance-mode probing found that the corrected `/_a` URL was still
+  intercepted by the public 503 gate. Core now exempts its allowlisted asset
+  route from maintenance and license blocking; the regression test dispatches
+  the stylesheet and requires a real CSS response.
+- Build and deploy the newest CI-produced 2.0.14 REPAIR-UPLOAD; the artifact
+  recorded below predates this final asset-gate correction.
 - SEO 404 insights now exclude Core asset, admin, API, installer, and cron
   infrastructure paths, including historical rows already stored.
 - Fresh installs seed descriptive home-page titles and search summaries.

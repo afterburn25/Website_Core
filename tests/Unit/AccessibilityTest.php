@@ -86,7 +86,7 @@ final class AccessibilityTest extends TestCase
         $this->assertStringContainsString('focus-visible', $adminCss, 'focus-visible outlines present');
         $this->assertStringContainsString('prefers-reduced-motion', $adminCss, 'reduced-motion support present');
         $this->assertStringContainsString("event.key === 'Escape'", $adminJs, 'mobile menu closes from the keyboard');
-        $this->assertStringContainsString('form[data-confirm]', $adminJs, 'destructive controls request confirmation');
+        $this->assertStringContainsString('event.submitter?.dataset?.confirm', $adminJs, 'destructive controls request confirmation from forms or individual actions');
         $this->assertStringContainsString("'beforeunload'", $editorJs, 'page editor protects unsaved work');
         $this->assertStringContainsString('Move up', $editorJs, 'block ordering has a keyboard alternative');
     }
@@ -115,7 +115,7 @@ final class AccessibilityTest extends TestCase
             'flash' => null,
         ]);
 
-        $this->assertStringContainsString('href="/catering/index.php?p=/" target="_blank" rel="noopener"', $html);
+        $this->assertStringContainsString('href="/catering/" target="_blank" rel="noopener"', $html);
         $this->assertStringContainsString('/catering/index.php?p=/_a/core/css/admin.css&amp;v=', $html);
         $this->assertStringContainsString('/catering/index.php?p=/_a/core/js/admin.js&amp;v=', $html);
         $this->assertStringContainsString('Website Core</strong><span>0.1.14-dev', $html);

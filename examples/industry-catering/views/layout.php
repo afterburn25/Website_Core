@@ -1,7 +1,7 @@
 <?php
 /** @var string $content @var string $siteName @var string $tagline @var string $basePath @var string $assetBase
  * @var string $currentPath @var string $phone @var string $contactEmail @var array $page @var array $navigation
- * @var array $footerNavigation @var string $copyrightNotice
+ * @var array $footerNavigation @var string $copyrightNotice @var array $headerSocialLinks @var array $footerSocialLinks
  * @var string|null $brandLogoUrl @var string|null $faviconUrl */
 $asset = $assetBase;
 $assetVersion = rawurlencode(defined('WC_VERSION') ? WC_VERSION : 'development');
@@ -66,7 +66,7 @@ $renderFooterNavigation = function (array $items, bool $child = false) use (&$re
 <nav id="primary-navigation" class="c-nav" aria-label="Primary" data-nav>
 <?php $renderNavigation($navigation); ?>
 </nav>
-<a class="c-button c-button-gold c-header-cta" href="<?= e_attr($basePath) ?>/request-a-quote">Request a Quote</a>
+<div class="c-header-actions"><a class="c-button c-button-gold c-header-cta" href="<?= e_attr($basePath) ?>/request-a-quote">Request a Quote</a><?php if (!empty($headerSocialLinks)): ?><nav class="c-header-social" aria-label="Social media"><?php foreach ($headerSocialLinks as $social): ?><a href="<?= e_attr($social['url']) ?>" target="_blank" rel="noopener noreferrer" aria-label="<?= e_attr($social['label']) ?>"><?= \Core\Branding\SocialIcon::svg((string) $social['platform']) ?></a><?php endforeach; ?></nav><?php endif; ?></div>
 </header>
 <main id="main-content">
 <?= $content ?>
@@ -92,6 +92,7 @@ $renderFooterNavigation = function (array $items, bool $child = false) use (&$re
 <div class="c-footer-links"><h2>Explore</h2><?php $renderFooterNavigation($footerNavigation ?? []); ?></div>
 <div><h2>Get in touch</h2><a href="tel:<?= e_attr((string) preg_replace('/[^0-9+]/', '', $phone)) ?>"><?= e($phone) ?></a><a href="mailto:<?= e_attr($contactEmail) ?>"><?= e($contactEmail) ?></a><p>Consultations by appointment.</p></div>
 </div>
+<?php if (!empty($footerSocialLinks)): ?><nav class="c-footer-social" aria-label="Social media"><?php foreach ($footerSocialLinks as $social): ?><a href="<?= e_attr($social['url']) ?>" target="_blank" rel="noopener noreferrer" aria-label="<?= e_attr($social['label']) ?>"><?= \Core\Branding\SocialIcon::svg((string) $social['platform']) ?></a><?php endforeach; ?></nav><?php endif; ?>
 <div class="c-footer-bottom"><span><?= e($copyrightNotice) ?></span><span>Demo content should be replaced before launch.</span></div>
 </footer>
 <script src="<?= e_attr($asset . '/assets/js/catering.js&v=' . $assetVersion) ?>" defer></script>

@@ -8,6 +8,9 @@ Core owns two different branding layers:
    copyright notice using `{year}` and `{site_name}` tokens. The same logo,
    favicon, and copyright are consumed by the public theme and compatible
    industry layouts; the logo and favicon also appear in administration.
+   Optional HTTPS social profiles are stored alongside site identity and each
+   may render in the header, footer, or both as a labeled icon. Blank profiles
+   generate no public markup.
    Compatible themes and modules consume these values but never own the live
    settings.
 2. **Platform attribution** — every public HTML response receives the fixed

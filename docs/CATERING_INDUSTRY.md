@@ -18,11 +18,13 @@ deep forest green, muted sage, restrained gold, large food/event photography,
 Georgia display typography, clean sans-serif body copy, and generous spacing.
 The package carries its own namespaced CSS, JavaScript, views, and optimized
 WebP photographs, so it does not rely on a remote image provider.
-Version 0.1.18 also ships the approved transparent generic **CATERING CO.**
+Version 0.1.20 also ships the approved transparent generic **CATERING CO.**
 logo. Core 2.0.5 imports it once into Media, after which the administrator can
 replace or clear it from Website → Appearance without a module update restoring
 the default. The module also supplies a one-time starting footer menu; Core
 owns the editable stored tree and the custom copyright notice thereafter.
+Optional social profiles are stored in Core Appearance and render in the
+header, footer, or both only when configured.
 
 ## Public experience
 
@@ -47,7 +49,7 @@ Displayed pricing is identified as a starting point rather than a final quote.
 
 ## Administration
 
-- `/admin/catering` — package dashboard and recent inquiries.
+- Core `/admin` overview — live new-inquiry summary contributed by the module.
 - `/admin/catering/menus` — menu categories and items.
 - `/admin/catering/packages` — packages, starting prices, guest ranges, and
   inclusions.

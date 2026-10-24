@@ -54,6 +54,12 @@ final class AppearanceController extends Controller
                 'favicon' => $brand->url($r, 'favicon'),
                 'social' => $brand->url($r, 'social', 1200),
             ],
+            'socialProfiles' => array_map(fn (string $label, string $platform): array => [
+                'platform' => $platform,
+                'label' => $label,
+                'url' => (string) $this->settings()->get('social.' . $platform . '.url', ''),
+                'placement' => (string) $this->settings()->get('social.' . $platform . '.placement', 'footer'),
+            ], $brand->socialDefinitions(), array_keys($brand->socialDefinitions())),
         ], 'Appearance');
     }
 
@@ -85,6 +91,19 @@ final class AppearanceController extends Controller
             return $this->redirect($r, '/admin/appearance');
         }
         $radius = max(0, min(24, (int) $r->string('radius', '8')));
+        $socialProfiles = [];
+        $socialPlacements = [];
+        $brand = $this->c->get(BrandAssets::class);
+        foreach ($brand->socialDefinitions() as $platform => $label) {
+            $url = mb_substr($r->string('social_' . $platform), 0, 500);
+            if ($url !== '' && !BrandAssets::validSocialUrl($url)) {
+                $this->flash('error', $label . ' must be a complete HTTPS profile URL or left blank.');
+                return $this->redirect($r, '/admin/appearance');
+            }
+            $socialProfiles[$platform] = $url;
+            $placement = $r->string('social_' . $platform . '_placement', 'footer');
+            $socialPlacements[$platform] = in_array($placement, ['header', 'footer', 'both'], true) ? $placement : 'footer';
+        }
         $ids = [];
         foreach (['logo_media_id', 'favicon_media_id', 'social_media_id'] as $field) {
             $value = (int) $r->string($field, '0');
@@ -132,6 +151,10 @@ final class AppearanceController extends Controller
             $copyright = mb_substr($copyright, 0, 240);
         }
         $this->settings()->set('footer.copyright', $copyright);
+        foreach ($socialProfiles as $platform => $url) {
+            $this->settings()->set('social.' . $platform . '.url', $url);
+            $this->settings()->set('social.' . $platform . '.placement', $socialPlacements[$platform]);
+        }
 
         $this->db()->run('DELETE FROM `' . $this->db()->table('media_usage') . '` WHERE context = ?', ['core.branding']);
         foreach (array_filter($ids) as $id) {

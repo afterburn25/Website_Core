@@ -30,7 +30,6 @@ final class Provider
         $ctx->route('GET', '/request-a-quote', fn ($r) => $ctl()->quote($r));
         $ctx->route('POST', '/request-a-quote', fn ($r) => $ctl()->submitQuote($r));
 
-        $ctx->adminRoute('GET', '/admin/catering', fn ($r) => $ctl()->adminDashboard($r));
         $ctx->adminRoute('GET', '/admin/catering/menus', fn ($r) => $ctl()->adminMenus($r));
         $ctx->adminRoute('POST', '/admin/catering/menus', fn ($r) => $ctl()->adminMenusSave($r));
         $ctx->adminRoute('GET', '/admin/catering/packages', fn ($r) => $ctl()->adminPackages($r));
@@ -42,7 +41,6 @@ final class Provider
 
         $ctx->permission('catering.manage', 'Manage catering menus, packages, and settings');
         $ctx->permission('catering.inquiries', 'View and manage catering inquiries');
-        $ctx->adminPage('Dashboard', '/admin/catering', 'catering.manage', 'Catering');
         $ctx->adminPage('Menus', '/admin/catering/menus', 'catering.manage', 'Catering');
         $ctx->adminPage('Packages', '/admin/catering/packages', 'catering.manage', 'Catering');
         $ctx->adminPage('Leads & inquiries', '/admin/catering/inquiries', 'catering.inquiries', 'Catering');

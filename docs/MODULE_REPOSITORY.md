@@ -67,3 +67,9 @@ paths and render the current Core selection with `brandAssetUrl()`. Modules
 declare header and footer defaults as distinct menu locations, render the
 current Core trees, and use Core's copyright-notice API rather than shipping a
 hard-coded business copyright.
+Optional social profiles and their header/footer placement are Core-owned;
+modules render the filtered `socialLinks()` results and never ship a second
+set of profile settings.
+The Core Dashboard is also the sole overview: modules contribute summaries
+through `dashboardWidget()` and must not add a duplicate Dashboard page to
+their module category.

@@ -1,5 +1,5 @@
 <?php
-/** @var string $content @var string $siteName @var string $tagline @var string $basePath @var array $pages @var array|null $page @var array $footerNavigation @var string $copyrightNotice */
+/** @var string $content @var string $siteName @var string $tagline @var string $basePath @var array $pages @var array|null $page @var array $footerNavigation @var string $copyrightNotice @var array $headerSocialLinks @var array $footerSocialLinks */
 $brandLogoUrl = $brandLogoUrl ?? null;
 $faviconUrl = $faviconUrl ?? null;
 $socialImageUrl = $socialImageUrl ?? null;
@@ -70,6 +70,7 @@ $renderMenu = function (array $items, bool $child = false) use (&$renderMenu, $b
 $renderMenu($pages ?? []);
 ?>
 </nav>
+<?php if (!empty($headerSocialLinks)): ?><nav class="header-social social-icons" aria-label="Social media"><?php foreach ($headerSocialLinks as $social): ?><a href="<?= e_attr($social['url']) ?>" target="_blank" rel="noopener noreferrer" aria-label="<?= e_attr($social['label']) ?>"><?= \Core\Branding\SocialIcon::svg((string) $social['platform']) ?></a><?php endforeach; ?></nav><?php endif; ?>
 <?php if (!empty($languageLinks)): ?><nav class="language-switcher" aria-label="Languages"><?php foreach($languageLinks as $language): ?><a href="<?= e_attr($language['url']) ?>" lang="<?= e_attr($language['locale']) ?>" <?= ($currentLocale??null)===$language['locale']?'aria-current="page"':'' ?>><?= e($language['name']) ?></a><?php endforeach; ?></nav><?php endif; ?>
 </header>
 <main<?= !empty($page['rendered_blocks']) ? ' class="builder-main"' : '' ?>>
@@ -77,6 +78,7 @@ $renderMenu($pages ?? []);
 </main>
 <footer class="site-footer">
 <?php if (!empty($footerNavigation)): ?><nav class="footer-nav" aria-label="Footer"><?php $renderMenu($footerNavigation); ?></nav><?php endif; ?>
+<?php if (!empty($footerSocialLinks)): ?><nav class="footer-social social-icons" aria-label="Social media"><?php foreach ($footerSocialLinks as $social): ?><a href="<?= e_attr($social['url']) ?>" target="_blank" rel="noopener noreferrer" aria-label="<?= e_attr($social['label']) ?>"><?= \Core\Branding\SocialIcon::svg((string) $social['platform']) ?></a><?php endforeach; ?></nav><?php endif; ?>
 <p><?= e($copyrightNotice ?? ('© ' . date('Y') . ' ' . $siteName . '. All rights reserved.')) ?></p>
 </footer>
 <script>document.querySelectorAll('[data-open-window]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();window.open(link.href,'wc-nav-window','noopener,noreferrer,width=1200,height=800,resizable=yes,scrollbars=yes');}));</script>

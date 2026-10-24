@@ -7,7 +7,17 @@ use Core\Database\Connection;
 
 final class SiteTransfer
 {
-    private const SETTINGS = ['site.name', 'site.tagline', 'site.locale', 'site.logo_media_id', 'theme.active', 'theme.header_layout', 'theme.footer_layout', 'footer.copyright'];
+    private const SETTINGS = [
+        'site.name', 'site.tagline', 'site.locale', 'site.logo_media_id',
+        'theme.active', 'theme.header_layout', 'theme.footer_layout',
+        'footer.copyright',
+        'social.facebook.url', 'social.facebook.placement',
+        'social.instagram.url', 'social.instagram.placement',
+        'social.linkedin.url', 'social.linkedin.placement',
+        'social.youtube.url', 'social.youtube.placement',
+        'social.tiktok.url', 'social.tiktok.placement',
+        'social.x.url', 'social.x.placement',
+    ];
 
     public function __construct(private Connection $db) {}
 

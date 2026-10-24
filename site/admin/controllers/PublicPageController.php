@@ -178,6 +178,8 @@ final class PublicPageController extends Controller
         $v->share('socialImageUrl', $brand->url($r, 'social', 1200));
         $v->share('copyrightNotice', $brand->copyrightNotice((string) $this->settings()->get('site.name', 'Website Core')));
         $v->share('footerNavigation', (new \Core\Content\MenuService($this->db()))->tree('footer'));
+        $v->share('headerSocialLinks', $brand->socialLinks('header'));
+        $v->share('footerSocialLinks', $brand->socialLinks('footer'));
         $primary = (string) $this->settings()->get('design.primary_color', '#0369a1');
         $accent = (string) $this->settings()->get('design.accent_color', '#0ea5e9');
         $radius = max(0, min(24, (int) $this->settings()->get('design.radius', 8)));

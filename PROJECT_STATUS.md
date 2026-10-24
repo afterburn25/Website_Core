@@ -82,7 +82,7 @@ declaration exactly once, takes over the editable stored copy, and never
 repopulates a menu that an administrator later clears intentionally.
 
 The 2.0.5 maintenance release applies the same default-then-Core-ownership
-model to brand assets. The catering `0.1.18` snapshot supplies its generic
+model to brand assets. The catering `0.1.20` snapshot supplies its generic
 transparent CATERING CO. logo and starting footer navigation, while Core owns
 all later branding, footer-link, and copyright changes.
 

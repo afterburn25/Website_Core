@@ -286,6 +286,14 @@ final class ReferencePackagesTest extends TestCase
             ['Menus', 'Services', 'Packages', 'Gallery', 'Service Area', 'FAQ', 'Contact', 'Request a Quote'],
             array_column($footerTree, 'label')
         );
+        $cateringNav = array_values(array_filter(
+            $this->registry->adminNavItems(),
+            fn (array $item): bool => $item['package'] === 'cajunwebpro/catering'
+        ));
+        $this->assertNotContains('Dashboard', array_column($cateringNav, 'label'));
+        $widgets = $this->registry->dashboardWidgets();
+        $this->assertSame(['new-inquiries'], array_column($widgets, 'key'));
+        $this->assertSame('/admin/catering/inquiries', $widgets[0]['url']);
 
         [$updated, $error] = $navigation->updateItem(
             (int) $tree[0]['id'], 'Our Story', '/about', null, 0, 'tab'
@@ -315,6 +323,17 @@ final class ReferencePackagesTest extends TestCase
         $this->assertStringContainsString('/media/' . $logoId . '/w/480/catering-co-logo.png', $home->body());
         $this->assertStringContainsString('class="c-footer-nav"', $home->body());
         $this->assertStringContainsString('All rights reserved.', $home->body());
+        $this->assertStringNotContainsString('class="c-footer-social"', $home->body());
+        $settings->set('social.instagram.url', 'https://instagram.com/cateringco');
+        $settings->set('social.instagram.placement', 'both');
+        $homeWithSocial = $this->req('GET', '/');
+        $this->assertStringContainsString('class="c-header-social"', $homeWithSocial->body());
+        $this->assertStringContainsString('class="c-footer-social"', $homeWithSocial->body());
+        $this->assertSame(2, substr_count($homeWithSocial->body(), 'aria-label="Instagram"'));
+        $this->assertLessThan(
+            strpos($homeWithSocial->body(), 'class="c-header-social"'),
+            strpos($homeWithSocial->body(), 'class="c-header-cta"')
+        );
 
         foreach (['/services', '/menus', '/packages', '/gallery', '/about', '/service-area', '/faq', '/contact', '/request-a-quote'] as $route) {
             $response = $this->req('GET', $route);

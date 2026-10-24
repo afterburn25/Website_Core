@@ -16,8 +16,9 @@ final class AppearanceControllerTest extends TestCase
         $admin = (string) file_get_contents(WC_ROOT . '/admin/views/layouts/admin.php');
         foreach (['brand.logo_media_id', 'brand.favicon_media_id', 'brand.social_media_id'] as $key) {
             $this->assertStringContainsString($key, $controller);
-            $this->assertStringContainsString($key, $public);
         }
+        $this->assertStringContainsString("\$brand->url(\$r, 'logo'", $public);
+        $this->assertStringContainsString("\$brand->url(\$r, 'favicon'", $public);
         $this->assertStringContainsString('brandLogoUrl', $theme);
         $this->assertStringContainsString('designTokens', $theme);
         $this->assertStringContainsString('logo_upload', $view);
@@ -29,5 +30,12 @@ final class AppearanceControllerTest extends TestCase
         $this->assertStringContainsString('name="copyright"', $view);
         $this->assertStringContainsString('footerNavigation', $public);
         $this->assertStringContainsString('aria-label="Footer"', $theme);
+        $this->assertStringContainsString('socialProfiles', $controller);
+        $this->assertStringContainsString('social_facebook', $view);
+        $this->assertStringContainsString('social_facebook_placement', $view);
+        $this->assertStringContainsString('Header and footer', $view);
+        $this->assertStringContainsString('footer-social', $theme);
+        $this->assertStringContainsString('header-social', $theme);
+        $this->assertStringContainsString('SocialIcon::svg', $theme);
     }
 }

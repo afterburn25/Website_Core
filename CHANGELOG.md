@@ -13,7 +13,7 @@
 - Wired the selected Core logo and favicon into the shared administration
   shell, base public theme, and catering public/admin layouts with accessible
   fallbacks.
-- Updated the catering module snapshot to `0.1.18` with the approved
+- Updated the catering module snapshot to `0.1.20` with the approved
   transparent generic **CATERING CO.** logo and Core `>=2.0.5,<3.0.0` range.
 - Added path-confinement, one-time import, source-preservation, Appearance UI,
   and reference-package regression coverage for the branding handoff.
@@ -25,6 +25,12 @@
   remains independently enforced by Core.
 - Catering now seeds an editable footer menu once and renders the current
   Core-managed footer links and copyright notice.
+- Consolidated module summaries into the Core Dashboard overview. Catering
+  contributes its live inquiry widget there and no longer ships a duplicate
+  dashboard route, view, or navigation entry.
+- Added optional Facebook, Instagram, LinkedIn, YouTube, TikTok, and X profile
+  fields to Appearance. Each valid nonblank HTTPS profile can render in the
+  header, footer, or both; blank fields produce no markup.
 
 ## 2.0.4 — 2026-10-23
 

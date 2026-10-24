@@ -189,23 +189,6 @@ final class CateringController
         return Response::redirect($this->ctx->url($request->basePath, '/request-a-quote', ['sent' => 1]));
     }
 
-    public function adminDashboard(Request $request): Response
-    {
-        if ($forbidden = $this->guard('catering.manage')) {
-            return $forbidden;
-        }
-        $db = $this->db();
-        return $this->adminPage($request, 'admin-dashboard', [
-            'counts' => [
-                'new' => (int) $db->fetchColumn('SELECT COUNT(*) FROM `' . $db->table('catering_inquiries') . "` WHERE status = 'new'"),
-                'all' => (int) $db->fetchColumn('SELECT COUNT(*) FROM `' . $db->table('catering_inquiries') . '`'),
-                'items' => (int) $db->fetchColumn('SELECT COUNT(*) FROM `' . $db->table('catering_menu_items') . '`'),
-                'packages' => (int) $db->fetchColumn('SELECT COUNT(*) FROM `' . $db->table('catering_packages') . '`'),
-            ],
-            'recent' => $db->fetchAll('SELECT * FROM `' . $db->table('catering_inquiries') . '` ORDER BY id DESC LIMIT 8'),
-        ], 'Catering');
-    }
-
     public function adminMenus(Request $request): Response
     {
         if ($forbidden = $this->guard('catering.manage')) {
@@ -407,6 +390,8 @@ final class CateringController
             'brandLogoUrl' => $this->ctx->brandAssetUrl($request, 'logo', 480),
             'faviconUrl' => $this->ctx->brandAssetUrl($request, 'favicon'),
             'copyrightNotice' => $this->ctx->copyrightNotice((string) $settings->get('site.name', 'Catering Co.')),
+            'headerSocialLinks' => $this->ctx->socialLinks('header'),
+            'footerSocialLinks' => $this->ctx->socialLinks('footer'),
             'page' => [
                 'title' => $title,
                 'meta_title' => $title,

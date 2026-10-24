@@ -28,6 +28,7 @@ breaking changes bump the major and ship with a migration guide.
 | `brandAssets($assets)` | Declare package-relative starting `logo`, `favicon`, and/or `social` images. Core validates and copies them into Media once without overwriting or repopulating administrator choices. |
 | `brandAssetUrl($request, $role, $width = null)` | Resolve the current Core-owned public URL for a logo, favicon, or social image in module layouts. |
 | `copyrightNotice($siteName)` | Resolve Core's custom copyright text after expanding `{year}` and `{site_name}`. Escape it when rendering. |
+| `socialLinks($location = null)` | Read Core's validated, nonblank social profiles, optionally filtered to `header` or `footer`. |
 | `permission($capability, $description)` | Declare a package capability. Owner always holds it; `admin` does by default. Packages can never grant core capabilities. |
 | `views($dir)` | Register a view directory, resolving as `mod-<slug>:<name>`; active-theme overrides at `templates/modules/<pkg-id>/<name>.php` win, package views fall back. Returns the namespace. |
 | `service($id)` | Resolve a core service (`View`, `SettingsRepository`, `JobQueue`, `SystemMail`, `ContentItems`, …). Packages are trusted in-process code — this is the supported way to reach shared infrastructure. |
@@ -70,10 +71,15 @@ $ctx->navigationMenu([
 
 $footerLinks = $ctx->navigationTree('footer');
 $copyright = $ctx->copyrightNotice($siteName);
+$headerSocial = $ctx->socialLinks('header');
+$footerSocial = $ctx->socialLinks('footer');
 ```
 
 Core exposes both locations in Website → Navigation Menu. Header and footer
 defaults are imported independently and administrator changes remain final.
+Modules render only the returned social records, using Core's `SocialIcon`
+helper when they need the standard dependency-free SVG marks. Per-profile
+placement may be header, footer, or both; a blank profile appears nowhere.
 
 ### Module-supplied brand defaults
 
@@ -100,6 +106,11 @@ module-admin layouts must resolve the current Core value with
 installation.
 
 ### Shared admin surfaces
+
+The Core `/admin` Dashboard is the only overview. Industry modules contribute
+compact, capability-filtered summaries through `dashboardWidget()` and link
+those summaries to their real workspaces; they do not register a duplicate
+module Dashboard page. Module categories contain actionable management screens.
 
 ```php
 $ctx->dashboardWidget(

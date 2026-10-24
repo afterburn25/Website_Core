@@ -16,6 +16,14 @@ final class BrandAssets
         'favicon' => 'brand.favicon_media_id',
         'social' => 'brand.social_media_id',
     ];
+    private const SOCIALS = [
+        'facebook' => 'Facebook',
+        'instagram' => 'Instagram',
+        'linkedin' => 'LinkedIn',
+        'youtube' => 'YouTube',
+        'tiktok' => 'TikTok',
+        'x' => 'X',
+    ];
 
     public function __construct(
         private Connection $db,
@@ -105,5 +113,33 @@ final class BrandAssets
             [date('Y'), trim($siteName)],
             $template,
         );
+    }
+
+    /** @return array<string,string> platform key => public label */
+    public function socialDefinitions(): array
+    {
+        return self::SOCIALS;
+    }
+
+    /** @return list<array{platform:string,label:string,url:string,placement:string}> */
+    public function socialLinks(?string $location = null): array
+    {
+        $links = [];
+        foreach (self::SOCIALS as $platform => $label) {
+            $url = trim((string) $this->settings->get('social.' . $platform . '.url', ''));
+            $placement = (string) $this->settings->get('social.' . $platform . '.placement', 'footer');
+            if (!in_array($placement, ['header', 'footer', 'both'], true)) $placement = 'footer';
+            $matches = $location === null || $placement === 'both' || $placement === $location;
+            if ($matches && $url !== '' && self::validSocialUrl($url)) {
+                $links[] = compact('platform', 'label', 'url', 'placement');
+            }
+        }
+        return $links;
+    }
+
+    public static function validSocialUrl(string $url): bool
+    {
+        return filter_var($url, FILTER_VALIDATE_URL) !== false
+            && strtolower((string) parse_url($url, PHP_URL_SCHEME)) === 'https';
     }
 }

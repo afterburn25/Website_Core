@@ -133,12 +133,16 @@ underlying code already exists.
       brand usage.
 - [x] The selected logo and favicon render in the shared Core admin shell,
       base public theme, and catering public/admin layouts with fallbacks.
-- [x] Catering 0.1.18 carries the transparent CATERING CO. default and requires
+- [x] Catering 0.1.20 carries the transparent CATERING CO. default and requires
       Core `>=2.0.5,<3.0.0`.
+- [x] The Core Dashboard owns the shared overview and renders module widgets;
+      catering has no duplicate dashboard route or navigation entry.
 - [x] Header and footer menus are separately editable through the polished
       visual tree, and module defaults are imported once per location.
 - [x] Appearance stores a plain-text token-aware copyright notice while the
       mandatory Cajun Web Pro attribution remains immutable and separate.
+- [x] Optional HTTPS social profiles render as accessible header, footer, or
+      dual-placement icons; blank platforms create no placeholder or link.
 - [ ] Packaged subfolder browser verification covers upload, replace, clear,
       public header/footer, favicon, Core admin, and module admin rendering.
 

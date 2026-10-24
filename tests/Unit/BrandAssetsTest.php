@@ -49,6 +49,16 @@ final class BrandAssetsTest extends TestCase
         self::assertSame('© ' . date('Y') . ' Website. All rights reserved.', $brands->copyrightNotice('Website'));
         $settings->set('footer.copyright', 'Copyright {year} — {site_name}');
         self::assertSame('Copyright ' . date('Y') . ' — Website', $brands->copyrightNotice('Website'));
+        self::assertSame([], $brands->socialLinks());
+        $settings->set('social.facebook.url', 'https://facebook.com/example');
+        $settings->set('social.facebook.placement', 'both');
+        $settings->set('social.instagram.url', 'http://instagram.com/not-secure');
+        self::assertSame(['Facebook'], array_column($brands->socialLinks(), 'label'));
+        self::assertSame(['Facebook'], array_column($brands->socialLinks('header'), 'label'));
+        self::assertSame(['Facebook'], array_column($brands->socialLinks('footer'), 'label'));
+        self::assertTrue(BrandAssets::validSocialUrl('https://www.linkedin.com/company/example'));
+        self::assertFalse(BrandAssets::validSocialUrl('javascript:alert(1)'));
+        self::assertFalse(BrandAssets::validSocialUrl('http://example.com/profile'));
 
         $settings->set('brand.logo_media_id', null);
         $brands->seed('acme/catering', $tmp . '/package', ['logo' => 'assets/logo.png']);

@@ -287,6 +287,13 @@ final class ModuleContext
         return $this->service(BrandAssets::class)->copyrightNotice($siteName);
     }
 
+    /** @return list<array{platform:string,label:string,url:string,placement:string}> */
+    public function socialLinks(?string $location = null): array
+    {
+        if ($this->serviceResolver === null) return [];
+        return $this->service(BrandAssets::class)->socialLinks($location);
+    }
+
     /** @return list<array{label:string,url:string,target:string,children:list<array>}> */
     private function normalizeNavigationItems(array $items, int $depth = 0): array
     {

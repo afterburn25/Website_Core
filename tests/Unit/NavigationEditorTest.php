@@ -15,8 +15,9 @@ final class NavigationEditorTest extends TestCase
         $this->assertStringContainsString("['primary', 'footer']", $controller);
         $this->assertStringContainsString('itemBelongsToMenu', $controller);
         $this->assertStringContainsString("/admin/navigation?location=", $controller);
-        $this->assertStringContainsString('Header menu', $view);
-        $this->assertStringContainsString('Footer menu', $view);
+        $this->assertStringContainsString("'label' => 'Header menu'", $controller);
+        $this->assertStringContainsString("'label' => 'Footer menu'", $controller);
+        $this->assertStringContainsString('$locationMeta', $view);
         $this->assertStringContainsString('name="location"', $view);
         $this->assertStringContainsString('menu-location-tabs', $view);
     }

@@ -5,6 +5,8 @@
 - Loads Core and administration PHP through private, version-specific runtime
   paths so hosts that disable OPcache reset/invalidation cannot reuse old
   bytecode after a hosting-panel upload.
+- Anchors mirrored autoload resolution to `WC_ROOT`, preserving the installed
+  site's real Core and administration directories from any private cache path.
 - Keeps the existing OPcache refresh as a best-effort optimization while no
   longer depending on host support for correctness.
 - Shows the exception type, message, file, and line only to an authenticated

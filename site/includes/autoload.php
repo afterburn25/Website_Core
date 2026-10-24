@@ -41,7 +41,8 @@ final class CoreAutoload
     }
 }
 
-CoreAutoload::register('Core', __DIR__ . '/../core');
-CoreAutoload::register('Admin', __DIR__ . '/../admin');
+$applicationRoot = defined('WC_ROOT') ? WC_ROOT : dirname(__DIR__);
+CoreAutoload::register('Core', $applicationRoot . '/core');
+CoreAutoload::register('Admin', $applicationRoot . '/admin');
 
 spl_autoload_register([CoreAutoload::class, 'load']);

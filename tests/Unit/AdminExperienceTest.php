@@ -53,5 +53,8 @@ final class AdminExperienceTest extends TestCase
         $this->assertStringContainsString('wc_runtime_code_mirror', (string) file_get_contents(
             WC_ROOT . '/includes/autoload.php'
         ));
+        $this->assertStringContainsString("defined('WC_ROOT') ? WC_ROOT", (string) file_get_contents(
+            WC_ROOT . '/includes/autoload.php'
+        ));
     }
 }

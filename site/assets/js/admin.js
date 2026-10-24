@@ -66,6 +66,12 @@
     button.addEventListener('click', () => button.closest('[role="status"], [role="alert"]')?.remove());
   });
 
+  document.querySelectorAll('form[data-confirm]').forEach((form) => {
+    form.addEventListener('submit', (event) => {
+      if (!window.confirm(form.dataset.confirm || 'Continue?')) event.preventDefault();
+    });
+  });
+
   const accountMenu = document.querySelector('.account-menu');
   document.addEventListener('click', (event) => {
     if (accountMenu?.open && !accountMenu.contains(event.target)) {

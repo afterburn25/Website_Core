@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.0.3 — 2026-10-23
+
+- Rebuilt the page list with working no-rewrite search/filter controls,
+  status summaries, pagination, clearer empty states, scheduled-state detail,
+  direct public links, and confirmed destructive actions.
+- Rebuilt the page editor as a responsive two-column workspace with retained
+  validation input, parent-page and social-image selectors, live SEO preview,
+  character counts, keyboard-capable block ordering, unsaved-change
+  protection, and a draft preview that opens the actual preview page.
+- Added optimistic edit locking so stale browser tabs cannot silently
+  overwrite newer changes, plus complete revision snapshots which restore URL,
+  body, blocks, SEO, sharing, schema, indexing, and parent settings.
+- Added strict errors for invalid canonical URLs, schema JSON, media, parent
+  pages, and publishing dates; missing or deleted records now return 404
+  rather than displaying false success messages.
+- Added audited duplication, restore, revision restore, trash, and permanent
+  deletion workflows with dependent preview, translation, menu, and revision
+  cleanup.
+
 ## 2.0.2 — 2026-10-23
 
 - Froze broad feature development and established a permanent, ordered

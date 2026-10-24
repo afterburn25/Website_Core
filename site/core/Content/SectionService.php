@@ -53,9 +53,11 @@ final class SectionService
         return [true, null];
     }
 
-    public function delete(int $id): void
+    public function delete(int $id): bool
     {
-        $this->db->run('DELETE FROM `' . $this->db->table('sections') . '` WHERE id = ?', [$id]);
+        return $this->db->run(
+            'DELETE FROM `' . $this->db->table('sections') . '` WHERE id = ?', [$id]
+        )->rowCount() === 1;
     }
 
     /** @return list<array> */

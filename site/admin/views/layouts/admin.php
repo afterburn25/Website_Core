@@ -1,5 +1,5 @@
 <?php
-/** @var string $content @var array $nav @var string $currentPath @var string $basePath
+/** @var string $content @var array $nav @var string $currentPath @var string $basePath @var string $siteBasePath
   * @var \Core\Auth\AdminUser|null $user @var \Core\Security\Csrf $csrf
   * @var string $pageTitle @var string $siteName @var string $coreVersion
   * @var list<array{name:string,version:string}> $industryVersions @var int $noticeCount @var array|null $flash */
@@ -77,7 +77,8 @@ foreach ($nav as $item) {
 <h1><?= e($pageTitle) ?></h1>
 </div>
 <div class="header-actions">
-<form method="get" action="<?= e_attr($basePath) ?>/admin/search" class="header-search">
+<form method="get" action="<?= e_attr($siteBasePath) ?>/index.php" class="header-search">
+<input type="hidden" name="p" value="/admin/search">
 <input type="search" name="q" placeholder="Search admin…  Ctrl K" aria-label="Search admin">
 </form>
 <a class="btn secondary small notification-link" href="<?= e_attr($basePath) ?>/admin/notices">

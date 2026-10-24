@@ -586,6 +586,7 @@ final class Application
             $r->post('/pages/{id:\d+}/duplicate', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->duplicate($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/trash', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->trash($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/restore', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->restore($req), [$auth, $csrfCheck]);
+            $r->post('/pages/{id:\d+}/purge', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->purge($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/preview', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->previewLink($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/restore/{rid:\d+}', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->restoreRevision($req), [$auth, $csrfCheck]);
             $r->any('/navigation', fn (Request $req) => (new \Admin\Controllers\NavigationController($c))->index($req), [$auth, $csrfCheck]);

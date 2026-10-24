@@ -69,6 +69,7 @@ final class AccessibilityTest extends TestCase
         $adminLayout = (string) file_get_contents(WC_ROOT . '/admin/views/layouts/admin.php');
         $adminCss = (string) file_get_contents(WC_ROOT . '/assets/css/admin.css');
         $adminJs = (string) file_get_contents(WC_ROOT . '/assets/js/admin.js');
+        $editorJs = (string) file_get_contents(WC_ROOT . '/assets/js/page-editor.js');
         $this->assertStringContainsString('aria-label="Admin"', $adminLayout, 'admin nav labelled');
         $this->assertStringContainsString('aria-current="page"', $adminLayout, 'active page is exposed to assistive technology');
         $this->assertStringContainsString('<details class="nav-group"', $adminLayout, 'admin categories are collapsible');
@@ -85,6 +86,9 @@ final class AccessibilityTest extends TestCase
         $this->assertStringContainsString('focus-visible', $adminCss, 'focus-visible outlines present');
         $this->assertStringContainsString('prefers-reduced-motion', $adminCss, 'reduced-motion support present');
         $this->assertStringContainsString("event.key === 'Escape'", $adminJs, 'mobile menu closes from the keyboard');
+        $this->assertStringContainsString('form[data-confirm]', $adminJs, 'destructive controls request confirmation');
+        $this->assertStringContainsString("'beforeunload'", $editorJs, 'page editor protects unsaved work');
+        $this->assertStringContainsString('Move up', $editorJs, 'block ordering has a keyboard alternative');
     }
 
     public function testAdminLayoutRendersLaunchActionAndVersions(): void
@@ -103,6 +107,7 @@ final class AccessibilityTest extends TestCase
                 'group' => 'Overview', 'group_key' => 'core-overview', 'package' => null,
             ]],
             'currentPath' => '/admin', 'basePath' => '/catering/index.php?p=',
+            'siteBasePath' => '/catering',
             'user' => null, 'csrf' => new \Core\Security\Csrf(),
             'pageTitle' => 'Dashboard', 'siteName' => 'Catering Test',
             'coreVersion' => '0.1.14-dev',

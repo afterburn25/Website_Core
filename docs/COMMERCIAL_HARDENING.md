@@ -46,7 +46,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | Order | Surface | Commercial completion focus | Status |
 | --- | --- | --- | --- |
 | 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete — 2.0.2; packaged-browser check pending |
-| 2 | Content list and page editor | Page lifecycle, visual blocks, preview, publish/review/schedule, revisions, duplication, trash/restore, validation, unsaved-state protection | queued |
+| 2 | Content list and page editor | Page lifecycle, visual blocks, preview, publish/review/schedule, revisions, duplication, trash/restore, validation, unsaved-state protection | in progress — 2.0.3 |
 | 3 | Media library | Upload failures, folders/tags, bulk operations, focal points/crops, usage, replacement, empty states, file limits | queued |
 | 4 | Navigation Menu | Existing-menu import, tree editing, targets, page/external links, nesting, keyboard alternatives, validation, public rendering | queued |
 | 5 | Forms and submissions | Field builder, validation, notifications, spam controls, consent evidence, inbox, filters, read state, archive/export | queued |
@@ -80,7 +80,29 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       (GitHub Actions run 400, run ID `40045870820`).
 - [ ] Browser verification completed on a packaged subfolder installation.
 
-The next implementation target after 2.0.2 verification is **Content list and
-page editor**. No later surface should be marked complete early merely because
-some of its underlying code already exists.
+## 2.0.3 — Content and Page Editor acceptance
+
+- [x] Page search, publishing/review filters, summaries, pagination, and empty
+      states work through the no-rewrite subfolder route.
+- [x] Invalid editor submissions preserve the administrator's entered values
+      and explain canonical URL, JSON schema, media, parent, and date errors.
+- [x] Optimistic locking blocks stale-tab overwrites.
+- [x] Revision snapshots preserve and restore the complete editable page,
+      while retaining the pre-restore version as another revision.
+- [x] Draft preview opens the rendered preview instead of hiding its URL in a
+      flash message.
+- [x] Visual blocks support pointer drag and labeled keyboard move controls;
+      removal is confirmed and changes are announced.
+- [x] Unsaved-change protection, live SEO preview, character counts, public
+      page links, and responsive editor/status panels are wired.
+- [x] Trash restore and permanent deletion have confirmations, audit evidence,
+      dependent-record cleanup, and missing-record 404 behavior.
+- [ ] PHP 8.4/8.5, package, MySQL, MariaDB, artifact, and Core-only CI pass.
+- [ ] Packaged subfolder browser verification covers create, validation,
+      conflict, preview, publish, schedule, duplicate, trash, restore, purge,
+      and revision restore.
+
+The next implementation target after 2.0.3 verification is **Media library**.
+No later surface should be marked complete early merely because some of its
+underlying code already exists.
 

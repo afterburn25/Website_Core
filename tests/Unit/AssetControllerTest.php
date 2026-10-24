@@ -44,4 +44,17 @@ final class AssetControllerTest extends TestCase
         self::assertSame('text/css', $response->headers()['Content-Type'] ?? null);
         self::assertSame('nosniff', $response->headers()['X-Content-Type-Options'] ?? null);
     }
+
+    public function testPageEditorScriptUsesTheConstrainedAssetRoute(): void
+    {
+        $request = new Request('GET', '/_a/core/js/page-editor.js', '', [], [], [], [], []);
+        $request->attributes['path'] = 'core/js/page-editor.js';
+
+        $response = (new AssetController(new Container()))->serve($request);
+
+        self::assertSame(200, $response->status());
+        self::assertStringContainsString('beforeunload', $response->body());
+        self::assertSame('text/javascript', $response->headers()['Content-Type'] ?? null);
+        self::assertSame('nosniff', $response->headers()['X-Content-Type-Options'] ?? null);
+    }
 }

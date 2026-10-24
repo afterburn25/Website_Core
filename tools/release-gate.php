@@ -106,6 +106,11 @@ $ok(str_contains($adminLayout, '/_a/core/css/admin.css')
     && is_file($root . '/site/assets/css/admin.css')
     && is_file($root . '/site/assets/js/admin.js'),
     'Versioned Core admin design assets are missing or not wired.');
+$pageEditor = $read($root . '/site/admin/views/pages/edit.php');
+$ok(str_contains($pageEditor, '/_a/core/js/page-editor.js')
+    && is_file($root . '/site/assets/js/page-editor.js')
+    && str_contains($application, "/pages/{id:\\d+}/purge"),
+    'Commercial page-editor assets or lifecycle routes are missing.');
 $ok(is_file($root . '/site/install.php') && is_file($root . '/site/install/index.php'),
     'Deployment source must include the self-removing installer entry points.');
 $installerCleanup = $read($root . '/site/includes/installer-cleanup.php');

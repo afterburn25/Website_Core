@@ -49,6 +49,7 @@ abstract class Controller
         $v->share('user', $this->user());
         $v->share('csrf', $this->csrf());
         $v->share('basePath', $r->routeBase());
+        $v->share('siteBasePath', rtrim($r->basePath, '/'));
         $v->share('currentPath', $r->path);
         $v->share('nav', $this->visibleNav());
         $v->share('pageTitle', $title);

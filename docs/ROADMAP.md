@@ -29,7 +29,7 @@ adapt to real dependencies; scope is preserved, not deferred silently.
 | 1.9 | API keys, webhooks, site transfer and remote backups | complete | commit “Build the 1.9 integration platform” |
 | 2.0 | agency site registry, marketplace catalog, managed update feeds and visual navigation tree | complete | commit “Release the 2.0 agency and managed platform” |
 | 2.0.1 | module-owned navigation defaults imported into Core's editable tree | complete | commit “Let modules define editable site navigation” |
-| 2.0.2+ | feature-frozen screen-by-screen commercial hardening | in progress — 2.0.3 Content/Page Editor pass | `docs/COMMERCIAL_HARDENING.md` |
+| 2.0.2+ | feature-frozen screen-by-screen commercial hardening | in progress — 2.0.4 maintenance login repair | `docs/COMMERCIAL_HARDENING.md` |
 
 No new broad feature milestone follows 2.0 while commercial hardening is in
 progress. The ordered audit in `docs/COMMERCIAL_HARDENING.md` is the active

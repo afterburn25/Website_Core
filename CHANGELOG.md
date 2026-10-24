@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.4 — 2026-10-23
+
+- Kept the complete `/admin` namespace reachable while public maintenance
+  mode is enabled, allowing authentication middleware to redirect a logged-out
+  `/admin` request to the administrator login page.
+- Preserved normal authentication and capability checks for every protected
+  admin screen; this change does not expose administration to the public.
+- Added a subfolder/no-rewrite regression test proving `/catering/admin`
+  reaches `/catering/index.php?p=/admin/login` while public pages still receive
+  the maintenance response.
+
 ## 2.0.3 — 2026-10-23
 
 - Rebuilt the page list with working no-rewrite search/filter controls,

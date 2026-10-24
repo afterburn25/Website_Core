@@ -45,7 +45,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 
 | Order | Surface | Commercial completion focus | Status |
 | --- | --- | --- | --- |
-| 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete — 2.0.2; packaged-browser check pending |
+| 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete — 2.0.4; packaged-browser check pending |
 | 2 | Content list and page editor | Page lifecycle, visual blocks, preview, publish/review/schedule, revisions, duplication, trash/restore, validation, unsaved-state protection | code complete — 2.0.3; packaged-browser check pending |
 | 3 | Media library | Upload failures, folders/tags, bulk operations, focal points/crops, usage, replacement, empty states, file limits | queued |
 | 4 | Navigation Menu | Existing-menu import, tree editing, targets, page/external links, nesting, keyboard alternatives, validation, public rendering | queued |
@@ -106,4 +106,16 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 The next implementation target after 2.0.3 verification is **Media library**.
 No later surface should be marked complete early merely because some of its
 underlying code already exists.
+
+## 2.0.4 — maintenance administrator access repair
+
+- [x] Public routes continue to receive the branded 503 maintenance page.
+- [x] `/admin`, `/admin/login`, MFA, password recovery, and protected admin
+      routes bypass the public maintenance intercept.
+- [x] Logged-out `/admin` requests are redirected by the normal authentication
+      middleware to the rewrite-independent subfolder login URL.
+- [x] Protected admin pages still require an authenticated administrator.
+- [ ] PHP 8.4/8.5, MySQL, MariaDB, package, and artifact CI pass.
+- [ ] Hosted browser verification confirms login, logout, and login-again while
+      maintenance mode remains enabled.
 

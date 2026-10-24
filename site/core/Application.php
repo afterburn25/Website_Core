@@ -394,10 +394,12 @@ final class Application
     }
 
     /**
-     * storage/maintenance.flag 503s every request except authenticated
-     * admins — the operators performing the maintenance — and the login
-     * route itself, or a logged-out operator could never get in. Updates
-     * would otherwise swap code underneath in-flight public requests.
+     * storage/maintenance.flag blocks public traffic while leaving the whole
+     * admin namespace reachable. Admin authentication still runs normally:
+     * logged-out requests such as /admin are redirected to /admin/login, and
+     * protected screens still require a valid administrator session. Keeping
+     * only the literal login route open would intercept /admin before its
+     * authentication redirect and lock a logged-out operator outside.
      */
     private function inMaintenance(Request $request): bool
     {
@@ -406,10 +408,8 @@ final class Application
         if (!is_file($flag)) {
             return false;
         }
-        // Login + reset stay reachable or a logged-out operator is locked
-        // out of their own maintenance window.
-        $open = ['/admin/login', '/admin/forgot', '/admin/reset'];
-        if (in_array(rtrim($request->path, '/') ?: '/', $open, true)) {
+        $path = rtrim($request->path, '/') ?: '/';
+        if ($path === '/admin' || str_starts_with($path, '/admin/')) {
             return false;
         }
         return $this->container->get(AuthService::class)->user() === null;

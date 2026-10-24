@@ -100,6 +100,9 @@ $ok(str_contains($attribution, 'Let’s build yours.'),
 $application = $read($root . '/site/core/Application.php');
 $ok(str_contains($application, "X-WC-Cacheable") && str_contains($application, "private, no-store"),
     'Public HTML must use explicit cache opt-in and private-by-default behavior.');
+$ok(str_contains($application, "\$path === '/admin'")
+    && str_contains($application, "str_starts_with(\$path, '/admin/')"),
+    'Maintenance mode must preserve the complete authenticated admin namespace.');
 $adminLayout = $read($root . '/site/admin/views/layouts/admin.php');
 $ok(str_contains($adminLayout, '/_a/core/css/admin.css')
     && str_contains($adminLayout, '/_a/core/js/admin.js')

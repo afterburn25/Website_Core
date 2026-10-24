@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.3` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.4` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -16,6 +16,12 @@ hardens Content and the Page Editor with working no-rewrite filters,
 conflict-safe saves, complete revision snapshots, recoverable trash, strict
 validation, real draft previews, unsaved-work protection, and a responsive
 editor workspace.
+
+Version 2.0.4 closes a maintenance-mode lockout discovered during hosted
+testing: the complete admin namespace now bypasses the public maintenance
+intercept, so a logged-out `/admin` request can reach the existing auth
+middleware and administrator login page. Protected admin screens still
+require authentication normally.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

@@ -26,10 +26,10 @@ installed through the Module Manager.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
-- **Status**: `2.0.3` commercial hardening. Broad feature development is
+- **Status**: `2.0.4` commercial hardening. Broad feature development is
   frozen while every existing workflow is completed, polished, and verified
   screen by screen. See `PROJECT_STATUS.md`, `docs/COMMERCIAL_HARDENING.md`,
-  `docs/2.0.2_RELEASE_NOTES.md`, and `docs/2.0.3_RELEASE_NOTES.md`.
+  `docs/2.0.3_RELEASE_NOTES.md`, and `docs/2.0.4_RELEASE_NOTES.md`.
 
 ## Quick start (development)
 
@@ -70,6 +70,7 @@ php tools/build-web-installer.php \
 | `docs/2.0.1_RELEASE_NOTES.md` | Module-owned navigation defaults and editable Core takeover |
 | `docs/2.0.2_RELEASE_NOTES.md` | Commercial hardening program and polished administration shell |
 | `docs/2.0.3_RELEASE_NOTES.md` | Conflict-safe page workflow and polished content workspace |
+| `docs/2.0.4_RELEASE_NOTES.md` | Maintenance-mode administrator login recovery |
 | `docs/COMMERCIAL_HARDENING.md` | Ordered screen-by-screen audit and commercial completion gates |
 | `docs/MODULE_API.md` | Supported extension API surface |
 | `docs/MODULE_REPOSITORY.md` | Authoritative module branches, folders, versioning and release sync |

@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "id": "cajunwebpro/landscaping-earth-stone",
+  "type": "theme",
+  "name": "Landscaping — Earth & Stone",
+  "version": "1.0.0",
+  "license": "PROPRIETARY",
+  "requires": { "core": ">=2.0.7,<3.0.0", "api": 1 },
+  "parent": "base",
+  "tokens": { "color-bg": "#f2ede3", "color-text": "#30251d", "color-accent": "#a95f42", "radius": "0", "max-width": "100rem" },
+  "assets": { "css": ["assets/css/landscaping-theme.css"], "js": [] },
+  "templates": []
+}

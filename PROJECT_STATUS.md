@@ -156,10 +156,13 @@ all later branding, footer-link, and copyright changes.
 
 The first industry implementation remains `examples/industry-catering`: a
 complete editorial public site, menu/package management, secure multi-step
-quote workflow, and catering lead administration. The universal core remains
-industry-neutral. Final GitHub CI is authoritative for PHP 8.4/8.5 and native
-MySQL/MariaDB evidence; the local release run performs the dependency-free
-gate, complete PHP syntax lint, package inspection, and checksums.
+quote workflow, and catering lead administration. Landscaping 1.0 is the
+second synchronized industry release, with service, project, maintenance,
+service-area, seasonal, estimate, and administration workflows plus four
+installable themes. The universal core remains industry-neutral. Final GitHub
+CI is authoritative for PHP 8.4/8.5 and native MySQL/MariaDB evidence; the local
+release run performs the dependency-free gate, complete PHP syntax lint,
+package inspection, and checksums.
 
 ## Baseline
 
@@ -187,6 +190,7 @@ gate, complete PHP syntax lint, package inspection, and checksums.
 | M5 | Cross-industry proof | implemented + tested | `examples/industry-restaurant` + `examples/industry-salon` (reference modules), `examples/addon-inquiry` (shared add-on), `examples/theme-noir` + `examples/theme-terra` (distinct themes) — verified via `ReferencePackagesTest` and `ReferenceSitesParityTest` (byte-identical add-on ZIP on both sites, parity preserved, theme switch preserves data) |
 | M6 | Release | implemented + tested | `docs/SECURITY.md` (passwords, MFA, sessions, CSRF, rate limits, input, headers, accessibility controls), `docs/COMPATIBILITY.md` (PHP 8.4/8.5, MySQL 8.4/MariaDB 11.4, Apache 2.4 mod_rewrite, LiteSpeed pending, no-rewrite fallback), `docs/COMMERCIAL_READINESS.md` (runtime deps, signing trust root, public repo policy, accessibility, performance posture), `docs/RELEASE_CHECKLIST.md` (release steps, verification, signing), AccessibilityTest (7 tests, 31 assertions) — aria-label, for labels, alt text, focus-visible, reduced-motion; release artifacts (FULL-PROJECT/COMPLETE-UPLOAD/UPDATE/packages + SHA256SUMS) built + CI-gated; `tools/verify-artifact.php` fresh-install dogfood; draft GitHub prerelease with 9 assets (unpublished — owner approval) |
 | Industry 1 | Catering website | implemented + tested | `examples/industry-catering`, `docs/CATERING_INDUSTRY.md`, `ReferencePackagesTest::testCateringIndustryInstallsRendersAndCapturesQuote`; PHP 8.4/8.5 + MySQL 8.4 + MariaDB 11.4 CI green |
+| Industry 2 | Landscaping website | synchronized + tested | `examples/industry-landscaping`, four `theme-landscaping-*` snapshots, `docs/LANDSCAPING_INDUSTRY.md`, package and native migration coverage |
 
 ## Remaining gaps (owner-gated)
 

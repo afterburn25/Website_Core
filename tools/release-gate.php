@@ -118,6 +118,24 @@ $ok(str_contains($moduleContext, 'function brandAssets(')
     && is_file($root . '/examples/industry-catering/assets/images/catering-co-logo.png')
     && in_array('assets/images/catering-co-logo.png', (array) ($cateringManifest['assets']['images'] ?? []), true),
     'Core-owned module branding contract or catering starter logo is missing.');
+$landscapingManifest = json_decode($read($root . '/examples/industry-landscaping/addon.json'), true);
+$ok(($landscapingManifest['id'] ?? null) === 'cajunwebpro/landscaping'
+    && ($landscapingManifest['version'] ?? null) === '1.0.0'
+    && is_file($root . '/examples/industry-landscaping/assets/images/landscaping-mark.png')
+    && is_file($root . '/examples/industry-landscaping/migrations/0001_landscaping.php'),
+    'Landscaping 1.0 synchronized snapshot is missing or incomplete.');
+foreach ([
+    'landscaping-bold-outdoors', 'landscaping-estate-green',
+    'landscaping-neighborhood-lawn', 'landscaping-earth-stone',
+] as $landscapingTheme) {
+    $themeManifest = json_decode($read(
+        $root . '/examples/theme-' . $landscapingTheme . '/theme.json'
+    ), true);
+    $ok(($themeManifest['version'] ?? null) === '1.0.0'
+        && is_file($root . '/examples/theme-' . $landscapingTheme
+            . '/assets/css/landscaping-theme.css'),
+        "Landscaping theme snapshot is missing or incomplete: {$landscapingTheme}");
+}
 $appearanceView = $read($root . '/site/admin/views/appearance/index.php');
 $ok(str_contains($appearanceView, 'logo_upload')
     && str_contains($appearanceView, 'favicon_upload')

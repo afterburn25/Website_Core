@@ -5,6 +5,14 @@
 - Keeps the allowlisted Core asset route available during maintenance and
   license-denial states so login and authenticated administration retain their
   styles and JavaScript on root and subfolder installations.
+- Synchronizes the verified Landscaping Website 1.0 runtime from Core_Mods,
+  including estimate intake, service and project content, maintenance plans,
+  service areas, seasonal services, administration, and shared Core branding
+  and navigation integration.
+- Adds four installable landscaping themes: Bold Outdoors (default), Estate
+  Green, Neighborhood Lawn, and Earth & Stone.
+- Builds and validates landscaping TEST-BUNDLE and shared-host REPAIR-UPLOAD
+  artifacts and runs its migration against native MySQL and MariaDB in CI.
 - Adds a persistent collapsible desktop sidebar and optional compact workspace
   density while retaining each administrator's expanded navigation groups.
 - Replaces browser-native destructive prompts with an accessible branded

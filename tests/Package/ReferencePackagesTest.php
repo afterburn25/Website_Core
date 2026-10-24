@@ -394,6 +394,130 @@ final class ReferencePackagesTest extends TestCase
         $this->assertSame(120, (int) $row['guest_count']);
     }
 
+    public function testLandscapingIndustryInstallsRendersAndCapturesEstimate(): void
+    {
+        $this->installEnable('industry-landscaping', 'landscaping', 'cajunwebpro/landscaping');
+        $this->boot();
+
+        foreach ([
+            'landscaping_services', 'landscaping_projects', 'landscaping_plans',
+            'landscaping_service_areas', 'landscaping_seasonal_services',
+            'landscaping_estimates',
+        ] as $table) {
+            $this->assertTrue($this->db->tableExists($table), $table);
+        }
+        $this->assertSame(6, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('landscaping_services') . '`'
+        ));
+        $this->assertSame(3, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('landscaping_plans') . '`'
+        ));
+
+        $settings = $this->serviceSettings;
+        $logoId = (int) $settings->get('brand.logo_media_id', 0);
+        $this->assertGreaterThan(0, $logoId);
+        $this->assertSame('landscaping-mark.png', $this->db->fetchColumn(
+            'SELECT original_name FROM `' . $this->db->table('media') . '` WHERE id = ?', [$logoId]
+        ));
+        $this->assertTrue((bool) $settings->get('branding.seeded.cajunwebpro.landscaping', false));
+
+        $navigation = new \Core\Content\MenuService($this->db);
+        $this->assertSame(
+            ['Home', 'Services', 'Projects', 'Maintenance Plans', 'Service Areas', 'Contact'],
+            array_column($navigation->tree('primary'), 'label')
+        );
+        $this->assertSame(
+            ['Services', 'Projects', 'Maintenance Plans', 'Seasonal Services', 'Service Areas', 'About', 'Contact', 'Request an Estimate'],
+            array_column($navigation->tree('footer'), 'label')
+        );
+
+        $home = $this->req('GET', '/');
+        $this->assertSame(200, $home->status());
+        $this->assertStringContainsString('Your yard.', $home->body());
+        $this->assertStringContainsString('Lawn Maintenance', $home->body());
+        $this->assertStringContainsString('/index.php?p=/_a/modules/landscaping/assets/css/landscaping.css', $home->body());
+        $this->assertStringContainsString('/media/' . $logoId . '/w/256/landscaping-mark.png', $home->body());
+
+        foreach ([
+            '/services', '/services/lawn-maintenance', '/projects', '/maintenance-plans',
+            '/service-areas', '/seasonal-services', '/about', '/contact', '/request-estimate',
+        ] as $route) {
+            $response = $this->req('GET', $route);
+            $this->assertSame(200, $response->status(), $route);
+            $this->assertStringContainsString('<main id="main">', $response->body(), $route);
+        }
+
+        $_SESSION['_wc_csrf'] = 'landscaping-test-token';
+        $estimate = $this->req('POST', '/request-estimate', [
+            '_csrf' => 'landscaping-test-token',
+            'name' => 'Jordan Client',
+            'email' => 'jordan@example.com',
+            'phone' => '555-0142',
+            'address' => '100 Garden Lane',
+            'city' => 'Lafayette',
+            'state' => 'Louisiana',
+            'zip' => '70501',
+            'property_type' => 'Residential',
+            'lot_size' => 'Quarter acre',
+            'service_interest' => 'Landscape Installation',
+            'schedule_preference' => 'Within one month',
+            'budget' => '$1,500–$5,000',
+            'message' => 'Refresh the front beds and improve drainage.',
+            'consent' => '1',
+        ]);
+        $this->assertSame(302, $estimate->status());
+        $row = $this->db->fetch(
+            'SELECT * FROM `' . $this->db->table('landscaping_estimates') . '` WHERE email = ?',
+            ['jordan@example.com']
+        );
+        $this->assertNotNull($row);
+        $this->assertSame('new', $row['status']);
+        $this->assertSame('Landscape Installation', $row['service_interest']);
+        $this->assertSame(1, (int) $row['consent']);
+
+        $landscapingNav = array_values(array_filter(
+            $this->registry->adminNavItems(),
+            fn (array $item): bool => $item['package'] === 'cajunwebpro/landscaping'
+        ));
+        $this->assertNotContains('Dashboard', array_column($landscapingNav, 'label'));
+        $this->assertCount(7, $landscapingNav);
+        $widgets = array_values(array_filter(
+            $this->registry->dashboardWidgets(),
+            fn (array $widget): bool => $widget['key'] === 'new-estimates'
+        ));
+        $this->assertCount(1, $widgets);
+        $this->assertSame('/admin/landscaping/estimates', $widgets[0]['url']);
+    }
+
+    public function testLandscapingReleaseAndThemesFitSharedHostingAndInstall(): void
+    {
+        $moduleZip = $this->zipDir(
+            WC_ROOT . '/../examples/industry-landscaping',
+            'landscaping',
+            'landscaping-size-check.zip'
+        );
+        $this->assertLessThanOrEqual(2 * 1024 * 1024, (int) filesize($moduleZip));
+
+        foreach ([
+            'theme-landscaping-bold-outdoors' => 'landscaping-bold-outdoors',
+            'theme-landscaping-estate-green' => 'landscaping-estate-green',
+            'theme-landscaping-neighborhood-lawn' => 'landscaping-neighborhood-lawn',
+            'theme-landscaping-earth-stone' => 'landscaping-earth-stone',
+        ] as $dir => $inner) {
+            $manifest = json_decode((string) file_get_contents(
+                WC_ROOT . '/../examples/' . $dir . '/theme.json'
+            ), true);
+            $this->assertSame([], \Core\Modules\Manifest::validate($manifest), $dir);
+            $zip = $this->zipDir(WC_ROOT . '/../examples/' . $dir, $inner, $inner . '.zip');
+            [, $error] = $this->pm->stage($zip);
+            $this->assertNull($error, "stage {$dir}");
+            [$ok, $error] = $this->pm->install((string) $manifest['id']);
+            $this->assertTrue($ok, "install {$dir}: {$error}");
+            $this->assertFileExists($this->tmp . '/themes/' . $inner . '/theme.json');
+            $this->assertFileExists($this->tmp . '/themes/' . $inner . '/assets/css/landscaping-theme.css');
+        }
+    }
+
     public function testCateringReferencePackageFitsSharedHostingUploadCeiling(): void
     {
         $zip = $this->zipDir(

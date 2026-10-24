@@ -30,6 +30,9 @@ installed through the Module Manager.
   frozen while every existing workflow is completed, polished, and verified
   screen by screen. See `PROJECT_STATUS.md`, `docs/COMMERCIAL_HARDENING.md`,
   `docs/2.0.13_RELEASE_NOTES.md`, and `docs/2.0.14_RELEASE_NOTES.md`.
+- **Bundled industries**: catering and landscaping are synchronized release
+  snapshots. Landscaping 1.0 includes four selectable themes, with Bold
+  Outdoors as its default presentation.
 
 ## Quick start (development)
 
@@ -85,6 +88,7 @@ php tools/build-web-installer.php \
 | `docs/MODULE_API.md` | Supported extension API surface |
 | `docs/MODULE_RULES.md` | Permanent cross-industry module ownership, UX, lifecycle, and release rules |
 | `docs/MODULE_REPOSITORY.md` | Authoritative module branches, folders, versioning and release sync |
+| `docs/LANDSCAPING_INDUSTRY.md` | Landscaping 1.0 scope, themes, provenance, and Core delivery evidence |
 | `docs/PACKAGE_SPEC.md` | addon.json manifest schema v1 |
 | `docs/LICENSING_API.md` | Bundle/DRM licensing contract |
 | `docs/INTEGRATIONS_API.md` | API keys, endpoints and signed webhooks |

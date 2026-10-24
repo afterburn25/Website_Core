@@ -67,4 +67,25 @@ final class MySqlNativeTest extends TestCase
         $this->assertTrue($l->attempt($bucket, 2, 60));
         $this->assertFalse($l->attempt($bucket, 2, 60));
     }
+
+    public function testLandscapingModuleMigrationOnMysql(): void
+    {
+        (new Migrator($this->db, WC_ROOT . '/database/migrations'))->migrate();
+        $migrator = new Migrator($this->db, WC_ROOT . '/../examples/industry-landscaping/migrations');
+        $this->assertContains('landscaping_0001_commercial_foundation', $migrator->migrate());
+        foreach ([
+            'landscaping_services', 'landscaping_projects', 'landscaping_plans',
+            'landscaping_service_areas', 'landscaping_seasonal_services',
+            'landscaping_estimates',
+        ] as $table) {
+            $this->assertTrue($this->db->tableExists($table), "missing {$table}");
+        }
+        $this->assertSame(6, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('landscaping_services') . '`'
+        ));
+        $this->assertSame(3, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('landscaping_plans') . '`'
+        ));
+        $this->assertSame([], $migrator->migrate());
+    }
 }

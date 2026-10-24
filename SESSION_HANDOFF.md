@@ -13,6 +13,22 @@
 - CI stages and inspects the downloadable payload, rejects nested ZIP files,
   requires installer files, and preserves hidden `.htaccess` guard files.
 
+## 2.0.14 Landscaping 1.0 Core synchronization
+
+- Synchronized `cajunwebpro/landscaping` 1.0.0 runtime source from
+  `Core_Mods/module/landscaping` commit
+  `03699e8ab9d9e2b31dec397a38940df1efe4615d`.
+- Verified module release digest:
+  `ed6277357589ca684296f821f5fdb20bc1cbedfc69d82dbdcaf3d7f9e9a964f3`.
+- Added Bold Outdoors as the default and Estate Green, Neighborhood Lawn, and
+  Earth & Stone as separately packaged 1.0.0 themes.
+- Added package install/render/estimate coverage, native MySQL/MariaDB
+  migration coverage, release-gate assertions, and dedicated TEST-BUNDLE and
+  REPAIR-UPLOAD CI artifacts.
+- Permanent delivery rule: a stable module release is shipped only after its
+  verified runtime source is synchronized into the current Core line and both
+  repositories' CI pass.
+
 ## 2.0.14 subfolder assets and SEO recovery
 
 - The shared administrator shell now anchors Core CSS and JavaScript to the

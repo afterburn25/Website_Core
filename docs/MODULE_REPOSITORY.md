@@ -43,12 +43,20 @@ Core's `examples/<module-id>/` directory is a release input, not the live module
 development source. Synchronize it only from a committed, validated module
 branch release.
 
+Every stable module release must be synchronized into the current active Core
+line before it is considered shipped. A module release is complete only when
+both its module-branch CI and the corresponding latest-Core CI pass. The Core
+snapshot contains the exact runtime source from the verified release archive;
+repository documentation and release metadata remain in Core_Mods and are
+recorded by digest in Core's release notes.
+
 For each synchronization:
 
 1. Confirm the module branch CI passes.
 2. Confirm `addon.json`, `LATEST.json`, and the release ZIP agree on version.
 3. Verify the release ZIP digest and that `addon.json` is at its archive root.
-4. Replace the corresponding Core example snapshot with that exact source.
+4. Replace the corresponding Core example snapshot with the exact runtime
+   source from that archive.
 5. Record the Core_Mods branch, commit SHA, module version, and release digest
    in the Core commit or release notes.
 6. Run Core lint, unit, package, native MySQL/MariaDB, installer, and artifact

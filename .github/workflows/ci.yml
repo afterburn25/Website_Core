@@ -447,6 +447,49 @@ jobs:
           compression-level: 0
           include-hidden-files: true
           retention-days: 30
+      - name: Build and inspect landscaping TEST-BUNDLE
+        run: |
+          php tools/build-packages.php test-bundle landscaping /tmp/landscaping-test-dist
+          php -r '
+          $path=glob("/tmp/landscaping-test-dist/*TEST-BUNDLE.zip")[0]??null;
+          if($path===null){fwrite(STDERR,"landscaping TEST-BUNDLE missing\n");exit(1);}
+          $z=new ZipArchive();
+          if($z->open($path)!==true){fwrite(STDERR,"landscaping TEST-BUNDLE unreadable\n");exit(1);}
+          $manifest=json_decode((string)$z->getFromName("modules/industries/industry-landscaping/addon.json"),true);
+          if(!is_array($manifest)||($manifest["id"]??null)!=="cajunwebpro/landscaping"||($manifest["version"]??null)!=="1.0.0"||isset($manifest["license_key"])){
+            fwrite(STDERR,"landscaping TEST-BUNDLE manifest invalid\n");exit(1);
+          }
+          foreach([
+            "install.php",
+            "install/index.php",
+            "core/Install/Installer.php",
+            "vendor/autoload.php",
+            "modules/industries/industry-landscaping/src/Provider.php",
+            "modules/industries/industry-landscaping/migrations/0001_landscaping.php",
+            "modules/industries/industry-landscaping/assets/css/landscaping.css",
+            "modules/industries/industry-landscaping/assets/images/hero.webp"
+          ] as $need){
+            if($z->locateName($need)===false){fwrite(STDERR,"landscaping TEST-BUNDLE missing $need\n");exit(1);}
+          }
+          echo "landscaping TEST-BUNDLE contract OK: ".basename($path)."\n";'
+      - name: Stage directly usable landscaping TEST-BUNDLE
+        run: |
+          rm -rf /tmp/landscaping-test-artifact
+          mkdir -p /tmp/landscaping-test-artifact
+          unzip -q /tmp/landscaping-test-dist/Website-Core-landscaping-*-TEST-BUNDLE.zip -d /tmp/landscaping-test-artifact
+          test -f /tmp/landscaping-test-artifact/install.php
+          test -f /tmp/landscaping-test-artifact/install/index.php
+          test -f /tmp/landscaping-test-artifact/core/Install/Installer.php
+          test -z "$(find /tmp/landscaping-test-artifact -type f -name '*.zip' -print -quit)"
+      - name: Upload landscaping TEST-BUNDLE
+        uses: actions/upload-artifact@v4
+        with:
+          name: Website-Core-Landscaping-TEST-BUNDLE
+          path: /tmp/landscaping-test-artifact/
+          if-no-files-found: error
+          compression-level: 0
+          include-hidden-files: true
+          retention-days: 30
       - name: Inspect catering shared-host repair upload
         run: |
           php -r '
@@ -501,6 +544,55 @@ jobs:
         with:
           name: Website-Core-Catering-2.0.14-REPAIR-UPLOAD
           path: /tmp/catering-repair-artifact/
+          if-no-files-found: error
+          compression-level: 0
+          include-hidden-files: true
+          retention-days: 30
+      - name: Inspect landscaping shared-host repair upload
+        run: |
+          php -r '
+          $path=glob("/tmp/dist/Website-Core-landscaping-*-REPAIR-UPLOAD.zip")[0]??null;
+          if($path===null){fwrite(STDERR,"landscaping REPAIR-UPLOAD missing\n");exit(1);}
+          $z=new ZipArchive();
+          if($z->open($path)!==true){fwrite(STDERR,"landscaping REPAIR-UPLOAD unreadable\n");exit(1);}
+          foreach([
+            "index.php",
+            "install.php",
+            "install/index.php",
+            "core/Install/Installer.php",
+            "core/Install/views/installer.php",
+            "includes/bootstrap.php",
+            "core/Application.php",
+            "vendor/autoload.php",
+            "modules/industries/industry-landscaping/addon.json",
+            "modules/industries/industry-landscaping/migrations/0001_landscaping.php",
+            "modules/industries/industry-landscaping/assets/images/landscaping-mark.png"
+          ] as $need){
+            if($z->locateName($need)===false){fwrite(STDERR,"landscaping REPAIR-UPLOAD missing $need\n");exit(1);}
+          }
+          foreach(["config/config.php"] as $forbidden){
+            if($z->locateName($forbidden)!==false){fwrite(STDERR,"landscaping REPAIR-UPLOAD contains $forbidden\n");exit(1);}
+          }
+          $manifest=json_decode((string)$z->getFromName("modules/industries/industry-landscaping/addon.json"),true);
+          $source=json_decode((string)file_get_contents("examples/industry-landscaping/addon.json"),true);
+          if(!is_array($source)||($manifest["version"]??null)!==($source["version"]??null)){
+            fwrite(STDERR,"REPAIR-UPLOAD landscaping version does not match source snapshot\n");exit(1);
+          }
+          echo "landscaping REPAIR-UPLOAD contract OK: ".basename($path)."\n";'
+      - name: Stage directly usable landscaping shared-host repair
+        run: |
+          rm -rf /tmp/landscaping-repair-artifact
+          mkdir -p /tmp/landscaping-repair-artifact
+          unzip -q /tmp/dist/Website-Core-landscaping-2.0.14-REPAIR-UPLOAD.zip -d /tmp/landscaping-repair-artifact
+          test -f /tmp/landscaping-repair-artifact/install.php
+          test -f /tmp/landscaping-repair-artifact/install/index.php
+          test -f /tmp/landscaping-repair-artifact/core/Install/Installer.php
+          test -z "$(find /tmp/landscaping-repair-artifact -type f -name '*.zip' -print -quit)"
+      - name: Upload landscaping shared-host repair
+        uses: actions/upload-artifact@v4
+        with:
+          name: Website-Core-Landscaping-2.0.14-REPAIR-UPLOAD
+          path: /tmp/landscaping-repair-artifact/
           if-no-files-found: error
           compression-level: 0
           include-hidden-files: true

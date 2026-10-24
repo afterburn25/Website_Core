@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "id": "cajunwebpro/landscaping-estate-green",
+  "type": "theme",
+  "name": "Landscaping — Estate Green",
+  "version": "1.0.0",
+  "license": "PROPRIETARY",
+  "requires": { "core": ">=2.0.7,<3.0.0", "api": 1 },
+  "parent": "base",
+  "tokens": { "color-bg": "#f7f4ec", "color-text": "#10291f", "color-accent": "#b79a55", "radius": "0.15rem", "max-width": "92rem" },
+  "assets": { "css": ["assets/css/landscaping-theme.css"], "js": [] },
+  "templates": []
+}

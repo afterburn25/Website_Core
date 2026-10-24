@@ -470,8 +470,8 @@ jobs:
       - name: Upload catering shared-host repair
         uses: actions/upload-artifact@v4
         with:
-          name: Website-Core-Catering-2.0.8-REPAIR-UPLOAD
-          path: /tmp/dist/Website-Core-catering-2.0.8-REPAIR-UPLOAD.zip
+          name: Website-Core-Catering-2.0.9-REPAIR-UPLOAD
+          path: /tmp/dist/Website-Core-catering-2.0.9-REPAIR-UPLOAD.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 30

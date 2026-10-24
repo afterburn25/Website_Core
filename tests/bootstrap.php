@@ -10,7 +10,7 @@ define('WC_CORE', WC_ROOT . '/core');
 define('WC_THEMES', WC_ROOT . '/themes');
 define('WC_MODULES', WC_ROOT . '/modules');
 define('WC_INSTALLED_LOCK', WC_CONFIG . '/installed.lock');
-define('WC_VERSION', '2.0.8');
+define('WC_VERSION', '2.0.9');
 define('WC_API_VERSION', 1);
 define('WC_SCHEMA_VERSION', '2026_10_23_0022');
 

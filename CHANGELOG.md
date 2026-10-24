@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.9 — 2026-10-24
+
+- Prevents `/admin/updates` from returning HTTP 500 when shared-host storage
+  contains an unreadable, invalid, stale, or undeletable staged update file.
+- Converts update-workspace failures into an actionable administrator warning
+  while leaving all live Core files untouched.
+- Makes update-journal reading tolerate missing and unreadable host files.
+- Adds regression coverage for missing staged archives, unusable journal paths,
+  and the recoverable Updates-screen error state.
+
 ## 2.0.8 — 2026-10-24
 
 - Detects module files replaced directly through a shared-hosting file manager

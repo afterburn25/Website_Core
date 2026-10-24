@@ -84,6 +84,18 @@ final class CoreUpdaterTest extends TestCase
         $this->assertStringContainsString('Website Core update archive', $err);
     }
 
+    public function testMissingStagedArchiveAndUnreadableJournalFailSafely(): void
+    {
+        [$info, $err] = $this->updater->inspect($this->storage . '/missing-update.zip');
+        $this->assertNull($info);
+        $this->assertStringContainsString('does not exist', (string) $err);
+
+        // A directory at the journal path models a broken/unreadable host
+        // artifact without relying on chmod behavior under a privileged CI user.
+        mkdir($this->storage . '/core-update-journal.log', 0777, true);
+        $this->assertSame([], $this->updater->journalTail());
+    }
+
     public function testApplyWritesBacksUpAndProtectsSiteOwnedPaths(): void
     {
         $members = $this->validMembers();

@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.8` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.9` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -50,6 +50,11 @@ detects when active package files report a different version than the database,
 offers a deliberate Finalize update action, runs pending module migrations,
 and preserves the package state. Normal ZIP upgrades now also keep enabled
 packages enabled and disabled packages disabled.
+
+Version 2.0.9 makes the Core Updates workspace fail safe on shared hosts. A
+missing, unreadable, invalid, or undeletable staged archive and an unreadable
+update journal now produce an actionable administrator warning instead of a
+500 response; no update files are changed while the workspace is unhealthy.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

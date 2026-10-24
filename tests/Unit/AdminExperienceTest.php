@@ -37,5 +37,10 @@ final class AdminExperienceTest extends TestCase
         $modules = (string) file_get_contents(WC_ROOT . '/admin/views/modules/index.php');
         $this->assertStringContainsString('Files changed outside Module Manager.', $modules);
         $this->assertStringContainsString('Finalize update', $modules);
+
+        $updates = (string) file_get_contents(WC_ROOT . '/admin/views/system/updates.php');
+        $systemController = (string) file_get_contents(WC_ROOT . '/admin/controllers/SystemController.php');
+        $this->assertStringContainsString('Update workspace needs attention.', $updates);
+        $this->assertStringContainsString('update page recovery', $systemController);
     }
 }

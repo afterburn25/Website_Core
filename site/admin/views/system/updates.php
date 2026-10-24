@@ -1,5 +1,8 @@
-<?php /** @var string $current @var array|null $staged @var array $journal @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
+<?php /** @var string $current @var array|null $staged @var array $journal @var string|null $loadError @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
 <section class="status-strip"><div class="status-chip ok"><strong><?= e($current) ?></strong><span>Installed Core</span></div><div class="status-chip <?= $staged ? 'warn' : 'ok' ?>"><strong><?= $staged ? e($staged['version']) : 'None' ?></strong><span>Staged update</span></div></section>
+<?php if (!empty($loadError)): ?>
+<div class="flash-error" role="alert"><strong>Update workspace needs attention.</strong><br><?= e($loadError) ?></div>
+<?php endif; ?>
 <div class="section-grid wide-main">
   <section class="card"><div class="card-heading"><div><h2><?= $staged ? 'Review staged update' : 'Stage a Core update' ?></h2><p class="card-subtitle">Updates replace Core files only. Configuration, storage, uploads, modules, and themes remain untouched.</p></div></div>
   <?php if ($staged === null): ?>

@@ -165,16 +165,31 @@ final class SystemController extends Controller
         }
         $staged = $this->stagedPath();
         $info = null;
-        if (is_file($staged)) {
-            [$info, $err] = $this->updater()->inspect($staged);
-            if ($err !== null) {
-                @unlink($staged);
+        $loadError = null;
+        $journal = [];
+        try {
+            if (is_file($staged)) {
+                [$info, $err] = $this->updater()->inspect($staged);
+                if ($err !== null) {
+                    $info = null;
+                    $removed = @unlink($staged);
+                    $loadError = $err . ($removed
+                        ? ' The invalid staged file was removed.'
+                        : ' Delete storage/staged-update.zip manually if this warning remains.');
+                }
             }
+            $journal = $this->updater()->journalTail();
+        } catch (\Throwable $e) {
+            error_log('[website-core] update page recovery: ' . $e->getMessage());
+            $info = null;
+            $loadError = 'The update workspace could not be read. No files were changed. '
+                . 'Check storage permissions and remove storage/staged-update.zip if it is stale.';
         }
         return $this->page($r, 'system/updates', [
             'current' => defined('WC_VERSION') ? WC_VERSION : '?',
             'staged'  => $info,
-            'journal' => $this->updater()->journalTail(),
+            'journal' => $journal,
+            'loadError' => $loadError,
         ], 'Core updates');
     }
 

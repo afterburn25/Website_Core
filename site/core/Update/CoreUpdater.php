@@ -51,6 +51,12 @@ final class CoreUpdater
      */
     public function inspect(string $zipPath): array
     {
+        if (!is_file($zipPath)) {
+            return [null, 'The staged update file does not exist.'];
+        }
+        if (!is_readable($zipPath)) {
+            return [null, 'The staged update file is not readable by PHP.'];
+        }
         $errors = $this->inspector->inspectSafety($zipPath);
         if ($errors !== []) {
             return [null, implode(' ', $errors)];
@@ -268,10 +274,14 @@ final class CoreUpdater
     public function journalTail(int $lines = 25): array
     {
         $file = $this->storageDir . '/core-update-journal.log';
-        if (!is_file($file)) {
+        if (!is_file($file) || !is_readable($file)) {
             return [];
         }
-        return array_slice(array_filter(explode("\n", trim((string) file_get_contents($file)))), -$lines);
+        $contents = @file_get_contents($file);
+        if (!is_string($contents)) {
+            return [];
+        }
+        return array_slice(array_filter(explode("\n", trim($contents))), -$lines);
     }
 
     private function journal(string $entry): void

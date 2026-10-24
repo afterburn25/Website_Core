@@ -55,6 +55,7 @@ final class OperationsController extends Controller
                 $this->settings()->set('backup.auto_days', $days);
                 $this->flash('ok', $days ? "Automatic backup interval set to {$days} day(s)." : 'Automatic backups disabled.');
             }
+            if ($action !== '') $this->audit('operations.' . preg_replace('/[^a-z0-9_]+/', '_', strtolower($action)), ['job' => (int) $r->string('id', '0')]);
             return $this->redirect($r, '/admin/operations');
         }
 

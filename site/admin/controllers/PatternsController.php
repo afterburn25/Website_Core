@@ -17,13 +17,15 @@ final class PatternsController extends Controller
         if ($r->isPost()) {
             $action = $r->string('action');
             if ($action === 'create') {
-                [, $error] = $patterns->saveFromPage($r->string('name'), (int) $r->string('page_id'), $u->id);
+                [$patternId, $error] = $patterns->saveFromPage($r->string('name'), (int) $r->string('page_id'), $u->id);
+                if (!$error) $this->audit('patterns.created', ['pattern' => $patternId, 'page' => (int) $r->string('page_id')]);
                 $this->flash($error ? 'error' : 'ok', $error ?? 'Reusable pattern created.');
             } elseif ($action === 'apply') {
                 $error = $patterns->apply((int) $r->string('pattern_id'), (int) $r->string('page_id'), $u->id);
+                if (!$error) $this->audit('patterns.applied', ['pattern' => (int) $r->string('pattern_id'), 'page' => (int) $r->string('page_id')]);
                 $this->flash($error ? 'error' : 'ok', $error ?? 'Pattern applied as a draft; the prior layout is in revisions.');
             } elseif ($action === 'delete') {
-                $patterns->delete((int) $r->string('id')); $this->flash('ok', 'Pattern removed.');
+                $patterns->delete((int) $r->string('id')); $this->audit('patterns.deleted', ['pattern' => (int) $r->string('id')]); $this->flash('ok', 'Pattern removed.');
             }
             return $this->redirect($r, '/admin/patterns');
         }

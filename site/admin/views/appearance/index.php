@@ -1,7 +1,7 @@
-<?php /** @var array $themes @var string $active @var array $branding @var array $mediaItems @var array $brandPreviews @var array $socialProfiles @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
+<?php /** @var array $themes @var string $active @var array $branding @var array $mediaItems @var array $brandPreviews @var array $socialProfiles @var \Core\Security\Csrf $csrf @var string $basePath @var string $siteBasePath */ ?>
+<section class="status-strip"><div class="status-chip ok"><strong><?= e(ucfirst($active)) ?></strong><span>Active theme</span></div><div class="status-chip <?= $brandPreviews['logo']?'ok':'warn' ?>"><strong><?= $brandPreviews['logo']?'Ready':'Missing' ?></strong><span>Site logo</span></div><a class="status-chip" href="<?= e_attr(rtrim($siteBasePath,'/') . '/') ?>" target="_blank" rel="noopener"><strong>Preview ↗</strong><span>Public website</span></a></section>
 <div class="card">
-<h2 style="margin-top:0">Brand identity</h2>
-<p class="muted">Core owns these assets after installation and makes them available to the public site, industry modules, and administration area.</p>
+<div class="card-heading"><div><h2>Brand identity</h2><p class="card-subtitle">Core owns these assets after installation and shares them with the public site, industry modules, and administration.</p></div><a class="btn secondary" href="<?= e_attr($basePath) ?>/admin/media">Open Media</a></div>
 <form method="post" action="<?= e_attr($basePath) ?>/admin/appearance/branding" enctype="multipart/form-data">
 <?= $csrf->field() ?>
 <div class="brand-asset-grid">
@@ -30,8 +30,7 @@
 <h3>Social links</h3>
 <p class="muted">Enter complete HTTPS profile URLs and choose where each icon appears. A platform is omitted everywhere when its URL is blank.</p>
 <div class="social-profile-grid"><?php foreach ($socialProfiles as $profile): ?><div class="social-profile-row"><div><label for="social_<?= e_attr($profile['platform']) ?>"><?= e($profile['label']) ?></label><input type="url" id="social_<?= e_attr($profile['platform']) ?>" name="social_<?= e_attr($profile['platform']) ?>" value="<?= e_attr($profile['url']) ?>" placeholder="https://"></div><div><label for="social_<?= e_attr($profile['platform']) ?>_placement">Display in</label><select id="social_<?= e_attr($profile['platform']) ?>_placement" name="social_<?= e_attr($profile['platform']) ?>_placement"><?php foreach (['header'=>'Header','footer'=>'Footer','both'=>'Header and footer'] as $value=>$label): ?><option value="<?= e_attr($value) ?>" <?= $profile['placement']===$value?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?></select></div></div><?php endforeach; ?></div>
-<style>.social-profile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:.75rem 1rem}.social-profile-row{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:.65rem;padding:.75rem;border:1px solid var(--border);border-radius:.6rem;background:#f8fafc}.social-profile-grid label{margin-top:0}@media(max-width:560px){.social-profile-row{grid-template-columns:1fr}}</style>
-<div style="margin-top:1rem"><button class="btn" type="submit">Save branding</button></div>
+<div class="action-bar"><span>Changes update Core, the active theme, and participating modules.</span><button class="btn" type="submit">Save branding</button></div>
 </form>
 </div>
 <div class="card">

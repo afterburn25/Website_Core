@@ -67,10 +67,18 @@ final class SystemController extends Controller
         if (!$u || !$this->auth()->has($u, 'audit.view')) {
             return $this->forbidden();
         }
-        $rows = $this->db()->fetchAll(
-            'SELECT * FROM `' . $this->db()->table('audit_log') . '` ORDER BY id DESC LIMIT 100'
-        );
-        return $this->page($r, 'system/audit', ['rows' => $rows], 'Audit log');
+        $search = mb_substr($r->string('q'), 0, 190);
+        $where = ''; $params = [];
+        if ($search !== '') {
+            $where = ' WHERE event LIKE ? OR detail LIKE ?';
+            $params = ['%' . $search . '%', '%' . $search . '%'];
+        }
+        $table = $this->db()->table('audit_log');
+        $total = (int) $this->db()->fetchColumn('SELECT COUNT(*) FROM `' . $table . '`' . $where, $params);
+        $pages = max(1, (int) ceil($total / 50));
+        $page = max(1, min($pages, (int) $r->input('page', 1)));
+        $rows = $this->db()->fetchAll('SELECT * FROM `' . $table . '`' . $where . ' ORDER BY id DESC LIMIT 50 OFFSET ' . (($page - 1) * 50), $params);
+        return $this->page($r, 'system/audit', ['rows' => $rows, 'search' => $search, 'total' => $total, 'page' => $page, 'pages' => $pages], 'Audit log');
     }
 
     /**
@@ -193,6 +201,7 @@ final class SystemController extends Controller
             @unlink($staged);
             $this->flash('error', $err);
         } else {
+            $this->audit('core.update_staged', ['file' => (string) ($file['name'] ?? '')]);
             $this->flash('ok', 'Update staged — review and apply.');
         }
         return Response::redirect($r->routeUrl('/admin/updates'));

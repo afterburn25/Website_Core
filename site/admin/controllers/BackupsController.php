@@ -40,6 +40,7 @@ final class BackupsController extends Controller
             if ($remoteError !== null) $err = 'Local backup created, but remote replication failed: ' . $remoteError;
         }
         if (!$err) {
+            $this->audit('backup.created', ['file' => basename((string) $path)]);
             $this->c->get(\Core\Events\Dispatcher::class)->dispatch(
                 'backup.created', ['file' => basename((string) $path), 'by' => $u->id]);
         }
@@ -96,7 +97,9 @@ final class BackupsController extends Controller
         if (!$u || !$this->auth()->has($u, 'backups.manage')) {
             return $this->forbidden();
         }
-        $this->svc()->delete($r->string('name'));
+        $name = basename($r->string('name'));
+        $this->svc()->delete($name);
+        $this->audit('backup.deleted', ['file' => $name]);
         $this->flash('ok', 'Backup deleted.');
         return $this->redirect($r, '/admin/backups');
     }

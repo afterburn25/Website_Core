@@ -20,12 +20,15 @@ final class SeoController extends Controller
                 [$ok, $error] = (new RedirectService($this->db()))->save(
                     null, $r->string('source'), $r->string('target'), 301, $u->id
                 );
+                if ($ok) $this->audit('seo.redirect_created', ['source' => $r->string('source'), 'target' => $r->string('target')]);
                 $this->flash($ok ? 'ok' : 'error', $error ?? 'Permanent redirect created.');
             } elseif ($r->string('action') === 'clear') {
                 $count = $log->clear();
+                $this->audit('seo.not_found_log_cleared', ['count' => $count]);
                 $this->flash('ok', "Cleared {$count} logged path(s).");
             } elseif ($r->string('action') === 'import' && isset($r->files['csv'])) {
                 $result=$this->importRedirects($r->files['csv'],$u->id);
+                $this->audit('seo.redirects_imported', $result);
                 $this->flash($result['errors']?'error':'ok',"Imported {$result['saved']} redirect(s); {$result['errors']} row(s) skipped.");
             }
             return $this->redirect($r, '/admin/seo');

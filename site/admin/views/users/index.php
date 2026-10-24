@@ -1,6 +1,8 @@
 <?php /** @var array $admins @var array $roles @var \Core\Security\Csrf $csrf
   * @var string $basePath @var \Core\Auth\AdminUser $user */ ?>
+<section class="status-strip"><div class="status-chip"><strong><?= count($admins) ?></strong><span>Administrators</span></div><div class="status-chip ok"><strong><?= count(array_filter($admins,static fn($a)=>!$a->disabled)) ?></strong><span>Active accounts</span></div><a class="status-chip" href="<?= e_attr($basePath) ?>/admin/security"><strong>Review</strong><span>Security posture</span></a></section>
 <div class="card">
+<div class="card-heading"><div><h2>Administrator accounts</h2><p class="card-subtitle">Control access without sharing credentials. The last enabled owner is always protected.</p></div></div>
 <table>
 <tr><th>Username</th><th>Email</th><th>Role</th><th>MFA</th><th>Status</th><th>Last sign-in</th><th></th></tr>
 <?php foreach ($admins as $a): ?>
@@ -10,11 +12,11 @@
 <td>
 <form method="post" action="<?= e_attr($basePath) ?>/admin/users/<?= (int) $a->id ?>/role" style="display:inline">
 <?= $csrf->field() ?>
-<select name="role" onchange="this.form.submit()" <?= $a->id === $user->id ? 'disabled' : '' ?>>
+<div class="button-row compact"><select name="role" <?= $a->id === $user->id ? 'disabled' : '' ?>>
 <?php foreach ($roles as $role): ?>
 <option value="<?= e_attr($role) ?>" <?= $a->role === $role ? 'selected' : '' ?>><?= e($role) ?></option>
 <?php endforeach; ?>
-</select>
+</select><?php if($a->id!==$user->id): ?><button class="btn small secondary" data-confirm="Change this administrator’s role and permissions?">Save</button><?php endif; ?></div>
 </form>
 </td>
 <td><?= $a->mfaEnabled ? '<span class="badge ok">on</span>' : '<span class="badge">off</span>' ?></td>
@@ -24,7 +26,7 @@
 <?php if ($a->id !== $user->id && (!$a->isOwner() || $user->isOwner())): ?>
 <form method="post" action="<?= e_attr($basePath) ?>/admin/users/<?= (int) $a->id ?>/disable" style="display:inline">
 <?= $csrf->field() ?>
-<button class="btn small <?= $a->disabled ? '' : 'danger' ?>" type="submit">
+<button class="btn small <?= $a->disabled ? '' : 'danger' ?>" type="submit" data-confirm="<?= $a->disabled?'Enable this administrator account?':'Disable this administrator and revoke access?' ?>">
 <?= $a->disabled ? 'Enable' : 'Disable' ?></button>
 </form>
 <details style="display:inline-block;margin-left:.5rem">
@@ -32,7 +34,7 @@
 <form method="post" action="<?= e_attr($basePath) ?>/admin/users/<?= (int) $a->id ?>/reset-password" style="margin:.25rem 0">
 <?= $csrf->field() ?>
 <input name="new_password" type="password" required minlength="12" autocomplete="new-password" placeholder="new temporary password">
-<button class="btn small" type="submit">Reset</button>
+<button class="btn small" type="submit" data-confirm="Reset this administrator’s password and revoke all existing sessions?">Reset</button>
 </form>
 </details>
 <?php endif; ?>

@@ -66,6 +66,16 @@ final class SystemMail
         );
     }
 
+    /** Send one immediate administrator-requested message to verify transport settings. */
+    public function testDelivery(string $to): array
+    {
+        return $this->send(
+            $to,
+            'Website Core mail test',
+            "This message confirms that Website Core can send transactional email.\n\nSent " . date('c'),
+        );
+    }
+
     /** Drain up to $limit queued messages through the configured transport. */
     public function flush(int $limit = 10): int
     {

@@ -37,6 +37,17 @@ final class SettingsController extends Controller
 
         $settings = $this->settings();
         if ($r->isPost()) {
+            if ($r->string('action') === 'test_mail') {
+                $recipient = strtolower($r->string('test_recipient'));
+                if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+                    $this->flash('error', 'Enter a valid recipient for the test message.');
+                } else {
+                    [$sent, $error] = $this->c->get(\Core\Mail\SystemMail::class)->testDelivery($recipient);
+                    $this->audit('settings.mail_tested', ['recipient' => $recipient, 'sent' => $sent]);
+                    $this->flash($sent ? 'ok' : 'error', $sent ? 'Test message accepted by the configured mail transport.' : 'Mail test failed: ' . ($error ?? 'unknown transport error'));
+                }
+                return $this->redirect($r, '/admin/settings');
+            }
             $baseUrl = trim($r->string('app_url'));
             if ($baseUrl !== '' && !preg_match('#^https?://#i', $baseUrl)) {
                 $this->flash('error', 'Base URL must start with http:// or https://');
@@ -52,6 +63,7 @@ final class SettingsController extends Controller
             if ($settings->get('system.cron_token', '') === '') {
                 $settings->set('system.cron_token', bin2hex(random_bytes(24)));
             }
+            $this->audit('settings.saved', ['mail_transport' => $r->string('mail_transport')]);
             $this->flash('ok', 'Settings saved.');
             return $this->redirect($r, '/admin/settings');
         }

@@ -1,37 +1,14 @@
 <?php /** @var string $current @var array|null $staged @var array $journal @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
-<div class="card">
-<h2 style="margin-top:0">Core updates</h2>
-<p>Installed version: <strong><?= e($current) ?></strong></p>
-<p class="muted">Upload a <code>Website-Core-*-UPDATE.zip</code> built by
-<code>tools/build-packages.php</code>. Applying replaces core files only —
-your config, storage, uploads, and installed modules/themes are never
-touched. Every replaced file is backed up and pending migrations run
-automatically.</p>
-
-<?php if ($staged === null): ?>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/updates/stage" enctype="multipart/form-data">
-<?= $csrf->field() ?>
-<p><input type="file" name="update" accept=".zip" required>
-<button type="submit">Stage update</button></p>
-</form>
-<?php else: ?>
-<table>
-<tr><td>Staged version</td><td><strong><?= e($staged['version']) ?></strong></td></tr>
-<tr><td>Members</td><td><?= e((string) $staged['members']) ?></td></tr>
-<tr><td>Signed</td><td><?= $staged['signed'] ? 'yes — verified' : 'no' ?></td></tr>
-</table>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/updates/apply">
-<?= $csrf->field() ?>
-<p><button type="submit" class="danger"
-    onclick="return confirm('Apply this update? Replaced files are backed up first.')">
-    Apply update now</button></p>
-</form>
-<?php endif; ?>
+<section class="status-strip"><div class="status-chip ok"><strong><?= e($current) ?></strong><span>Installed Core</span></div><div class="status-chip <?= $staged ? 'warn' : 'ok' ?>"><strong><?= $staged ? e($staged['version']) : 'None' ?></strong><span>Staged update</span></div></section>
+<div class="section-grid wide-main">
+  <section class="card"><div class="card-heading"><div><h2><?= $staged ? 'Review staged update' : 'Stage a Core update' ?></h2><p class="card-subtitle">Updates replace Core files only. Configuration, storage, uploads, modules, and themes remain untouched.</p></div></div>
+  <?php if ($staged === null): ?>
+    <form method="post" action="<?= e_attr($basePath) ?>/admin/updates/stage" enctype="multipart/form-data" data-busy-label="Inspecting update…"><?= $csrf->field() ?><div class="drop-zone"><strong>Choose an official UPDATE package</strong><p class="field-note">The package is inspected and its signature policy checked before it can be applied.</p><input type="file" name="update" accept=".zip,application/zip" required></div><div class="action-bar"><span>Expected filename: <code>Website-Core-*-UPDATE.zip</code></span><button class="btn" type="submit">Upload and inspect</button></div></form>
+  <?php else: ?>
+    <dl class="status-list"><div><dt>Version</dt><dd><?= e($staged['version']) ?></dd></div><div><dt>Package members</dt><dd><?= e((string) $staged['members']) ?></dd></div><div><dt>Signature</dt><dd><span class="badge <?= $staged['signed'] ? 'ok' : 'warn' ?>"><?= $staged['signed'] ? 'Verified' : 'Unsigned policy' ?></span></dd></div></dl>
+    <div class="danger-zone action-bar"><span><strong>Applying changes live files.</strong><br><small>A rollback copy is created first and pending database migrations run afterward.</small></span><form method="post" action="<?= e_attr($basePath) ?>/admin/updates/apply" data-busy-label="Applying update…"><?= $csrf->field() ?><button type="submit" class="btn danger" data-confirm="Apply this Core update now? A rollback copy will be created first.">Apply update now</button></form></div>
+  <?php endif; ?>
+  </section>
+  <aside class="help-panel"><h3>Safe update checklist</h3><ol><li>Create a fresh site backup.</li><li>Apply during a quiet period.</li><li>Review System Health afterward.</li></ol><p>If your policy requires a maintenance window, enable it under Operations first.</p></aside>
 </div>
-
-<?php if ($journal !== []): ?>
-<div class="card">
-<h2 style="margin-top:0">Update journal</h2>
-<pre style="white-space:pre-wrap"><?= e(implode("\n", $journal)) ?></pre>
-</div>
-<?php endif; ?>
+<?php if ($journal !== []): ?><section class="card"><div class="card-heading"><div><h2>Update journal</h2><p class="card-subtitle">The latest staging, verification, application, and rollback messages.</p></div></div><pre class="code-panel log-panel"><?= e(implode("\n", $journal)) ?></pre></section><?php endif; ?>

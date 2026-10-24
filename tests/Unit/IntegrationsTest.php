@@ -4,10 +4,13 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use Core\Api\ApiKeyService;
+use Core\Api\WebhookService;
+use Core\Config;
 use Core\Content\SiteTransfer;
 use Core\Database\Connection;
 use Core\Database\Migrator;
 use Core\Http\Request;
+use Core\Jobs\JobQueue;
 use PHPUnit\Framework\TestCase;
 
 final class IntegrationsTest extends TestCase
@@ -50,5 +53,26 @@ final class IntegrationsTest extends TestCase
         $this->assertSame('https://instagram.com/imported', $document['settings']['social.instagram.url']);
         $this->assertSame('both', $document['settings']['social.instagram.placement']);
         $this->assertArrayNotHasKey('security.app_key', $document['settings']);
+    }
+
+    public function testFailedWebhookDeliveryCanBeRequeuedAndDisabledHooksCannot(): void
+    {
+        $hookId = (int) $this->db->insert('webhooks', [
+            'label' => 'CRM', 'url' => 'https://hooks.example.test/core',
+            'events_json' => '["page.saved"]', 'secret_hash' => str_repeat('a', 64),
+            'secret_cipher' => 'sealed', 'active' => 1, 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        $deliveryId = (int) $this->db->insert('webhook_deliveries', [
+            'webhook_id' => $hookId, 'event' => 'page.saved', 'payload_json' => '{}',
+            'status' => 'failed', 'last_error' => 'HTTP 500', 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        $hooks = new WebhookService($this->db, new JobQueue($this->db), new Config('/not-present.php'));
+
+        $this->assertTrue($hooks->retry($deliveryId));
+        $this->assertSame('pending', $this->db->fetchColumn('SELECT status FROM `wc_webhook_deliveries` WHERE id=?', [$deliveryId]));
+        $this->assertSame(1, (int) $this->db->fetchColumn("SELECT COUNT(*) FROM `wc_jobs` WHERE type='webhook.deliver'"));
+
+        $hooks->setActive($hookId, false);
+        $this->assertFalse($hooks->retry($deliveryId));
     }
 }

@@ -1,8 +1,9 @@
 <?php /** @var array $packages @var array $journal @var \Core\Security\Csrf $csrf @var string $basePath
   * @var bool $canInstall @var \Core\Auth\AdminUser $user */ ?>
 
+<section class="status-strip"><div class="status-chip ok"><strong><?= count($packages) ?></strong><span>Discovered packages</span></div><div class="status-chip <?= !empty($recovery)?'warn':'ok' ?>"><strong><?= !empty($recovery)?'On':'Off' ?></strong><span>Recovery mode</span></div><a class="status-chip" href="<?= e_attr($basePath) ?>/admin/marketplace"><strong>Browse</strong><span>Marketplace</span></a></section>
 <?php if (!empty($recovery)): ?>
-<div class="card" style="border-left:4px solid #b45309">
+<div class="card danger-zone">
 <strong>Recovery mode is ON.</strong> No package code is running. Turn it off
 once the failing package is fixed or removed.
 <form method="post" action="<?= e_attr($basePath) ?>/admin/modules/recovery" style="margin-top:.5rem">
@@ -14,11 +15,11 @@ once the failing package is fixed or removed.
 
 <?php if (!empty($canInstall)): ?>
 <div class="card">
-<h2 style="margin-top:0">Install package</h2>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/modules/upload" enctype="multipart/form-data">
+<div class="card-heading"><div><h2>Install package</h2><p class="card-subtitle">Upload an industry module, add-on, or theme package for inspection.</p></div></div>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/modules/upload" enctype="multipart/form-data" data-busy-label="Inspecting package…">
 <?= $csrf->field() ?>
-<input type="file" name="package" accept=".zip" required>
-<button class="btn" type="submit">Upload &amp; stage</button>
+<div class="drop-zone" data-drop-zone><strong>Choose or drop a package ZIP</strong><p class="field-note">The archive is staged and reviewed before any package code runs.</p><input type="file" name="package" accept=".zip,application/zip" required></div>
+<div class="action-bar"><span>ZIP paths, symlinks, collisions, compatibility, and size are validated.</span><button class="btn" type="submit">Upload &amp; stage</button></div>
 <p class="muted">ZIP is inspected (paths, symlinks, collisions, size) and staged before any
 code runs. Reviewed packages move to their destination only on Install.</p>
 </form>
@@ -40,7 +41,7 @@ no package code runs — so you can log in and remove it. You can also create
 
 <div class="card">
 <?php if ($packages === []): ?>
-<p class="muted">No packages discovered. Upload an industry module or add-on ZIP above.</p>
+<div class="empty-state"><strong>No optional packages discovered</strong><span>Upload an industry module, add-on, or theme ZIP above.</span></div>
 <?php else: ?>
 <table>
 <tr><th>Package</th><th>Type</th><th>Version</th><th>State</th><th>Issues</th><th>Actions</th></tr>
@@ -79,7 +80,7 @@ $buttons = $protected ? [] : match ($state) {
 <?php foreach ($buttons as [$op, $label]): ?>
 <form method="post" action="<?= e_attr($basePath . '/admin/modules/' . $id . '/' . $op) ?>" style="display:inline">
 <?= $csrf->field() ?>
-<button class="btn small <?= in_array($op, ['uninstall', 'purge'], true) ? 'danger' : '' ?>"><?= e($label) ?></button>
+<button class="btn small <?= in_array($op, ['uninstall', 'purge'], true) ? 'danger' : '' ?>" <?= in_array($op,['disable','uninstall'],true)?'data-confirm="'.e_attr($op==='disable'?'Disable this package? Its public and admin features will stop loading.':'Uninstall this package? Its data will be preserved until explicitly purged.').'"':'' ?>><?= e($label) ?></button>
 </form>
 <?php endforeach; ?>
 <?php endif; ?>

@@ -71,6 +71,26 @@ final class WebhookService
 
     public function all(): array { return $this->db->fetchAll('SELECT * FROM `' . $this->db->table('webhooks') . '` ORDER BY id DESC'); }
     public function recent(): array { return $this->db->fetchAll('SELECT d.*,w.label FROM `' . $this->db->table('webhook_deliveries') . '` d JOIN `' . $this->db->table('webhooks') . '` w ON w.id=d.webhook_id ORDER BY d.id DESC LIMIT 50'); }
-    public function disable(int $id): void { $this->db->update('webhooks', ['active' => 0], 'id = ?', [$id]); }
+    public function setActive(int $id, bool $active): bool
+    {
+        return $this->db->update('webhooks', ['active' => $active ? 1 : 0], 'id = ?', [$id]) > 0;
+    }
+
+    public function disable(int $id): void { $this->setActive($id, false); }
+
+    public function retry(int $deliveryId): bool
+    {
+        $row = $this->db->fetch(
+            'SELECT d.id,w.active FROM `' . $this->db->table('webhook_deliveries') . '` d JOIN `'
+            . $this->db->table('webhooks') . '` w ON w.id=d.webhook_id WHERE d.id = ?',
+            [$deliveryId],
+        );
+        if (!$row || !(bool) $row['active']) return false;
+        $this->db->update('webhook_deliveries', [
+            'status' => 'pending', 'http_status' => null, 'last_error' => null, 'attempted_at' => null,
+        ], 'id = ?', [$deliveryId]);
+        $this->jobs->dispatch('webhook.deliver', ['delivery_id' => $deliveryId]);
+        return true;
+    }
 
 }

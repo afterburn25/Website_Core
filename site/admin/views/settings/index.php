@@ -1,70 +1,33 @@
-<?php /** @var array $fields @var array $mailFields @var array $values @var string $cronToken
-  * @var bool $hasSmtpPassword @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
-<div class="card">
-<form method="post" action="<?= e_attr($basePath) ?>/admin/settings">
+<?php /** @var array $fields @var array $mailFields @var array $values @var string $cronToken @var bool $hasSmtpPassword @var array|null $licenseStatus @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/settings" data-busy-label="Saving settings…">
 <?= $csrf->field() ?>
-<?php foreach ($fields as $key => $meta): ?>
-<?php $name = str_replace('.', '_', $key); ?>
-<label for="<?= e_attr($name) ?>"><?= e($meta['label']) ?></label>
-<input id="<?= e_attr($name) ?>" name="<?= e_attr($name) ?>" type="<?= e_attr($meta['type']) ?>"
-       value="<?= e_attr($values[$key]) ?>">
-<?php endforeach; ?>
+<div class="section-grid">
+  <section class="card"><div class="card-heading"><div><h2>Website identity</h2><p class="card-subtitle">The business details Core shares with pages, themes, forms, and modules.</p></div></div>
+    <?php foreach ($fields as $key => $meta): $name = str_replace('.', '_', $key); ?>
+      <label for="<?= e_attr($name) ?>"><?= e($meta['label']) ?></label><input id="<?= e_attr($name) ?>" name="<?= e_attr($name) ?>" type="<?= e_attr($meta['type']) ?>" value="<?= e_attr($values[$key]) ?>">
+    <?php endforeach; ?>
+  </section>
+  <section class="card"><div class="card-heading"><div><h2>Transactional email</h2><p class="card-subtitle">Used for account recovery, security alerts, and form notifications.</p></div></div>
+    <label for="mail_transport">Mail transport</label><select id="mail_transport" name="mail_transport"><option value="none" <?= $values['mail.transport']==='none'?'selected':'' ?>>Disabled</option><option value="smtp" <?= $values['mail.transport']==='smtp'?'selected':'' ?>>SMTP server</option><option value="mail" <?= $values['mail.transport']==='mail'?'selected':'' ?>>PHP mail()</option></select>
+    <?php foreach ($mailFields as $key => $meta): if ($key === 'mail.transport') continue; $name = str_replace('.', '_', $key); ?>
+      <?php if ($key === 'smtp.secure'): ?><label for="<?= e_attr($name) ?>"><?= e($meta['label']) ?></label><select id="<?= e_attr($name) ?>" name="<?= e_attr($name) ?>"><option value="">None</option><option value="tls" <?= $values[$key]==='tls'?'selected':'' ?>>TLS / STARTTLS</option><option value="ssl" <?= $values[$key]==='ssl'?'selected':'' ?>>SSL</option></select>
+      <?php else: ?><label for="<?= e_attr($name) ?>"><?= e($meta['label']) ?></label><input id="<?= e_attr($name) ?>" name="<?= e_attr($name) ?>" type="<?= e_attr($meta['type']) ?>" value="<?= e_attr($values[$key]) ?>"><?php endif; ?>
+    <?php endforeach; ?>
+    <label for="smtp_password">SMTP password <?= $hasSmtpPassword ? '<span class="muted">(stored — enter only to change)</span>' : '' ?></label><input id="smtp_password" name="smtp_password" type="password" autocomplete="new-password">
+  </section>
+</div>
+<div class="action-bar"><span>Changes take effect immediately across Core and installed modules.</span><button class="btn" type="submit">Save settings</button></div>
+</form>
 
-<h2>System mail</h2>
-<p class="muted">Transactional messages only (recovery/security notices). Without SMTP,
-messages queue until a transport is configured — the site keeps working.</p>
-<?php foreach ($mailFields as $key => $meta): ?>
-<?php $name = str_replace('.', '_', $key); ?>
-<label for="<?= e_attr($name) ?>"><?= e($meta['label']) ?></label>
-<input id="<?= e_attr($name) ?>" name="<?= e_attr($name) ?>" type="<?= e_attr($meta['type']) ?>"
-       value="<?= e_attr($values[$key]) ?>">
-<?php endforeach; ?>
-<label for="smtp_password">SMTP password <?= $hasSmtpPassword ? '<span class="muted">(set — enter to change)</span>' : '' ?></label>
-<input id="smtp_password" name="smtp_password" type="password" value="" autocomplete="new-password">
-<div style="margin-top:1rem"><button class="btn" type="submit">Save settings</button></div>
-</form>
+<div class="section-grid">
+  <section class="card"><div class="card-heading"><div><h2>Test email delivery</h2><p class="card-subtitle">Send one immediate message using the currently saved transport settings.</p></div></div>
+    <form method="post" action="<?= e_attr($basePath) ?>/admin/settings" class="inline-fields" data-busy-label="Sending test…"><?= $csrf->field() ?><input type="hidden" name="action" value="test_mail"><div><label for="test-recipient">Recipient</label><input id="test-recipient" name="test_recipient" type="email" required placeholder="you@example.com"></div><button class="btn secondary" type="submit">Send test email</button></form>
+  </section>
+  <section class="card"><div class="card-heading"><div><h2>Scheduled tasks</h2><p class="card-subtitle">Use this private token with hosts that only support URL-based cron.</p></div></div><div class="code-panel"><code><?= e($cronToken !== '' ? $cronToken : '(generated on first save)') ?></code></div><p class="field-note">Run <code>cron.php?token=TOKEN</code> on your preferred schedule. Never publish this token.</p></section>
 </div>
+
 <?php if ($licenseStatus !== null): ?>
-<div class="card">
-<h2 style="margin-top:0">License</h2>
-<?php if ($licenseStatus['license_key'] !== null): ?>
-<dl>
-<dt><strong>License key</strong></dt>
-<dd><code><?= e(substr($licenseStatus['license_key'], 0, 8)) ?>…</code></dd>
-<dt><strong>Domain</strong></dt>
-<dd><code><?= e($licenseStatus['license_domain'] ?? '—') ?></code></dd>
-<?php if ($licenseStatus['license_valid'] !== null): ?>
-<dt><strong>Status</strong></dt>
-<dd>
-<?php if (!empty($licenseStatus['license_deactivated'])): ?>
-<span style="color:red">Deactivated</span>
-<?php elseif ($licenseStatus['license_valid']): ?>
-<span style="color:green">Active</span>
-<?php else: ?>
-<span style="color:red">Inactive</span>
+<section class="card"><div class="card-heading"><div><h2>License status</h2><p class="card-subtitle">Core-only test installations do not need a key. Commercial bundles report their activation here.</p></div><?php if ($licenseStatus['license_key'] !== null): ?><span class="badge <?= !empty($licenseStatus['license_valid']) && empty($licenseStatus['license_deactivated']) ? 'ok' : 'warn' ?>"><?= !empty($licenseStatus['license_deactivated']) ? 'Deactivated' : (!empty($licenseStatus['license_valid']) ? 'Active' : 'Needs validation') ?></span><?php endif; ?></div>
+<?php if ($licenseStatus['license_key'] !== null): ?><dl class="status-list"><div><dt>License</dt><dd><code><?= e(substr($licenseStatus['license_key'], 0, 8)) ?>…</code></dd></div><div><dt>Domain</dt><dd><?= e($licenseStatus['license_domain'] ?? '—') ?></dd></div><div><dt>Last validated</dt><dd><?= $licenseStatus['license_validated_at'] ? e(date('M j, Y g:i a', strtotime($licenseStatus['license_validated_at']))) : 'Never' ?></dd></div><?php if (!empty($licenseStatus['license_error'])): ?><div><dt>Last error</dt><dd class="text-bad"><?= e($licenseStatus['license_error']) ?></dd></div><?php endif; ?></dl><form method="post" action="<?= e_attr($basePath) ?>/admin/settings/license-validate"><?= $csrf->field() ?><button class="btn secondary">Validate now</button></form><?php else: ?><div class="empty-state"><strong>No commercial license installed</strong><span>This is expected for a Core-only testing installation.</span></div><?php endif; ?>
+</section>
 <?php endif; ?>
-</dd>
-<?php endif; ?>
-<?php if (!empty($licenseStatus['license_error'])): ?>
-<dt><strong>Last error</strong></dt>
-<dd><code><?= e($licenseStatus['license_error']) ?></code></dd>
-<?php endif; ?>
-<?php if ($licenseStatus['license_validated_at'] !== null): ?>
-<dt><strong>Last validated</strong></dt>
-<dd><?= e(date('Y-m-d H:i', strtotime($licenseStatus['license_validated_at']))) ?></dd>
-<?php endif; ?>
-</dl>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/settings/license-validate" style="margin-top:.5rem">
-<?= $csrf->field() ?><button type="submit">Validate now</button>
-<span class="muted">Re-checks the license immediately — use after fixing a domain registration.</span>
-</form>
-<?php else: ?>
-<p class="muted">Not licensed. Install a module bundle with an embedded license key.</p>
-<?php endif; ?>
-</div>
-<?php endif; ?>
-<div class="card">
-<h2 style="margin-top:0">System</h2>
-<p class="muted">Cron runner token (for <code>cron.php?token=…</code> on hosts without CLI cron):</p>
-<p><code><?= e($cronToken !== '' ? $cronToken : '(generated on first save)') ?></code></p>
-</div>

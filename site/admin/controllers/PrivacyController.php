@@ -19,9 +19,11 @@ final class PrivacyController extends Controller
                 if(($provider==='ga4'&&!preg_match('/^G-[A-Z0-9]+$/i',$id))||($provider==='plausible'&&!preg_match('/^[A-Za-z0-9.-]+$/',$id))){$this->flash('error','Enter a valid analytics measurement ID or domain.');return $this->redirect($r,'/admin/privacy');}
                 $this->settings()->set('privacy.banner_enabled',$r->string('banner_enabled')==='1');
                 $this->settings()->set('analytics.provider',$provider);$this->settings()->set('analytics.site_id',$id);
+                $this->audit('privacy.settings_saved',['analytics_provider'=>$provider,'banner_enabled'=>$r->string('banner_enabled')==='1']);
                 $this->flash('ok','Privacy and analytics settings saved.');
             }elseif($action==='complete'){
                 $this->db()->update('privacy_requests',['status'=>'completed','completed_at'=>date('Y-m-d H:i:s')],'id = ?',[(int)$r->string('id')]);
+                $this->audit('privacy.request_completed',['request'=>(int)$r->string('id')]);
                 $this->flash('ok','Privacy request marked completed.');
             }
             return $this->redirect($r,'/admin/privacy');

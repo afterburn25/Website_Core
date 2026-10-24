@@ -95,6 +95,7 @@ final class ModulesController extends Controller
         }
         $file = $r->files['package'];
         [$staged, $err] = $this->manager()->stage((string) $file['tmp_name']);
+        $this->audit('modules.package_staged', ['package' => $staged, 'ok' => $err === null]);
         $this->flash($err ? 'error' : 'ok', $err ?? 'Package staged — review and install.');
         return $this->redirect($r, '/admin/modules');
     }
@@ -119,6 +120,7 @@ final class ModulesController extends Controller
                 : [false, 'Purge requires typing the package id to confirm.'],
             default     => [false, 'Unknown operation.'],
         };
+        $this->audit('modules.' . preg_replace('/[^a-z0-9_]+/', '_', strtolower($op)), ['package' => $id, 'ok' => $ok]);
         $this->flash($ok ? 'ok' : 'error', $ok ? ucfirst($op) . ' complete.' : (string) $err);
         return $this->redirect($r, '/admin/modules');
     }

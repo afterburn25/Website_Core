@@ -1,19 +1,6 @@
-<?php /** @var array $rows */ ?>
-<div class="card">
-<h2 style="margin-top:0">Audit log</h2>
-<?php if ($rows === []): ?>
-<p class="muted">No audited events yet.</p>
-<?php else: ?>
-<table>
-<tr><th>When</th><th>Event</th><th>Admin</th><th>Detail</th></tr>
-<?php foreach ($rows as $row): ?>
-<tr>
-<td><?= e($row['created_at'] ?? '') ?></td>
-<td><?= e($row['event'] ?? '') ?></td>
-<td><?= e((string) ($row['admin_id'] ?? '')) ?></td>
-<td class="muted"><?= e(substr((string) ($row['detail'] ?? ''), 0, 120)) ?></td>
-</tr>
-<?php endforeach; ?>
-</table>
-<?php endif; ?>
+<?php /** @var array $rows @var string $search @var int $total @var int $page @var int $pages @var string $basePath */ ?>
+<div class="card"><div class="card-heading"><div><h2>Administrative activity</h2><p class="card-subtitle"><?= (int) $total ?> recorded event<?= $total === 1 ? '' : 's' ?>. Sensitive values are never written to this log.</p></div></div>
+  <form class="filter-bar" method="get" action="<?= e_attr($basePath) ?>/admin/audit"><div><label for="audit-search">Search event or detail</label><input id="audit-search" type="search" name="q" value="<?= e_attr($search) ?>" placeholder="backup, settings, admin…"></div><div class="button-row align-end"><button class="btn">Search</button><?php if ($search !== ''): ?><a class="btn secondary" href="<?= e_attr($basePath) ?>/admin/audit">Clear</a><?php endif; ?></div></form>
+<?php if ($rows === []): ?><div class="empty-state"><strong>No matching activity</strong><span>Administrative changes will be recorded here.</span></div><?php else: ?><table><thead><tr><th>When</th><th>Event</th><th>Admin</th><th>Detail</th></tr></thead><tbody><?php foreach ($rows as $row): $detail = json_decode((string) ($row['detail'] ?? ''), true); ?><tr><td><strong><?= e(date('M j, Y', strtotime((string) ($row['created_at'] ?? 'now')))) ?></strong><br><span class="muted"><?= e(date('g:i:s a', strtotime((string) ($row['created_at'] ?? 'now')))) ?></span></td><td><span class="badge neutral"><?= e(str_replace(['.', '_'], ' ', (string) ($row['event'] ?? ''))) ?></span></td><td>#<?= e((string) ($row['admin_id'] ?? 'system')) ?></td><td class="muted"><?= e(is_array($detail) ? implode(' · ', array_map(static fn ($k, $v): string => (string) $k . ': ' . (is_scalar($v) ? (string) $v : '[data]'), array_keys($detail), $detail)) : substr((string) ($row['detail'] ?? ''), 0, 240)) ?></td></tr><?php endforeach; ?></tbody></table><?php endif; ?>
+<?php if ($pages > 1): ?><nav class="pagination" aria-label="Audit pages"><?php for ($n=1;$n<=$pages;$n++): ?><a class="<?= $n===$page?'active':'' ?>" href="<?= e_attr($basePath) ?>/admin/audit?<?= e_attr(http_build_query(array_filter(['q'=>$search,'page'=>$n]))) ?>"><?= $n ?></a><?php endfor; ?></nav><?php endif; ?>
 </div>

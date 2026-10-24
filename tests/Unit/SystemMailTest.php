@@ -47,6 +47,22 @@ final class SystemMailTest extends TestCase
         ));
     }
 
+    public function testImmediateConfigurationCheckUsesSavedTransport(): void
+    {
+        $captured = [];
+        SystemMail::captureWith(function (string $to, string $subject) use (&$captured): void {
+            $captured[] = [$to, $subject];
+        });
+        $this->settings->set('mail.transport', 'capture');
+
+        [$sent, $error] = $this->mail()->testDelivery('owner@example.com');
+
+        $this->assertTrue($sent);
+        $this->assertNull($error);
+        $this->assertSame('owner@example.com', $captured[0][0]);
+        $this->assertStringContainsString('mail test', strtolower($captured[0][1]));
+    }
+
     public function testDedupeKeyPreventsDuplicateQueuedMail(): void
     {
         $this->mail()->queue('a@x.com', 'S', 'B', 'key-1');

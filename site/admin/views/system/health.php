@@ -1,8 +1,8 @@
-<?php /** @var array $checks @var array $mailRows @var array $integrity @var array $moduleHealth */ ?>
+<?php /** @var array $checks @var array $mailRows @var array $integrity @var array $moduleHealth */ $integrityProblems=count(array_filter($integrity,static fn($c)=>$c['status']!=='ok')); $moduleProblems=count(array_filter($moduleHealth,static fn($c)=>$c['status']!=='ok')); $mailProblems=count(array_filter($mailRows,static fn($m)=>$m['status']==='failed')); ?>
+<section class="status-strip"><div class="status-chip <?= $integrityProblems?'bad':'ok' ?>"><strong><?= $integrityProblems ?></strong><span>Integrity issues</span></div><div class="status-chip <?= $moduleProblems?'warn':'ok' ?>"><strong><?= $moduleProblems ?></strong><span>Package warnings</span></div><div class="status-chip <?= $mailProblems?'warn':'ok' ?>"><strong><?= $mailProblems ?></strong><span>Mail failures</span></div></section>
 <div class="card">
-<h2 style="margin-top:0">System health</h2>
-<p><a href="<?= e_attr($basePath) ?>/admin/system/diagnostics" download>Download diagnostics bundle</a>
-— versions, package states, journals; config values are never included.</p>
+<div class="card-heading"><div><h2>System health</h2><p class="card-subtitle">Runtime facts and recovery signals from this installation.</p></div><a class="btn secondary" href="<?= e_attr($basePath) ?>/admin/system/diagnostics" download>Download diagnostics</a></div>
+<p class="muted">The bundle contains versions, package states, and journal tails; configuration values are never included.</p>
 <table>
 <?php foreach ($checks as $label => $value): ?>
 <tr><td><?= e($label) ?></td><td><strong><?= e($value) ?></strong></td></tr>

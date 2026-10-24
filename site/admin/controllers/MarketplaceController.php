@@ -23,6 +23,7 @@ final class MarketplaceController extends Controller
                 elseif ($action === 'policy') { $policy = $request->string('policy'); if (!in_array($policy, ManagedUpdateService::POLICIES, true)) throw new \InvalidArgumentException('Unknown update policy.'); $this->settings()->set('updates.automation', $policy); $this->flash('ok', 'Managed update policy saved.'); }
                 elseif ($action === 'check_updates') { $result = $managed->run(true); $this->flash('ok', match ($result['status']) {'staged' => 'Trusted update downloaded, verified and staged.', 'current' => $result['message'], default => 'Update catalog checked.'}); }
             } catch (\Throwable $e) { $this->flash('error', $e->getMessage()); }
+            if (isset($action) && $action !== '') $this->audit('marketplace.' . preg_replace('/[^a-z0-9_]+/', '_', strtolower($action)));
             return $this->redirect($request, '/admin/marketplace');
         }
         return $this->page($request, 'marketplace/index', ['sources' => $market->sources(), 'packages' => $market->packages(),

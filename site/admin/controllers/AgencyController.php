@@ -20,6 +20,7 @@ final class AgencyController extends Controller
                 elseif ($action === 'check') { $result = $agency->check((int) $request->string('id')); $this->flash($result['ok'] ? 'ok' : 'error', $result['ok'] ? 'Remote site is healthy.' : (string) $result['error']); }
                 elseif ($action === 'remove') { $agency->remove((int) $request->string('id')); $this->flash('ok', 'Site removed from this dashboard.'); }
             } catch (\Throwable $e) { $this->flash('error', $e->getMessage()); }
+            if (isset($action) && $action !== '') $this->audit('agency.' . preg_replace('/[^a-z0-9_]+/', '_', strtolower($action)), ['site' => (int) $request->string('id', '0')]);
             return $this->redirect($request, '/admin/agency');
         }
         return $this->page($request, 'agency/index', ['sites' => $agency->all()], 'Agency dashboard');

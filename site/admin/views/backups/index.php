@@ -1,39 +1,5 @@
-<?php /** @var array $backups @var \Core\Security\Csrf $csrf @var string $basePath @var \Core\Auth\AdminUser $user */ ?>
-<div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-<span class="muted"><?= count($backups) ?> backup(s) in protected storage</span>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/backups/create">
-<?= $csrf->field() ?><button class="btn">Create backup now</button>
-</form>
-</div>
-<p class="muted">A backup contains a full database dump plus config and uploads,
-integrity-hashed inside the archive. Restores verify checksums and driver
-before applying — restores are owner-only and audited.</p>
-<?php if ($backups === []): ?>
-<p class="muted">No backups yet.</p>
-<?php else: ?>
-<table>
-<tr><th>File</th><th>Size</th><th>Created</th><th></th></tr>
-<?php foreach ($backups as $b): ?>
-<tr>
-<td><code><?= e($b['name']) ?></code></td>
-<td><?= round($b['size'] / 1024, 1) ?> KB</td>
-<td><?= e(date('Y-m-d H:i:s', $b['mtime'])) ?></td>
-<td>
-<?php if ($user->isOwner()): ?>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/backups/restore" style="display:inline"
-      onsubmit="return confirm('Restore <?= e_attr($b['name']) ?>? Current database and config/upload files will be replaced.')">
-<?= $csrf->field() ?><input type="hidden" name="name" value="<?= e_attr($b['name']) ?>">
-<button class="btn small secondary">Restore</button>
-</form>
-<?php endif; ?>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/backups/delete" style="display:inline">
-<?= $csrf->field() ?><input type="hidden" name="name" value="<?= e_attr($b['name']) ?>">
-<button class="btn small danger">Delete</button>
-</form>
-</td>
-</tr>
-<?php endforeach; ?>
-</table>
-<?php endif; ?>
-</div>
+<?php /** @var array $backups @var \Core\Security\Csrf $csrf @var string $basePath @var \Core\Auth\AdminUser $user */ $latest=$backups[0]??null; $bytes=array_sum(array_map(static fn($b)=>(int)$b['size'],$backups)); ?>
+<section class="status-strip"><div class="status-chip <?= $backups?'ok':'warn' ?>"><strong><?= count($backups) ?></strong><span>Recovery points</span></div><div class="status-chip"><strong><?= $latest ? e(date('M j, Y', (int)$latest['mtime'])) : 'Never' ?></strong><span>Latest backup</span></div><div class="status-chip"><strong><?= e(number_format($bytes/1048576,1)) ?> MB</strong><span>Protected storage</span></div></section>
+<div class="card"><div class="card-heading"><div><h2>Recovery points</h2><p class="card-subtitle">Each archive includes the database, configuration, uploads, protected media, modules, and themes with integrity hashes.</p></div><form method="post" action="<?= e_attr($basePath) ?>/admin/backups/create" data-busy-label="Creating backup…"><?= $csrf->field() ?><button class="btn">Create backup now</button></form></div>
+<?php if ($backups === []): ?><div class="empty-state"><strong>No recovery point exists yet</strong><span>Create one before updating modules, themes, Core, or important content.</span></div><?php else: ?><table><thead><tr><th>Recovery point</th><th>Size</th><th>Created</th><th>Actions</th></tr></thead><tbody><?php foreach ($backups as $b): ?><tr><td><strong><?= e(date('M j, Y · g:i a',(int)$b['mtime'])) ?></strong><br><span class="page-path"><?= e($b['name']) ?></span></td><td><?= e(number_format((int)$b['size']/1048576,2)) ?> MB</td><td><?= e(date('Y-m-d H:i:s',(int)$b['mtime'])) ?></td><td><div class="button-row compact"><?php if ($user->isOwner()): ?><form method="post" action="<?= e_attr($basePath) ?>/admin/backups/restore" data-busy-label="Restoring…"><?= $csrf->field() ?><input type="hidden" name="name" value="<?= e_attr($b['name']) ?>"><button class="btn small secondary" data-confirm="Restore this recovery point? Current database and restorable files will be replaced after a safety snapshot is created.">Restore</button></form><?php endif; ?><form method="post" action="<?= e_attr($basePath) ?>/admin/backups/delete"><?= $csrf->field() ?><input type="hidden" name="name" value="<?= e_attr($b['name']) ?>"><button class="btn small danger" data-confirm="Permanently delete this recovery point?">Delete</button></form></div></td></tr><?php endforeach; ?></tbody></table><?php endif; ?></div>
+<details class="help-panel"><summary>What happens during a restore?</summary><div>Core first creates a safety snapshot, enables maintenance mode, validates the archive and file hashes, restores the matching database and files, then returns the site to its prior maintenance state. Only owners can restore.</div></details>

@@ -59,4 +59,62 @@ final class MediaWorkflowTest extends TestCase
         self::assertSame(0.0, (float) $item['focal_x']);
         self::assertSame(100.0, (float) $item['focal_y']);
     }
+
+    public function testUsageResultsIdentifyTheReferencingPage(): void
+    {
+        $db = Connection::sqlite();
+        (new Migrator($db, WC_ROOT . '/database/migrations'))->migrate();
+        $media = new MediaService($db, new Config('/not-present.php'));
+        $mediaId = (int) $db->insert('media', [
+            'folder' => '', 'filename' => 'public/menu.jpg', 'original_name' => 'menu.jpg',
+            'mime' => 'image/jpeg', 'size_bytes' => 100, 'width' => 1200, 'height' => 800,
+            'is_private' => 0, 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        $pageId = (int) $db->insert('pages', [
+            'slug' => 'menus', 'title' => 'Catering Menus', 'body' => '', 'status' => 'draft',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $db->insert('media_usage', [
+            'media_id' => $mediaId, 'context' => 'core.page', 'context_id' => $pageId,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $usages = $media->usages($mediaId);
+        self::assertCount(1, $usages);
+        self::assertSame('Catering Menus', $usages[0]['page_title']);
+    }
+
+    public function testUpgradeMigrationBackfillsExistingPageMediaReferences(): void
+    {
+        $db = Connection::sqlite();
+        (new Migrator($db, WC_ROOT . '/database/migrations'))->migrate();
+        $mediaId = (int) $db->insert('media', [
+            'folder' => '', 'filename' => 'public/hero.jpg', 'original_name' => 'hero.jpg',
+            'mime' => 'image/jpeg', 'size_bytes' => 100, 'width' => 1200, 'height' => 800,
+            'is_private' => 0, 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        $pageId = (int) $db->insert('pages', [
+            'slug' => 'home', 'title' => 'Welcome', 'body' => '', 'status' => 'published',
+            'og_media_id' => $mediaId,
+            'blocks_json' => json_encode([
+                ['type' => 'hero', 'data' => ['image_id' => (string) $mediaId]],
+                ['type' => 'gallery', 'data' => ['media_ids' => $mediaId . ',999']],
+            ], JSON_THROW_ON_ERROR),
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $migration = require WC_ROOT . '/database/migrations/2026_10_24_0023_page_media_usage.php';
+        $migration->up($db);
+        $rows = $db->fetchAll(
+            'SELECT media_id, context, context_id FROM `' . $db->table('media_usage') . '` WHERE context = ?',
+            ['core.page']
+        );
+        self::assertSame([[
+            'media_id' => $mediaId, 'context' => 'core.page', 'context_id' => $pageId,
+        ]], array_map(static fn (array $row): array => [
+            'media_id' => (int) $row['media_id'],
+            'context' => (string) $row['context'],
+            'context_id' => (int) $row['context_id'],
+        ], $rows));
+    }
 }

@@ -53,6 +53,18 @@ final class PageBlocksTest extends TestCase
         self::assertSame('acme/catering', $ctx->pageBlocks()['menu_packages']['package']);
     }
 
+    public function testCollectsUniqueMediaReferencesFromBlockDefinitions(): void
+    {
+        $service = new PageBlocks($this->db);
+        self::assertSame([7, 12, 18], $service->mediaIds(json_encode([
+            ['type' => 'hero', 'data' => ['image_id' => '12', 'heading' => 'Welcome']],
+            ['type' => 'gallery', 'data' => ['media_ids' => '18, 7, 12, 0, invalid']],
+            ['type' => 'rich_text', 'data' => ['image_id' => '999', 'body' => 'No media field']],
+            ['type' => 'unknown', 'data' => ['image_id' => '300']],
+        ], JSON_THROW_ON_ERROR)));
+        self::assertSame([], $service->mediaIds('{broken'));
+    }
+
     public function testMigrationAddsBlockDocumentsToPagesAndRevisions(): void
     {
         $pages = array_column($this->db->fetchAll('PRAGMA table_info(`pages`)'), 'name');

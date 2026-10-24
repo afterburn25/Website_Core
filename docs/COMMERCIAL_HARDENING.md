@@ -45,9 +45,9 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 
 | Order | Surface | Commercial completion focus | Status |
 | --- | --- | --- | --- |
-| 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete through 2.0.14; packaged-browser check pending |
+| 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete through 2.0.15; packaged-browser check pending |
 | 2 | Content list and page editor | Page lifecycle, visual blocks, preview, publish/review/schedule, revisions, duplication, trash/restore, validation, unsaved-state protection | code complete — 2.0.3; packaged-browser check pending |
-| 3 | Media library | Upload failures, folders/tags, bulk operations, focal points/crops, usage, replacement, empty states, file limits | code complete — 2.0.6; packaged-browser check pending |
+| 3 | Media library | Upload failures, folders/tags, bulk operations, focal points/crops, usage, replacement, empty states, file limits | code complete — 2.0.15; packaged-browser check pending |
 | 4 | Navigation Menu | Existing-menu import, tree editing, targets, page/external links, nesting, keyboard alternatives, validation, public rendering | code complete — 2.0.6; packaged-browser check pending |
 | 5 | Forms and submissions | Field builder, validation, notifications, spam controls, consent evidence, inbox, filters, read state, archive/export | code complete — 2.0.6; packaged-browser check pending |
 | 6 | SEO, redirects, translations, patterns | Actionable audits, previews, redirect import/export, localized content, reusable layouts, errors and conflicts | code complete — 2.0.6; packaged-browser check pending |
@@ -56,7 +56,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 9 | Privacy and integrations | Consent behavior, privacy requests, API keys, webhooks, scopes, delivery failures, exports and secret rotation | code complete — 2.0.6; packaged-browser check pending |
 | 10 | Modules and marketplace | Install/upgrade/enable/disable/uninstall/purge, dependency errors, protected Core, recovery mode, catalog trust and rollback | code complete through 2.0.14; failed-migration file rollback and landscaping lifecycle CI covered; packaged-browser check pending |
 | 11 | Backups and operations | Create/delete/restore, remote replication, queue states, retries, schedules, interrupted operations, disaster recovery | code complete — 2.0.6; packaged-browser check pending |
-| 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | code complete through 2.0.14; packaged-browser check pending |
+| 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | code complete through 2.0.15; packaged-browser check pending |
 | 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | code complete — 2.0.6; packaged-browser check pending |
 | 14 | Installer and reinstall/upgrade | Single-page polish, database test, HTTPS, safe writable-path provisioning, existing DB handling, cleanup and manual recheck | code complete — 2.0.6; packaged-host check pending |
 | 15 | Industry-module contract | Module admin category, default navigation takeover, shared services, uninstall/reinstall, compatibility and isolated failure | code complete — 2.0.6; packaged-module check pending |
@@ -125,6 +125,17 @@ run against packaged builds; code-complete does not mean externally verified.
       values remain stored rather than being erased by a transport change.
 - [ ] Packaged browser verification covers keyboard use, confirmation cancel,
       mobile navigation, sidebar/density persistence, and switch mutations.
+
+## 2.0.15 — Media workspace acceptance
+
+- [x] Media upload and bulk controls expose clear selection state, and image
+      focal points use a visual crop preview instead of unexplained numbers.
+- [x] Page blocks and social images register their Media references; details
+      identify and link to referencing pages before destructive deletion.
+- [x] Authorized administrators can preview private-image variants while
+      anonymous visitors remain forbidden and private responses are not cached.
+- [ ] Packaged browser verification covers upload, private preview, page usage,
+      focal-point editing, URL copying, bulk organization, and guarded delete.
 
 ## 2.0.14 — diagnostic and fatal-page recovery acceptance
 

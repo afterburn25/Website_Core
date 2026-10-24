@@ -195,6 +195,7 @@ final class PagesController extends Controller
                             if ($updated !== 1) {
                                 throw new \RuntimeException('page-edit-conflict');
                             }
+                            $this->syncPageMediaUsages($id, $seo['og_media_id'], $blocksJson);
                         });
                     } catch (\RuntimeException $e) {
                         if ($e->getMessage() !== 'page-edit-conflict') {
@@ -212,6 +213,7 @@ final class PagesController extends Controller
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s'),
                     ], $seo));
+                    $this->syncPageMediaUsages($id, $ogMediaId, $blocksJson);
                 }
                 if ($error === null) {
                     $this->c->get(\Core\Audit\AuditLog::class)->record(
@@ -312,6 +314,11 @@ final class PagesController extends Controller
                 'updated_by' => $this->user()->id, 'updated_at' => date('Y-m-d H:i:s'),
                 'lock_version' => (int) ($page['lock_version'] ?? 1) + 1,
             ]), 'id = ?', [$id]);
+            $this->syncPageMediaUsages(
+                $id,
+                isset($state['og_media_id']) ? (int) $state['og_media_id'] : null,
+                (string) ($state['blocks_json'] ?? '[]')
+            );
         });
         $this->c->get(\Core\Audit\AuditLog::class)->record(
             'page.revision_restored', $this->user()->id, ['page' => $id, 'revision' => $rid]
@@ -444,6 +451,11 @@ final class PagesController extends Controller
             'lock_version' => 1,
         ];
         $newId = (int) $db->insert('pages', $copy);
+        $this->syncPageMediaUsages(
+            $newId,
+            isset($copy['og_media_id']) ? (int) $copy['og_media_id'] : null,
+            (string) ($copy['blocks_json'] ?? '[]')
+        );
         $this->c->get(\Core\Audit\AuditLog::class)->record(
             'page.duplicated', $this->user()->id, ['source' => $id, 'page' => $newId]
         );
@@ -514,6 +526,12 @@ final class PagesController extends Controller
                     );
                 }
                 $db->run('DELETE FROM `' . $db->table('menu_items') . '` WHERE page_id = ?', [$id]);
+            }
+            if ($db->tableExists('media_usage')) {
+                $db->run(
+                    'DELETE FROM `' . $db->table('media_usage') . '` WHERE context = ? AND context_id = ?',
+                    ['core.page', $id]
+                );
             }
             $db->run(
                 'UPDATE `' . $db->table('pages')
@@ -617,6 +635,29 @@ final class PagesController extends Controller
             'SELECT COUNT(*) FROM `' . $this->db()->table('media')
             . "` WHERE id = ? AND is_private = 0 AND mime LIKE 'image/%'", [$id]
         );
+    }
+
+    private function syncPageMediaUsages(int $pageId, ?int $socialImageId, string $blocksJson): void
+    {
+        $db = $this->db();
+        $db->run(
+            'DELETE FROM `' . $db->table('media_usage') . '` WHERE context = ? AND context_id = ?',
+            ['core.page', $pageId]
+        );
+        $ids = (new \Core\Content\PageBlocks(
+            $db,
+            $this->c->get(\Core\Modules\ModuleRegistry::class)
+        ))->mediaIds($blocksJson);
+        if (($socialImageId ?? 0) > 0) $ids[] = (int) $socialImageId;
+        foreach (array_values(array_unique($ids)) as $mediaId) {
+            if (!$this->publicImageExists((int) $mediaId)) continue;
+            $db->insert('media_usage', [
+                'media_id' => (int) $mediaId,
+                'context' => 'core.page',
+                'context_id' => $pageId,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
     }
 
     private function parentChainContains(int $parentId, int $pageId): bool

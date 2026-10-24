@@ -101,6 +101,35 @@ final class PageBlocks
         return [json_encode($clean, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), null];
     }
 
+    /** Return every Media-library ID referenced by a normalized block document. */
+    public function mediaIds(?string $json): array
+    {
+        $blocks = json_decode((string) $json, true);
+        if (!is_array($blocks)) return [];
+        $definitions = $this->definitions();
+        $ids = [];
+        foreach ($blocks as $block) {
+            if (!is_array($block)) continue;
+            $type = (string) ($block['type'] ?? '');
+            $fields = $definitions[$type]['fields'] ?? [];
+            $data = is_array($block['data'] ?? null) ? $block['data'] : [];
+            foreach ($fields as $key => $field) {
+                $fieldType = (string) ($field['type'] ?? 'text');
+                if ($fieldType === 'media') {
+                    $id = (int) ($data[$key] ?? 0);
+                    if ($id > 0) $ids[$id] = $id;
+                } elseif ($fieldType === 'media_list') {
+                    foreach (explode(',', (string) ($data[$key] ?? '')) as $value) {
+                        $id = (int) trim($value);
+                        if ($id > 0) $ids[$id] = $id;
+                    }
+                }
+            }
+        }
+        sort($ids);
+        return array_values($ids);
+    }
+
     public function render(?string $json, string $basePath = ''): string
     {
         $blocks = json_decode((string) $json, true);

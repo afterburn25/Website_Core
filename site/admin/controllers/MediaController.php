@@ -148,27 +148,36 @@ final class MediaController extends Controller
 
     public function serveVariant(Request $r): Response
     {
-        $id = (int) ($r->attributes['id'] ?? 0);
-        $media = $this->svc()->find($id);
-        if (!$media || (int) $media['is_private'] === 1) return Response::notFound();
-        [$path, $mime] = $this->svc()->variant($media, (int) ($r->attributes['width'] ?? 640));
-        if (!is_file($path)) return Response::notFound();
-        return Response::html('')->header('Content-Type', $mime)
-            ->header('Content-Length', (string) filesize($path))
-            ->header('Cache-Control', 'public, max-age=604800, immutable')
-            ->setBody((string) file_get_contents($path));
+        return $this->variantResponse($r, null);
     }
 
     public function serveCrop(Request $r): Response
     {
+        return $this->variantResponse($r, (int) ($r->attributes['height'] ?? 360));
+    }
+
+    private function variantResponse(Request $r, ?int $height): Response
+    {
         $id = (int) ($r->attributes['id'] ?? 0);
         $media = $this->svc()->find($id);
-        if (!$media || (int) $media['is_private'] === 1) return Response::notFound();
-        [$path, $mime] = $this->svc()->variant($media, (int) ($r->attributes['width'] ?? 640), (int) ($r->attributes['height'] ?? 360));
+        if (!$media) return Response::notFound();
+        $private = (int) $media['is_private'] === 1;
+        if ($private) {
+            $user = $this->user();
+            if (!$user || !$this->auth()->has($user, 'media.manage')) {
+                return Response::text('Forbidden', 403);
+            }
+        }
+        [$path, $mime] = $this->svc()->variant(
+            $media,
+            (int) ($r->attributes['width'] ?? 640),
+            $height
+        );
         if (!is_file($path)) return Response::notFound();
         return Response::html('')->header('Content-Type', $mime)
             ->header('Content-Length', (string) filesize($path))
-            ->header('Cache-Control', 'public, max-age=604800, immutable')
+            ->header('X-Content-Type-Options', 'nosniff')
+            ->header('Cache-Control', $private ? 'private, no-store' : 'public, max-age=604800, immutable')
             ->setBody((string) file_get_contents($path));
     }
 }

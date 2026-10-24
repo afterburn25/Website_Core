@@ -34,6 +34,17 @@ final class AdminExperienceTest extends TestCase
         $this->assertStringContainsString('[data-copy-previous]', $script);
         $this->assertStringContainsString('responsive-table', $script);
 
+        $mediaView = (string) file_get_contents(WC_ROOT . '/admin/views/media/index.php');
+        $mediaController = (string) file_get_contents(WC_ROOT . '/admin/controllers/MediaController.php');
+        $this->assertStringContainsString('data-file-selection', $mediaView);
+        $this->assertStringContainsString('data-selection-action', $mediaView);
+        $this->assertStringContainsString('data-focal-editor', $mediaView);
+        $this->assertStringContainsString('media-usage-list', $mediaView);
+        $this->assertStringContainsString("'private, no-store'", $mediaController);
+        $this->assertStringContainsString("has(\$user, 'media.manage')", $mediaController);
+        $this->assertStringContainsString('[data-focal-editor]', $script);
+        $this->assertStringContainsString('.focal-preview', $css);
+
         $seo = (string) file_get_contents(WC_ROOT . '/admin/views/seo/index.php');
         $this->assertStringContainsString('Dismiss without redirect', $seo);
         $this->assertStringContainsString('Core assets and administration routes are excluded', $seo);

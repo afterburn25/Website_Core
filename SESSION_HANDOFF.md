@@ -13,6 +13,21 @@
 - CI stages and inspects the downloadable payload, rejects nested ZIP files,
   requires installer files, and preserves hidden `.htaccess` guard files.
 
+## 2.0.15 Media workspace safety and polish
+
+- Page blocks and page social images register `core.page` Media usage records
+  on create, edit, duplicate, and revision restore; purge removes those records.
+- Migration `2026_10_24_0023` backfills public-image references for existing
+  pages and is safe to rerun after an interrupted shared-host upgrade.
+- Media details name and link to referencing pages before deletion, expose a
+  stable URL copy action, and visualize focal points over the crop preview.
+- Private image variants now require `media.manage` and return private,
+  no-store responses instead of failing for authorized administrators.
+- Upload selection and bulk-selection state are visible; bulk submission stays
+  disabled until at least one item is selected.
+- Release as Core 2.0.15 only after the full CI matrix and package contracts
+  pass; packaged browser verification remains an explicit external gate.
+
 ## 2.0.14 Landscaping 1.0 Core synchronization
 
 - Synchronized `cajunwebpro/landscaping` 1.0.0 runtime source from

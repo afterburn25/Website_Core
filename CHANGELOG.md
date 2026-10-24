@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.15 — 2026-10-24
+
+- Makes private-image thumbnails available to authorized Media administrators
+  while retaining permission checks and private, no-store browser caching.
+- Tracks page-block and social-sharing image references so Media shows the
+  pages using a file and warns accurately before a referenced file is deleted.
+- Backfills those references for existing pages during the Core upgrade, so
+  installed sites receive accurate deletion warnings without resaving pages.
+- Polishes Media with selected-file feedback, guarded bulk actions, stable URL
+  copying, visual focal-point controls, and direct links to referencing pages.
+
 ## 2.0.14 — 2026-10-24
 
 - Restores the previous package files, manifest, version, and enabled state
@@ -47,7 +58,6 @@
   an incomplete placeholder that immediately fails the SEO audit.
 - Polishes SEO insights with responsive tables, actionable issue guidance,
   single-path dismissal, and automatic cleanup after creating a redirect.
-
 ## 2.0.13 — 2026-10-24
 
 - Moves Core Updates into a dedicated `UpdatesController` with a new class

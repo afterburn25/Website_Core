@@ -150,7 +150,11 @@ final class MediaService
     public function usages(int $id): array
     {
         return $this->db->fetchAll(
-            'SELECT * FROM `' . $this->db->table('media_usage') . '` WHERE media_id = ?', [$id]
+            'SELECT u.*, p.title AS page_title FROM `' . $this->db->table('media_usage') . '` u '
+            . 'LEFT JOIN `' . $this->db->table('pages') . '` p '
+            . "ON u.context = 'core.page' AND p.id = u.context_id "
+            . 'WHERE u.media_id = ? ORDER BY u.context, u.context_id',
+            [$id]
         );
     }
 

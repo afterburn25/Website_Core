@@ -25,7 +25,8 @@ $pageUrl = static function (int $target) use ($basePath, $filters): string {
 <div class="drop-zone" data-drop-zone>
 <strong>Choose a file or drop it here</strong>
 <p class="field-note">JPG, PNG, GIF, WebP, ICO, PDF or plain text. Executable content is rejected.</p>
-<input type="file" name="file" accept=".jpg,.jpeg,.png,.gif,.webp,.ico,.pdf,.txt" required>
+<input id="media-upload-file" type="file" name="file" accept=".jpg,.jpeg,.png,.gif,.webp,.ico,.pdf,.txt" required>
+<p class="file-selection" data-file-selection aria-live="polite">No file selected yet.</p>
 </div>
 <div class="inline-fields"><div><label for="upload-folder">Folder</label><input id="upload-folder" name="folder" list="media-folders" placeholder="For example: Homepage"></div><label class="choice-row"><input type="checkbox" name="private" value="1"><span><strong>Private file</strong><br><small>Only signed-in administrators can open it.</small></span></label></div>
 <div class="button-row" style="margin-top:1rem"><button class="btn" type="submit" data-busy-label="Uploading…">Upload file</button></div>
@@ -54,7 +55,7 @@ $pageUrl = static function (int $target) use ($basePath, $filters): string {
 <label class="choice-row"><input type="checkbox" aria-label="Select every visible media item" data-select-all><span>Select page</span></label>
 <div><label for="bulk-folder">Move selected to</label><input id="bulk-folder" name="folder" list="media-folders" placeholder="Keep existing folders"></div>
 <div><label for="bulk-tags">Add tags</label><input id="bulk-tags" name="tags" placeholder="featured, homepage"></div>
-<button class="btn secondary" data-busy-label="Updating…">Update selected</button>
+<button class="btn secondary" data-selection-action data-busy-label="Updating…" disabled>Update selected</button>
 </form>
 
 <div class="media-card-grid">
@@ -62,11 +63,14 @@ $pageUrl = static function (int $target) use ($basePath, $filters): string {
     $itemTags = json_decode((string) ($media['tags_json'] ?? '[]'), true) ?: [];
     $uses = $mediaService->usages((int) $media['id']);
     $isImage = str_starts_with((string) $media['mime'], 'image/');
+    $mediaUrl = $basePath . '/media/' . (int) $media['id'] . '/' . rawurlencode((string) $media['original_name']);
+    $cropUrl = $basePath . '/media/' . (int) $media['id'] . '/crop/420x280/' . rawurlencode((string) $media['original_name']);
+    $fieldPrefix = 'media-' . (int) $media['id'];
 ?>
 <article class="media-card">
 <label class="media-select"><input type="checkbox" name="ids[]" value="<?= (int) $media['id'] ?>" form="media-bulk" data-select-item><span class="sr-only">Select <?= e($media['original_name']) ?></span></label>
-<a class="media-preview" href="<?= e_attr($basePath) ?>/media/<?= (int) $media['id'] ?>/<?= e_attr($media['original_name']) ?>" target="_blank" rel="noopener">
-<?php if ($isImage): ?><img src="<?= e_attr($basePath) ?>/media/<?= (int) $media['id'] ?>/crop/420x280/<?= e_attr($media['original_name']) ?>" alt="<?= e_attr(($media['alt_text'] ?? '') !== '' ? $media['alt_text'] : 'Preview of ' . $media['original_name']) ?>"><?php else: ?><span class="media-file-kind"><?= e(strtoupper(pathinfo((string) $media['original_name'], PATHINFO_EXTENSION) ?: 'FILE')) ?></span><?php endif; ?>
+<a class="media-preview" href="<?= e_attr($mediaUrl) ?>" target="_blank" rel="noopener">
+<?php if ($isImage): ?><img src="<?= e_attr($cropUrl) ?>" alt="<?= e_attr(($media['alt_text'] ?? '') !== '' ? $media['alt_text'] : 'Preview of ' . $media['original_name']) ?>"><?php else: ?><span class="media-file-kind"><?= e(strtoupper(pathinfo((string) $media['original_name'], PATHINFO_EXTENSION) ?: 'FILE')) ?></span><?php endif; ?>
 </a>
 <div class="media-card-body">
 <div class="media-card-title"><strong title="<?= e_attr($media['original_name']) ?>"><?= e($media['original_name']) ?></strong><?php if ((int) $media['is_private'] === 1): ?><span class="badge warn">Private</span><?php endif; ?></div>
@@ -75,11 +79,28 @@ $pageUrl = static function (int $target) use ($basePath, $filters): string {
 <div class="media-card-actions">
 <details><summary class="btn small secondary">Details</summary><div class="media-popover">
 <form method="post"><?= $csrf->field() ?><input type="hidden" name="action" value="meta"><input type="hidden" name="id" value="<?= (int) $media['id'] ?>">
-<label>Alt text</label><input name="alt_text" value="<?= e_attr($media['alt_text'] ?? '') ?>" placeholder="Describe the image for visitors who cannot see it"><label>Caption</label><input name="caption" value="<?= e_attr($media['caption'] ?? '') ?>"><label>Folder</label><input name="folder" list="media-folders" value="<?= e_attr($media['folder'] ?? '') ?>"><label>Tags</label><input name="tags" value="<?= e_attr(implode(', ', $itemTags)) ?>">
-<?php if ($isImage): ?><div class="grid2"><div><label>Focal X %</label><input type="number" min="0" max="100" step=".1" name="focal_x" value="<?= e_attr((string) ($media['focal_x'] ?? 50)) ?>"></div><div><label>Focal Y %</label><input type="number" min="0" max="100" step=".1" name="focal_y" value="<?= e_attr((string) ($media['focal_y'] ?? 50)) ?>"></div></div><?php endif; ?>
-<p class="field-note"><?= count($uses) ?> website reference<?= count($uses) === 1 ? '' : 's' ?>.</p><button class="btn small" data-busy-label="Saving…">Save details</button>
+<label for="<?= $fieldPrefix ?>-alt">Alt text</label><input id="<?= $fieldPrefix ?>-alt" name="alt_text" value="<?= e_attr($media['alt_text'] ?? '') ?>" placeholder="Describe the image for visitors who cannot see it"><label for="<?= $fieldPrefix ?>-caption">Caption</label><input id="<?= $fieldPrefix ?>-caption" name="caption" value="<?= e_attr($media['caption'] ?? '') ?>"><label for="<?= $fieldPrefix ?>-folder">Folder</label><input id="<?= $fieldPrefix ?>-folder" name="folder" list="media-folders" value="<?= e_attr($media['folder'] ?? '') ?>"><label for="<?= $fieldPrefix ?>-tags">Tags</label><input id="<?= $fieldPrefix ?>-tags" name="tags" value="<?= e_attr(implode(', ', $itemTags)) ?>">
+<?php if ($isImage): ?>
+<div class="focal-editor" data-focal-editor style="--focal-x:<?= e_attr((string) ($media['focal_x'] ?? 50)) ?>%;--focal-y:<?= e_attr((string) ($media['focal_y'] ?? 50)) ?>%">
+<div class="focal-preview" aria-hidden="true"><img src="<?= e_attr($cropUrl) ?>" alt=""><span></span></div>
+<div class="grid2"><div><label for="<?= $fieldPrefix ?>-focal-x">Horizontal focus</label><input id="<?= $fieldPrefix ?>-focal-x" type="range" min="0" max="100" step="1" name="focal_x" value="<?= e_attr((string) ($media['focal_x'] ?? 50)) ?>" data-focal-x><output data-focal-x-output><?= e((string) round((float) ($media['focal_x'] ?? 50))) ?>%</output></div><div><label for="<?= $fieldPrefix ?>-focal-y">Vertical focus</label><input id="<?= $fieldPrefix ?>-focal-y" type="range" min="0" max="100" step="1" name="focal_y" value="<?= e_attr((string) ($media['focal_y'] ?? 50)) ?>" data-focal-y><output data-focal-y-output><?= e((string) round((float) ($media['focal_y'] ?? 50))) ?>%</output></div></div>
+<p class="field-note">Move the focus marker to keep the important part visible in automatic crops.</p>
+</div>
+<?php endif; ?>
+<div class="media-reference-summary"><strong><?= count($uses) ?> website reference<?= count($uses) === 1 ? '' : 's' ?></strong>
+<?php if ($uses === []): ?><p class="field-note">This file is not currently linked to tracked website content.</p><?php else: ?><ul class="media-usage-list">
+<?php foreach ($uses as $use):
+    $context = (string) ($use['context'] ?? '');
+    $contextId = (int) ($use['context_id'] ?? 0);
+    $label = $context === 'core.branding' ? 'Website branding' : ($context === 'core.page' ? ((string) ($use['page_title'] ?? '') ?: 'Website page') : ucwords(str_replace(['.', '_'], ' ', $context)));
+?>
+<li><?php if ($context === 'core.page' && $contextId > 0): ?><a href="<?= e_attr($basePath) ?>/admin/pages/edit/<?= $contextId ?>"><?= e($label) ?></a><?php else: ?><?= e($label) ?><?php endif; ?></li>
+<?php endforeach; ?></ul><?php endif; ?></div>
+<div class="copy-field media-url-field"><input type="text" readonly value="<?= e_attr($mediaUrl) ?>" aria-label="<?= (int) $media['is_private'] === 1 ? 'Administrator-only media URL' : 'Public media URL' ?>"><button class="btn small secondary" type="button" data-copy-previous>Copy URL</button></div>
+<p class="field-note"><?= (int) $media['is_private'] === 1 ? 'This URL opens only for an authorized administrator.' : 'Use this stable URL when the original file is required.' ?></p>
+<button class="btn small" data-busy-label="Saving…">Save details</button>
 </form>
-<form method="post" enctype="multipart/form-data" class="media-replace"><?= $csrf->field() ?><input type="hidden" name="action" value="replace"><input type="hidden" name="id" value="<?= (int) $media['id'] ?>"><label>Replace file</label><input type="file" name="replacement" required><p class="field-note">The media ID and existing website references stay intact.</p><button class="btn small secondary" data-busy-label="Replacing…">Replace</button></form>
+<form method="post" enctype="multipart/form-data" class="media-replace"><?= $csrf->field() ?><input type="hidden" name="action" value="replace"><input type="hidden" name="id" value="<?= (int) $media['id'] ?>"><label for="<?= $fieldPrefix ?>-replacement">Replace file</label><input id="<?= $fieldPrefix ?>-replacement" type="file" name="replacement" required><p class="field-note">The media ID and existing website references stay intact.</p><button class="btn small secondary" data-busy-label="Replacing…">Replace</button></form>
 </div></details>
 <form method="post" data-confirm="<?= $confirm === (int) $media['id'] ? 'Delete this referenced file and remove its usage records?' : 'Delete this file?' ?>"><?= $csrf->field() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int) $media['id'] ?>"><input type="hidden" name="confirm" value="<?= $confirm === (int) $media['id'] ? '1' : '0' ?>"><button class="btn small danger"><?= $confirm === (int) $media['id'] ? 'Confirm delete' : 'Delete' ?></button></form>
 </div>
@@ -91,4 +112,3 @@ $pageUrl = static function (int $target) use ($basePath, $filters): string {
 <?php if ($pages > 1): ?><nav class="pagination" aria-label="Media pages"><span>Page <?= $page ?> of <?= $pages ?></span><div><?php if ($page > 1): ?><a class="btn small secondary" href="<?= e_attr($pageUrl($page - 1)) ?>">Previous</a><?php endif; ?><?php if ($page < $pages): ?><a class="btn small secondary" href="<?= e_attr($pageUrl($page + 1)) ?>">Next</a><?php endif; ?></div></nav><?php endif; ?>
 <?php endif; ?>
 </section>
-<script>document.querySelector('[data-select-all]')?.addEventListener('change',event=>document.querySelectorAll('[data-select-item]').forEach(box=>{box.checked=event.target.checked;box.dispatchEvent(new Event('change',{bubbles:true}))}));</script>

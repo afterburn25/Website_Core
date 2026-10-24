@@ -255,17 +255,38 @@
   document.querySelectorAll('[data-selection-scope]').forEach((scope) => {
     const summary = scope.querySelector('[data-selection-summary]');
     const boxes = [...scope.querySelectorAll('input[type="checkbox"][data-select-item]')];
+    const selectAll = scope.querySelector('[data-select-all]');
+    const actions = [...scope.querySelectorAll('[data-selection-action]')];
     const refresh = () => {
       const selected = boxes.filter((box) => box.checked).length;
       if (summary) summary.textContent = selected ? `${selected} selected` : 'None selected';
+      if (selectAll instanceof HTMLInputElement) {
+        selectAll.checked = boxes.length > 0 && selected === boxes.length;
+        selectAll.indeterminate = selected > 0 && selected < boxes.length;
+      }
+      actions.forEach((action) => { action.disabled = selected === 0; });
     };
     boxes.forEach((box) => box.addEventListener('change', refresh));
+    selectAll?.addEventListener('change', () => {
+      boxes.forEach((box) => { box.checked = selectAll.checked; });
+      refresh();
+    });
     refresh();
   });
 
   document.querySelectorAll('[data-drop-zone]').forEach((zone) => {
     const input = zone.querySelector('input[type="file"]');
+    const status = zone.querySelector('[data-file-selection]');
     if (!input) return;
+    const refreshFile = () => {
+      const file = input.files?.[0];
+      if (!status) return;
+      status.textContent = file
+        ? `${file.name} · ${file.size < 1048576 ? `${Math.max(1, Math.round(file.size / 1024))} KB` : `${(file.size / 1048576).toFixed(1)} MB`}`
+        : 'No file selected yet.';
+      status.classList.toggle('has-file', Boolean(file));
+    };
+    input.addEventListener('change', refreshFile);
     ['dragenter', 'dragover'].forEach((name) => zone.addEventListener(name, (event) => {
       event.preventDefault();
       zone.classList.add('is-dragging');
@@ -279,6 +300,33 @@
         input.files = event.dataTransfer.files;
         input.dispatchEvent(new Event('change', { bubbles: true }));
       }
+    });
+  });
+
+  document.querySelectorAll('[data-focal-editor]').forEach((editor) => {
+    const x = editor.querySelector('[data-focal-x]');
+    const y = editor.querySelector('[data-focal-y]');
+    const xOutput = editor.querySelector('[data-focal-x-output]');
+    const yOutput = editor.querySelector('[data-focal-y-output]');
+    const refresh = () => {
+      const xValue = Math.max(0, Math.min(100, Number(x?.value || 50)));
+      const yValue = Math.max(0, Math.min(100, Number(y?.value || 50)));
+      editor.style.setProperty('--focal-x', `${xValue}%`);
+      editor.style.setProperty('--focal-y', `${yValue}%`);
+      if (xOutput) xOutput.textContent = `${Math.round(xValue)}%`;
+      if (yOutput) yOutput.textContent = `${Math.round(yValue)}%`;
+    };
+    x?.addEventListener('input', refresh);
+    y?.addEventListener('input', refresh);
+    refresh();
+  });
+
+  document.querySelectorAll('.media-card-actions details').forEach((details) => {
+    details.addEventListener('toggle', () => {
+      if (!details.open) return;
+      document.querySelectorAll('.media-card-actions details[open]').forEach((other) => {
+        if (other !== details) other.removeAttribute('open');
+      });
     });
   });
 

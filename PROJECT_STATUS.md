@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.14` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.15` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -107,6 +107,13 @@ version, and lifecycle state and records the rollback. Landscaping acceptance
 also exercises customer-data preservation through package replacement and
 uninstall, all four theme switches, estimate mail queueing, and protected
 photo-route authentication.
+
+Version 2.0.15 completes the Media workspace's reference-safety pass. Page
+blocks and social-sharing images now register their use, Media links directly
+to referencing pages, and destructive confirmation reflects real page usage.
+Authorized administrators can preview private image variants without making
+them public or cacheable. File selection, bulk actions, URL copying, and focal
+point editing now expose clear visual state and guidance.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

@@ -7,6 +7,8 @@
   bytecode after a hosting-panel upload.
 - Anchors mirrored autoload resolution to `WC_ROOT`, preserving the installed
   site's real Core and administration directories from any private cache path.
+- Limits pathname mirroring to Core-owned `core/` and `admin/` classes so
+  module providers retain their real `__DIR__` for bundled views and assets.
 - Keeps the existing OPcache refresh as a best-effort optimization while no
   longer depending on host support for correctness.
 - Shows the exception type, message, file, and line only to an authenticated

@@ -56,5 +56,11 @@ final class AdminExperienceTest extends TestCase
         $this->assertStringContainsString("defined('WC_ROOT') ? WC_ROOT", (string) file_get_contents(
             WC_ROOT . '/includes/autoload.php'
         ));
+        $this->assertStringContainsString('$root . \'/core/\'', (string) file_get_contents(
+            WC_ROOT . '/includes/autoload.php'
+        ));
+        $this->assertStringContainsString('$root . \'/admin/\'', (string) file_get_contents(
+            WC_ROOT . '/includes/autoload.php'
+        ));
     }
 }

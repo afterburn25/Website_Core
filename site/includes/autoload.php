@@ -30,8 +30,16 @@ final class CoreAutoload
                 }
                 if (is_file($path)) {
                     if (function_exists('wc_runtime_code_mirror')
-                        && defined('WC_CONFIG') && defined('WC_VERSION')) {
-                        $path = wc_runtime_code_mirror($path, WC_CONFIG, WC_VERSION);
+                        && defined('WC_CONFIG') && defined('WC_VERSION') && defined('WC_ROOT')) {
+                        $normalized = str_replace('\\', '/', $path);
+                        $root = rtrim(str_replace('\\', '/', WC_ROOT), '/');
+                        // Module classes must retain their original pathname:
+                        // trusted providers commonly use __DIR__ to locate
+                        // their views/assets. Only Core-owned code is mirrored.
+                        if (str_starts_with($normalized, $root . '/core/')
+                            || str_starts_with($normalized, $root . '/admin/')) {
+                            $path = wc_runtime_code_mirror($path, WC_CONFIG, WC_VERSION);
+                        }
                     }
                     require $path;
                 }

@@ -49,7 +49,7 @@
 .c-package-detail-hero{background-image:linear-gradient(90deg,rgba(13,27,20,.9),rgba(13,27,20,.35)),url('../images/hero.webp')}
 
 /* Keep the transparent module logo free of a boxed background on dark footers. */
-.c-footer-logo-frame{padding:0;border-radius:0;background:transparent}
+.c-footer-logo-frame{padding:0;border-radius:0;background: transparent}
 .c-footer-logo-frame .c-brand-logo{max-width:230px;max-height:78px;filter:brightness(1.35) saturate(1.05) drop-shadow(0 3px 8px rgba(0,0,0,.3))}
 
 /* Dish-specific Cajun menu photography. */

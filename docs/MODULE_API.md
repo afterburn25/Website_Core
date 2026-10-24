@@ -81,8 +81,9 @@ $footerSocial = $ctx->socialLinks('footer');
 Core exposes both locations in Website → Navigation Menu. Header and footer
 defaults are imported independently and administrator changes remain final.
 Modules render only the returned social records, using Core's `SocialIcon`
-helper when they need the standard dependency-free SVG marks. Per-profile
-placement may be header, footer, or both; a blank profile appears nowhere.
+helper when they need the standard dependency-free SVG marks. Core applies one
+global placement—header, footer, or both—to every configured profile; a blank
+profile appears nowhere.
 
 ### Module-supplied brand defaults
 

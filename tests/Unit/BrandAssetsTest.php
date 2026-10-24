@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use Core\Branding\BrandAssets;
+use Core\Branding\SocialIcon;
 use Core\Config;
 use Core\Database\Connection;
 use Core\Database\Migrator;
@@ -53,9 +54,18 @@ final class BrandAssetsTest extends TestCase
         $settings->set('social.facebook.url', 'https://facebook.com/example');
         $settings->set('social.facebook.placement', 'both');
         $settings->set('social.instagram.url', 'http://instagram.com/not-secure');
+        self::assertSame('both', $brands->socialPlacement());
         self::assertSame(['Facebook'], array_column($brands->socialLinks(), 'label'));
         self::assertSame(['Facebook'], array_column($brands->socialLinks('header'), 'label'));
         self::assertSame(['Facebook'], array_column($brands->socialLinks('footer'), 'label'));
+        $settings->set('social.placement', 'header');
+        self::assertSame(['Facebook'], array_column($brands->socialLinks('header'), 'label'));
+        self::assertSame([], $brands->socialLinks('footer'));
+        $settings->set('social.placement', 'both');
+        self::assertCount(15, $brands->socialDefinitions());
+        foreach (array_keys($brands->socialDefinitions()) as $platform) {
+            self::assertNotSame('', SocialIcon::svg($platform), $platform);
+        }
         self::assertTrue(BrandAssets::validSocialUrl('https://www.linkedin.com/company/example'));
         self::assertFalse(BrandAssets::validSocialUrl('javascript:alert(1)'));
         self::assertFalse(BrandAssets::validSocialUrl('http://example.com/profile'));

@@ -1,5 +1,75 @@
 # Session Handoff
 
+## 2.0.5 brand and footer ownership
+
+- Core now imports module-supplied logo/favicon/social defaults once and owns
+  every later selection. Catering supplies the optimized transparent CATERING
+  CO. starter logo and resolves the live Core assets in public/admin layouts.
+- Website → Navigation Menu has isolated Header menu and Footer menu tabs using
+  the same full tree editor. Every action preserves its selected location and
+  Core rejects cross-menu item mutations.
+- Website → Appearance has a plain-text business copyright with `{year}` and
+  `{site_name}` tokens. Base and compatible module layouts render it escaped;
+  the immutable Cajun Web Pro attribution remains a separate Core injection.
+- Catering `0.1.21` declares distinct primary/footer defaults, renders both
+  Core-owned trees, and contributes its inquiry widget to the single Core
+  Dashboard without a duplicate module overview. Core_Mods
+  `module/catering` is the authority. Core Appearance also owns optional social
+  profiles; blank platforms are omitted and configured profiles render with
+  shared accessible SVG icons. Core 2.0.7 expands the directory to fifteen
+  platforms and replaces per-profile placement with one global Header,
+  Footer, or both control. The 0.1.21 ZIP SHA-256 is
+  `4c300c583f658b6ee76c1545c875cfe31404b97894cfaaba27a359b93b2a4d1f`.
+- Local PHP is unavailable. Publish the module and Core commits, let their
+  GitHub Actions matrices finish, then replace pending CI notes with final run
+  IDs and artifact digests.
+
+## 2.0.4 maintenance login repair
+
+- Hosted testing found that a logged-out `/catering/admin` request received
+  the maintenance page before auth middleware could redirect to login.
+- `Application::inMaintenance()` now exempts the complete `/admin` namespace
+  from the public maintenance intercept. Authentication, MFA, CSRF, roles,
+  and capabilities still protect the admin routes normally.
+- `ApplicationMaintenanceTest` proves `/admin` redirects to the subfolder-safe
+  `/catering/index.php?p=/admin/login` route while ordinary public paths remain
+  in maintenance mode.
+- Hosted verification still needs to cover enable maintenance → logout →
+  `/catering/admin` → login → disable maintenance.
+
+## 2.0.3 commercial hardening — Content and Page Editor
+
+- Broad feature development remains frozen. Surface 2 of
+  `docs/COMMERCIAL_HARDENING.md` is the active workstream.
+- The Content list now has no-rewrite-safe search and filters, summaries,
+  pagination, explicit empty states, scheduled state, live/preview links,
+  confirmed trash, restore, and publisher-only permanent deletion.
+- The Page Editor is a responsive workspace with retained validation input,
+  parent and social-image selectors, live SEO preview, character counts,
+  accessible visual-block ordering, unsaved-change protection, and a real
+  tokenized preview tab.
+- Migration `2026_10_23_0022` adds `pages.lock_version` and
+  `page_revisions.snapshot_json` for stale-tab protection and complete
+  revision restoration. Legacy revisions use the existing column fallback.
+- The next surface is Media Library, but it must not begin until Core 2.0.3
+  passes the full CI matrix and packaged-browser Content workflow gate.
+
+## 2026-10-23 — Website Core 2.0.2 commercial hardening begins
+
+- Broad feature development is frozen. `docs/COMMERCIAL_HARDENING.md` is now
+  the ordered source of truth for completing and polishing existing features
+  one screen at a time before commercial release.
+- The first surface is the shared admin shell and dashboard. Inline shell CSS
+  and JavaScript moved to versioned `site/assets/` files served through
+  `/_a/core/*`; the shell now has a polished responsive design system,
+  accessible mobile navigation, persistent category/scroll state, clearer
+  hierarchy, compact account actions, and announced alerts.
+- Dashboard metrics now open the matching Content, Modules, Operations, and
+  Health screens. Quick actions lead to existing page, media, navigation, and
+  settings workflows.
+- Complete the 2.0.2 CI and packaged-browser checks before marking surface 1
+  verified. Then move only to surface 2: Content list and page editor.
+
 ## 2026-10-24 — Website Core 2.0.1 navigation visibility
 
 - The Core Website category now labels `/admin/navigation` as **Navigation
@@ -17,6 +87,11 @@
 - Core_Mods now carries versioned shared `MOD_RULES.md` plus a required local
   `MODULE_RULES.md` creation preflight copied into every new module. Repository
   CI rejects modules that omit or mismatch the rules contract.
+- Verified Core commit `49c124d0292efeb6b7e6965cd93259cc1234e580`
+  in CI run 397 (`40044526443`): all six PHP 8.4/8.5, package, artifact,
+  Core-only, MySQL 8.4, and MariaDB 11.4 jobs passed. Catering release commit
+  `13190474e6d786854742b06e23e0691c131dda5f` passed Core_Mods run 8 with ZIP
+  SHA-256 `b182dbd11edbdff03cc52a2bc9ffd83fe5f7b1c125588e6149cf6f5d69eb11cc`.
 
 ## 2026-10-24 — dedicated Core_Mods repository
 
@@ -695,3 +770,26 @@ Standing: 176 tests / 667 assertions; lint clean. Cajun_Web `main` at
 runs covering every licensing commit, including per-invoice fulfilment,
 the bundle builder's config allowlist hardening, and bundle SHA-256
 integrity.
+
+## 2026-10-24 — Core 2.0.5 / Catering 0.1.17 branding handoff
+
+- User approved the transparent generic CATERING CO. logo generated at
+  `generated_images/exec-59dbdc56-fc70-49a9-abb2-acb8f55e2c4c.png`.
+- Core 2.0.5 adds `Core\Branding\BrandAssets`, Module API v1
+  `brandAssets()`/`brandAssetUrl()`, safe one-time package-to-Media copying,
+  permanent seed markers, direct Appearance logo/favicon uploads, ICO support,
+  previews, and shared admin logo/favicon rendering.
+- Catering 0.1.17 includes `assets/images/catering-co-logo.png`, declares it as
+  the starting logo, and renders current Core assets in public/module-admin
+  layouts. Its compatibility range is `>=2.0.5,<3.0.0`.
+- `Core_Mods/main` rules contract 1.1 commit:
+  `ca6c9114830a240edd52bfad0b5d8da22dc93df6`.
+- `Core_Mods/module/catering` release candidate commit:
+  `eeead635a04d137c1753451d00e2a23f267647f9`; Module CI run 11 / ID
+  `40050314261` was queued when this entry was written.
+- Deterministic module ZIP SHA-256:
+  `33a9279448505ef6490660d3461e5d5f71b53fb0467616ffc3ab2f10beafec8d`.
+- Local PHP is unavailable in this workspace. GitHub CI is authoritative. Do
+  not mark pending checkboxes complete until Module CI and Website Core's full
+  six-job matrix pass. Continue omitting this local-only handoff file from Git
+  Data API pushes because the connector previously rejected it as sensitive.

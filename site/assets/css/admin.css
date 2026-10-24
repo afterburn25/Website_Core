@@ -76,10 +76,11 @@ body {
   display: flex;
   min-width: 0;
   flex: 1;
+  flex-direction: column;
   align-items: center;
-  gap: .75rem;
+  gap: .42rem;
   margin-bottom: 1.1rem;
-  padding: .8rem;
+  padding: .9rem .75rem .72rem;
   color: #fff;
   text-decoration: none;
   border: 1px solid rgba(255, 255, 255, .1);
@@ -102,33 +103,29 @@ body {
 }
 .brand-logo-frame {
   display: grid;
-  width: 6.6rem;
-  height: 2.75rem;
+  width: min(100%, 10.5rem);
+  height: 3.5rem;
   flex: 0 0 auto;
   place-items: center;
-  padding: .28rem .42rem;
-  overflow: hidden;
-  border-radius: .7rem;
-  background: #fffdf8;
-  box-shadow: inset 0 0 0 1px rgba(18, 32, 51, .08), 0 7px 20px rgba(8, 18, 30, .2);
+  padding: 0;
 }
-.brand-logo { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
-.brand-copy { min-width: 0; }
-.brand-name {
+.brand-logo {
   display: block;
-  overflow: hidden;
-  font: 700 1rem Georgia, serif;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: brightness(1.35) saturate(1.05) drop-shadow(0 3px 8px rgba(0, 0, 0, .28));
 }
 .brand-meta {
   display: block;
-  margin-top: .15rem;
-  color: #8fa7bf;
-  font-size: .64rem;
+  color: #b8c9d8;
+  font-size: .68rem;
   font-weight: 750;
   letter-spacing: .12em;
+  line-height: 1.2;
+  text-align: center;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 .brand-asset-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1.25rem 0; }
 .brand-asset-card { padding: 1rem; border: 1px solid var(--admin-border); border-radius: var(--admin-radius); background: #f8fafc; }
@@ -137,7 +134,12 @@ body {
 .brand-preview img { display: block; max-width: min(100%, 22rem); max-height: 6rem; object-fit: contain; }
 .brand-preview.is-favicon img { width: 4rem; height: 4rem; }
 .social-profile-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(19rem,1fr)); gap: .75rem 1rem; }
-.social-profile-row { display: grid; grid-template-columns: minmax(0,1fr) 10rem; gap: .65rem; padding: .75rem; border: 1px solid var(--admin-border); border-radius: .6rem; background: var(--admin-surface-soft); }
+.social-placement-control { max-width: 26rem; margin: 1rem 0; padding: 1rem; border: 1px solid var(--admin-border); border-radius: .7rem; background: linear-gradient(135deg, #f8fbff, var(--admin-surface-soft)); }
+.social-placement-control label { margin-top: 0; }
+.social-placement-control .muted { margin: .5rem 0 0; }
+.social-profile-row { display: grid; grid-template-columns: 2.5rem minmax(0,1fr); align-items: center; gap: .75rem; padding: .85rem; border: 1px solid var(--admin-border); border-radius: .7rem; background: var(--admin-surface-soft); }
+.social-profile-icon { display: grid; width: 2.5rem; height: 2.5rem; place-items: center; border-radius: .65rem; background: #fff; color: var(--admin-primary); box-shadow: inset 0 0 0 1px var(--admin-border); }
+.social-profile-icon svg { width: 1.3rem; height: 1.3rem; fill: currentColor; }
 .social-profile-grid label { margin-top: 0; }
 .sidebar-close {
   display: none;
@@ -729,7 +731,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .filter-bar label, .filter-bar label:first-of-type { min-width: 0; }
   .filter-bar > div, .filter-bar > div:first-child { min-width: 0; }
   .brand-asset-grid { grid-template-columns: 1fr; }
-  .social-profile-row { grid-template-columns: 1fr; }
+  .social-profile-row { grid-template-columns: 2.5rem minmax(0, 1fr); }
   .pagination { align-items: flex-start; flex-direction: column; }
   .revision-heading { display: none; }
   .revision-row { grid-template-columns: 1fr; }

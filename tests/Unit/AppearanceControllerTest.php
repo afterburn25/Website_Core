@@ -32,7 +32,8 @@ final class AppearanceControllerTest extends TestCase
         $this->assertStringContainsString('aria-label="Footer"', $theme);
         $this->assertStringContainsString('socialProfiles', $controller);
         $this->assertStringContainsString("social_<?= e_attr(\$profile['platform']) ?>", $view);
-        $this->assertStringContainsString("social_<?= e_attr(\$profile['platform']) ?>_placement", $view);
+        $this->assertStringContainsString('name="social_placement"', $view);
+        $this->assertStringNotContainsString("social_<?= e_attr(\$profile['platform']) ?>_placement", $view);
         $this->assertStringContainsString('Header and footer', $view);
         $this->assertStringContainsString('footer-social', $theme);
         $this->assertStringContainsString('header-social', $theme);

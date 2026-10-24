@@ -23,6 +23,15 @@ final class BrandAssets
         'youtube' => 'YouTube',
         'tiktok' => 'TikTok',
         'x' => 'X',
+        'threads' => 'Threads',
+        'pinterest' => 'Pinterest',
+        'bluesky' => 'Bluesky',
+        'snapchat' => 'Snapchat',
+        'whatsapp' => 'WhatsApp',
+        'yelp' => 'Yelp',
+        'google-business' => 'Google Business Profile',
+        'nextdoor' => 'Nextdoor',
+        'reddit' => 'Reddit',
     ];
 
     public function __construct(
@@ -121,14 +130,35 @@ final class BrandAssets
         return self::SOCIALS;
     }
 
+    /**
+     * One placement controls every configured social profile. Before 2.0.7,
+     * placement lived on each profile; derive a safe global value until the
+     * administrator saves the new control so upgraded sites do not lose icons.
+     */
+    public function socialPlacement(): string
+    {
+        $placement = (string) $this->settings->get('social.placement', '');
+        if (in_array($placement, ['header', 'footer', 'both'], true)) return $placement;
+
+        $legacy = [];
+        foreach (self::SOCIALS as $platform => $_label) {
+            $url = trim((string) $this->settings->get('social.' . $platform . '.url', ''));
+            if ($url === '') continue;
+            $value = (string) $this->settings->get('social.' . $platform . '.placement', 'footer');
+            if (in_array($value, ['header', 'footer', 'both'], true)) $legacy[$value] = true;
+        }
+        if (isset($legacy['both']) || count($legacy) > 1) return 'both';
+        if (isset($legacy['header'])) return 'header';
+        return 'footer';
+    }
+
     /** @return list<array{platform:string,label:string,url:string,placement:string}> */
     public function socialLinks(?string $location = null): array
     {
         $links = [];
+        $placement = $this->socialPlacement();
         foreach (self::SOCIALS as $platform => $label) {
             $url = trim((string) $this->settings->get('social.' . $platform . '.url', ''));
-            $placement = (string) $this->settings->get('social.' . $platform . '.placement', 'footer');
-            if (!in_array($placement, ['header', 'footer', 'both'], true)) $placement = 'footer';
             $matches = $location === null || $placement === 'both' || $placement === $location;
             if ($matches && $url !== '' && self::validSocialUrl($url)) {
                 $links[] = compact('platform', 'label', 'url', 'placement');

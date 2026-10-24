@@ -11,12 +11,16 @@ final class SiteTransfer
         'site.name', 'site.tagline', 'site.locale', 'site.logo_media_id',
         'theme.active', 'theme.header_layout', 'theme.footer_layout',
         'footer.copyright',
+        'social.placement',
         'social.facebook.url', 'social.facebook.placement',
         'social.instagram.url', 'social.instagram.placement',
         'social.linkedin.url', 'social.linkedin.placement',
         'social.youtube.url', 'social.youtube.placement',
         'social.tiktok.url', 'social.tiktok.placement',
         'social.x.url', 'social.x.placement',
+        'social.threads.url', 'social.pinterest.url', 'social.bluesky.url',
+        'social.snapchat.url', 'social.whatsapp.url', 'social.yelp.url',
+        'social.google-business.url', 'social.nextdoor.url', 'social.reddit.url',
     ];
 
     public function __construct(private Connection $db) {}

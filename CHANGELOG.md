@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.7 — 2026-10-24
+
+- Enlarged and vertically stacked the administration logo, removed the
+  duplicate site-name label, and retained a single-line Website Administration
+  caption.
+- Removed opaque logo frames from the administration sidebar and catering
+  footer so the existing transparent PNG blends with its surface.
+- Expanded the Core social directory to fifteen common business networks with
+  icon previews and replaced per-network placement selectors with one global
+  Header, Footer, or Header and footer dropdown.
+- Preserved upgraded sites by deriving the new global location from legacy
+  profile placement values until an administrator saves Appearance.
+- Updated the bundled catering module snapshot to `0.1.21`.
+
 ## 2.0.6 — 2026-10-24
 
 - Reworked the shared administration shell with destination icons, page-purpose

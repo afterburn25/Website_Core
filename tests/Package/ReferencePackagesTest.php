@@ -327,7 +327,7 @@ final class ReferencePackagesTest extends TestCase
         $this->assertStringContainsString('All rights reserved.', $home->body());
         $this->assertStringNotContainsString('class="c-footer-social"', $home->body());
         $settings->set('social.instagram.url', 'https://instagram.com/cateringco');
-        $settings->set('social.instagram.placement', 'both');
+        $settings->set('social.placement', 'both');
         $homeWithSocial = $this->req('GET', '/');
         $this->assertStringContainsString('class="c-header-social"', $homeWithSocial->body());
         $this->assertStringContainsString('class="c-footer-social"', $homeWithSocial->body());

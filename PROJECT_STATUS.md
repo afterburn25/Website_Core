@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.6` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.7` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -38,6 +38,12 @@ pass: shared admin guidance and icons, Media/Navigation/Forms completion,
 searchable audit history, mail testing, webhook recovery, broader mutation
 auditing, and polished recovery/update/operations screens. Packaged browser
 acceptance on supported shared hosts remains the external release gate.
+
+Version 2.0.7 refines shared brand presentation and the Core-owned social
+profile workflow. The administration identity and catering footer now honor
+transparent logo artwork without boxed backgrounds. Appearance supplies
+fifteen common business networks and one global Header, Footer, or both
+placement control, while blank profiles remain absent from public markup.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before
@@ -88,7 +94,7 @@ declaration exactly once, takes over the editable stored copy, and never
 repopulates a menu that an administrator later clears intentionally.
 
 The 2.0.5 maintenance release applies the same default-then-Core-ownership
-model to brand assets. The catering `0.1.20` snapshot supplies its generic
+model to brand assets. The catering `0.1.21` snapshot supplies its generic
 transparent CATERING CO. logo and starting footer navigation, while Core owns
 all later branding, footer-link, and copyright changes.
 

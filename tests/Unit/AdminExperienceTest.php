@@ -21,8 +21,15 @@ final class AdminExperienceTest extends TestCase
     public function testSharedAdminInteractionsCoverSafetyAndSubfolderNavigation(): void
     {
         $layout = (string) file_get_contents(WC_ROOT . '/admin/views/layouts/admin.php');
+        $css = (string) file_get_contents(WC_ROOT . '/assets/css/admin.css');
         $script = (string) file_get_contents(WC_ROOT . '/assets/js/admin.js');
         $this->assertStringContainsString("rtrim(\$siteBasePath, '/')", $layout);
+        $this->assertStringContainsString('Website Administration</span>', $layout);
+        $this->assertStringNotContainsString('class="brand-name"', $layout);
+        $this->assertStringContainsString('width: min(100%, 10.5rem)', $css);
+        $this->assertStringContainsString('background: transparent', (string) file_get_contents(
+            dirname(WC_ROOT) . '/examples/industry-catering/assets/css/catering.css'
+        ));
         $this->assertStringContainsString('event.submitter?.dataset?.confirm', $script);
         $this->assertStringContainsString('[data-copy-previous]', $script);
         $this->assertStringContainsString('responsive-table', $script);

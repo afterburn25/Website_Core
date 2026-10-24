@@ -18,13 +18,15 @@ deep forest green, muted sage, restrained gold, large food/event photography,
 Georgia display typography, clean sans-serif body copy, and generous spacing.
 The package carries its own namespaced CSS, JavaScript, views, and optimized
 WebP photographs, so it does not rely on a remote image provider.
-Version 0.1.20 also ships the approved transparent generic **CATERING CO.**
+Version 0.1.21 ships the approved transparent generic **CATERING CO.**
 logo. Core 2.0.5 imports it once into Media, after which the administrator can
 replace or clear it from Website → Appearance without a module update restoring
-the default. The module also supplies a one-time starting footer menu; Core
+the default. Version 0.1.21 also removes the opaque public-footer frame so the
+transparent artwork blends with its surface. The module supplies a one-time starting footer menu; Core
 owns the editable stored tree and the custom copyright notice thereafter.
 Optional social profiles are stored in Core Appearance and render in the
-header, footer, or both only when configured.
+header, footer, or both only when configured. One Core placement dropdown
+controls every populated profile; blank profiles produce no public markup.
 
 ## Public experience
 

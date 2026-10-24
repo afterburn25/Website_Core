@@ -41,13 +41,13 @@ foreach ($nav as $item) {
 <div class="admin-shell" data-admin-shell>
 <aside class="admin-sidebar" id="admin-sidebar" aria-label="Administration sidebar">
 <div class="sidebar-brand-row">
-<a class="brand" href="<?= e_attr($basePath) ?>/admin">
+<a class="brand" href="<?= e_attr($basePath) ?>/admin" aria-label="<?= e_attr($siteName) ?> Website Administration">
 <?php if (!empty($brandLogoUrl)): ?>
 <span class="brand-logo-frame"><img class="brand-logo" src="<?= e_attr($brandLogoUrl) ?>" alt="" aria-hidden="true"></span>
 <?php else: ?>
 <span class="brand-mark" aria-hidden="true">W</span>
 <?php endif; ?>
-<span class="brand-copy"><span class="brand-name"><?= e($siteName) ?></span><span class="brand-meta">Website administration</span></span>
+<span class="brand-meta">Website Administration</span>
 </a>
 <button class="sidebar-close" type="button" aria-label="Close administration menu" data-admin-nav-close>×</button>
 </div>

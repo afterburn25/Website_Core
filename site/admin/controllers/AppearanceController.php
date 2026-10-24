@@ -58,8 +58,8 @@ final class AppearanceController extends Controller
                 'platform' => $platform,
                 'label' => $label,
                 'url' => (string) $this->settings()->get('social.' . $platform . '.url', ''),
-                'placement' => (string) $this->settings()->get('social.' . $platform . '.placement', 'footer'),
             ], $brand->socialDefinitions(), array_keys($brand->socialDefinitions())),
+            'socialPlacement' => $brand->socialPlacement(),
         ], 'Appearance');
     }
 
@@ -92,7 +92,8 @@ final class AppearanceController extends Controller
         }
         $radius = max(0, min(24, (int) $r->string('radius', '8')));
         $socialProfiles = [];
-        $socialPlacements = [];
+        $socialPlacement = $r->string('social_placement', 'footer');
+        if (!in_array($socialPlacement, ['header', 'footer', 'both'], true)) $socialPlacement = 'footer';
         $brand = $this->c->get(BrandAssets::class);
         foreach ($brand->socialDefinitions() as $platform => $label) {
             $url = mb_substr($r->string('social_' . $platform), 0, 500);
@@ -101,8 +102,6 @@ final class AppearanceController extends Controller
                 return $this->redirect($r, '/admin/appearance');
             }
             $socialProfiles[$platform] = $url;
-            $placement = $r->string('social_' . $platform . '_placement', 'footer');
-            $socialPlacements[$platform] = in_array($placement, ['header', 'footer', 'both'], true) ? $placement : 'footer';
         }
         $ids = [];
         foreach (['logo_media_id', 'favicon_media_id', 'social_media_id'] as $field) {
@@ -153,8 +152,8 @@ final class AppearanceController extends Controller
         $this->settings()->set('footer.copyright', $copyright);
         foreach ($socialProfiles as $platform => $url) {
             $this->settings()->set('social.' . $platform . '.url', $url);
-            $this->settings()->set('social.' . $platform . '.placement', $socialPlacements[$platform]);
         }
+        $this->settings()->set('social.placement', $socialPlacement);
 
         $this->db()->run('DELETE FROM `' . $this->db()->table('media_usage') . '` WHERE context = ?', ['core.branding']);
         foreach (array_filter($ids) as $id) {
@@ -164,7 +163,7 @@ final class AppearanceController extends Controller
             ]);
         }
         $this->c->get(\Core\Audit\AuditLog::class)->record('appearance.branding', $u->id, ['media' => array_values(array_filter($ids))]);
-        $this->flash('ok', 'Brand assets, footer identity, and design tokens saved.');
+        $this->flash('ok', 'Brand assets, social profiles, footer identity, and design tokens saved.');
         return $this->redirect($r, '/admin/appearance');
     }
 }

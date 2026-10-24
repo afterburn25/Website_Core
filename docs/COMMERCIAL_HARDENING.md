@@ -46,7 +46,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | Order | Surface | Commercial completion focus | Status |
 | --- | --- | --- | --- |
 | 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete — 2.0.2; packaged-browser check pending |
-| 2 | Content list and page editor | Page lifecycle, visual blocks, preview, publish/review/schedule, revisions, duplication, trash/restore, validation, unsaved-state protection | in progress — 2.0.3 |
+| 2 | Content list and page editor | Page lifecycle, visual blocks, preview, publish/review/schedule, revisions, duplication, trash/restore, validation, unsaved-state protection | code complete — 2.0.3; packaged-browser check pending |
 | 3 | Media library | Upload failures, folders/tags, bulk operations, focal points/crops, usage, replacement, empty states, file limits | queued |
 | 4 | Navigation Menu | Existing-menu import, tree editing, targets, page/external links, nesting, keyboard alternatives, validation, public rendering | queued |
 | 5 | Forms and submissions | Field builder, validation, notifications, spam controls, consent evidence, inbox, filters, read state, archive/export | queued |
@@ -97,7 +97,8 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       page links, and responsive editor/status panels are wired.
 - [x] Trash restore and permanent deletion have confirmations, audit evidence,
       dependent-record cleanup, and missing-record 404 behavior.
-- [ ] PHP 8.4/8.5, package, MySQL, MariaDB, artifact, and Core-only CI pass.
+- [x] PHP 8.4/8.5, package, MySQL, MariaDB, artifact, and Core-only CI pass
+      (push run 404, run ID `40046902895`; PR run 405 also passed).
 - [ ] Packaged subfolder browser verification covers create, validation,
       conflict, preview, publish, schedule, duplicate, trash, restore, purge,
       and revision restore.

@@ -217,6 +217,15 @@ final class PackageManager
 
     private function destDir(array $manifest): string
     {
+        // Bundled installations may use a descriptive directory such as
+        // industry-catering while Module Manager normally uses the package
+        // id slug (catering). Always replace the already-discovered active
+        // directory so an upgrade cannot create a duplicate package id.
+        $this->registry->discover();
+        $existing = $this->registry->all()[(string) $manifest['id']]['dir'] ?? null;
+        if (is_string($existing) && is_dir($existing)) {
+            return $existing;
+        }
         $base = match ($manifest['type']) {
             'industry' => $this->industriesDir,
             'theme'    => $this->themesDir,

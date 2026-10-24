@@ -453,16 +453,16 @@ jobs:
             "admin/views/system/updates.php",
             "admin/views/modules/index.php",
             "vendor/autoload.php",
-            "modules/industries/catering/addon.json",
-            "modules/industries/catering/migrations/0002_cajun_menu_images.php",
-            "modules/industries/catering/assets/images/menu/chicken-andouille-gumbo.webp"
+            "modules/industries/industry-catering/addon.json",
+            "modules/industries/industry-catering/migrations/0002_cajun_menu_images.php",
+            "modules/industries/industry-catering/assets/images/menu/chicken-andouille-gumbo.webp"
           ] as $need){
             if($z->locateName($need)===false){fwrite(STDERR,"REPAIR-UPLOAD missing $need\n");exit(1);}
           }
           foreach(["install.php","install/index.php","config/config.php"] as $forbidden){
             if($z->locateName($forbidden)!==false){fwrite(STDERR,"REPAIR-UPLOAD contains $forbidden\n");exit(1);}
           }
-          $manifest=json_decode((string)$z->getFromName("modules/industries/catering/addon.json"),true);
+          $manifest=json_decode((string)$z->getFromName("modules/industries/industry-catering/addon.json"),true);
           if(($manifest["version"]??null)!=="0.1.23"){
             fwrite(STDERR,"REPAIR-UPLOAD catering version invalid\n");exit(1);
           }

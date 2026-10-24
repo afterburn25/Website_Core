@@ -13,6 +13,9 @@
   packages staged by earlier Core releases.
 - Produces installer-free per-industry REPAIR-UPLOAD archives for recovering
   partially copied shared-host installations in one root-level extraction.
+- Resolves upgrades against the package's existing discovered directory, so a
+  bundled `industry-catering` install is replaced in place instead of creating
+  a second `catering` directory with the same package id.
 
 ## 2.0.7 — 2026-10-24
 

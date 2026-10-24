@@ -399,7 +399,7 @@ foreach (glob($root . '/examples/*', GLOB_ONLYDIR) as $dir) {
         $n += buildZip(
             $repair,
             $dir,
-            fn (string $rel) => 'modules/industries/' . $inner . '/' . $rel,
+            fn (string $rel) => 'modules/industries/' . basename($dir) . '/' . $rel,
             [],
             true
         );

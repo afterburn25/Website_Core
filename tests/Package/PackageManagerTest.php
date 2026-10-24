@@ -422,6 +422,40 @@ PHP;
         ));
     }
 
+    public function testUpgradeReplacesExistingBundledDirectoryInPlace(): void
+    {
+        $bundledDir = $this->tmp . '/industries/industry-widgets';
+        mkdir($bundledDir, 0777, true);
+        $initialManifest = json_decode($this->manifest([
+            'type' => 'industry',
+            'version' => '1.0.0',
+        ]), true);
+        file_put_contents($bundledDir . '/addon.json', json_encode($initialManifest));
+        file_put_contents($bundledDir . '/version.txt', 'bundled-one');
+        $this->db->insert('packages', [
+            'package_id' => 'acme/widgets',
+            'state' => 'enabled',
+            'version' => '1.0.0',
+            'manifest' => json_encode($initialManifest),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $upgrade = $this->zip([
+            'widgets/addon.json' => $this->manifest([
+                'type' => 'industry',
+                'version' => '1.1.0',
+            ]),
+            'widgets/version.txt' => 'bundled-two',
+        ], 'widgets-bundled-2.zip');
+        $this->pm->stage($upgrade);
+        [$ok, $err] = $this->pm->install('acme/widgets');
+
+        $this->assertTrue($ok, (string) $err);
+        $this->assertSame('enabled', $this->state('acme/widgets'));
+        $this->assertSame('bundled-two', file_get_contents($bundledDir . '/version.txt'));
+        $this->assertDirectoryDoesNotExist($this->tmp . '/industries/widgets');
+    }
+
     public function testFilesystemUpdateCanBeFinalizedWithMigrationsAndStatePreserved(): void
     {
         $initial = $this->zip([

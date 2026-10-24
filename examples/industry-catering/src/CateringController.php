@@ -438,6 +438,7 @@ final class CateringController
         $view->share('user', $auth->user());
         $view->share('csrf', $this->ctx->service(Csrf::class));
         $view->share('basePath', $request->routeBase());
+        $view->share('siteBasePath', rtrim($request->basePath, '/'));
         $view->share('assetBase', $this->ctx->assetBase($request->basePath));
         $view->share('frontController', rtrim($request->basePath, '/') . '/index.php');
         $view->share('currentPath', $request->path);

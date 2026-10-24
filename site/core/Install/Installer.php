@@ -544,9 +544,16 @@ final class Installer
             // resolves site.home_slug (default 'home').
             $now = date('Y-m-d H:i:s');
             if (!$db->fetch('SELECT id FROM `' . $db->table('pages') . '` WHERE slug = ?', ['home'])) {
+                $homeTitle = 'Welcome to ' . $siteName;
                 $db->insert('pages', [
-                    'slug' => 'home', 'title' => 'Welcome',
+                    'slug' => 'home', 'title' => $homeTitle,
                     'body' => '<p>Your new site is ready. Sign in to the administration area to edit this page.</p>',
+                    'meta_title' => mb_substr($homeTitle . ' | Official Website', 0, 60),
+                    'meta_description' => mb_substr(
+                        'Learn more about ' . $siteName . ', explore our services, and contact our team.',
+                        0,
+                        160
+                    ),
                     'status' => 'published',
                     'created_at' => $now, 'updated_at' => $now,
                 ]);

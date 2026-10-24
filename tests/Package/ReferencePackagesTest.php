@@ -469,6 +469,45 @@ final class ReferencePackagesTest extends TestCase
         ));
     }
 
+    public function testCateringHomeMetadataMigrationRepairsOnlyMissingStarterFields(): void
+    {
+        $this->db->insert('settings', [
+            'key' => 'site.name', 'value' => json_encode('Catering Co.'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $pageId = $this->db->insert('pages', [
+            'slug' => 'home', 'title' => 'Welcome',
+            'body' => '<p>Customized body remains.</p>', 'status' => 'published',
+            'meta_title' => '', 'meta_description' => '',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $migration = require WC_ROOT . '/../examples/industry-catering/migrations/0003_home_search_metadata.php';
+        $migration->up($this->db);
+        $page = $this->db->fetch(
+            'SELECT * FROM `' . $this->db->table('pages') . '` WHERE id = ?',
+            [$pageId]
+        );
+
+        $this->assertSame('Welcome to Catering Co.', $page['title']);
+        $this->assertSame('Catering Co. | Louisiana Catering & Events', $page['meta_title']);
+        $this->assertStringContainsString('Louisiana-inspired catering', $page['meta_description']);
+        $this->assertSame('<p>Customized body remains.</p>', $page['body']);
+
+        $this->db->update('pages', [
+            'title' => 'Our Custom Home', 'meta_title' => 'Custom search title',
+            'meta_description' => 'Custom search description.',
+        ], 'id = ?', [$pageId]);
+        $migration->up($this->db);
+        $customized = $this->db->fetch(
+            'SELECT title,meta_title,meta_description FROM `' . $this->db->table('pages') . '` WHERE id = ?',
+            [$pageId]
+        );
+        $this->assertSame('Our Custom Home', $customized['title']);
+        $this->assertSame('Custom search title', $customized['meta_title']);
+        $this->assertSame('Custom search description.', $customized['meta_description']);
+    }
+
     public function testThemesValidateAsPackages(): void
     {
         foreach (['theme-terra' => 'terra', 'theme-noir' => 'noir'] as $dir => $inner) {

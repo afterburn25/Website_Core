@@ -21,6 +21,12 @@
   empty states with actionable administrator warnings.
 - Registers a front-controller fatal shutdown renderer so the bundled branded
   500 page works even when a shared host ignores `.htaccess` ErrorDocument.
+- Anchors administrator CSS and JavaScript to the installation subfolder so
+  `/catering` deployments never request Core assets from the domain root.
+- Keeps internal asset, admin, API, installer, and cron misses out of public
+  SEO 404 insights while hiding historical infrastructure rows already logged.
+- Seeds new home pages with a descriptive title and search summary instead of
+  an incomplete placeholder that immediately fails the SEO audit.
 
 ## 2.0.13 — 2026-10-24
 

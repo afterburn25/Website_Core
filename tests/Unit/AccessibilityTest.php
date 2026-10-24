@@ -118,8 +118,31 @@ final class AccessibilityTest extends TestCase
         $this->assertStringContainsString('href="/catering/" target="_blank" rel="noopener"', $html);
         $this->assertStringContainsString('/catering/index.php?p=/_a/core/css/admin.css&amp;v=', $html);
         $this->assertStringContainsString('/catering/index.php?p=/_a/core/js/admin.js&amp;v=', $html);
+        $this->assertStringNotContainsString('href="/_a/core/css/admin.css', $html);
+        $this->assertStringNotContainsString('src="/_a/core/js/admin.js', $html);
         $this->assertStringContainsString('Website Core</strong><span>0.1.14-dev', $html);
         $this->assertStringContainsString('Catering Website</strong><span>0.1.14', $html);
+    }
+
+    public function testAdminLayoutDerivesSubfolderAssetRouteForLegacyModuleCallers(): void
+    {
+        $_SESSION = [];
+        $view = new View();
+        $view->addResolver('admin', fn (string $name): ?string =>
+            is_file(WC_ROOT . '/admin/views/' . $name . '.php')
+                ? WC_ROOT . '/admin/views/' . $name . '.php'
+                : null
+        );
+        $html = $view->render('admin:layouts/admin', [
+            'content' => '', 'nav' => [], 'currentPath' => '/admin/catering/settings',
+            'basePath' => '/catering/index.php?p=', 'user' => null,
+            'csrf' => new \Core\Security\Csrf(), 'pageTitle' => 'Catering Settings',
+            'siteName' => 'Catering Test', 'coreVersion' => '2.0.14',
+            'industryVersions' => [], 'flash' => null,
+        ]);
+
+        $this->assertStringContainsString('/catering/index.php?p=/_a/core/css/admin.css&amp;v=', $html);
+        $this->assertStringContainsString('/catering/index.php?p=/_a/core/js/admin.js&amp;v=', $html);
     }
 
     public function testCoreBaseModuleRendersAsProtectedBuiltInComponent(): void

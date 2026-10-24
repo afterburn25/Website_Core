@@ -9,6 +9,9 @@ $activeLength = -1;
 $activeGroup = 'Administration';
 $noticeCount = (int) ($noticeCount ?? 0);
 $assetVersion = rawurlencode(defined('WC_VERSION') ? WC_VERSION : 'development');
+$resolvedSiteBase = (string) ($siteBasePath ?? preg_replace('#/index\.php\?p=$#', '', (string) $basePath));
+$siteBasePath = rtrim($resolvedSiteBase, '/');
+$assetRouteBase = rtrim($resolvedSiteBase, '/') . '/index.php?p=';
 $username = trim((string) ($user?->username ?? 'Administrator'));
 $userInitial = mb_substr($username !== '' ? $username : 'A', 0, 1);
 foreach ($nav as $item) {
@@ -34,7 +37,7 @@ foreach ($nav as $item) {
 <meta name="robots" content="noindex,nofollow">
 <title><?= e($pageTitle !== '' ? $pageTitle . ' — ' : '') ?><?= e($siteName) ?> Admin</title>
 <?php if (!empty($faviconUrl)): ?><link rel="icon" href="<?= e_attr($faviconUrl) ?>"><?php endif; ?>
-<link rel="stylesheet" href="<?= e_attr($basePath) ?>/_a/core/css/admin.css&amp;v=<?= e_attr($assetVersion) ?>">
+<link rel="stylesheet" href="<?= e_attr($assetRouteBase) ?>/_a/core/css/admin.css&amp;v=<?= e_attr($assetVersion) ?>">
 <script>try{const p=JSON.parse(localStorage.getItem('wc-admin-ui-v2')||'{}');if(p.sidebarCollapsed)document.documentElement.classList.add('admin-sidebar-collapsed');if(p.compact)document.documentElement.classList.add('admin-compact')}catch(e){}</script>
 </head>
 <body>
@@ -130,6 +133,6 @@ foreach ($nav as $item) {
 <div class="button-row"><button class="btn secondary" value="cancel">Cancel</button><button class="btn danger" value="confirm" data-confirm-accept>Continue</button></div>
 </form>
 </dialog>
-<script src="<?= e_attr($basePath) ?>/_a/core/js/admin.js&amp;v=<?= e_attr($assetVersion) ?>" defer></script>
+<script src="<?= e_attr($assetRouteBase) ?>/_a/core/js/admin.js&amp;v=<?= e_attr($assetVersion) ?>" defer></script>
 </body>
 </html>

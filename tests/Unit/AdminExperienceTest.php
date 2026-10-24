@@ -39,10 +39,10 @@ final class AdminExperienceTest extends TestCase
         $this->assertStringContainsString('Finalize update', $modules);
 
         $updates = (string) file_get_contents(WC_ROOT . '/admin/views/system/updates.php');
-        $systemController = (string) file_get_contents(WC_ROOT . '/admin/controllers/SystemToolsController.php');
+        $updatesController = (string) file_get_contents(WC_ROOT . '/admin/controllers/UpdatesController.php');
         $this->assertStringContainsString('Update workspace needs attention.', $updates);
-        $this->assertStringContainsString('update page recovery', $systemController);
-        $this->assertStringContainsString('SystemToolsController', (string) file_get_contents(
+        $this->assertStringContainsString('GET never opens or parses a staged ZIP', $updatesController);
+        $this->assertStringContainsString('UpdatesController', (string) file_get_contents(
             WC_ROOT . '/core/Application.php'
         ));
         $bootstrap = (string) file_get_contents(WC_ROOT . '/includes/bootstrap.php');
@@ -61,6 +61,10 @@ final class AdminExperienceTest extends TestCase
         ));
         $this->assertStringContainsString('$root . \'/admin/\'', (string) file_get_contents(
             WC_ROOT . '/includes/autoload.php'
+        ));
+        $this->assertFileExists(WC_ROOT . '/errors/500.html');
+        $this->assertStringContainsString('ErrorDocument 500', (string) file_get_contents(
+            WC_ROOT . '/includes/server-error-pages.php'
         ));
     }
 }

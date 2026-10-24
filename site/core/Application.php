@@ -621,9 +621,9 @@ final class Application
             $r->get('/health', fn (Request $req) => (new \Admin\Controllers\SystemToolsController($c))->health($req), [$auth]);
             $r->get('/system/diagnostics', fn (Request $req) => (new \Admin\Controllers\SystemToolsController($c))->diagnostics($req), [$auth]);
             $r->get('/audit', fn (Request $req) => (new \Admin\Controllers\SystemToolsController($c))->audit($req), [$auth]);
-            $r->get('/updates', fn (Request $req) => (new \Admin\Controllers\SystemToolsController($c))->updates($req), [$auth]);
-            $r->post('/updates/stage', fn (Request $req) => (new \Admin\Controllers\SystemToolsController($c))->stageUpdate($req), [$auth, $csrfCheck]);
-            $r->post('/updates/apply', fn (Request $req) => (new \Admin\Controllers\SystemToolsController($c))->applyUpdate($req), [$auth, $csrfCheck]);
+            $r->get('/updates', fn (Request $req) => (new \Admin\Controllers\UpdatesController($c))->index($req), [$auth]);
+            $r->post('/updates/stage', fn (Request $req) => (new \Admin\Controllers\UpdatesController($c))->stage($req), [$auth, $csrfCheck]);
+            $r->post('/updates/apply', fn (Request $req) => (new \Admin\Controllers\UpdatesController($c))->apply($req), [$auth, $csrfCheck]);
         });
 
         // Sitemap, robots, media streams, and draft previews — before the

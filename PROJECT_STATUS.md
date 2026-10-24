@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.12` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.13` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -75,6 +75,13 @@ autoloader now load PHP through version-specific private runtime paths, so a
 new deployment cannot reuse bytecode compiled for an older Core version.
 Authenticated administrators also receive safe expandable exception details
 on admin-only 500 pages, while public error pages retain opaque references.
+
+Version 2.0.13 isolates Core Updates in a dedicated controller and makes its
+GET path metadata-only: opening the page never parses an abandoned or corrupt
+staged ZIP. Explicit staging and applying still perform full archive,
+signature, integrity, backup, and migration checks. Core also provisions a
+subfolder-aware static server ErrorDocument so failures before PHP boot receive
+a polished branded 500 page instead of the browser's generic error screen.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

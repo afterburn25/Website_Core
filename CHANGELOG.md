@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.13 — 2026-10-24
+
+- Moves Core Updates into a dedicated `UpdatesController` with a new class
+  path, independent of the broader System tools controller.
+- Makes the Updates GET route metadata-only; corrupt, oversized, unreadable,
+  or abandoned staged ZIP files are never opened simply by viewing the page.
+- Writes compact review metadata only after an explicit upload passes the full
+  archive and signature inspection, and requires that review before apply.
+- Adds a polished static `errors/500.html` and provisions a subfolder-aware
+  Apache/LiteSpeed `ErrorDocument 500` mapping for failures before PHP can
+  render Core's normal branded error response.
+
 ## 2.0.12 — 2026-10-24
 
 - Loads Core and administration PHP through private, version-specific runtime

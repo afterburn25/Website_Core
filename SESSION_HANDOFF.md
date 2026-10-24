@@ -32,6 +32,18 @@
 
 ## 2.0.14 subfolder assets and SEO recovery
 
+- Live hosted acceptance completed after deploying commit `aa5a3ddde5f8`:
+  maintenance remains a public 503, Core admin CSS and JavaScript return 200
+  from the `/catering/index.php?p=/_a/...` routes, protected admin routes
+  redirect logged-out requests to login, and installed `install.php` and
+  `install/` URLs remain unavailable with 404 responses.
+- Authenticated `/admin/health`, `/admin/audit`, and `/admin/navigation` render
+  successfully with the versioned Core assets. Health reports zero integrity
+  issues, zero package warnings, and zero mail failures.
+- Module Manager finalized catering from recorded `0.1.23` to `0.1.24` and ran
+  `catering_0003_home_search_metadata`. SEO now reports no common issues for
+  the migrated home page; infrastructure asset paths are absent from 404
+  insights.
 - The shared administrator shell now anchors Core CSS and JavaScript to the
   installation subfolder, so `/catering` no longer requests `/_a/...` from the
   domain root.

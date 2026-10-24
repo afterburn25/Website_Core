@@ -140,9 +140,12 @@ run against packaged builds; code-complete does not mean externally verified.
       startup failures.
 - [x] Fatal fallback assets, retry, and administrator-login URLs are rewritten
       for root and subfolder installations.
-- [ ] Hosted verification covers `/admin/health`, `/admin/audit`, and a
-      controlled front-controller fatal on the target LiteSpeed/shared-host
-      configuration.
+- [x] Hosted verification confirms authenticated `/admin/health` and
+      `/admin/audit` render on the target LiteSpeed/shared-host deployment;
+      Health reports zero integrity issues and Audit exposes the preserved
+      administrative history.
+- [ ] A controlled front-controller fatal remains to verify the pre-bootstrap
+      branded fallback on the target LiteSpeed/shared-host configuration.
 
 ## 2.0.4 — maintenance administrator access repair
 

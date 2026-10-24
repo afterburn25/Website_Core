@@ -1,7 +1,7 @@
 <?php
 /** @var string $content @var array $nav @var string $currentPath @var string $basePath @var string $siteBasePath
   * @var \Core\Auth\AdminUser|null $user @var \Core\Security\Csrf $csrf
-  * @var string $pageTitle @var string $siteName @var string $coreVersion @var string|null $brandLogoUrl @var string|null $faviconUrl
+  * @var string $pageTitle @var array $pageMeta @var string $siteName @var string $coreVersion @var string|null $brandLogoUrl @var string|null $faviconUrl
   * @var list<array{name:string,version:string}> $industryVersions @var int $noticeCount @var array|null $flash */
 $navGroups = [];
 $activeRoute = null;
@@ -55,11 +55,11 @@ foreach ($nav as $item) {
 <?php foreach ($navGroups as $groupKey => $group): ?>
 <?php $groupActive = array_filter($group['items'], fn (array $item): bool => $item['route'] === $activeRoute) !== []; ?>
 <details class="nav-group" data-nav-group="<?= e_attr($groupKey) ?>"<?= $groupActive ? ' data-active="true"' : '' ?> open>
-<summary><span><?= e($group['label']) ?></span><span class="chevron" aria-hidden="true"></span></summary>
+<summary><span><?= e($group['label']) ?></span><span class="nav-group-count"><?= count($group['items']) ?></span><span class="chevron" aria-hidden="true"></span></summary>
 <?php foreach ($group['items'] as $item): ?>
 <?php $active = $item['route'] === $activeRoute; ?>
 <a class="nav <?= $active ? 'active' : '' ?>"<?= $active ? ' aria-current="page"' : '' ?>
-   href="<?= e_attr($basePath . $item['route']) ?>"><?= e($item['label']) ?></a>
+   href="<?= e_attr($basePath . $item['route']) ?>"><span class="nav-icon"><?= \Core\Admin\AdminIcon::svg((string) ($item['icon'] ?? 'modules')) ?></span><span><?= e($item['label']) ?></span></a>
 <?php endforeach; ?>
 </details>
 <?php endforeach; ?>
@@ -89,7 +89,7 @@ foreach ($nav as $item) {
 <a class="btn secondary small notification-link" href="<?= e_attr($basePath) ?>/admin/notices">
 <span class="notification-label">Notifications</span><?php if ($noticeCount): ?><span class="notification-count" aria-label="<?= $noticeCount ?> unread notifications"><?= $noticeCount ?></span><?php endif; ?>
 </a>
-<a class="btn small" href="<?= e_attr(rtrim($basePath, '/') . '/') ?>" target="_blank" rel="noopener"><span class="open-site-label">Open site</span><span aria-hidden="true">↗</span></a>
+<a class="btn small" href="<?= e_attr(rtrim($siteBasePath, '/') . '/') ?>" target="_blank" rel="noopener"><span class="open-site-label">Open site</span><span aria-hidden="true">↗</span></a>
 <details class="account-menu">
 <summary aria-label="Administrator account menu"><span class="account-avatar" aria-hidden="true"><?= e($userInitial) ?></span><span class="account-name"><?= e($username) ?></span></summary>
 <div class="account-popover">
@@ -102,6 +102,10 @@ foreach ($nav as $item) {
 </div>
 </header>
 <main class="admin-content" id="admin-content" tabindex="-1">
+<section class="page-overview" aria-label="Page overview">
+<span class="page-overview-icon"><?= \Core\Admin\AdminIcon::svg((string) ($pageMeta['icon'] ?? 'settings')) ?></span>
+<div><p class="section-kicker"><?= e($activeGroup) ?></p><p><?= e((string) ($pageMeta['description'] ?? 'Manage this part of your website.')) ?></p></div>
+</section>
 <?php if ($flash): ?>
 <?php $flashOk = $flash['type'] === 'ok'; ?>
 <div class="flash-<?= $flashOk ? 'ok' : 'error' ?>" role="<?= $flashOk ? 'status' : 'alert' ?>">

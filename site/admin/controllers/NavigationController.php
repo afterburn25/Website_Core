@@ -36,6 +36,7 @@ final class NavigationController extends Controller
                     (int) $r->string('sort_order', '0'), $r->string('target', 'self'),
                     ($pageId = $r->string('page_id')) !== '' ? (int) $pageId : null
                 );
+                if (!$err) $this->c->get(\Core\Audit\AuditLog::class)->record('navigation.item_added', $u->id, ['menu' => $location, 'item' => $id]);
                 $this->flash($err ? 'error' : 'ok', $err ?? 'Menu item added.');
             } elseif ($action === 'save') {
                 $itemId = (int) $r->string('id');
@@ -51,11 +52,13 @@ final class NavigationController extends Controller
                     (int) $r->string('sort_order', '0'), $r->string('target', 'self'),
                     ($pageId = $r->string('page_id')) !== '' ? (int) $pageId : null
                 );
+                if ($ok) $this->c->get(\Core\Audit\AuditLog::class)->record('navigation.item_updated', $u->id, ['menu' => $location, 'item' => $itemId]);
                 $this->flash($ok ? 'ok' : 'error', $err ?? 'Menu item updated.');
             } elseif ($action === 'reorder') {
                 try {
                     $tree = json_decode((string) ($r->post['tree_json'] ?? ''), true, 32, JSON_THROW_ON_ERROR);
                     [$ok, $err] = $menus->reorder($menuId, is_array($tree) ? $tree : []);
+                    if ($ok) $this->c->get(\Core\Audit\AuditLog::class)->record('navigation.reordered', $u->id, ['menu' => $location]);
                     $this->flash($ok ? 'ok' : 'error', $err ?? 'Menu tree saved.');
                 } catch (\JsonException) {
                     $this->flash('error', 'Menu tree data was invalid. Reload and try again.');
@@ -64,6 +67,7 @@ final class NavigationController extends Controller
                 $itemId = (int) $r->string('id');
                 if ($menus->itemBelongsToMenu($itemId, $menuId)) {
                     $menus->deleteItem($itemId);
+                    $this->c->get(\Core\Audit\AuditLog::class)->record('navigation.item_deleted', $u->id, ['menu' => $location, 'item' => $itemId]);
                     $this->flash('ok', 'Menu item removed.');
                 } else {
                     $this->flash('error', 'That link does not belong to the selected menu.');
@@ -76,9 +80,12 @@ final class NavigationController extends Controller
                     (int) $r->string('status_code', '301'),
                     $u->id
                 );
+                if ($ok) $this->c->get(\Core\Audit\AuditLog::class)->record('redirect.created', $u->id, ['source' => $r->string('source')]);
                 $this->flash($err ? 'error' : 'ok', $err ?? 'Redirect added.');
             } elseif ($action === 'redirect_delete') {
-                $redirects->delete((int) $r->string('id'));
+                $redirectId = (int) $r->string('id');
+                $redirects->delete($redirectId);
+                $this->c->get(\Core\Audit\AuditLog::class)->record('redirect.deleted', $u->id, ['redirect' => $redirectId]);
                 $this->flash('ok', 'Redirect removed.');
             }
             return $this->redirect($r, '/admin/navigation?location=' . rawurlencode($location));

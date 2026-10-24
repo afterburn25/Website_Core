@@ -53,18 +53,46 @@ final class FormService
         $this->db->update('forms', ['active' => 0, 'updated_at' => date('Y-m-d H:i:s')], 'id=?', [$id]);
     }
 
-    public function submissions(?int $formId = null, int $limit = 200): array
+    public function submissions(
+        ?int $formId = null,
+        int $limit = 200,
+        string $status = '',
+        string $search = '',
+        int $offset = 0,
+    ): array
     {
         $sql = 'SELECT s.*, f.name form_name FROM `' . $this->db->table('form_submissions') . '` s JOIN `'
             . $this->db->table('forms') . '` f ON f.id=s.form_id';
-        $params = [];
-        if ($formId) { $sql .= ' WHERE s.form_id=?'; $params[] = $formId; }
-        return $this->db->fetchAll($sql . ' ORDER BY s.id DESC LIMIT ' . max(1, min(1000, $limit)), $params);
+        [$where, $params] = $this->submissionFilters($formId, $status, $search);
+        if ($where !== []) $sql .= ' WHERE ' . implode(' AND ', $where);
+        return $this->db->fetchAll(
+            $sql . ' ORDER BY s.id DESC LIMIT ' . max(1, min(1000, $limit)) . ' OFFSET ' . max(0, $offset),
+            $params,
+        );
+    }
+
+    public function submissionCount(?int $formId = null, string $status = '', string $search = ''): int
+    {
+        $sql = 'SELECT COUNT(*) FROM `' . $this->db->table('form_submissions') . '` s JOIN `'
+            . $this->db->table('forms') . '` f ON f.id=s.form_id';
+        [$where, $params] = $this->submissionFilters($formId, $status, $search);
+        if ($where !== []) $sql .= ' WHERE ' . implode(' AND ', $where);
+        return (int) $this->db->fetchColumn($sql, $params);
     }
 
     public function markRead(int $id): void
     {
-        $this->db->update('form_submissions', ['status' => 'read'], 'id=?', [$id]);
+        $this->setSubmissionStatus($id, 'read');
+    }
+
+    public function setSubmissionStatus(int $id, string $status): bool
+    {
+        if (!in_array($status, ['new', 'read', 'archived'], true)) return false;
+        if (!(bool) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('form_submissions') . '` WHERE id=?', [$id]
+        )) return false;
+        $this->db->update('form_submissions', ['status' => $status], 'id=?', [$id]);
+        return true;
     }
 
     /** @return array{0:?int,1:list<string>,2:array} */
@@ -138,5 +166,22 @@ final class FormService
                 'required' => !empty($row['required']), 'options' => array_slice($options, 0, 100)];
         }
         return $out === [] ? [[], 'No valid form fields were provided.'] : [$out, null];
+    }
+
+    /** @return array{0:list<string>,1:list<mixed>} */
+    private function submissionFilters(?int $formId, string $status, string $search): array
+    {
+        $where = []; $params = [];
+        if ($formId) { $where[] = 's.form_id=?'; $params[] = $formId; }
+        if (in_array($status, ['new', 'read', 'archived'], true)) {
+            $where[] = 's.status=?'; $params[] = $status;
+        }
+        $search = trim($search);
+        if ($search !== '') {
+            $where[] = '(f.name LIKE ? OR s.data_json LIKE ?)';
+            $needle = '%' . $search . '%';
+            $params[] = $needle; $params[] = $needle;
+        }
+        return [$where, $params];
     }
 }

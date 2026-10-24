@@ -308,7 +308,13 @@ final class MediaService
     }
 
     /** @return list<array> */
-    public function list(string $folder = '', int $limit = 200, string $search = '', string $tag = ''): array
+    public function list(
+        string $folder = '',
+        int $limit = 200,
+        string $search = '',
+        string $tag = '',
+        int $offset = 0,
+    ): array
     {
         $table = $this->db->table('media');
         $where = []; $params = [];
@@ -316,8 +322,28 @@ final class MediaService
         if ($search !== '') { $where[] = '(original_name LIKE ? OR alt_text LIKE ? OR caption LIKE ?)'; $needle = '%' . $search . '%'; array_push($params, $needle, $needle, $needle); }
         if ($tag !== '') { $where[] = 'tags_json LIKE ?'; $params[] = '%"' . str_replace(['%', '_'], ['\\%', '\\_'], mb_strtolower($tag)) . '"%'; }
         $sql = "SELECT * FROM `{$table}`" . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
-            . ' ORDER BY id DESC LIMIT ' . max(1, min(500, $limit));
+            . ' ORDER BY id DESC LIMIT ' . max(1, min(500, $limit)) . ' OFFSET ' . max(0, $offset);
         return $this->db->fetchAll($sql, $params);
+    }
+
+    public function count(string $folder = '', string $search = '', string $tag = ''): int
+    {
+        $table = $this->db->table('media');
+        $where = []; $params = [];
+        if ($folder !== '') { $where[] = 'folder = ?'; $params[] = $folder; }
+        if ($search !== '') {
+            $where[] = '(original_name LIKE ? OR alt_text LIKE ? OR caption LIKE ?)';
+            $needle = '%' . $search . '%';
+            array_push($params, $needle, $needle, $needle);
+        }
+        if ($tag !== '') {
+            $where[] = 'tags_json LIKE ?';
+            $params[] = '%"' . str_replace(['%', '_'], ['\\%', '\\_'], mb_strtolower($tag)) . '"%';
+        }
+        return (int) $this->db->fetchColumn(
+            "SELECT COUNT(*) FROM `{$table}`" . ($where ? ' WHERE ' . implode(' AND ', $where) : ''),
+            $params,
+        );
     }
 
     /** @return list<string> */

@@ -53,6 +53,7 @@ abstract class Controller
         $v->share('currentPath', $r->path);
         $v->share('nav', $this->visibleNav());
         $v->share('pageTitle', $title);
+        $v->share('pageMeta', \Core\Admin\PageCatalog::for($title));
         $v->share('siteName', $this->settings()->get('site.name', 'Website Core'));
         try {
             $brand = $this->c->get(\Core\Branding\BrandAssets::class);
@@ -87,6 +88,15 @@ abstract class Controller
     protected function flash(string $type, string $message): void
     {
         $_SESSION['_wc_flash'] = ['type' => $type, 'message' => $message];
+    }
+
+    /** Record an authenticated administrator mutation without repeating container plumbing. */
+    protected function audit(string $event, array $detail = []): void
+    {
+        $user = $this->user();
+        if ($user !== null && $this->c->has(\Core\Audit\AuditLog::class)) {
+            $this->c->get(\Core\Audit\AuditLog::class)->record($event, $user->id, $detail);
+        }
     }
 
     protected function redirect(Request $r, string $path): Response

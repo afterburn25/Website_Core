@@ -43,6 +43,11 @@ final class FormServiceTest extends TestCase
         self::assertSame([], $errors);
         self::assertSame('Hello', $data['message']);
         self::assertCount(1, $this->forms->submissions($id));
+        self::assertSame(1, $this->forms->submissionCount($id, 'new'));
+        self::assertSame(1, $this->forms->submissionCount(null, '', 'person@example.com'));
+        self::assertTrue($this->forms->setSubmissionStatus((int) $submission, 'archived'));
+        self::assertSame(1, $this->forms->submissionCount($id, 'archived'));
+        self::assertFalse($this->forms->setSubmissionStatus((int) $submission, 'invalid'));
     }
 
     public function testRendersAccessibleCsrfProtectedForm(): void

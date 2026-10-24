@@ -66,9 +66,77 @@
     button.addEventListener('click', () => button.closest('[role="status"], [role="alert"]')?.remove());
   });
 
-  document.querySelectorAll('form[data-confirm]').forEach((form) => {
+  document.querySelectorAll('form').forEach((form) => {
     form.addEventListener('submit', (event) => {
-      if (!window.confirm(form.dataset.confirm || 'Continue?')) event.preventDefault();
+      const prompt = event.submitter?.dataset?.confirm || form.dataset.confirm;
+      if (prompt && !window.confirm(prompt)) event.preventDefault();
+    });
+  });
+
+  document.querySelectorAll('table').forEach((table) => {
+    if (table.parentElement?.classList.contains('responsive-table') || table.closest('.table-wrap')) return;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'responsive-table';
+    table.parentNode?.insertBefore(wrapper, table);
+    wrapper.appendChild(table);
+  });
+
+  document.querySelectorAll('form[method="post"]').forEach((form) => {
+    form.addEventListener('submit', (event) => {
+      if (event.defaultPrevented || !form.checkValidity()) return;
+      const button = event.submitter instanceof HTMLButtonElement ? event.submitter : form.querySelector('button[type="submit"],button:not([type])');
+      if (!button) return;
+      button.classList.add('is-busy');
+      button.setAttribute('aria-busy', 'true');
+      const busyLabel = button.dataset.busyLabel;
+      if (busyLabel) button.textContent = busyLabel;
+      window.setTimeout(() => { button.disabled = true; }, 0);
+    });
+  });
+
+  document.querySelectorAll('[data-selection-scope]').forEach((scope) => {
+    const summary = scope.querySelector('[data-selection-summary]');
+    const boxes = [...scope.querySelectorAll('input[type="checkbox"][data-select-item]')];
+    const refresh = () => {
+      const selected = boxes.filter((box) => box.checked).length;
+      if (summary) summary.textContent = selected ? `${selected} selected` : 'None selected';
+    };
+    boxes.forEach((box) => box.addEventListener('change', refresh));
+    refresh();
+  });
+
+  document.querySelectorAll('[data-drop-zone]').forEach((zone) => {
+    const input = zone.querySelector('input[type="file"]');
+    if (!input) return;
+    ['dragenter', 'dragover'].forEach((name) => zone.addEventListener(name, (event) => {
+      event.preventDefault();
+      zone.classList.add('is-dragging');
+    }));
+    ['dragleave', 'drop'].forEach((name) => zone.addEventListener(name, (event) => {
+      event.preventDefault();
+      zone.classList.remove('is-dragging');
+    }));
+    zone.addEventListener('drop', (event) => {
+      if (event.dataTransfer?.files?.length) {
+        input.files = event.dataTransfer.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-copy-previous]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const input = button.previousElementSibling;
+      if (!(input instanceof HTMLInputElement)) return;
+      try {
+        await navigator.clipboard.writeText(input.value);
+        const old = button.textContent;
+        button.textContent = 'Copied';
+        window.setTimeout(() => { button.textContent = old; }, 1600);
+      } catch (_) {
+        input.select();
+        document.execCommand('copy');
+      }
     });
   });
 

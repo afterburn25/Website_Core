@@ -35,6 +35,7 @@ final class FormsController extends Controller
             $r->string('recipient'), $r->string('subject'), $r->string('success_message'),
             $r->string('active') === '1', $this->user()->id
         );
+        if (!$error) $this->c->get(\Core\Audit\AuditLog::class)->record('forms.saved', $this->user()->id, ['form' => $id]);
         $this->flash($error ? 'error' : 'ok', $error ?? 'Form saved. Use form ID ' . $id . ' in a page Form block.');
         return $this->redirect($r, '/admin/forms' . ($error ? '' : '?edit=' . $id));
     }
@@ -42,7 +43,9 @@ final class FormsController extends Controller
     public function archive(Request $r): Response
     {
         if (!$this->can()) return $this->forbidden();
-        $this->forms()->archive((int) $r->attributes['id']);
+        $id = (int) $r->attributes['id'];
+        $this->forms()->archive($id);
+        $this->c->get(\Core\Audit\AuditLog::class)->record('forms.archived', $this->user()->id, ['form' => $id]);
         $this->flash('ok', 'Form archived; existing submissions were preserved.');
         return $this->redirect($r, '/admin/forms');
     }
@@ -51,9 +54,21 @@ final class FormsController extends Controller
     {
         if (!$this->can()) return $this->forbidden();
         $formId = (int) $r->input('form', 0);
+        $status = in_array($r->string('status'), ['new', 'read', 'archived'], true) ? $r->string('status') : '';
+        $search = mb_substr($r->string('q'), 0, 190);
+        $perPage = 50;
+        $total = $this->forms()->submissionCount($formId ?: null, $status, $search);
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = max(1, min($pages, (int) $r->input('page', 1)));
         return $this->page($r, 'forms/submissions', [
-            'submissions' => $this->forms()->submissions($formId ?: null),
+            'submissions' => $this->forms()->submissions($formId ?: null, $perPage, $status, $search, ($page - 1) * $perPage),
             'forms' => $this->forms()->all(), 'formId' => $formId,
+            'status' => $status, 'search' => $search, 'total' => $total, 'page' => $page, 'pages' => $pages,
+            'counts' => [
+                'new' => $this->forms()->submissionCount($formId ?: null, 'new'),
+                'read' => $this->forms()->submissionCount($formId ?: null, 'read'),
+                'archived' => $this->forms()->submissionCount($formId ?: null, 'archived'),
+            ],
         ], 'Form submissions');
     }
 
@@ -64,10 +79,30 @@ final class FormsController extends Controller
         return $this->redirect($r, '/admin/forms/submissions');
     }
 
+    public function submissionStatus(Request $r): Response
+    {
+        if (!$this->can()) return $this->forbidden();
+        $id = (int) ($r->attributes['id'] ?? 0);
+        $status = (string) ($r->attributes['status'] ?? '');
+        $ok = $this->forms()->setSubmissionStatus($id, $status);
+        if ($ok) $this->c->get(\Core\Audit\AuditLog::class)->record('forms.submission_status', $this->user()->id, ['submission' => $id, 'status' => $status]);
+        $this->flash($ok ? 'ok' : 'error', $ok ? 'Submission status updated.' : 'Submission or status not found.');
+        $return = array_filter([
+            'form' => max(0, (int) $r->string('return_form', '0')) ?: null,
+            'status' => in_array($r->string('return_status'), ['new','read','archived'], true) ? $r->string('return_status') : null,
+            'q' => mb_substr($r->string('return_q'), 0, 190) ?: null,
+            'page' => max(1, (int) $r->string('return_page', '1')),
+        ], static fn ($value) => $value !== null && $value !== '');
+        return $this->redirect($r, '/admin/forms/submissions?' . http_build_query($return));
+    }
+
     public function export(Request $r): Response
     {
         if (!$this->can()) return $this->forbidden();
-        $rows = $this->forms()->submissions(($id = (int) $r->input('form', 0)) ?: null, 1000);
+        $id = (int) $r->input('form', 0);
+        $status = in_array($r->string('status'), ['new', 'read', 'archived'], true) ? $r->string('status') : '';
+        $search = mb_substr($r->string('q'), 0, 190);
+        $rows = $this->forms()->submissions($id ?: null, 1000, $status, $search);
         $stream = fopen('php://temp', 'w+');
         fputcsv($stream, ['id','form','status','submitted_at','data']);
         foreach ($rows as $row) fputcsv($stream, [$row['id'],$row['form_name'],$row['status'],$row['created_at'],$row['data_json']]);

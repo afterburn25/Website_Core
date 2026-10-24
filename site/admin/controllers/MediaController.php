@@ -38,6 +38,7 @@ final class MediaController extends Controller
                 if (!$err) {
                     $this->c->get(\Core\Events\Dispatcher::class)->dispatch(
                         'media.uploaded', ['media' => $id, 'by' => $u->id]);
+                    $this->c->get(\Core\Audit\AuditLog::class)->record('media.uploaded', $u->id, ['media' => $id]);
                 }
                 $this->flash($err ? 'error' : 'ok', $err ?? 'File uploaded.');
             } elseif ($action === 'delete') {
@@ -47,8 +48,9 @@ final class MediaController extends Controller
                     $this->flash('error', 'File is referenced ' . count($usages) . ' time(s) — resubmit to confirm deletion.');
                     return $this->redirect($r, '/admin/media?confirm=' . $id);
                 }
-                $media->delete($id);
-                $this->flash('ok', 'File deleted.');
+                $deleted = $media->delete($id);
+                if ($deleted) $this->c->get(\Core\Audit\AuditLog::class)->record('media.deleted', $u->id, ['media' => $id]);
+                $this->flash($deleted ? 'ok' : 'error', $deleted ? 'File deleted.' : 'That media item no longer exists.');
             } elseif ($action === 'meta') {
                 $this->db()->update('media', [
                     'alt_text' => $r->string('alt_text'),
@@ -56,26 +58,51 @@ final class MediaController extends Controller
                 ], 'id = ?', [(int) $r->string('id')]);
                 $media->organize((int) $r->string('id'), $r->string('folder'), $r->string('tags'),
                     (float) $r->input('focal_x', 50), (float) $r->input('focal_y', 50));
+                $this->c->get(\Core\Audit\AuditLog::class)->record('media.metadata', $u->id, ['media' => (int) $r->string('id')]);
                 $this->flash('ok', 'Metadata saved.');
             } elseif ($action === 'bulk') {
                 $ids = $r->input('ids', []);
                 $count = $media->bulkOrganize(is_array($ids) ? $ids : [], $r->string('folder'), $r->string('tags'));
+                if ($count) $this->c->get(\Core\Audit\AuditLog::class)->record('media.bulk_organized', $u->id, ['count' => $count]);
                 $this->flash($count ? 'ok' : 'error', $count ? "Updated {$count} media item(s)." : 'Select at least one media item.');
             } elseif ($action === 'replace') {
                 if (($err = $this->uploadError($r, 'replacement')) === null) {
                     $err = $media->replace((int) $r->string('id'), $r->files['replacement'], $u->id);
                 }
+                if (!$err) $this->c->get(\Core\Audit\AuditLog::class)->record('media.replaced', $u->id, ['media' => (int) $r->string('id')]);
                 $this->flash($err ? 'error' : 'ok', $err ?? 'File replaced; links and usages were preserved.');
             }
             return $this->redirect($r, '/admin/media');
         }
 
+        $folder = $r->string('folder');
+        $search = $r->string('q');
+        $tag = $r->string('tag');
+        $perPage = 36;
+        $total = $media->count($folder, $search, $tag);
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = max(1, min($pages, (int) $r->input('page', 1)));
+        $summary = $this->db()->fetch(
+            'SELECT COUNT(*) AS total, '
+            . "SUM(CASE WHEN mime LIKE 'image/%' THEN 1 ELSE 0 END) AS images, "
+            . 'SUM(CASE WHEN is_private = 1 THEN 1 ELSE 0 END) AS private_count '
+            . 'FROM `' . $this->db()->table('media') . '`'
+        ) ?: [];
         return $this->page($r, 'media/index', [
-            'items'   => $media->list($r->string('folder'), 200, $r->string('q'), $r->string('tag')),
+            'items'   => $media->list($folder, $perPage, $search, $tag, ($page - 1) * $perPage),
             'folders' => $this->folders(),
             'tags' => $media->tags(),
             'mediaService' => $media,
             'confirm' => (int) $r->input('confirm', 0),
+            'filters' => compact('folder', 'search', 'tag'),
+            'total' => $total,
+            'page' => $page,
+            'pages' => $pages,
+            'summary' => [
+                'total' => (int) ($summary['total'] ?? 0),
+                'images' => (int) ($summary['images'] ?? 0),
+                'private' => (int) ($summary['private_count'] ?? 0),
+            ],
         ], 'Media');
     }
 

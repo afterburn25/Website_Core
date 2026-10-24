@@ -32,10 +32,14 @@ final class MediaWorkflowTest extends TestCase
         self::assertSame(25.0, (float) $media->find($first)['focal_x']);
         self::assertCount(1, $media->list('', 50, 'Bayou'));
         self::assertCount(1, $media->list('', 50, '', 'featured'));
+        self::assertSame(1, $media->count('', 'Bayou'));
+        self::assertSame(1, $media->count('', '', 'featured'));
         self::assertSame(['catering', 'featured'], $media->tags());
 
         self::assertSame(2, $media->bulkOrganize([$first, $second], 'Portfolio', 'Event'));
         self::assertCount(2, $media->list('Portfolio'));
+        self::assertCount(1, $media->list('Portfolio', 1, '', '', 1));
+        self::assertSame(2, $media->count('Portfolio'));
         self::assertSame(['catering', 'event', 'featured'], $media->tags());
     }
 

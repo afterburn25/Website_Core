@@ -45,5 +45,8 @@ final class AdminExperienceTest extends TestCase
         $this->assertStringContainsString('SystemToolsController', (string) file_get_contents(
             WC_ROOT . '/core/Application.php'
         ));
+        $bootstrap = (string) file_get_contents(WC_ROOT . '/includes/bootstrap.php');
+        $this->assertStringContainsString('runtime-code-cache.php', $bootstrap);
+        $this->assertStringContainsString('wc_refresh_runtime_code_cache', $bootstrap);
     }
 }

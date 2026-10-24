@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.10` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.11` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -61,6 +61,13 @@ Version 2.0.10 moves the System administration routes to a fresh
 autoloaders to load the repaired controller after a manual file replacement,
 rather than retaining a stale cached `SystemController` that can continue
 returning 500 even while the rest of the deployment reports the new version.
+
+Version 2.0.11 fixes the underlying hosting-panel deployment gap. Bootstrap
+records the deployed Core version in the private configuration directory and,
+before loading Application, resets OPcache and force-invalidates every Core and
+admin PHP file when that version changes. Hosts with timestamp validation
+disabled can no longer mix a new bootstrap/version with an old cached routing
+or controller graph.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.11 — 2026-10-24
+
+- Adds a version-keyed runtime code-cache refresh before Core autoloading.
+- Resets OPcache and force-invalidates Core/admin PHP files on the first
+  request after a hosting-panel deployment changes the Core version.
+- Records the refreshed version in the private configuration directory; an
+  unwritable marker safely retries on later requests instead of blocking boot.
+- Prevents mixed deployments where the sidebar reports a new version while
+  PHP still executes an older cached Application routing table.
+
 ## 2.0.10 — 2026-10-24
 
 - Moves Health, Diagnostics, Audit, and Core Updates routes to the fresh

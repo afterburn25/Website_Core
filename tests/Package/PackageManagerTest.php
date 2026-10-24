@@ -422,6 +422,56 @@ PHP;
         ));
     }
 
+    public function testFailedUpgradeMigrationRestoresPreviousFilesAndState(): void
+    {
+        $initial = $this->zip([
+            'widgets/addon.json' => $this->manifest(['version' => '1.0.0']),
+            'widgets/version.txt' => 'stable-one',
+        ], 'widgets-rollback-1.zip');
+        $this->pm->stage($initial);
+        [$ok, $err] = $this->pm->install('acme/widgets');
+        $this->assertTrue($ok, (string) $err);
+        $this->pm->enable('acme/widgets');
+
+        $migration = <<<'PHP'
+<?php
+return new class extends \Core\Database\Migration {
+    public function id(): string { return 'widgets_0002_expected_failure'; }
+    public function description(): string { return 'expected failure'; }
+    public function up(\Core\Database\Connection $db): void {
+        throw new \RuntimeException('expected migration failure');
+    }
+};
+PHP;
+        $upgrade = $this->zip([
+            'widgets/addon.json' => $this->manifest([
+                'version' => '1.1.0',
+                'migrations' => 'migrations',
+            ]),
+            'widgets/version.txt' => 'broken-two',
+            'widgets/migrations/0002_expected_failure.php' => $migration,
+        ], 'widgets-rollback-2.zip');
+        $this->pm->stage($upgrade);
+        [$ok, $err] = $this->pm->install('acme/widgets');
+
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('Previous package files were restored', (string) $err);
+        $this->assertSame('enabled', $this->state('acme/widgets'));
+        $this->assertSame('stable-one', file_get_contents($this->tmp . '/addons/widgets/version.txt'));
+        $this->assertSame('1.0.0', $this->db->fetchColumn(
+            'SELECT version FROM `' . $this->db->table('packages') . '` WHERE package_id = ?',
+            ['acme/widgets']
+        ));
+        $this->assertSame([], glob($this->tmp . '/addons/widgets.old-*') ?: []);
+        $rollback = $this->db->fetch(
+            'SELECT result, detail FROM `' . $this->db->table('package_journal')
+            . '` WHERE package_id = ? AND operation = ? ORDER BY id DESC',
+            ['acme/widgets', 'rollback']
+        );
+        $this->assertSame('ok', $rollback['result']);
+        $this->assertStringContainsString('restored previous package files', $rollback['detail']);
+    }
+
     public function testUpgradeReplacesExistingBundledDirectoryInPlace(): void
     {
         $bundledDir = $this->tmp . '/industries/industry-widgets';

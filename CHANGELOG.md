@@ -2,6 +2,11 @@
 
 ## 2.0.14 — 2026-10-24
 
+- Restores the previous package files, manifest, version, and enabled state
+  when an uploaded module upgrade reaches a failing migration.
+- Expands landscaping acceptance coverage across customer-data-preserving
+  upgrades and uninstall, queued estimate mail, protected photo routes, and
+  all four theme switches.
 - Keeps the allowlisted Core asset route available during maintenance and
   license-denial states so login and authenticated administration retain their
   styles and JavaScript on root and subfolder installations.

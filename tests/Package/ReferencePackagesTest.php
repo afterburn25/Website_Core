@@ -420,6 +420,7 @@ final class ReferencePackagesTest extends TestCase
             'SELECT original_name FROM `' . $this->db->table('media') . '` WHERE id = ?', [$logoId]
         ));
         $this->assertTrue((bool) $settings->get('branding.seeded.cajunwebpro.landscaping', false));
+        $settings->set('site.contact_email', 'owner@example.com');
 
         $navigation = new \Core\Content\MenuService($this->db);
         $this->assertSame(
@@ -474,6 +475,18 @@ final class ReferencePackagesTest extends TestCase
         $this->assertSame('new', $row['status']);
         $this->assertSame('Landscape Installation', $row['service_interest']);
         $this->assertSame(1, (int) $row['consent']);
+        $message = $this->db->fetch(
+            'SELECT `to`, subject, status FROM `' . $this->db->table('system_messages')
+            . '` WHERE `to` = ? ORDER BY id DESC LIMIT 1',
+            ['owner@example.com']
+        );
+        $this->assertNotNull($message);
+        $this->assertSame('queued', $message['status']);
+        $this->assertStringContainsString('Jordan Client', $message['subject']);
+
+        $photo = $this->req('GET', '/admin/landscaping/estimate-photo/1');
+        $this->assertSame(302, $photo->status());
+        $this->assertStringContainsString('ADMIN-AUTH-REQUIRED', $photo->body());
 
         $landscapingNav = array_values(array_filter(
             $this->registry->adminNavItems(),
@@ -498,12 +511,13 @@ final class ReferencePackagesTest extends TestCase
         );
         $this->assertLessThanOrEqual(2 * 1024 * 1024, (int) filesize($moduleZip));
 
-        foreach ([
+        $themes = [
             'theme-landscaping-bold-outdoors' => 'landscaping-bold-outdoors',
             'theme-landscaping-estate-green' => 'landscaping-estate-green',
             'theme-landscaping-neighborhood-lawn' => 'landscaping-neighborhood-lawn',
             'theme-landscaping-earth-stone' => 'landscaping-earth-stone',
-        ] as $dir => $inner) {
+        ];
+        foreach ($themes as $dir => $inner) {
             $manifest = json_decode((string) file_get_contents(
                 WC_ROOT . '/../examples/' . $dir . '/theme.json'
             ), true);
@@ -516,6 +530,78 @@ final class ReferencePackagesTest extends TestCase
             $this->assertFileExists($this->tmp . '/themes/' . $inner . '/theme.json');
             $this->assertFileExists($this->tmp . '/themes/' . $inner . '/assets/css/landscaping-theme.css');
         }
+
+        $this->installEnable('industry-landscaping', 'landscaping', 'cajunwebpro/landscaping');
+        $this->boot();
+        $before = $this->db->fetchAll(
+            'SELECT * FROM `' . $this->db->table('landscaping_services') . '` ORDER BY id'
+        );
+        foreach ($themes as $inner) {
+            $this->serviceSettings->set('theme.active', $inner);
+            $home = $this->req('GET', '/');
+            $this->assertSame(200, $home->status(), $inner);
+            $this->assertStringContainsString('class="l-theme ' . $inner . '"', $home->body(), $inner);
+            if ($inner === 'landscaping-bold-outdoors') {
+                $this->assertStringNotContainsString('/_a/themes/' . $inner, $home->body());
+            } else {
+                $this->assertStringContainsString(
+                    '/_a/themes/' . $inner . '/assets/css/landscaping-theme.css',
+                    $home->body(),
+                    $inner
+                );
+            }
+            $this->assertSame($before, $this->db->fetchAll(
+                'SELECT * FROM `' . $this->db->table('landscaping_services') . '` ORDER BY id'
+            ), $inner . ' changed landscaping data');
+        }
+    }
+
+    public function testLandscapingUpgradeAndUninstallPreserveCustomerData(): void
+    {
+        $this->installEnable('industry-landscaping', 'landscaping', 'cajunwebpro/landscaping');
+        $this->db->insert('landscaping_services', [
+            'slug' => 'client-custom-service',
+            'name' => 'Client Custom Service',
+            'category' => 'Custom',
+            'summary' => 'Created by the site owner.',
+            'details' => 'Must survive package lifecycle operations.',
+            'audience' => 'both',
+            'image_url' => '',
+            'featured' => 0,
+            'visible' => 1,
+            'sort_order' => 999,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => null,
+        ]);
+
+        $upgrade = $this->zipDir(
+            WC_ROOT . '/../examples/industry-landscaping',
+            'landscaping',
+            'landscaping-upgrade.zip'
+        );
+        [, $error] = $this->pm->stage($upgrade);
+        $this->assertNull($error);
+        [$ok, $error] = $this->pm->install('cajunwebpro/landscaping');
+        $this->assertTrue($ok, (string) $error);
+        $this->assertSame('enabled', $this->db->fetchColumn(
+            'SELECT state FROM `' . $this->db->table('packages') . '` WHERE package_id = ?',
+            ['cajunwebpro/landscaping']
+        ));
+        $this->assertSame('Client Custom Service', $this->db->fetchColumn(
+            'SELECT name FROM `' . $this->db->table('landscaping_services') . '` WHERE slug = ?',
+            ['client-custom-service']
+        ));
+
+        [$ok, $error] = $this->pm->disable('cajunwebpro/landscaping');
+        $this->assertTrue($ok, (string) $error);
+        [$ok, $error] = $this->pm->uninstall('cajunwebpro/landscaping');
+        $this->assertTrue($ok, (string) $error);
+        $this->assertDirectoryDoesNotExist($this->tmp . '/industries/landscaping');
+        $this->assertTrue($this->db->tableExists('landscaping_services'));
+        $this->assertSame('Client Custom Service', $this->db->fetchColumn(
+            'SELECT name FROM `' . $this->db->table('landscaping_services') . '` WHERE slug = ?',
+            ['client-custom-service']
+        ));
     }
 
     public function testCateringReferencePackageFitsSharedHostingUploadCeiling(): void

@@ -101,6 +101,13 @@ configuration.
 Audit uses its own controller and converts schema/query failure into an
 actionable warning without changing or discarding any audit records.
 
+Module upgrade recovery now retains the previous package directory until new
+migrations complete. A failed migration restores the prior files, manifest,
+version, and lifecycle state and records the rollback. Landscaping acceptance
+also exercises customer-data preservation through package replacement and
+uninstall, all four theme switches, estimate mail queueing, and protected
+photo-route authentication.
+
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before
 admin services query new tables, preventing the login-succeeds/dashboard-500

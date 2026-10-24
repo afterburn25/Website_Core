@@ -287,6 +287,21 @@ final class PackageManager
 
             $dest = $this->destDir($manifest);
             $upgrade = is_dir($dest);
+            $backup = null;
+            $previousManifest = null;
+            $restoredState = in_array($previousState, ['enabled', 'disabled', 'installed'], true)
+                ? $previousState
+                : 'installed';
+
+            if ($upgrade) {
+                $previousManifestPath = is_file($dest . '/addon.json')
+                    ? $dest . '/addon.json'
+                    : (is_file($dest . '/theme.json') ? $dest . '/theme.json' : null);
+                if ($previousManifestPath !== null) {
+                    $decoded = json_decode((string) file_get_contents($previousManifestPath), true);
+                    $previousManifest = is_array($decoded) ? $decoded : null;
+                }
+            }
             $this->recordPackage($manifest, $upgrade ? 'upgrading' : 'installed');
             $this->journal($packageId, $upgrade ? 'upgrade.start' : 'install', 'ok', $dest);
 
@@ -294,15 +309,28 @@ final class PackageManager
             if ($upgrade) {
                 $backup = $dest . '.old-' . bin2hex(random_bytes(4));
                 if (!@rename($dest, $backup)) {
+                    if (is_array($previousManifest)) {
+                        $this->recordPackage($previousManifest, $restoredState);
+                    }
                     $this->journal($packageId, 'upgrade', 'failed', 'could not move existing dir');
                     return [false, 'Could not replace existing installation — check permissions.'];
                 }
                 if (!@rename($stagedDir, $dest)) {
-                    @rename($backup, $dest); // restore on failure
+                    $restored = @rename($backup, $dest);
+                    if ($restored && is_array($previousManifest)) {
+                        $this->recordPackage($previousManifest, $restoredState);
+                    }
+                    $this->journal(
+                        $packageId,
+                        'rollback',
+                        $restored ? 'ok' : 'failed',
+                        $restored
+                            ? 'restored previous package files after replacement failure'
+                            : 'could not restore previous package files after replacement failure'
+                    );
                     $this->journal($packageId, 'upgrade', 'failed', 'could not move staged dir');
                     return [false, 'Could not install staged files — check permissions.'];
                 }
-                $this->removeTree($backup);
             } else {
                 if (!is_dir(dirname($dest))) {
                     mkdir(dirname($dest), 0750, true);
@@ -327,10 +355,39 @@ final class PackageManager
                         $this->journal($packageId, 'migrate', 'ok', implode(', ', $applied));
                     }
                 } catch (\Throwable $e) {
-                    $this->recordPackage($manifest, 'failed');
                     $this->journal($packageId, 'migrate', 'failed', $e->getMessage());
+                    if ($upgrade && is_string($backup) && is_dir($backup)) {
+                        $this->removeTree($dest);
+                        if (@rename($backup, $dest)) {
+                            if (is_array($previousManifest)) {
+                                $this->recordPackage($previousManifest, $restoredState);
+                            }
+                            $this->journal(
+                                $packageId,
+                                'rollback',
+                                'ok',
+                                'restored previous package files after migration failure'
+                            );
+                            return [
+                                false,
+                                'Package migration failed: ' . $e->getMessage()
+                                . ' Previous package files were restored.',
+                            ];
+                        }
+                        $this->journal(
+                            $packageId,
+                            'rollback',
+                            'failed',
+                            'could not restore previous package files after migration failure'
+                        );
+                    }
+                    $this->recordPackage($manifest, 'failed');
                     return [false, 'Package migration failed: ' . $e->getMessage()];
                 }
+            }
+
+            if ($upgrade && is_string($backup) && is_dir($backup)) {
+                $this->removeTree($backup);
             }
 
             $finalState = $upgrade && in_array($previousState, ['enabled', 'disabled'], true)

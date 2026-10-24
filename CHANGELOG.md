@@ -2,6 +2,8 @@
 
 ## 2.0.15 — 2026-10-24
 
+- Rebuilds the verified Landscaping Website 1.0.0 TEST-BUNDLE and directly
+  usable 2.0.15 REPAIR-UPLOAD with native database lifecycle coverage.
 - Makes private-image thumbnails available to authorized Media administrators
   while retaining permission checks and private, no-store browser caching.
 - Tracks page-block and social-sharing image references so Media shows the

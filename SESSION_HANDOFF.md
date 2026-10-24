@@ -1,5 +1,24 @@
 # Session Handoff
 
+## 2.0.15 landscaping lifecycle carried into latest Core
+
+- Package Manager now retains the previous package directory until replacement
+  migrations finish. A thrown migration restores the prior files, manifest,
+  version, and enabled/disabled state and records a successful rollback.
+- Landscaping acceptance now covers customer-created data through same-version
+  replacement and data-preserving uninstall, queued estimate mail, protected
+  photo routes, and all four theme selections.
+- The actual landscaping ZIP lifecycle—install, enable, replace, deliberate
+  failed-migration rollback, disable, and uninstall—passed on MySQL 8.4 and
+  MariaDB 11.4 at Core commit
+  `18bf6b9eb389702c62cc911a8b4cdfdc11fc18d5` in CI run
+  `40133429653`.
+- Remaining landscaping acceptance is external: responsive visual review in a
+  real browser and a hosted file-manager upgrade/rollback exercise.
+- Core 2.0.15 rebuilds the directly usable landscaping TEST-BUNDLE and
+  `Website-Core-Landscaping-2.0.15-REPAIR-UPLOAD` from the same verified 1.0.0
+  module snapshot.
+
 ## Permanent packaging rule
 
 - All user-facing build downloads are a single directly usable ZIP. Never put

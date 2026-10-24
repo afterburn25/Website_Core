@@ -46,3 +46,11 @@ verified runtime snapshot is copied into Core, and the complete Core CI matrix
 passes. Core CI validates installation, public rendering, estimate storage,
 theme installation, native MySQL/MariaDB migration behavior, package size,
 and combined TEST-BUNDLE and REPAIR-UPLOAD artifacts.
+
+Core commit `18bf6b9eb389702c62cc911a8b4cdfdc11fc18d5` extends that gate through
+the actual package lifecycle on both MySQL 8.4 and MariaDB 11.4: install,
+enable, replacement upgrade, deliberate failed-migration rollback, disable,
+and data-preserving uninstall. The full matrix passed in
+[run 40133429653](https://github.com/afterburn25/Website_Core/actions/runs/40133429653).
+The active 2.0.15 Core line carries the same verified runtime and rebuilds its
+directly usable landscaping TEST-BUNDLE and 2.0.15 REPAIR-UPLOAD artifacts.

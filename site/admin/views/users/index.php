@@ -24,10 +24,9 @@
 <td><?= e($a->lastLoginAt ?? '—') ?></td>
 <td>
 <?php if ($a->id !== $user->id && (!$a->isOwner() || $user->isOwner())): ?>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/users/<?= (int) $a->id ?>/disable" style="display:inline">
+<form method="post" action="<?= e_attr($basePath) ?>/admin/users/<?= (int) $a->id ?>/disable" class="inline-toggle-form" data-confirm="<?= $a->disabled?'Enable this administrator account?':'Disable this administrator and revoke access?' ?>">
 <?= $csrf->field() ?>
-<button class="btn small <?= $a->disabled ? '' : 'danger' ?>" type="submit" data-confirm="<?= $a->disabled?'Enable this administrator account?':'Disable this administrator and revoke access?' ?>">
-<?= $a->disabled ? 'Enable' : 'Disable' ?></button>
+<label class="toggle-control compact"><span class="sr-only"><?= $a->disabled ? 'Enable' : 'Disable' ?> <?= e($a->username) ?></span><input type="checkbox" <?= $a->disabled ? '' : 'checked' ?> data-auto-submit><span class="toggle-track" aria-hidden="true"></span></label>
 </form>
 <details style="display:inline-block;margin-left:.5rem">
 <summary class="muted" style="cursor:pointer">Reset password</summary>

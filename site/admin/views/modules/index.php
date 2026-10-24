@@ -77,6 +77,10 @@ $buttons = $protected ? [] : match ($state) {
 if (!empty($info['filesystem_update'])) {
     array_unshift($buttons, ['finalize', 'Finalize update']);
 }
+$stateToggle = in_array($state, ['enabled', 'disabled'], true);
+if ($stateToggle) {
+    $buttons = array_values(array_filter($buttons, static fn (array $button): bool => !in_array($button[0], ['enable', 'disable'], true)));
+}
 ?>
 <?php if ($protected): ?>
 <span class="muted">Required system component</span>
@@ -87,6 +91,7 @@ if (!empty($info['filesystem_update'])) {
 <button class="btn small danger">Purge data</button>
 </form>
 <?php else: ?>
+<?php if ($stateToggle): ?><form method="post" class="inline-toggle-form" action="<?= e_attr($basePath . '/admin/modules/' . $id . '/' . ($state === 'enabled' ? 'disable' : 'enable')) ?>" <?= $state === 'enabled' ? 'data-confirm="Disable this package? Its public and admin features will stop loading."' : '' ?>><?= $csrf->field() ?><label class="toggle-control compact"><span class="sr-only"><?= $state === 'enabled' ? 'Disable' : 'Enable' ?> <?= e($m['name'] ?? $id) ?></span><input type="checkbox" <?= $state === 'enabled' ? 'checked' : '' ?> data-auto-submit><span class="toggle-track" aria-hidden="true"></span></label></form><?php endif; ?>
 <?php foreach ($buttons as [$op, $label]): ?>
 <form method="post" action="<?= e_attr($basePath . '/admin/modules/' . $id . '/' . $op) ?>" style="display:inline">
 <?= $csrf->field() ?>

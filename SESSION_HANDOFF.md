@@ -1,5 +1,46 @@
 # Session Handoff
 
+## 2.0.14 commercial admin polish
+
+- Second cross-surface commercial presentation pass; no new product domain.
+- Shared shell now has persistent desktop sidebar collapse, compact density,
+  accessible branded confirmations, auto unsaved-work guards, character
+  counters, password visibility controls, and current-table quick filters.
+- A reusable switch pattern now controls maintenance, MFA policy, form
+  availability, consent, webhooks, administrators, and module enabled state.
+- Appearance previews local logo/favicon selections. Settings disables
+  irrelevant SMTP/privacy inputs and preserves stored SMTP values whenever a
+  different mail transport is selected.
+- Release as Core 2.0.14; require the full CI matrix and package/browser smoke
+  tests before marking the 2.0.14 acceptance section verified.
+
+## 2.0.13 isolated Updates and server 500 page
+
+- Hosted `/admin/updates` still produced a bare HTTP 500 after 2.0.12 while
+  the public maintenance page and administrator login continued to render.
+- Core Updates now has a fresh dedicated controller. GET does not open a ZIP;
+  explicit stage writes bounded review metadata and apply re-verifies fully.
+- A standalone branded `errors/500.html` plus a managed, subfolder-aware
+  `ErrorDocument 500` mapping covers failures before PHP's handler can run.
+- Publish, pass all six CI jobs, then distribute only the CI-produced 2.0.13
+  catering REPAIR-UPLOAD archive.
+
+## 2.0.12 shared-host class-cache repair
+
+- Live hosted testing still returned HTTP 500 from `/admin/updates` after the
+  2.0.11 repair upload. The public site was in maintenance mode and the
+  administrator login route remained reachable; the cloud browser could not
+  inspect authenticated pages without the owner's credentials.
+- 2.0.12 removes correctness dependence on `opcache_reset()` and
+  `opcache_invalidate()`. The new `runtime-code-loader.php` creates private,
+  version-specific PHP paths; bootstrap loads the autoloader/helpers through
+  those paths and the autoloader mirrors every Core/admin class likewise.
+- Admin-only 500 pages now expose expandable exception details exclusively to
+  an authenticated administrator. Logging falls back from the configured
+  storage log directory to `WC_CONFIG/logs/application.log`.
+- Publish the branch, require the complete six-job CI matrix, and distribute
+  only the CI-produced `Website-Core-catering-2.0.12-REPAIR-UPLOAD.zip`.
+
 ## 2.0.5 brand and footer ownership
 
 - Core now imports module-supplied logo/favicon/social defaults once and owns
@@ -793,3 +834,65 @@ integrity.
   not mark pending checkboxes complete until Module CI and Website Core's full
   six-job matrix pass. Continue omitting this local-only handoff file from Git
   Data API pushes because the connector previously rejected it as sensitive.
+
+## 2026-10-24 — Core 2.0.8 shared-host update recovery
+
+- Live verification at `demo.cajunwebpro.com/catering` showed Core `2.0.7`
+  and catering `0.1.21` after an attempted file upload. Module Manager's
+  journal contained no stage/upgrade record and the public menu still served
+  the original dishes. `/admin/updates` also returned the site's not-found
+  page, proving the installed Core runtime was only partially copied.
+- Core `2.0.8` detects when an active package's on-disk manifest version
+  differs from its registered database manifest and presents a deliberate
+  **Finalize update** action. Finalizing validates compatibility/license,
+  runs pending module migrations, synchronizes the database record, resets
+  OPcache, and preserves the current package state.
+- Staged ZIP upgrades now remember and restore `enabled` or `disabled` state;
+  legacy plain-path stage journal records remain supported.
+- The release builder now emits installer-free per-industry
+  `REPAIR-UPLOAD` archives containing the complete Core runtime plus the
+  industry under its bundled `modules/industries/industry-<slug>/` path.
+  PackageManager also resolves later upgrades against the discovered active
+  directory, preventing a duplicate id when bundled and managed directory
+  names differ. Runtime configuration,
+  storage, uploads, and installer entry files remain excluded.
+- Added package tests for enabled-state preservation and direct-file migration
+  finalization, plus administration contract coverage for the mismatch UI.
+
+## 2026-10-24 — Core 2.0.9 Updates-screen 500 recovery
+
+- After the verified 2.0.8 repair was deployed, live admin correctly reported
+  Core 2.0.8 and catering files 0.1.23, but `/admin/updates` returned HTTP 500.
+- The Updates controller now contains its staged-archive and journal inspection
+  in a recovery boundary. Missing, unreadable, invalid, stale, or undeletable
+  workspace files render an actionable admin warning and log the underlying
+  exception; they no longer take the screen down.
+- `CoreUpdater::inspect()` explicitly rejects missing/unreadable staged files,
+  and `journalTail()` safely tolerates inaccessible journal storage.
+- 2.0.9 regression coverage verifies those paths and the visible recovery UI.
+
+## 2026-10-24 — Core 2.0.10 stale controller replacement
+
+- Live 2.0.9 verification showed the module finalizer and migration succeeded,
+  but Updates, Diagnostics, and Health all still returned HTTP 500. Their
+  common dependency was the deployed/cached `SystemController` class, while
+  unrelated admin controllers continued working.
+- All System routes now use the fresh `SystemToolsController.php` class path.
+  The previous file can remain harmlessly on a repaired host; Application no
+  longer references it. A new path forces PHP autoload/OPcache to load the
+  current implementation after hosting-panel extraction.
+- CI and repair-artifact contracts require the new controller file and the
+  Application routing reference.
+
+## 2026-10-24 — Core 2.0.11 version-keyed OPcache refresh
+
+- Live Core displayed 2.0.10 but all System routes still executed the failing
+  pre-repair controller graph. This proved bootstrap refreshed while the host
+  retained a stale cached Application class; renaming only the controller was
+  insufficient because stale Application still referenced the old name.
+- Bootstrap now runs `wc_refresh_runtime_code_cache()` before loading the Core
+  autoloader. On a version change it resets OPcache and force-invalidates all
+  Core/admin PHP files plus entry points, then records the version in the
+  private config directory. Failed marker writes cause safe retries.
+- Added direct unit coverage and artifact membership checks for the runtime
+  cache helper. This is a Core-wide shared-host behavior, not a catering rule.

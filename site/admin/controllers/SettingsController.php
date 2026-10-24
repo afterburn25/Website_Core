@@ -53,17 +53,31 @@ final class SettingsController extends Controller
                 $this->flash('error', 'Base URL must start with http:// or https://');
                 return $this->redirect($r, '/admin/settings');
             }
-            foreach (self::FIELDS + self::MAIL_FIELDS as $key => $meta) {
+            foreach (self::FIELDS as $key => $meta) {
                 $settings->set($key, $r->string(str_replace('.', '_', $key)));
             }
-            $pw = $r->string('smtp_password');
-            if ($pw !== '') {
-                $settings->set('smtp.password', $pw);
+            $transport = $r->string('mail_transport');
+            if (!in_array($transport, ['none', 'smtp', 'mail'], true)) {
+                $transport = 'none';
+            }
+            $settings->set('mail.transport', $transport);
+            $settings->set('mail.from', $r->string('mail_from'));
+            // Preserve saved SMTP credentials while another transport is in
+            // use. Disabled presentation fields are intentionally omitted by
+            // browsers and must never erase a working SMTP configuration.
+            if ($transport === 'smtp') {
+                foreach (['smtp.host', 'smtp.port', 'smtp.secure', 'smtp.user'] as $key) {
+                    $settings->set($key, $r->string(str_replace('.', '_', $key)));
+                }
+                $pw = $r->string('smtp_password');
+                if ($pw !== '') {
+                    $settings->set('smtp.password', $pw);
+                }
             }
             if ($settings->get('system.cron_token', '') === '') {
                 $settings->set('system.cron_token', bin2hex(random_bytes(24)));
             }
-            $this->audit('settings.saved', ['mail_transport' => $r->string('mail_transport')]);
+            $this->audit('settings.saved', ['mail_transport' => $transport]);
             $this->flash('ok', 'Settings saved.');
             return $this->redirect($r, '/admin/settings');
         }

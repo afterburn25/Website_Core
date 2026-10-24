@@ -35,6 +35,7 @@ foreach ($nav as $item) {
 <title><?= e($pageTitle !== '' ? $pageTitle . ' — ' : '') ?><?= e($siteName) ?> Admin</title>
 <?php if (!empty($faviconUrl)): ?><link rel="icon" href="<?= e_attr($faviconUrl) ?>"><?php endif; ?>
 <link rel="stylesheet" href="<?= e_attr($basePath) ?>/_a/core/css/admin.css&amp;v=<?= e_attr($assetVersion) ?>">
+<script>try{const p=JSON.parse(localStorage.getItem('wc-admin-ui-v2')||'{}');if(p.sidebarCollapsed)document.documentElement.classList.add('admin-sidebar-collapsed');if(p.compact)document.documentElement.classList.add('admin-compact')}catch(e){}</script>
 </head>
 <body>
 <a class="skip-link" href="#admin-content">Skip to main content</a>
@@ -59,11 +60,12 @@ foreach ($nav as $item) {
 <?php foreach ($group['items'] as $item): ?>
 <?php $active = $item['route'] === $activeRoute; ?>
 <a class="nav <?= $active ? 'active' : '' ?>"<?= $active ? ' aria-current="page"' : '' ?>
-   href="<?= e_attr($basePath . $item['route']) ?>"><span class="nav-icon"><?= \Core\Admin\AdminIcon::svg((string) ($item['icon'] ?? 'modules')) ?></span><span><?= e($item['label']) ?></span></a>
+   href="<?= e_attr($basePath . $item['route']) ?>" title="<?= e_attr($item['label']) ?>"><span class="nav-icon"><?= \Core\Admin\AdminIcon::svg((string) ($item['icon'] ?? 'modules')) ?></span><span class="nav-label"><?= e($item['label']) ?></span></a>
 <?php endforeach; ?>
 </details>
 <?php endforeach; ?>
 </nav>
+<button class="sidebar-collapse" type="button" data-sidebar-collapse aria-pressed="false"><span class="collapse-icon" aria-hidden="true">‹</span><span class="collapse-label">Collapse sidebar</span></button>
 <div class="system-meta" aria-label="Installed versions">
 <div class="system-meta-title">Installed versions</div>
 <div class="version-row"><strong>Website Core</strong><span><?= e($coreVersion) ?></span></div>
@@ -94,6 +96,10 @@ foreach ($nav as $item) {
 <summary aria-label="Administrator account menu"><span class="account-avatar" aria-hidden="true"><?= e($userInitial) ?></span><span class="account-name"><?= e($username) ?></span></summary>
 <div class="account-popover">
 <a href="<?= e_attr($basePath) ?>/admin/profile">Profile and security</a>
+<div class="account-preferences" aria-label="Workspace preferences">
+<span>Workspace</span>
+<button type="button" data-ui-compact aria-pressed="false"><span>Compact spacing</span><span class="mini-switch" aria-hidden="true"></span></button>
+</div>
 <form method="post" action="<?= e_attr($basePath) ?>/admin/logout">
 <?= $csrf->field() ?><button type="submit">Sign out</button>
 </form>
@@ -116,6 +122,14 @@ foreach ($nav as $item) {
 </main>
 </div>
 </div>
+<dialog class="confirm-dialog" data-confirm-dialog aria-labelledby="confirm-dialog-title">
+<form method="dialog">
+<div class="confirm-dialog-icon" aria-hidden="true">!</div>
+<h2 id="confirm-dialog-title">Confirm this action</h2>
+<p data-confirm-message>Are you sure you want to continue?</p>
+<div class="button-row"><button class="btn secondary" value="cancel">Cancel</button><button class="btn danger" value="confirm" data-confirm-accept>Continue</button></div>
+</form>
+</dialog>
 <script src="<?= e_attr($basePath) ?>/_a/core/js/admin.js&amp;v=<?= e_attr($assetVersion) ?>" defer></script>
 </body>
 </html>

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.14 — 2026-10-24
+
+- Adds a persistent collapsible desktop sidebar and optional compact workspace
+  density while retaining each administrator's expanded navigation groups.
+- Replaces browser-native destructive prompts with an accessible branded
+  confirmation dialog and safely restores auto-submit switches when canceled.
+- Adds reusable, keyboard-accessible on/off switches to maintenance, MFA,
+  form availability, consent, webhooks, administrator accounts, and modules.
+- Protects substantial admin forms from accidental navigation, adds live
+  character counts, previews selected brand images, and disables irrelevant
+  dependent fields without erasing saved SMTP credentials.
+- Reorganizes Operations into clear availability, housekeeping, scheduling,
+  and job-monitoring areas with responsive commercial-product styling.
+
 ## 2.0.13 — 2026-10-24
 
 - Moves Core Updates into a dedicated `UpdatesController` with a new class

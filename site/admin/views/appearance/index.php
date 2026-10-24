@@ -2,7 +2,7 @@
 <section class="status-strip"><div class="status-chip ok"><strong><?= e(ucfirst($active)) ?></strong><span>Active theme</span></div><div class="status-chip <?= $brandPreviews['logo']?'ok':'warn' ?>"><strong><?= $brandPreviews['logo']?'Ready':'Missing' ?></strong><span>Site logo</span></div><a class="status-chip" href="<?= e_attr(rtrim($siteBasePath,'/') . '/') ?>" target="_blank" rel="noopener"><strong>Preview ↗</strong><span>Public website</span></a></section>
 <div class="card">
 <div class="card-heading"><div><h2>Brand identity</h2><p class="card-subtitle">Core owns these assets after installation and shares them with the public site, industry modules, and administration.</p></div><a class="btn secondary" href="<?= e_attr($basePath) ?>/admin/media">Open Media</a></div>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/appearance/branding" enctype="multipart/form-data">
+<form method="post" action="<?= e_attr($basePath) ?>/admin/appearance/branding" enctype="multipart/form-data" data-protect-unsaved>
 <?= $csrf->field() ?>
 <div class="brand-asset-grid">
 <?php foreach ([
@@ -15,7 +15,7 @@
 </div>
 <h3><?= e($asset['label']) ?></h3><p class="muted"><?= e($asset['help']) ?></p>
 <label for="<?= e_attr($asset['upload']) ?>">Upload a new <?= e(strtolower($asset['label'])) ?></label>
-<input id="<?= e_attr($asset['upload']) ?>" type="file" name="<?= e_attr($asset['upload']) ?>" accept="image/png,image/jpeg,image/webp,image/gif,image/x-icon,image/vnd.microsoft.icon,.ico">
+<input id="<?= e_attr($asset['upload']) ?>" type="file" name="<?= e_attr($asset['upload']) ?>" accept="image/png,image/jpeg,image/webp,image/gif,image/x-icon,image/vnd.microsoft.icon,.ico" data-image-preview=".brand-preview">
 <label for="<?= e_attr($asset['field']) ?>">Or choose from Media</label>
 <select id="<?= e_attr($asset['field']) ?>" name="<?= e_attr($asset['field']) ?>"><option value="">— none —</option><?php foreach ($mediaItems as $media): ?><option value="<?= (int) $media['id'] ?>" <?= (int) $branding[$asset['field']] === (int) $media['id'] ? 'selected' : '' ?>>#<?= (int) $media['id'] ?> — <?= e($media['original_name']) ?></option><?php endforeach; ?></select>
 </section>

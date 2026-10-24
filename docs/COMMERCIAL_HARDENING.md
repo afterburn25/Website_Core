@@ -45,7 +45,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 
 | Order | Surface | Commercial completion focus | Status |
 | --- | --- | --- | --- |
-| 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete through 2.0.6; packaged-browser check pending |
+| 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete through 2.0.14; packaged-browser check pending |
 | 2 | Content list and page editor | Page lifecycle, visual blocks, preview, publish/review/schedule, revisions, duplication, trash/restore, validation, unsaved-state protection | code complete — 2.0.3; packaged-browser check pending |
 | 3 | Media library | Upload failures, folders/tags, bulk operations, focal points/crops, usage, replacement, empty states, file limits | code complete — 2.0.6; packaged-browser check pending |
 | 4 | Navigation Menu | Existing-menu import, tree editing, targets, page/external links, nesting, keyboard alternatives, validation, public rendering | code complete — 2.0.6; packaged-browser check pending |
@@ -106,6 +106,23 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 Version 2.0.6 carries the same acceptance discipline through the remaining
 existing surfaces. Browser/host evidence stays explicitly pending until it is
 run against packaged builds; code-complete does not mean externally verified.
+
+## 2.0.14 — shared commercial polish acceptance
+
+- [x] Desktop sidebar collapse and compact density are optional, persistent,
+      keyboard reachable, and do not alter saved category state.
+- [x] Destructive operations share an accessible branded confirmation dialog;
+      canceling an auto-submit switch restores its prior visual value.
+- [x] Binary settings use a common switch design with explicit descriptions
+      across Operations, Security, Forms, Privacy, Integrations, Users, and
+      Modules.
+- [x] Substantial forms receive unsaved-work protection and length-limited
+      fields expose live counts without changing server validation.
+- [x] Appearance previews newly selected logo/favicon files before save.
+- [x] SMTP and analytics controls expose only relevant inputs; inactive SMTP
+      values remain stored rather than being erased by a transport change.
+- [ ] Packaged browser verification covers keyboard use, confirmation cancel,
+      mobile navigation, sidebar/density persistence, and switch mutations.
 
 ## 2.0.4 — maintenance administrator access repair
 

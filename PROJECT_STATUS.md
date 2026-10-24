@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.13` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.14` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -82,6 +82,14 @@ staged ZIP. Explicit staging and applying still perform full archive,
 signature, integrity, backup, and migration checks. Core also provisions a
 subfolder-aware static server ErrorDocument so failures before PHP boot receive
 a polished branded 500 page instead of the browser's generic error screen.
+
+Version 2.0.14 is the second cross-surface presentation pass. The shared admin
+shell now supports a persistent compact workspace and collapsible desktop
+sidebar, branded accessible confirmations, automatic unsaved-work protection,
+live counters, and brand-image previews. Binary state controls use one clear
+switch pattern across maintenance, security, forms, privacy, integrations,
+accounts, and modules. Dependent mail/privacy fields are explained and gated
+without discarding inactive credentials.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

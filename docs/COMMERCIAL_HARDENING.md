@@ -45,7 +45,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 
 | Order | Surface | Commercial completion focus | Status |
 | --- | --- | --- | --- |
-| 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | in progress — 2.0.2 |
+| 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete — 2.0.2; packaged-browser check pending |
 | 2 | Content list and page editor | Page lifecycle, visual blocks, preview, publish/review/schedule, revisions, duplication, trash/restore, validation, unsaved-state protection | queued |
 | 3 | Media library | Upload failures, folders/tags, bulk operations, focal points/crops, usage, replacement, empty states, file limits | queued |
 | 4 | Navigation Menu | Existing-menu import, tree editing, targets, page/external links, nesting, keyboard alternatives, validation, public rendering | queued |
@@ -76,7 +76,8 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       styles share a polished responsive design system.
 - [x] Dashboard metrics link to their real management areas and provide useful
       quick actions instead of passive statistics only.
-- [ ] PHP 8.4/8.5, package, MySQL, MariaDB, artifact, and Core-only CI pass.
+- [x] PHP 8.4/8.5, package, MySQL, MariaDB, artifact, and Core-only CI pass
+      (GitHub Actions run 400, run ID `40045870820`).
 - [ ] Browser verification completed on a packaged subfolder installation.
 
 The next implementation target after 2.0.2 verification is **Content list and

@@ -1,75 +1,135 @@
 <?php
-/** @var string $content @var array $nav @var string $currentPath @var string $basePath
+/** @var string $content @var array $nav @var string $currentPath @var string $basePath @var string $siteBasePath
   * @var \Core\Auth\AdminUser|null $user @var \Core\Security\Csrf $csrf
-  * @var string $pageTitle @var string $siteName @var array|null $flash */
+  * @var string $pageTitle @var array $pageMeta @var string $siteName @var string $coreVersion @var string|null $brandLogoUrl @var string|null $faviconUrl
+  * @var list<array{name:string,version:string}> $industryVersions @var int $noticeCount @var array|null $flash */
+$navGroups = [];
+$activeRoute = null;
+$activeLength = -1;
+$activeGroup = 'Administration';
+$noticeCount = (int) ($noticeCount ?? 0);
+$assetVersion = rawurlencode(defined('WC_VERSION') ? WC_VERSION : 'development');
+$username = trim((string) ($user?->username ?? 'Administrator'));
+$userInitial = mb_substr($username !== '' ? $username : 'A', 0, 1);
+foreach ($nav as $item) {
+    $key = (string) $item['group_key'];
+    $navGroups[$key] ??= ['label' => (string) $item['group'], 'items' => []];
+    $navGroups[$key]['items'][] = $item;
+    $route = rtrim((string) $item['route'], '/');
+    $matches = $route === '/admin'
+        ? ($currentPath === '/admin' || $currentPath === '/admin/')
+        : ($currentPath === $route || str_starts_with($currentPath, $route . '/'));
+    if ($matches && strlen($route) > $activeLength) {
+        $activeRoute = (string) $item['route'];
+        $activeGroup = (string) $item['group'];
+        $activeLength = strlen($route);
+    }
+}
 ?>
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
 <title><?= e($pageTitle !== '' ? $pageTitle . ' — ' : '') ?><?= e($siteName) ?> Admin</title>
-<style>
-:root{--bg:#f1f5f9;--side:#0f172a;--sidetext:#cbd5e1;--card:#fff;--text:#0f172a;--muted:#64748b;--accent:#0369a1;--border:#e2e8f0;--ok:#15803d;--bad:#b91c1c}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}
-aside{width:14rem;background:var(--side);color:var(--sidetext);padding:1rem;flex-shrink:0}
-aside .brand{font-weight:700;color:#fff;margin-bottom:1.5rem;display:block;text-decoration:none}
-aside a.nav{display:block;color:var(--sidetext);text-decoration:none;padding:.5rem .75rem;border-radius:.4rem;font-size:.9rem}
-aside a.nav:hover{background:#1e293b}
-aside a.nav.active{background:var(--accent);color:#fff}
-main{flex:1;padding:1.5rem;min-width:0}
-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem}
-h1{font-size:1.25rem;margin:0}
-.card{background:var(--card);border:1px solid var(--border);border-radius:.6rem;padding:1.25rem;margin-bottom:1rem}
-table{width:100%;border-collapse:collapse;font-size:.9rem}
-th,td{text-align:left;padding:.55rem .6rem;border-bottom:1px solid var(--border)}
-th{color:var(--muted);font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.03em}
-label{display:block;font-size:.85rem;color:var(--muted);margin:.75rem 0 .25rem}
-input,select,textarea{padding:.5rem .65rem;border:1px solid var(--border);border-radius:.4rem;font:inherit;width:100%;max-width:34rem}
-textarea{min-height:14rem}
-.btn{display:inline-block;background:var(--accent);color:#fff;border:0;border-radius:.4rem;padding:.5rem 1rem;font:inherit;font-size:.88rem;cursor:pointer;text-decoration:none}
-.btn:hover{filter:brightness(1.08)}
-.btn.secondary{background:#475569}
-.btn.danger{background:var(--bad)}
-.btn.small{padding:.3rem .6rem;font-size:.8rem}
-.flash-ok{background:#dcfce7;border:1px solid #86efac;color:var(--ok);padding:.6rem .9rem;border-radius:.5rem;margin-bottom:1rem}
-.flash-error{background:#fee2e2;border:1px solid #fca5a5;color:var(--bad);padding:.6rem .9rem;border-radius:.5rem;margin-bottom:1rem}
-.badge{display:inline-block;padding:.15rem .5rem;border-radius:999px;font-size:.75rem;background:#e2e8f0}
-.badge.ok{background:#dcfce7;color:var(--ok)} .badge.bad{background:#fee2e2;color:var(--bad)} .badge.warn{background:#fef9c3;color:#854d0e}
-.muted{color:var(--muted);font-size:.85rem}
-.err{color:var(--bad);font-size:.82rem}
-@media(max-width:800px){body{flex-direction:column}aside{width:auto}main{padding:1rem}}
-</style>
+<?php if (!empty($faviconUrl)): ?><link rel="icon" href="<?= e_attr($faviconUrl) ?>"><?php endif; ?>
+<link rel="stylesheet" href="<?= e_attr($basePath) ?>/_a/core/css/admin.css&amp;v=<?= e_attr($assetVersion) ?>">
+<script>try{const p=JSON.parse(localStorage.getItem('wc-admin-ui-v2')||'{}');if(p.sidebarCollapsed)document.documentElement.classList.add('admin-sidebar-collapsed');if(p.compact)document.documentElement.classList.add('admin-compact')}catch(e){}</script>
 </head>
 <body>
-<aside>
-<a class="brand" href="<?= e_attr($basePath) ?>/admin"><?= e($siteName) ?></a>
-<nav aria-label="Admin">
-<?php foreach ($nav as $item): ?>
-<?php $active = $item['route'] === '/admin'
-    ? ($currentPath === '/admin' || $currentPath === '/admin/')
-    : str_starts_with($currentPath, $item['route']); ?>
-<a class="nav <?= $active ? 'active' : '' ?>"
-   href="<?= e_attr($basePath . $item['route']) ?>"><?= e($item['label']) ?></a>
+<a class="skip-link" href="#admin-content">Skip to main content</a>
+<div class="admin-shell" data-admin-shell>
+<aside class="admin-sidebar" id="admin-sidebar" aria-label="Administration sidebar">
+<div class="sidebar-brand-row">
+<a class="brand" href="<?= e_attr($basePath) ?>/admin" aria-label="<?= e_attr($siteName) ?> Website Administration">
+<?php if (!empty($brandLogoUrl)): ?>
+<span class="brand-logo-frame"><img class="brand-logo" src="<?= e_attr($brandLogoUrl) ?>" alt="" aria-hidden="true"></span>
+<?php else: ?>
+<span class="brand-mark" aria-hidden="true">W</span>
+<?php endif; ?>
+<span class="brand-meta">Website Administration</span>
+</a>
+<button class="sidebar-close" type="button" aria-label="Close administration menu" data-admin-nav-close>×</button>
+</div>
+<nav class="admin-nav" aria-label="Admin">
+<?php foreach ($navGroups as $groupKey => $group): ?>
+<?php $groupActive = array_filter($group['items'], fn (array $item): bool => $item['route'] === $activeRoute) !== []; ?>
+<details class="nav-group" data-nav-group="<?= e_attr($groupKey) ?>"<?= $groupActive ? ' data-active="true"' : '' ?> open>
+<summary><span><?= e($group['label']) ?></span><span class="nav-group-count"><?= count($group['items']) ?></span><span class="chevron" aria-hidden="true"></span></summary>
+<?php foreach ($group['items'] as $item): ?>
+<?php $active = $item['route'] === $activeRoute; ?>
+<a class="nav <?= $active ? 'active' : '' ?>"<?= $active ? ' aria-current="page"' : '' ?>
+   href="<?= e_attr($basePath . $item['route']) ?>" title="<?= e_attr($item['label']) ?>"><span class="nav-icon"><?= \Core\Admin\AdminIcon::svg((string) ($item['icon'] ?? 'modules')) ?></span><span class="nav-label"><?= e($item['label']) ?></span></a>
+<?php endforeach; ?>
+</details>
 <?php endforeach; ?>
 </nav>
+<button class="sidebar-collapse" type="button" data-sidebar-collapse aria-pressed="false"><span class="collapse-icon" aria-hidden="true">‹</span><span class="collapse-label">Collapse sidebar</span></button>
+<div class="system-meta" aria-label="Installed versions">
+<div class="system-meta-title">Installed versions</div>
+<div class="version-row"><strong>Website Core</strong><span><?= e($coreVersion) ?></span></div>
+<?php foreach ($industryVersions as $industry): ?>
+<div class="version-row"><strong><?= e($industry['name']) ?></strong><span><?= e($industry['version']) ?></span></div>
+<?php endforeach; ?>
+</div>
 </aside>
-<main>
-<header>
+<button class="sidebar-overlay" type="button" aria-label="Close administration menu" data-admin-nav-close></button>
+
+<div class="admin-main">
+<header class="admin-topbar">
+<button class="mobile-menu" type="button" aria-controls="admin-sidebar" aria-expanded="false" aria-label="Open administration menu" data-admin-nav-open>☰</button>
+<div class="page-heading">
+<p class="page-context"><?= e($activeGroup) ?></p>
 <h1><?= e($pageTitle) ?></h1>
-<div>
-<span class="muted"><?= e($user?->username ?? '') ?></span>
-<a class="btn secondary small" href="<?= e_attr($basePath) ?>/admin/profile">Profile</a>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/logout" style="display:inline">
-<?= $csrf->field() ?><button class="btn secondary small" type="submit">Sign out</button>
+</div>
+<div class="header-actions">
+<form method="get" action="<?= e_attr($siteBasePath) ?>/index.php" class="header-search">
+<input type="hidden" name="p" value="/admin/search">
+<input type="search" name="q" placeholder="Search admin…  Ctrl K" aria-label="Search admin">
+</form>
+<a class="btn secondary small notification-link" href="<?= e_attr($basePath) ?>/admin/notices">
+<span class="notification-label">Notifications</span><?php if ($noticeCount): ?><span class="notification-count" aria-label="<?= $noticeCount ?> unread notifications"><?= $noticeCount ?></span><?php endif; ?>
+</a>
+<a class="btn small" href="<?= e_attr(rtrim($siteBasePath, '/') . '/') ?>" target="_blank" rel="noopener"><span class="open-site-label">Open site</span><span aria-hidden="true">↗</span></a>
+<details class="account-menu">
+<summary aria-label="Administrator account menu"><span class="account-avatar" aria-hidden="true"><?= e($userInitial) ?></span><span class="account-name"><?= e($username) ?></span></summary>
+<div class="account-popover">
+<a href="<?= e_attr($basePath) ?>/admin/profile">Profile and security</a>
+<div class="account-preferences" aria-label="Workspace preferences">
+<span>Workspace</span>
+<button type="button" data-ui-compact aria-pressed="false"><span>Compact spacing</span><span class="mini-switch" aria-hidden="true"></span></button>
+</div>
+<form method="post" action="<?= e_attr($basePath) ?>/admin/logout">
+<?= $csrf->field() ?><button type="submit">Sign out</button>
 </form>
 </div>
+</details>
+</div>
 </header>
+<main class="admin-content" id="admin-content" tabindex="-1">
+<section class="page-overview" aria-label="Page overview">
+<span class="page-overview-icon"><?= \Core\Admin\AdminIcon::svg((string) ($pageMeta['icon'] ?? 'settings')) ?></span>
+<div><p class="section-kicker"><?= e($activeGroup) ?></p><p><?= e((string) ($pageMeta['description'] ?? 'Manage this part of your website.')) ?></p></div>
+</section>
 <?php if ($flash): ?>
-<div class="flash-<?= e_attr($flash['type'] === 'ok' ? 'ok' : 'error') ?>"><?= e($flash['message']) ?></div>
+<?php $flashOk = $flash['type'] === 'ok'; ?>
+<div class="flash-<?= $flashOk ? 'ok' : 'error' ?>" role="<?= $flashOk ? 'status' : 'alert' ?>">
+<?= e($flash['message']) ?><button type="button" class="alert-dismiss" data-dismiss-alert aria-label="Dismiss message">×</button>
+</div>
 <?php endif; ?>
 <?= $content ?>
 </main>
+</div>
+</div>
+<dialog class="confirm-dialog" data-confirm-dialog aria-labelledby="confirm-dialog-title">
+<form method="dialog">
+<div class="confirm-dialog-icon" aria-hidden="true">!</div>
+<h2 id="confirm-dialog-title">Confirm this action</h2>
+<p data-confirm-message>Are you sure you want to continue?</p>
+<div class="button-row"><button class="btn secondary" value="cancel">Cancel</button><button class="btn danger" value="confirm" data-confirm-accept>Continue</button></div>
+</form>
+</dialog>
+<script src="<?= e_attr($basePath) ?>/_a/core/js/admin.js&amp;v=<?= e_attr($assetVersion) ?>" defer></script>
 </body>
 </html>

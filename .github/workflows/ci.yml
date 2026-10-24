@@ -31,7 +31,8 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: vendor
-          key: composer-${{ matrix.php }}-${{ hashFiles('composer.json') }}
+          key: composer-${{ matrix.php }}-${{ hashFiles('composer.json', 'composer.lock') }}
+      - run: php tools/release-gate.php
       - run: composer install --no-interaction --prefer-dist
       - run: php tools/lint.php
       - run: vendor/bin/phpunit --testsuite unit
@@ -50,11 +51,10 @@ jobs:
         image: ${{ matrix.db }}
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: '1'
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
           MYSQL_DATABASE: wc_test
+          MARIADB_DATABASE: wc_test
         ports: ['3306:3306']
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1"
-          --health-interval=5s --health-timeout=5s --health-retries=20
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -65,14 +65,261 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: vendor
-          key: composer-${{ matrix.php }}-${{ hashFiles('composer.json') }}
+          key: composer-${{ matrix.php }}-${{ hashFiles('composer.json', 'composer.lock') }}
+      - run: php tools/release-gate.php
       - run: composer install --no-interaction --prefer-dist
+      - name: Wait for database (PDO poll)
+        run: |
+          php -r '
+          $deadline = time() + 60;
+          do {
+              try {
+                  new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_test", "root", "");
+                  echo "db ready\n"; exit(0);
+              } catch (Throwable $e) { usleep(500000); }
+          } while (time() < $deadline);
+          fwrite(STDERR, "db never became ready\n"); exit(1);'
       - name: Native schema + acceptance tests (MySQL/MariaDB)
         env:
           WC_TEST_MYSQL_DSN: 'mysql:host=127.0.0.1;port=3306;dbname=wc_test'
           WC_TEST_MYSQL_USER: root
           WC_TEST_MYSQL_PASS: ''
         run: vendor/bin/phpunit --testsuite native
+      - name: Installer acceptance through SSL proxy contract (real MySQL)
+        run: |
+          set -ex
+          trap 'echo "--- php -S log ---"; cat /tmp/php-install.log || true' EXIT
+          php -r 'new PDO("mysql:host=127.0.0.1;port=3306","root","")->exec("CREATE DATABASE IF NOT EXISTS wc_install");'
+          cp -r site /tmp/wcsite
+          cp -r vendor /tmp/wcsite/vendor
+          php -S 127.0.0.1:8099 -t /tmp/wcsite >/tmp/php-install.log 2>&1 &
+          # Wait for the dev server. The cookie jar must be used from the very
+          # first request — the claim mode binds setup to the first session
+          # that loads the root installer, and a different session gets a 409.
+          for i in $(seq 1 30); do
+            curl -s -H 'X-Forwarded-Proto: https' -b /tmp/wcjar -c /tmp/wcjar -o /tmp/install-get.html http://127.0.0.1:8099/ && break
+            sleep 1
+          done
+          grep -q "Install" /tmp/install-get.html || { echo "installer page did not render"; exit 1; }
+          code=$(curl -s -b /tmp/wcjar -c /tmp/wcjar -o /tmp/install-resp.html -w '%{http_code}' \
+            -H 'X-Forwarded-Proto: https' \
+            -X POST http://127.0.0.1:8099/ \
+            --data-urlencode "site_name=Install Accept" \
+            --data-urlencode "base_url=https://127.0.0.1:8099" \
+            --data-urlencode "timezone=UTC" \
+            --data-urlencode "db_host=127.0.0.1" \
+            --data-urlencode "db_port=3306" \
+            --data-urlencode "db_name=wc_install" \
+            --data-urlencode "db_user=root" \
+            --data-urlencode "db_pass=" \
+            --data-urlencode "db_prefix=wc_" \
+            --data-urlencode "owner_username=ci-owner" \
+            --data-urlencode "owner_email=owner@example.test" \
+            --data-urlencode "owner_password=ci-install-pass-1" \
+            --data-urlencode "owner_password2=ci-install-pass-1" \
+            --data-urlencode "storage_path=/tmp/wcsite/storage")
+          # Success renders a 200 "Installation complete" page; errors re-render the form.
+          if [ "$code" != "200" ] || ! grep -q "Installation complete" /tmp/install-resp.html; then
+            echo "install POST failed (HTTP $code)"; grep -o 'err[^<]*<[^>]*>[^<]*' /tmp/install-resp.html | head; exit 1
+          fi
+          test -f /tmp/wcsite/config/installed.lock
+          test -f /tmp/wcsite/config/config.php
+          # Generated config must ship fail-closed on unsigned update/package
+          # manifests (production posture; dev opts in via config.example).
+          grep -q "'allow_unsigned' => false" /tmp/wcsite/config/config.php
+          # No public installer surface is shipped; the verified lock switches
+          # the same front controller from setup to the installed website.
+          test ! -e /tmp/wcsite/install.php
+          test ! -d /tmp/wcsite/install
+          after=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/install.php)
+          [ "$after" = "404" ] || { echo "installer still reachable: $after"; exit 1; }
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/index.php)" = "200"
+          # License-free install must never render the license warning
+          # (regression: it used to show on every page — isValid() is
+          # false when no license row exists).
+          curl -s http://127.0.0.1:8099/index.php | grep -q "License Warning" && { echo "license warning leaked into license-free install"; exit 1; } || true
+          # cron.php must boot services + gate on the token — a boot fatal
+          # would return 200, so 403 proves the whole path (regression: it
+          # previously crashed reaching for the container before boot).
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/cron.php)" = "403"
+          test "$(curl -s -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8099/cron.php?token=wrong')" = "403"
+          kill %1 2>/dev/null || true
+          echo "installer acceptance OK"
+
+      - name: Licensed bundle install acceptance through SSL proxy contract (real MySQL + mock license API)
+        run: |
+          set -ex
+          trap 'echo "--- mock requests ---"; cat /tmp/license-api.log 2>/dev/null || true; echo "--- php -S log ---"; cat /tmp/php-lic.log 2>/dev/null || true' EXIT
+          php -r 'new PDO("mysql:host=127.0.0.1;port=3306","root","")->exec("CREATE DATABASE IF NOT EXISTS wc_install_lic");'
+
+          # Mock licensing API — mirrors Cajun_Web site/api/handlers/license.php
+          # contract (GOOD-KEY-* authorized for e2e.example.com only).
+          E2E_LOG=/tmp/license-api.log php -S 127.0.0.1:8098 -t tests/fixtures/license-api >/tmp/mock-srv.log 2>&1 &
+          MOCK_PID=$!
+
+          # Stage a customer bundle: core + industry module with embedded key.
+          cp -r site /tmp/wcsite2
+          cp -r vendor /tmp/wcsite2/vendor
+          mkdir -p /tmp/wcsite2/modules/industries
+          cp -r examples/industry-restaurant /tmp/wcsite2/modules/industries/industry-restaurant
+          php -r '$f="/tmp/wcsite2/modules/industries/industry-restaurant/addon.json";$m=json_decode(file_get_contents($f),true);$m["license_key"]="GOOD-KEY-1";file_put_contents($f,json_encode($m,JSON_PRETTY_PRINT));'
+
+          WC_LICENSE_API_URL=http://127.0.0.1:8098/api php -S 127.0.0.1:8100 -t /tmp/wcsite2 >/tmp/php-lic.log 2>&1 &
+          SITE_PID=$!
+          for i in $(seq 1 30); do
+            curl -s -H 'X-Forwarded-Proto: https' -b /tmp/wcjar2 -c /tmp/wcjar2 -o /tmp/lic-get.html http://127.0.0.1:8100/ && break
+            sleep 1
+          done
+          # Checks page must report the detected bundle.
+          grep -q "industry-restaurant" /tmp/lic-get.html || { echo "bundle detection not reported"; exit 1; }
+          code=$(curl -s -b /tmp/wcjar2 -c /tmp/wcjar2 -o /tmp/lic-resp.html -w '%{http_code}' \
+            -H 'X-Forwarded-Proto: https' \
+            -X POST http://127.0.0.1:8100/ \
+            --data-urlencode "site_name=Licensed Accept" \
+            --data-urlencode "base_url=https://e2e.example.com" \
+            --data-urlencode "timezone=UTC" \
+            --data-urlencode "db_host=127.0.0.1" \
+            --data-urlencode "db_port=3306" \
+            --data-urlencode "db_name=wc_install_lic" \
+            --data-urlencode "db_user=root" \
+            --data-urlencode "db_pass=" \
+            --data-urlencode "db_prefix=wc_" \
+            --data-urlencode "owner_username=ci-lic" \
+            --data-urlencode "owner_email=lic@example.test" \
+            --data-urlencode "owner_password=ci-lic-pass-1" \
+            --data-urlencode "owner_password2=ci-lic-pass-1" \
+            --data-urlencode "storage_path=/tmp/wcsite2/storage")
+          if [ "$code" != "200" ] || ! grep -q "Installation complete" /tmp/lic-resp.html; then
+            echo "licensed install POST failed (HTTP $code)"; head -60 /tmp/lic-resp.html; exit 1
+          fi
+          test ! -e /tmp/wcsite2/install.php
+          test ! -d /tmp/wcsite2/install
+
+          # License stored valid; module registered + enabled + migrated.
+          php -r '$p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");
+            $lic=$p->query("SELECT license_key,license_domain,license_valid FROM wc_license")->fetch();
+            if(!$lic||$lic["license_key"]!=="GOOD-KEY-1"||$lic["license_domain"]!=="e2e.example.com"||(int)$lic["license_valid"]!==1){fwrite(STDERR,"license row wrong\n");exit(1);}
+            $pkg=$p->query("SELECT state FROM wc_packages WHERE package_id=\"wcref/restaurant\"")->fetch();
+            if(!$pkg||$pkg["state"]!=="enabled"){fwrite(STDERR,"package not enabled\n");exit(1);}
+            if($p->query("SHOW TABLES LIKE \"wc_restaurant_items\"")->rowCount()!==1){fwrite(STDERR,"module tables missing\n");exit(1);}
+            echo "license row + package state + module tables OK\n";'
+
+          # Mock saw a well-formed validation request at install time.
+          grep -q '"license_key":"GOOD-KEY-1"' /tmp/license-api.log
+          grep -q '"domain":"e2e.example.com"' /tmp/license-api.log
+
+          # Valid license → public site serves 200.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/index.php)" = "200"
+
+          TOKEN=$(php -r '$p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");
+            echo json_decode($p->query("SELECT value FROM wc_settings WHERE `key`=\"system.cron_token\"")->fetchColumn());')
+          test -n "$TOKEN"
+
+          # Remote deactivation simulated as a site moved to an
+          # unregistered domain — the canonical app.url changes, so the
+          # next validation targets the new host and self-denies.
+          php -r '$f="/tmp/wcsite2/config/config.php";
+            file_put_contents($f,str_replace("e2e.example.com","unregistered.example.com",file_get_contents($f)));
+            $p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");
+            $p->exec("UPDATE wc_license SET license_validated_at=\"2000-01-01 00:00:00\"");'
+          curl -s http://127.0.0.1:8100/index.php >/dev/null   # request enqueues the validation job
+          curl -s "http://127.0.0.1:8100/cron.php?token=$TOKEN" | grep -q "processed="
+          # The install reported its actual configured domain — not the
+          # stale one stored at install time.
+          grep -q '"domain":"unregistered.example.com"' /tmp/license-api.log
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/index.php)" = "503"
+          adm=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8100/index.php?p=/admin/login")
+          [ "$adm" = "200" ] || { echo "admin unreachable while deactivated: $adm"; exit 1; }
+          # Admin login page renders the license warning for the owner.
+          curl -s "http://127.0.0.1:8100/index.php?p=/admin/login" | grep -q "License Warning" || { echo "license warning missing on admin while deactivated"; exit 1; }
+
+          # Moving back (domain re-registered) restores the site on next
+          # validation — success clears license_deactivated.
+          php -r '$f="/tmp/wcsite2/config/config.php";
+            file_put_contents($f,str_replace("unregistered.example.com","e2e.example.com",file_get_contents($f)));
+            $p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");
+            $p->exec("UPDATE wc_license SET license_validated_at=\"2000-01-01 00:00:00\"");'
+          curl -s "http://127.0.0.1:8100/cron.php?token=$TOKEN" >/dev/null
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/index.php)" = "200"
+
+          kill $MOCK_PID $SITE_PID 2>/dev/null || true
+          echo "licensed bundle acceptance OK"
+
+      - name: Keyless TEST-BUNDLE install acceptance through SSL proxy contract (real MySQL)
+        run: |
+          set -ex
+          trap 'echo "--- php -S log ---"; cat /tmp/php-keyless.log 2>/dev/null || true' EXIT
+          php -r 'new PDO("mysql:host=127.0.0.1;port=3306","root","")->exec("CREATE DATABASE IF NOT EXISTS wc_install_keyless");'
+
+          # Exercise the same packaged catering ZIP that testers download,
+          # including its clean production-only vendor tree.
+          php tools/build-packages.php test-bundle catering /tmp/keyless-dist
+          mkdir -p /tmp/wcsite3
+          unzip -q /tmp/keyless-dist/Website-Core-catering-*-TEST-BUNDLE.zip -d /tmp/wcsite3
+          php -S 127.0.0.1:8101 -t /tmp/wcsite3 >/tmp/php-keyless.log 2>&1 &
+          SITE_PID=$!
+          for i in $(seq 1 30); do
+            curl -s -b /tmp/wcjar3 -c /tmp/wcjar3 -o /tmp/keyless-insecure.html http://127.0.0.1:8101/ && break
+            sleep 1
+          done
+          grep -q "SSL / HTTPS" /tmp/keyless-insecure.html
+          grep -q "1 required check(s) failed" /tmp/keyless-insecure.html
+          for i in $(seq 1 30); do
+            curl -s -H 'X-Forwarded-Proto: https' -b /tmp/wcjar3 -c /tmp/wcjar3 -o /tmp/keyless-get.html http://127.0.0.1:8101/ && break
+            sleep 1
+          done
+          grep -q "industry-catering" /tmp/keyless-get.html
+          grep -q "TEST BUNDLE; no license required" /tmp/keyless-get.html
+
+          db_test=$(curl -s -H 'X-Forwarded-Proto: https' -b /tmp/wcjar3 -c /tmp/wcjar3 \
+            -X POST http://127.0.0.1:8101/ \
+            --data-urlencode "action=test_database" \
+            --data-urlencode "db_host=127.0.0.1" \
+            --data-urlencode "db_port=3306" \
+            --data-urlencode "db_name=wc_install_keyless" \
+            --data-urlencode "db_user=root" \
+            --data-urlencode "db_pass=" \
+            --data-urlencode "db_prefix=wc_")
+          echo "$db_test" | grep -q '"ok":true' || { echo "database test failed: $db_test"; exit 1; }
+
+          code=$(curl -s -b /tmp/wcjar3 -c /tmp/wcjar3 -o /tmp/keyless-resp.html -w '%{http_code}' \
+            -H 'X-Forwarded-Proto: https' \
+            -X POST http://127.0.0.1:8101/ \
+            --data-urlencode "site_name=Keyless Test" \
+            --data-urlencode "base_url=https://127.0.0.1:8101" \
+            --data-urlencode "timezone=UTC" \
+            --data-urlencode "db_host=127.0.0.1" \
+            --data-urlencode "db_port=3306" \
+            --data-urlencode "db_name=wc_install_keyless" \
+            --data-urlencode "db_user=root" \
+            --data-urlencode "db_pass=" \
+            --data-urlencode "db_prefix=wc_" \
+            --data-urlencode "owner_username=ci-keyless" \
+            --data-urlencode "owner_email=keyless@example.test" \
+            --data-urlencode "owner_password=ci-keyless-pass-1" \
+            --data-urlencode "owner_password2=ci-keyless-pass-1" \
+            --data-urlencode "storage_path=/tmp/wcsite3/storage")
+          if [ "$code" != "200" ] || ! grep -q "Installation complete" /tmp/keyless-resp.html; then
+            echo "keyless install POST failed (HTTP $code)"
+            sed -n '1,240p' /tmp/keyless-resp.html
+            exit 1
+          fi
+          grep -q "Testing mode" /tmp/keyless-resp.html
+          test ! -e /tmp/wcsite3/install.php
+          test ! -d /tmp/wcsite3/install
+
+          php -r '$p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_keyless","root","");
+            if((int)$p->query("SELECT COUNT(*) FROM wc_license")->fetchColumn()!==0){fwrite(STDERR,"unexpected license row\n");exit(1);}
+            $pkg=$p->query("SELECT state FROM wc_packages WHERE package_id=\"cajunwebpro/catering\"")->fetch();
+            if(!$pkg||$pkg["state"]!=="enabled"){fwrite(STDERR,"package not enabled\n");exit(1);}
+            if($p->query("SHOW TABLES LIKE \"wc_catering_inquiries\"")->rowCount()!==1){fwrite(STDERR,"module tables missing\n");exit(1);}
+            echo "keyless package state + module tables OK\n";'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8101/index.php)" = "200"
+          curl -s http://127.0.0.1:8101/index.php | grep -q "Catering" || { echo "catering homepage did not render"; exit 1; }
+          curl -s http://127.0.0.1:8101/index.php | grep -q "License Warning" && { echo "license warning leaked into keyless bundle"; exit 1; } || true
+
+          kill $SITE_PID 2>/dev/null || true
+          echo "keyless TEST-BUNDLE acceptance OK"
 
   core-only-boot:
     name: Core-only boot check
@@ -87,10 +334,200 @@ jobs:
       - name: Boot test — no packages present
         run: |
           php -l site/index.php
-          php -l site/install.php
+          php -l site/core/Install/Installer.php
+          php -l site/core/Install/views/installer.php
           php -l site/cron.php
           php tools/lint.php
       - name: Assert industry/addon dirs are empty by default
         run: |
           test -z "$(find site/modules/industries -mindepth 1 -maxdepth 1 -type d)"
           test -z "$(find site/modules/addons -mindepth 1 -maxdepth 1 -type d)"
+
+  artifacts:
+    name: Release artifacts build + contract check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, openssl, pdo_mysql, pdo_sqlite, fileinfo, zip
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - name: Build all release artifacts
+        run: php tools/build-packages.php /tmp/dist
+      - name: Build and inspect keyless testing bundle
+        run: |
+          php tools/build-packages.php test-bundle restaurant /tmp/test-dist
+          php -r '
+          $path=glob("/tmp/test-dist/*TEST-BUNDLE.zip")[0]??null;
+          if($path===null){fwrite(STDERR,"TEST-BUNDLE missing\n");exit(1);}
+          $z=new ZipArchive();
+          if($z->open($path)!==true){fwrite(STDERR,"TEST-BUNDLE unreadable\n");exit(1);}
+          $manifest=$z->getFromName("modules/industries/industry-restaurant/addon.json");
+          $m=json_decode((string)$manifest,true);
+          if(!is_array($m)||isset($m["license_key"])){fwrite(STDERR,"TEST-BUNDLE contains license_key\n");exit(1);}
+          foreach(["install.php","install/index.php","core/Install/Installer.php","core/Install/views/installer.php","vendor/autoload.php"] as $need){
+            if($z->locateName($need)===false){fwrite(STDERR,"TEST-BUNDLE missing $need\n");exit(1);}
+          }
+          echo "keyless TEST-BUNDLE contract OK\n";'
+      - name: Build and inspect catering TEST-BUNDLE
+        run: |
+          php tools/build-packages.php test-bundle catering /tmp/catering-test-dist
+          php -r '
+          $path=glob("/tmp/catering-test-dist/*TEST-BUNDLE.zip")[0]??null;
+          if($path===null){fwrite(STDERR,"catering TEST-BUNDLE missing\n");exit(1);}
+          $z=new ZipArchive();
+          if($z->open($path)!==true){fwrite(STDERR,"catering TEST-BUNDLE unreadable\n");exit(1);}
+          $manifest=$z->getFromName("modules/industries/industry-catering/addon.json");
+          $m=json_decode((string)$manifest,true);
+          if(!is_array($m)||($m["id"]??null)!=="cajunwebpro/catering"||isset($m["license_key"])){
+            fwrite(STDERR,"catering TEST-BUNDLE manifest invalid\n");exit(1);
+          }
+          foreach([
+            "install.php",
+            "install/index.php",
+            "core/Install/Installer.php",
+            "core/Install/views/installer.php",
+            "includes/install-cleanup-gate.php",
+            "includes/installer-cleanup.php",
+            "includes/runtime-paths.php",
+            "assets/images/cajunwebpro-logo.png",
+            "vendor/autoload.php",
+            "storage/.htaccess",
+            "storage/tmp/.gitkeep",
+            "upload/.htaccess",
+            "modules/industries/industry-catering/src/Provider.php",
+            "modules/industries/industry-catering/assets/css/catering.css",
+            "modules/industries/industry-catering/assets/images/hero.webp"
+          ] as $need){
+            if($z->locateName($need)===false){fwrite(STDERR,"catering TEST-BUNDLE missing $need\n");exit(1);}
+          }
+          $logo=$z->getFromName("assets/images/cajunwebpro-logo.png");
+          if(!is_string($logo)||strlen($logo)<26||ord($logo[25])!==6){
+            fwrite(STDERR,"CajunWebPro logo is not a transparent-capable RGBA PNG\n");exit(1);
+          }
+          $installerView=$z->getFromName("core/Install/views/installer.php");
+          if(!is_string($installerView)||!str_contains($installerView,"href=\"https://cajunwebpro.com\"")){
+            fwrite(STDERR,"installer logo is not linked to CajunWebPro\n");exit(1);
+          }
+          if(str_contains($installerView,"ftp_password")||!str_contains($installerView,"overview-step-1")||!str_contains($installerView,"is-ready")){
+            fwrite(STDERR,"credential-free ownership repair or green readiness steps missing\n");exit(1);
+          }
+          $runtimePaths=$z->getFromName("includes/runtime-paths.php");
+          if(!is_string($runtimePaths)||!str_contains($runtimePaths,".website-core-")||str_contains($runtimePaths,"0777")){
+            fwrite(STDERR,"private runtime ownership repair contract invalid\n");exit(1);
+          }
+          $cleanup=$z->getFromName("includes/installer-cleanup.php");
+          if(!is_string($cleanup)
+            || !str_contains($cleanup,"wc_completed_installation")
+            || !str_contains($cleanup,"wc_remove_installer_artifacts")
+            || !str_contains($cleanup,"wc_sweep_retired_installer_artifacts")
+            || !str_contains($cleanup,"Recheck cleanup")
+            || !str_contains($cleanup,"Visit website")
+            || !str_contains($cleanup,"Open admin")){
+            fwrite(STDERR,"installer cleanup/recheck contract invalid\n");exit(1);
+          }
+          echo "catering TEST-BUNDLE contract OK: ".basename($path)."\n";'
+      - name: Upload catering TEST-BUNDLE
+        uses: actions/upload-artifact@v4
+        with:
+          name: Website-Core-Catering-TEST-BUNDLE
+          path: /tmp/catering-test-dist/*TEST-BUNDLE.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - name: Inspect catering shared-host repair upload
+        run: |
+          php -r '
+          $path=glob("/tmp/dist/Website-Core-catering-*-REPAIR-UPLOAD.zip")[0]??null;
+          if($path===null){fwrite(STDERR,"catering REPAIR-UPLOAD missing\n");exit(1);}
+          $z=new ZipArchive();
+          if($z->open($path)!==true){fwrite(STDERR,"catering REPAIR-UPLOAD unreadable\n");exit(1);}
+          foreach([
+            "index.php",
+            "includes/bootstrap.php",
+            "includes/runtime-code-cache.php",
+            "includes/runtime-code-loader.php",
+            "includes/server-error-pages.php",
+            "errors/500.html",
+            "core/Application.php",
+            "admin/controllers/SystemToolsController.php",
+            "admin/controllers/UpdatesController.php",
+            "admin/controllers/ModulesController.php",
+            "admin/views/system/updates.php",
+            "admin/views/modules/index.php",
+            "vendor/autoload.php",
+            "modules/industries/industry-catering/addon.json",
+            "modules/industries/industry-catering/migrations/0002_cajun_menu_images.php",
+            "modules/industries/industry-catering/assets/images/menu/chicken-andouille-gumbo.webp"
+          ] as $need){
+            if($z->locateName($need)===false){fwrite(STDERR,"REPAIR-UPLOAD missing $need\n");exit(1);}
+          }
+          foreach(["install.php","install/index.php","config/config.php"] as $forbidden){
+            if($z->locateName($forbidden)!==false){fwrite(STDERR,"REPAIR-UPLOAD contains $forbidden\n");exit(1);}
+          }
+          $manifest=json_decode((string)$z->getFromName("modules/industries/industry-catering/addon.json"),true);
+          if(($manifest["version"]??null)!=="0.1.23"){
+            fwrite(STDERR,"REPAIR-UPLOAD catering version invalid\n");exit(1);
+          }
+          echo "catering REPAIR-UPLOAD contract OK: ".basename($path)."\n";'
+      - name: Upload catering shared-host repair
+        uses: actions/upload-artifact@v4
+        with:
+          name: Website-Core-Catering-2.0.14-REPAIR-UPLOAD
+          path: /tmp/dist/Website-Core-catering-2.0.14-REPAIR-UPLOAD.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - name: Artifact contract assertions
+        run: |
+          php -r '
+          require "tests/bootstrap.php";
+          // COMPLETE-UPLOAD: deployable members at root, prod vendor only.
+          $z = new ZipArchive();
+          $z->open(glob("/tmp/dist/*COMPLETE-UPLOAD.zip")[0]);
+          $need = ["index.php","install.php","install/index.php","includes/bootstrap.php","vendor/autoload.php","themes/base/theme.json","cron.php","core/Install/Installer.php","core/Install/views/installer.php"];
+          $names = [];
+          for ($i=0;$i<$z->numFiles;$i++) $names[] = $z->getNameIndex($i);
+          foreach ($need as $n) {
+              if (!in_array($n,$names,true)) { fwrite(STDERR,"missing $n\n"); exit(1); }
+          }
+          foreach ($names as $n) {
+              if (str_starts_with($n,"config/config.php")||str_contains($n,"/phpunit/")||str_starts_with($n,"tests/")) {
+                  fwrite(STDERR,"forbidden member $n\n"); exit(1);
+              }
+          }
+          $z->close();
+          // UPDATE.zip must pass our own CoreUpdater inspection + manifest hashes.
+          $u = new Core\Update\CoreUpdater(WC_ROOT, sys_get_temp_dir(), new Core\Modules\ArchiveInspector());
+          [$info,$err] = $u->inspect(glob("/tmp/dist/*-UPDATE.zip")[0]);
+          if ($err !== null) { fwrite(STDERR,"update inspect: $err\n"); exit(1); }
+          // Every reference package zip must pass the archive inspector.
+          foreach (glob("/tmp/dist/Website-Core-Package-*.zip") as $pkg) {
+              $errs = (new Core\Modules\ArchiveInspector())->inspect($pkg);
+              if ($errs !== []) { fwrite(STDERR,basename($pkg).": ".implode(";",$errs)."\n"); exit(1); }
+          }
+          // SBOM: valid CycloneDX, runtime packages only (no phpunit).
+          $sbom = json_decode(file_get_contents("/tmp/dist/SBOM.json"), true);
+          if (($sbom["bomFormat"] ?? "") !== "CycloneDX" || !is_array($sbom["components"] ?? null)) {
+              fwrite(STDERR,"SBOM missing or malformed\n"); exit(1);
+          }
+          $names2 = array_map(fn($c) => $c["name"], $sbom["components"]);
+          foreach (["ezyang/htmlpurifier","phpmailer/phpmailer","paragonie/sodium_compat"] as $dep) {
+              if (!in_array($dep,$names2,true)) { fwrite(STDERR,"SBOM missing $dep\n"); exit(1); }
+          }
+          foreach ($names2 as $n) {
+              if (str_contains($n,"phpunit")) { fwrite(STDERR,"SBOM dev dep leaked: $n\n"); exit(1); }
+          }
+          // FULL-PROJECT must contain docs+tests+sdk+examples, no .git.
+          $z->open(glob("/tmp/dist/*FULL-PROJECT.zip")[0]);
+          $has = ["Website-Core/docs/","Website-Core/tests/","Website-Core/sdk/","Website-Core/examples/"];
+          $found = array_fill_keys($has,false);
+          for ($i=0;$i<$z->numFiles;$i++) {
+              $n = $z->getNameIndex($i);
+              if (str_contains($n,"/.git/")) { fwrite(STDERR,"git member $n\n"); exit(1); }
+              foreach ($has as $h) if (str_starts_with($n,$h)) $found[$h]=true;
+          }
+          foreach ($found as $h=>$ok) if (!$ok) { fwrite(STDERR,"FULL-PROJECT missing $h\n"); exit(1); }
+          echo "artifact contract OK\n";'

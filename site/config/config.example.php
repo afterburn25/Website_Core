@@ -14,7 +14,7 @@ return [
         'timezone'    => 'UTC',
         'locale'      => 'en',
         'debug'       => false,
-        'version'     => '0.1.0-dev',
+        'version'     => '2.0.14',
         'api_version' => 1,                     // extension API major version
     ],
     'database' => [
@@ -54,9 +54,23 @@ return [
         'from_name'   => 'Website Core',
     ],
     'updates' => [
-        // Trust roots for signed update metadata. Empty until an approved
-        // production trust configuration exists — see docs/UPGRADES.md.
-        'trust_roots' => [],
         'channel'     => 'stable',
+        // When true, /admin/updates/apply refuses until the owner creates
+        // <paths.storage>/maintenance.flag — the maintenance-window gate.
+        'require_window' => false,
+    ],
+    // Optional HTTPS WebDAV replication. Keep these credentials in this
+    // protected configuration file; the admin database never stores them.
+    'backups' => ['remote' => [
+        'webdav_url' => '', 'webdav_user' => '', 'webdav_password' => '',
+    ]],
+    'trust' => [
+        // Ed25519 public keys (base64) trusted to sign package/update
+        // manifests. Package PHP never executes before this check.
+        'public_keys'    => [],
+        // Development default; production releases should ship false and
+        // an approved trust root. Signed packages ALWAYS require a
+        // matching key regardless of this flag.
+        'allow_unsigned' => true,
     ],
 ];

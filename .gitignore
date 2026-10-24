@@ -10,6 +10,8 @@ site/install.php.off
 site/storage/backups/*
 site/storage/tmp/*
 site/storage/ratelimit/*
+site/storage/cache/*
+site/storage/package-op.lock
 !site/storage/**/.gitkeep
 site/upload/*
 !site/upload/.gitkeep
@@ -31,3 +33,4 @@ Thumbs.db
 .phpunit.cache/
 coverage/
 tests/fixtures/tmp/
+dist/

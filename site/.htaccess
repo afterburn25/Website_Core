@@ -17,6 +17,13 @@ Options -Indexes
     RewriteRule (^|/)\. - [F,L]
     RewriteRule (^|/)(composer\.(json|lock)|addon\.json|theme\.json|package\.json|README|LICENSE) - [F,L]
 
+    # Website Core private installer residues. This explicit rule lets the
+    # cleanup fallback retire split-owned installer entries in place without
+    # first needing to rewrite a panel-owned access-control file.
+    # Website Core private installer residues (managed rules)
+    RewriteRule ^\.wc-private-installer- - [F,L,NC]
+    RewriteRule ^\.wc-htaccess-original- - [F,L,NC]
+
     # Existing public files/directories pass through (assets/, images/, css).
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
@@ -31,6 +38,10 @@ Options -Indexes
     # (supported, documented in docs/INSTALLATION.md).
     DirectoryIndex index.php
 </IfModule>
+
+<FilesMatch "^\.wc-(?:private-installer|htaccess-original)-">
+    Require all denied
+</FilesMatch>
 
 # Defense in depth for environments where per-dir .htaccess is honored.
 <IfModule mod_php.c>

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * PSR-4 autoloader for core, admin, install, and registered module namespaces.
+ * PSR-4 autoloader for core, admin, and registered module namespaces.
  * Module namespaces are registered at boot by the ModuleRegistry.
  */
 final class CoreAutoload
@@ -29,6 +29,18 @@ final class CoreAutoload
                     $path = $dir . implode(DIRECTORY_SEPARATOR, $segments) . '.php';
                 }
                 if (is_file($path)) {
+                    if (function_exists('wc_runtime_code_mirror')
+                        && defined('WC_CONFIG') && defined('WC_VERSION') && defined('WC_ROOT')) {
+                        $normalized = str_replace('\\', '/', $path);
+                        $root = rtrim(str_replace('\\', '/', WC_ROOT), '/');
+                        // Module classes must retain their original pathname:
+                        // trusted providers commonly use __DIR__ to locate
+                        // their views/assets. Only Core-owned code is mirrored.
+                        if (str_starts_with($normalized, $root . '/core/')
+                            || str_starts_with($normalized, $root . '/admin/')) {
+                            $path = wc_runtime_code_mirror($path, WC_CONFIG, WC_VERSION);
+                        }
+                    }
                     require $path;
                 }
                 return;
@@ -37,8 +49,8 @@ final class CoreAutoload
     }
 }
 
-CoreAutoload::register('Core', __DIR__ . '/../core');
-CoreAutoload::register('Admin', __DIR__ . '/../admin');
-CoreAutoload::register('Install', __DIR__ . '/../install');
+$applicationRoot = defined('WC_ROOT') ? WC_ROOT : dirname(__DIR__);
+CoreAutoload::register('Core', $applicationRoot . '/core');
+CoreAutoload::register('Admin', $applicationRoot . '/admin');
 
 spl_autoload_register([CoreAutoload::class, 'load']);

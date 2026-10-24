@@ -1,0 +1,17 @@
+<?php /** @var string $current @var array|null $staged @var array $journal @var string|null $loadError @var \Core\Security\Csrf $csrf @var string $basePath */ ?>
+<section class="status-strip"><div class="status-chip ok"><strong><?= e($current) ?></strong><span>Installed Core</span></div><div class="status-chip <?= $staged ? 'warn' : 'ok' ?>"><strong><?= $staged ? e($staged['version']) : 'None' ?></strong><span>Staged update</span></div></section>
+<?php if (!empty($loadError)): ?>
+<div class="flash-error" role="alert"><strong>Update workspace needs attention.</strong><br><?= e($loadError) ?></div>
+<?php endif; ?>
+<div class="section-grid wide-main">
+  <section class="card"><div class="card-heading"><div><h2><?= $staged ? 'Review staged update' : 'Stage a Core update' ?></h2><p class="card-subtitle">Updates replace Core files only. Configuration, storage, uploads, modules, and themes remain untouched.</p></div></div>
+  <?php if ($staged === null): ?>
+    <form method="post" action="<?= e_attr($basePath) ?>/admin/updates/stage" enctype="multipart/form-data" data-busy-label="Inspecting update…"><?= $csrf->field() ?><div class="drop-zone"><strong>Choose an official UPDATE package</strong><p class="field-note">The package is inspected and its signature policy checked before it can be applied.</p><input type="file" name="update" accept=".zip,application/zip" required></div><div class="action-bar"><span>Expected filename: <code>Website-Core-*-UPDATE.zip</code></span><button class="btn" type="submit">Upload and inspect</button></div></form>
+  <?php else: ?>
+    <dl class="status-list"><div><dt>Version</dt><dd><?= e($staged['version']) ?></dd></div><div><dt>Package members</dt><dd><?= e((string) $staged['members']) ?></dd></div><div><dt>Signature</dt><dd><span class="badge <?= $staged['signed'] ? 'ok' : 'warn' ?>"><?= $staged['signed'] ? 'Verified' : 'Unsigned policy' ?></span></dd></div></dl>
+    <div class="danger-zone action-bar"><span><strong>Applying changes live files.</strong><br><small>A rollback copy is created first and pending database migrations run afterward.</small></span><form method="post" action="<?= e_attr($basePath) ?>/admin/updates/apply" data-busy-label="Applying update…"><?= $csrf->field() ?><button type="submit" class="btn danger" data-confirm="Apply this Core update now? A rollback copy will be created first.">Apply update now</button></form></div>
+  <?php endif; ?>
+  </section>
+  <aside class="help-panel"><h3>Safe update checklist</h3><ol><li>Create a fresh site backup.</li><li>Apply during a quiet period.</li><li>Review System Health afterward.</li></ol><p>If your policy requires a maintenance window, enable it under Operations first.</p></aside>
+</div>
+<?php if ($journal !== []): ?><section class="card"><div class="card-heading"><div><h2>Update journal</h2><p class="card-subtitle">The latest staging, verification, application, and rollback messages.</p></div></div><pre class="code-panel log-panel"><?= e(implode("\n", $journal)) ?></pre></section><?php endif; ?>

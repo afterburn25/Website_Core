@@ -120,6 +120,26 @@ final class Request
         return $this->basePath . $path;
     }
 
+    /** Rewrite-independent route prefix for hosts that ignore .htaccess. */
+    public function routeBase(): string
+    {
+        return rtrim($this->basePath, '/') . '/index.php?p=';
+    }
+
+    /** Build an application URL that works in root and subfolder installs. */
+    public function routeUrl(string $path = '/', array $query = []): string
+    {
+        [$route, $inlineQuery] = array_pad(explode('?', $path, 2), 2, '');
+        $url = $this->routeBase() . '/' . ltrim($route, '/');
+        if ($inlineQuery !== '') {
+            $url .= '&' . $inlineQuery;
+        }
+        if ($query !== []) {
+            $url .= '&' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+        }
+        return $url;
+    }
+
     private bool $trustedProxy = false;
 
     private function fromTrustedProxy(): bool

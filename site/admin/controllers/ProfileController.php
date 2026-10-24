@@ -21,12 +21,7 @@ final class ProfileController extends Controller
             }
         }
 
-        $db = $this->db();
-        $sessions = $db->fetchAll(
-            'SELECT * FROM `' . $db->table('admin_sessions')
-            . '` WHERE admin_id = ? AND revoked_at IS NULL ORDER BY last_seen DESC',
-            [$user->id]
-        );
+        $sessions = $this->auth()->sessionsFor($user->id);
         $pending = $_SESSION['_wc_mfa_enroll'] ?? null;
 
         return $this->page($r, 'profile/index', [
@@ -110,6 +105,10 @@ final class ProfileController extends Controller
     public function disableMfa(Request $r): Response
     {
         $user = $this->user();
+        if ((bool) $this->settings()->get('security.require_mfa', false)) {
+            $this->flash('error', 'MFA is required by the site security policy and cannot be disabled.');
+            return $this->redirect($r, '/admin/profile');
+        }
         $row = $this->db()->fetch(
             'SELECT password_hash FROM `' . $this->db()->table('admins') . '` WHERE id = ?',
             [$user->id]
@@ -123,6 +122,23 @@ final class ProfileController extends Controller
         ]);
         $this->c->get(\Core\Audit\AuditLog::class)->record('admin.mfa_disabled', $user->id);
         $this->flash('ok', 'Two-factor authentication disabled.');
+        return $this->redirect($r, '/admin/profile');
+    }
+
+    public function revokeSession(Request $r): Response
+    {
+        $user = $this->user();
+        $ok = $this->auth()->revokeSession($user->id, (int) ($r->attributes['id'] ?? 0));
+        $this->flash($ok ? 'ok' : 'error', $ok ? 'Session signed out.' : 'The current or unknown session cannot be revoked here.');
+        return $this->redirect($r, '/admin/profile');
+    }
+
+    public function revokeOtherSessions(Request $r): Response
+    {
+        $user = $this->user();
+        $this->auth()->revokeOtherSessions($user->id);
+        $this->c->get(\Core\Audit\AuditLog::class)->record('auth.other_sessions_revoked', $user->id);
+        $this->flash('ok', 'All other sessions were signed out.');
         return $this->redirect($r, '/admin/profile');
     }
 }

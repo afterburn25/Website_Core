@@ -3,9 +3,9 @@
 ## Overview
 
 A single PHP application — no microservices, no home-grown framework
-beyond a deliberately small kernel. All HTTP enters through `site/index.php`;
-the installer has its own thin entry (`site/install.php`) that is removed or
-permanently blocked after setup.
+beyond a deliberately small kernel. All HTTP, including initial setup, enters
+through `site/index.php`. Before installation it invokes the protected-core
+installer; after the verified marker and config exist it boots the website.
 
 ```
 Request → index.php → bootstrap.php → Application
@@ -46,6 +46,10 @@ Request → index.php → bootstrap.php → Application
 - **Modules** (`Core\Modules\*`) — addon.json manifest validation
   (schema v1), registry discovery + lifecycle states + journal,
   deterministic dependency-ordered boot, quarantine of throwing providers.
+  Module development is authoritative in `afterburn25/Core_Mods`: every
+  module has its own `module/<slug>` branch and `modules/<module-id>/` folder.
+  `examples/` contains synchronized, tested release snapshots for Core bundle
+  construction rather than the live module-development history.
 - **Jobs** (`Core\Jobs\*`) — durable queue with worker leases, bounded
   batches, linear backoff, uncertain-state marking. Runner: `site/cron.php`
   (CLI or token-guarded HTTP) — at-least-once, handlers idempotent.
@@ -54,6 +58,12 @@ Request → index.php → bootstrap.php → Application
   table, never "exactly-once" claims.
 - **Audit** (`Core\Audit\AuditLog`) — durable mutations log with a
   sensitive-key redaction safety net.
+- **Integrations** (`Core\Api\*`) — hashed scoped bearer keys, versioned JSON
+  endpoints, encrypted webhook signing secrets and queued delivery history.
+- **Agency/Marketplace** (`Core\Agency\*`, `Core\Marketplace\*`) — encrypted
+  remote site credentials, authenticated health/version checks and signed
+  catalog ingestion. `ManagedUpdateService` is the only automated path from
+  trusted catalog metadata to the existing update verifier.
 
 ## Decisions (with alternatives)
 
@@ -73,5 +83,9 @@ Request → index.php → bootstrap.php → Application
 
 ## Namespaces
 
-`Core\*` → `site/core/`, `Admin\*` → `site/admin/`, `Install\*` →
-`site/install/`; module PSR-4 prefixes are registered per-manifest.
+`Core\*` → `site/core/`, `Admin\*` → `site/admin/`; the installer is
+`Core\Install\*` under `site/core/Install/`. Module PSR-4 prefixes are
+registered per-manifest.
+
+See `docs/MODULE_REPOSITORY.md` for the source, version, documentation, and
+release synchronization contract between this repository and Core_Mods.

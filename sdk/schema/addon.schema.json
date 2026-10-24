@@ -19,6 +19,11 @@
             "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
         },
         "license": { "type": "string", "minLength": 1 },
+        "license_key": {
+            "type": "string",
+            "minLength": 8,
+            "description": "License key binding this module to a specific site"
+        },
         "requires": {
             "type": "object",
             "properties": {

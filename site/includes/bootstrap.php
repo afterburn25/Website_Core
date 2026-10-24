@@ -22,7 +22,7 @@ define('WC_API_VERSION', 1);
 // Latest core migration bundled with this code. Installed sites compare this
 // marker with the migration journal during boot so a manual shared-hosting
 // file update cannot leave newer PHP running against an older schema.
-define('WC_SCHEMA_VERSION', '2026_10_23_0022');
+define('WC_SCHEMA_VERSION', '2026_10_24_0023');
 
 require_once __DIR__ . '/server-error-pages.php';
 wc_prepare_server_error_page(WC_ROOT);

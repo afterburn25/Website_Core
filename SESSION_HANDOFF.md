@@ -1,5 +1,24 @@
 # Session Handoff
 
+## 2.0.14 subfolder assets and SEO recovery
+
+- The shared administrator shell now anchors Core CSS and JavaScript to the
+  installation subfolder, so `/catering` no longer requests `/_a/...` from the
+  domain root.
+- SEO 404 insights now exclude Core asset, admin, API, installer, and cron
+  infrastructure paths, including historical rows already stored.
+- Fresh installs seed descriptive home-page titles and search summaries.
+  Catering `0.1.24` adds a migration that repairs only untouched starter
+  metadata and preserves customized content.
+- CI's catering REPAIR-UPLOAD contract now compares the packaged module version
+  with the authoritative source snapshot instead of a stale hard-coded version.
+- Commit `1f7f1b36c81b3edda9d0ed3252cb50d73f60713e` passed all six CI jobs in
+  run `40122945702`. Its
+  `Website-Core-Catering-2.0.14-REPAIR-UPLOAD` artifact has digest
+  `sha256:e74eaa312cd66bec98a2399011e159d6e57b0b4274e25c361bb0b40ee7f38c09`.
+- Next external step: deploy that CI artifact and verify authenticated Health,
+  Audit, Navigation, and SEO Insights on the live subfolder installation.
+
 ## 2.0.14 Health and fatal-page recovery
 
 - Hosted `/admin/health` and `/admin/audit` returned bare HTTP 500 responses,

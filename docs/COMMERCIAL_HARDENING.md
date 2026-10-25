@@ -60,8 +60,9 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       field/system tokens; queue status and errors stay attached to the inbox.
 - [x] Disable/uninstall preserve package forms; explicit purge removes the
       package partition and related notification evidence in dependency order.
-- [ ] Complete GitHub Actions PHP 8.4/8.5, Core-only, native MySQL/MariaDB and
-      release-artifact verification.
+- [x] GitHub Actions run 558 passed PHP 8.4/8.5, Core-only boot, native MySQL
+      8.4, MariaDB 11.4 and release-artifact verification on source commit
+      `37031cfe493acf33d1928b22e0864fffedcf4a30`.
 - [ ] Complete Catering migration, second-industry proof and packaged-host
       browser/accessibility acceptance without duplicate inquiries or email.
 

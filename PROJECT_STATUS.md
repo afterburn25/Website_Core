@@ -1,7 +1,7 @@
 # Project Status
 
-**Current**: `2.5.0` shared module forms and notifications implementation,
-pending CI verification and packaged-host acceptance, building on the 2.4
+**Current**: `2.5.0` CI-verified shared module forms and notifications,
+pending packaged-host and cross-industry acceptance, building on the 2.4
 CI-verified shared module content, Media and structured data and 2.3 reusable module-record operations,
 2.2.2 CI-verified inquiry-detail repair,
 2.2.1 SMTP provider-host diagnostics, and 2.2.0 shared business profile and
@@ -19,6 +19,9 @@ templates. Core continues to own CSRF, honeypots, rate limits, validation,
 submission storage, consent evidence, the inbox and delivery status. Modules
 retain industry questions, business validation and their own linked records.
 Migration `2026_10_25_0031` is additive and Module API v1 remains compatible.
+GitHub Actions run 558 passed all six PHP 8.4/8.5, Core-only, native MySQL
+8.4, MariaDB 11.4 and release-artifact jobs on source commit
+`37031cfe493acf33d1928b22e0864fffedcf4a30`.
 
 Version 2.4.0 adds edit-preserving starter content, reusable public Core Media
 selectors with usage tracking, and package-scoped Schema.org contributions.

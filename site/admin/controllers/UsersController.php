@@ -16,6 +16,8 @@ final class UsersController extends Controller
             return $this->forbidden();
         }
         $users = $this->c->get(\Core\Auth\AdminRepository::class)->all();
+        $createInput = $_SESSION['_wc_admin_create_input'] ?? [];
+        unset($_SESSION['_wc_admin_create_input']);
         return $this->page($r, 'users/index', [
             'admins' => $users,
             'roles'  => $this->c->get(Permissions::class)->roles(),
@@ -26,6 +28,10 @@ final class UsersController extends Controller
                 : array_values(array_diff(
                     $this->c->get(Permissions::class)->roles(), ['owner']
                 )),
+            'assignRoles' => $user->isOwner()
+                ? $this->c->get(Permissions::class)->roles()
+                : array_values(array_diff($this->c->get(Permissions::class)->roles(), ['owner'])),
+            'createInput' => is_array($createInput) ? $createInput : [],
         ], 'Administrators');
     }
 
@@ -62,11 +68,16 @@ final class UsersController extends Controller
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'A valid email is required.';
+        } elseif ($repo->findByEmail($email) !== null) {
+            $errors[] = 'That email address is already assigned to an administrator.';
         }
         if (strlen($password) < 12) {
             $errors[] = 'Password must be at least 12 characters.';
         }
         if ($errors !== []) {
+            $_SESSION['_wc_admin_create_input'] = [
+                'username' => $username, 'email' => $email, 'role' => $role,
+            ];
             $this->flash('error', implode(' ', $errors));
             return $this->redirect($r, '/admin/users');
         }
@@ -104,21 +115,17 @@ final class UsersController extends Controller
         if (!$actor->isOwner() && !$this->auth()->has($actor, 'admins.manage_nonowner')) {
             return $this->forbidden();
         }
-        // Last-owner protection (atomic check inside transaction).
-        if ($targetUser->isOwner() && $newRole !== 'owner') {
-            $guard = $this->db()->transaction(function () use ($repo, $target) {
-                if ($repo->enabledOwnerCount() <= 1) {
-                    return false;
-                }
-                return true;
-            });
-            if (!$guard) {
+        $updated = $this->db()->transaction(function () use ($repo, $target, $targetUser, $newRole): bool {
+            if ($targetUser->isOwner() && $newRole !== 'owner' && $repo->enabledOwnerCount() <= 1) {
+                return false;
+            }
+            $repo->update($target, ['role' => $newRole]);
+            return true;
+        });
+        if (!$updated) {
                 $this->flash('error', 'Cannot demote the last enabled owner.');
                 return $this->redirect($r, '/admin/users');
-            }
         }
-
-        $repo->update($target, ['role' => $newRole]);
         $this->c->get(\Core\Audit\AuditLog::class)->record('admin.role_change', $actor->id, [
             'target' => $target, 'role' => $newRole,
         ]);
@@ -179,16 +186,22 @@ final class UsersController extends Controller
         if ($targetUser->isOwner() && !$actor->isOwner()) {
             return $this->forbidden();
         }
+        if (!$actor->isOwner() && !$this->auth()->has($actor, 'admins.manage_nonowner')) {
+            return $this->forbidden();
+        }
         if ($target === $actor->id) {
             $this->flash('error', 'You cannot disable your own account.');
             return $this->redirect($r, '/admin/users');
         }
-        if ($targetUser->isOwner() && !$targetUser->disabled && $repo->enabledOwnerCount() <= 1) {
+        $updated = $this->db()->transaction(function () use ($repo, $target, $targetUser): bool {
+            if ($targetUser->isOwner() && !$targetUser->disabled && $repo->enabledOwnerCount() <= 1) return false;
+            $repo->update($target, ['disabled' => $targetUser->disabled ? 0 : 1]);
+            return true;
+        });
+        if (!$updated) {
             $this->flash('error', 'Cannot disable the last enabled owner.');
             return $this->redirect($r, '/admin/users');
         }
-
-        $repo->update($target, ['disabled' => $targetUser->disabled ? 0 : 1]);
         if (!$targetUser->disabled) {
             // Revoke all sessions immediately on disable.
             $this->db()->run(

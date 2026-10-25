@@ -52,7 +52,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 5 | Forms and submissions | Field builder, validation, notifications, spam controls, consent evidence, inbox, filters, read state, archive/export | code complete — 2.0.17; packaged-browser check pending |
 | 6 | SEO, redirects, translations, patterns | Actionable audits, previews, redirect import/export, localized content, reusable layouts, errors and conflicts | code complete — 2.0.19; packaged-browser check pending |
 | 7 | Appearance and public theme | Branding, theme preview/activation, header/footer layouts, responsive output, attribution, status/error pages | code complete — 2.0.20; packaged-browser check pending |
-| 8 | Administrators, roles, profile, security | Account lifecycle, role safety, capability clarity, MFA, sessions, recovery, lockouts, audit evidence | code complete — 2.0.6; packaged-browser check pending |
+| 8 | Administrators, roles, profile, security | Account lifecycle, role safety, capability clarity, MFA, sessions, recovery, lockouts, audit evidence | code complete — 2.0.21; packaged-browser check pending |
 | 9 | Privacy and integrations | Consent behavior, privacy requests, API keys, webhooks, scopes, delivery failures, exports and secret rotation | code complete — 2.0.6; packaged-browser check pending |
 | 10 | Modules and marketplace | Install/upgrade/enable/disable/uninstall/purge, dependency errors, protected Core, recovery mode, catalog trust and rollback | code complete through 2.0.14; failed-migration file rollback and landscaping lifecycle CI covered; packaged-browser check pending |
 | 11 | Backups and operations | Create/delete/restore, remote replication, queue states, retries, schedules, interrupted operations, disaster recovery | code complete — 2.0.6; packaged-browser check pending |
@@ -234,6 +234,27 @@ run against packaged builds; code-complete does not mean externally verified.
 - [ ] Packaged browser verification covers upload previews, invalid-value
       retention, theme activation, child assets, mobile navigation, social
       metadata, and public layout variants on a real subfolder installation.
+
+## 2.0.21 — Administrators, roles, profile, and security acceptance
+
+- [x] Administrator creation validates unique username/email, retains safe
+      submitted fields after errors, and never exposes owner assignment to a
+      non-owner manager.
+- [x] Role changes and enable/disable actions enforce server-side authority;
+      last-enabled-owner validation and mutation occur in one transaction.
+- [x] Custom roles expose grouped plain-language capability descriptions,
+      assignment counts, protected built-ins, and guarded deletion.
+- [x] Administrators can update their own username/email, change password,
+      review device sessions, revoke one, or revoke all other sessions.
+- [x] MFA enrollment can be cancelled; recovery codes are shown once, counted,
+      copied, and password-confirmed for replacement.
+- [x] Replacing recovery codes or disabling MFA revokes stale recovery
+      credentials and other sessions and records audit evidence.
+- [x] Security summarizes MFA coverage, policy, sessions, enabled owners, and
+      per-account recovery readiness.
+- [ ] Packaged browser verification covers owner/non-owner boundaries, failed
+      create retention, role editing, profile changes, MFA enrollment and
+      recovery, session revocation, and responsive layouts.
 
 ## 2.0.14 — diagnostic and fatal-page recovery acceptance
 

@@ -1,5 +1,17 @@
 # Session Handoff
 
+## 2.0.21 Administrator-access completion
+
+- Administrators, Roles, My Profile, and Security now form one polished access
+  lifecycle with unique identities, capability explanations, assignment and
+  MFA evidence, session control, and owner lockout protection.
+- Non-owner enable/disable actions now enforce `admins.manage_nonowner`, and
+  last-owner validation is transactional with the mutation.
+- Profiles support identity updates, cancellable MFA enrollment, one-time
+  recovery-code display/copy, safe regeneration, and device session control.
+- Core advances to 2.0.21 without a schema migration. Continue next with
+  surface 9, Privacy and Integrations.
+
 ## 2.0.20 Appearance and public-theme completion
 
 - Appearance is now a responsive brand workspace with status summaries,

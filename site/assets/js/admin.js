@@ -346,6 +346,23 @@
     });
   });
 
+  document.querySelectorAll('[data-copy-target]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const target = document.querySelector(button.dataset.copyTarget || '');
+      if (!target) return;
+      const value = target.innerText.trim();
+      try { await navigator.clipboard.writeText(value); }
+      catch (_) {
+        const area = document.createElement('textarea');
+        area.value = value; document.body.appendChild(area); area.select();
+        document.execCommand('copy'); area.remove();
+      }
+      const original = button.textContent;
+      button.textContent = 'Copied';
+      setTimeout(() => { button.textContent = original; }, 1600);
+    });
+  });
+
   document.querySelectorAll('[data-menu-editor]').forEach((editor) => {
     const tree = editor.querySelector('[data-menu-tree]');
     const rootDrop = editor.querySelector('[data-root-drop]');

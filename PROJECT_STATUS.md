@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.20` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.21` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -155,6 +155,14 @@ output loads declared child-theme assets through the constrained asset route,
 honors the documented parent-theme property, supplies baseline social
 metadata, and includes an accessible mobile navigation flow. No schema
 migration is required.
+
+Version 2.0.21 completes the administrator-access surface. Accounts now retain
+valid failed-create input, enforce unique recovery email, apply transactional
+last-owner protection, and expose a clearer access directory. Roles display
+human capability groups and assignment evidence. Profiles support identity
+updates, device-oriented session review, cancellable MFA enrollment, and safe
+recovery-code rotation. The Security workspace summarizes actionable account,
+session, owner, MFA, and recovery posture. No schema migration is required.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

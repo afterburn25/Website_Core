@@ -29,7 +29,9 @@ final class SecurityController extends Controller
         $admins = $this->db()->fetchAll(
             'SELECT a.id, a.username, a.role, a.mfa_enabled, a.disabled, a.last_login_at,'
             . ' (SELECT COUNT(*) FROM `' . $this->db()->table('admin_sessions')
-            . '` s WHERE s.admin_id = a.id AND s.revoked_at IS NULL) active_sessions'
+            . '` s WHERE s.admin_id = a.id AND s.revoked_at IS NULL) active_sessions,'
+            . ' (SELECT COUNT(*) FROM `' . $this->db()->table('recovery_codes')
+            . '` rc WHERE rc.admin_id = a.id AND rc.used_at IS NULL) recovery_codes'
             . ' FROM `' . $this->db()->table('admins') . '` a ORDER BY a.role, a.username'
         );
         $enabled = array_filter($admins, fn (array $a): bool => !(bool) $a['disabled']);
@@ -38,6 +40,11 @@ final class SecurityController extends Controller
             'admins' => $admins,
             'required' => (bool) $this->settings()->get('security.require_mfa', false),
             'coverage' => ['protected' => count($mfaEnabled), 'enabled' => count($enabled)],
+            'posture' => [
+                'owners' => count(array_filter($enabled, fn (array $a): bool => $a['role'] === 'owner')),
+                'sessions' => array_sum(array_map(fn (array $a): int => (int) $a['active_sessions'], $enabled)),
+                'disabled' => count($admins) - count($enabled),
+            ],
             'canManage' => $this->auth()->has($u, 'settings.manage'),
         ], 'Security');
     }

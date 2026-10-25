@@ -1,78 +1,23 @@
-<?php /** @var array $sessions @var string|null $error @var string|null $mfaEnroll
-  * @var string|null $otpauthUri @var array|null $recoveryCodes
-  * @var \Core\Security\Csrf $csrf @var string $basePath @var \Core\Auth\AdminUser $user */ ?>
+<?php
+/** @var array $sessions @var string|null $error @var string|null $mfaEnroll @var string|null $otpauthUri
+ * @var array|null $recoveryCodes @var int $recoveryRemaining @var \Core\Security\Csrf $csrf
+ * @var string $basePath @var \Core\Auth\AdminUser $user */
+?>
+<?php if ($error): ?><div class="flash-error" role="alert"><?= e($error) ?></div><?php endif; ?>
+<section class="status-strip" aria-label="Account security overview"><div class="status-chip"><strong><?= e(ucfirst($user->role)) ?></strong><span>Current role</span></div><div class="status-chip <?= $user->mfaEnabled ? 'ok' : 'warn' ?>"><strong><?= $user->mfaEnabled ? 'Protected' : 'Action needed' ?></strong><span>Multi-factor authentication</span></div><div class="status-chip"><strong><?= count($sessions) ?></strong><span>Active sessions</span></div><div class="status-chip <?= $recoveryRemaining > 2 ? 'ok' : 'warn' ?>"><strong><?= $recoveryRemaining ?></strong><span>Recovery codes left</span></div></section>
 
-<?php if ($error): ?><div class="flash-error"><?= e($error) ?></div><?php endif; ?>
-
-<div class="card">
-<h2 style="margin-top:0">Change password</h2>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/profile">
-<?= $csrf->field() ?>
-<input type="hidden" name="action" value="password">
-<label>Current password</label>
-<input type="password" name="current_password" autocomplete="current-password" required>
-<label>New password (12+ characters)</label>
-<input type="password" name="new_password" autocomplete="new-password" required>
-<label>Confirm new password</label>
-<input type="password" name="new_password2" autocomplete="new-password" required>
-<div style="margin-top:1rem"><button class="btn" type="submit">Change password</button></div>
-</form>
+<div class="profile-workspace">
+<div class="profile-main">
+<section class="card"><div class="card-heading"><div><p class="section-kicker">Account identity</p><h2>Profile details</h2><p class="card-subtitle">Your username is used to sign in. Your email receives password recovery messages.</p></div></div><form method="post" action="<?= e_attr($basePath) ?>/admin/profile" data-protect-unsaved><?= $csrf->field() ?><input type="hidden" name="action" value="identity"><div class="grid2"><div><label for="profile-username">Username</label><input id="profile-username" name="username" required minlength="3" maxlength="60" value="<?= e_attr($user->username) ?>" autocomplete="username"></div><div><label for="profile-email">Email</label><input id="profile-email" name="email" type="email" required value="<?= e_attr($user->email) ?>" autocomplete="email"></div></div><div class="action-bar"><span>Changes are recorded in the audit log.</span><button class="btn" type="submit">Save profile</button></div></form></section>
+<section class="card"><div class="card-heading"><div><p class="section-kicker">Credentials</p><h2>Change password</h2><p class="card-subtitle">Changing your password signs out every other browser and device.</p></div></div><form method="post" action="<?= e_attr($basePath) ?>/admin/profile" data-protect-unsaved><?= $csrf->field() ?><input type="hidden" name="action" value="password"><div class="grid2"><div><label for="current-password">Current password</label><input id="current-password" type="password" name="current_password" autocomplete="current-password" required></div><div></div><div><label for="new-password">New password</label><input id="new-password" type="password" name="new_password" autocomplete="new-password" minlength="12" required><small>At least 12 characters.</small></div><div><label for="confirm-password">Confirm new password</label><input id="confirm-password" type="password" name="new_password2" autocomplete="new-password" minlength="12" required></div></div><div class="action-bar"><span>Other active sessions will be revoked immediately.</span><button class="btn" type="submit">Change password</button></div></form></section>
+<section class="card"><div class="card-heading"><div><p class="section-kicker">Devices</p><h2>Active sessions</h2><p class="card-subtitle">Review where your account is signed in and remove access you no longer recognize.</p></div><form method="post" action="<?= e_attr($basePath) ?>/admin/profile/sessions/revoke-others" data-confirm="Sign out every other session?"><?= $csrf->field() ?><button class="btn small secondary" type="submit">Sign out others</button></form></div><div class="session-list"><?php foreach ($sessions as $session): ?><article class="session-card <?= !empty($session['current']) ? 'is-current' : '' ?>"><div class="session-icon" aria-hidden="true">▣</div><div><strong><?= e(substr((string) ($session['user_agent'] ?: 'Unknown browser'), 0, 90)) ?></strong><span><?= e((string) ($session['ip'] ?: 'Unknown IP')) ?> · started <?= e((string) ($session['created_at'] ?? 'unknown')) ?></span><small>Last seen <?= e((string) ($session['last_seen'] ?? 'unknown')) ?></small></div><?php if (!empty($session['current'])): ?><span class="badge ok">This session</span><?php else: ?><form method="post" action="<?= e_attr($basePath) ?>/admin/profile/sessions/<?= (int) $session['id'] ?>/revoke" data-confirm="Sign out this session?"><?= $csrf->field() ?><button class="btn small danger" type="submit">Sign out</button></form><?php endif; ?></article><?php endforeach; ?></div></section>
 </div>
 
-<div class="card">
-<h2 style="margin-top:0">Two-factor authentication</h2>
-<?php if ($user->mfaEnabled): ?>
-<p><span class="badge ok">Enabled</span></p>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/profile/mfa/disable">
-<?= $csrf->field() ?>
-<label>Confirm with your password to disable</label>
-<input type="password" name="password" autocomplete="current-password" required>
-<div style="margin-top:.75rem"><button class="btn danger" type="submit">Disable MFA</button></div>
-</form>
-<?php elseif ($mfaEnroll): ?>
-<p>Add this secret to your authenticator app, then enter the 6-digit code to confirm.</p>
-<p><code style="font-size:1.05rem"><?= e($mfaEnroll) ?></code></p>
-<p class="muted"><?= e($otpauthUri) ?></p>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/profile/mfa/enable">
-<?= $csrf->field() ?>
-<input type="hidden" name="step" value="confirm">
-<label>6-digit code</label>
-<input name="code" inputmode="numeric" autocomplete="one-time-code" required>
-<div style="margin-top:.75rem"><button class="btn" type="submit">Confirm and enable</button></div>
-</form>
-<?php else: ?>
-<p><span class="badge">Not enabled</span></p>
-<p class="muted">Protect your account with a TOTP authenticator app.</p>
-<form method="post" action="<?= e_attr($basePath) ?>/admin/profile/mfa/enable">
-<?= $csrf->field() ?>
-<input type="hidden" name="step" value="start">
-<button class="btn" type="submit">Enable MFA</button>
-</form>
-<?php endif; ?>
+<aside class="profile-security"><section class="card mfa-card"><div class="security-orb <?= $user->mfaEnabled ? 'is-on' : '' ?>" aria-hidden="true">✓</div><p class="section-kicker">Sign-in protection</p><h2>Two-factor authentication</h2>
+<?php if ($user->mfaEnabled): ?><p><span class="badge ok">Enabled</span> Your password and authenticator are both required.</p><div class="mfa-summary"><strong><?= $recoveryRemaining ?></strong><span>unused recovery codes</span></div><details class="disclosure"><summary>Replace recovery codes</summary><form method="post" action="<?= e_attr($basePath) ?>/admin/profile" class="disclosure-body" data-confirm="Replace all recovery codes and sign out other sessions?"><?= $csrf->field() ?><input type="hidden" name="action" value="recovery"><label for="recovery-password">Confirm password</label><input id="recovery-password" type="password" name="password" autocomplete="current-password" required><button class="btn secondary" type="submit">Create new codes</button></form></details><details class="disclosure danger-zone"><summary>Disable MFA</summary><form method="post" action="<?= e_attr($basePath) ?>/admin/profile/mfa/disable" class="disclosure-body" data-confirm="Disable MFA, remove recovery codes, and sign out other sessions?"><?= $csrf->field() ?><label for="disable-mfa-password">Confirm password</label><input id="disable-mfa-password" type="password" name="password" autocomplete="current-password" required><button class="btn danger" type="submit">Disable MFA</button></form></details>
+<?php elseif ($mfaEnroll): ?><p>Enter this secret in an authenticator app, then verify the current six-digit code.</p><div class="secret-copy"><code><?= e($mfaEnroll) ?></code></div><p class="field-note break-all"><?= e($otpauthUri) ?></p><form method="post" action="<?= e_attr($basePath) ?>/admin/profile/mfa/enable"><?= $csrf->field() ?><input type="hidden" name="step" value="confirm"><label for="mfa-code">Six-digit code</label><input id="mfa-code" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required><button class="btn" type="submit">Verify and enable</button></form><form method="post" action="<?= e_attr($basePath) ?>/admin/profile/mfa/enable" class="secondary-form"><?= $csrf->field() ?><input type="hidden" name="step" value="cancel"><button class="btn secondary" type="submit">Cancel enrollment</button></form>
+<?php else: ?><p><span class="badge warn">Not enabled</span></p><p>Add an authenticator app to protect the account even if its password is exposed.</p><form method="post" action="<?= e_attr($basePath) ?>/admin/profile/mfa/enable"><?= $csrf->field() ?><input type="hidden" name="step" value="start"><button class="btn" type="submit">Set up MFA</button></form><?php endif; ?>
+</section></aside>
 </div>
 
-<?php if (is_array($recoveryCodes)): ?>
-<div class="card">
-<h2 style="margin-top:0">Recovery codes — shown once</h2>
-<p class="muted">Each code works once. Store them somewhere safe.</p>
-<p style="columns:2;font-family:monospace">
-<?php foreach ($recoveryCodes as $code): ?><?= e($code) ?><br><?php endforeach; ?>
-</p>
-</div>
-<?php unset($_SESSION['_wc_show_recovery']); endif; ?>
-
-<div class="card">
-<div class="card-heading"><h2>Active sessions</h2><form method="post" action="<?= e_attr($basePath) ?>/admin/profile/sessions/revoke-others"><?= $csrf->field() ?><button class="btn small secondary" type="submit">Sign out other sessions</button></form></div>
-<table>
-<tr><th>IP</th><th>User agent</th><th>Started</th><th>Last seen</th><th></th></tr>
-<?php foreach ($sessions as $s): ?>
-<tr>
-<td><?= e($s['ip'] ?? '') ?> <?= !empty($s['current']) ? '<span class="badge ok">current</span>' : '' ?></td>
-<td><?= e(substr((string) $s['user_agent'], 0, 60)) ?></td>
-<td><?= e($s['created_at'] ?? '') ?></td>
-<td><?= e($s['last_seen'] ?? '') ?></td>
-<td><?php if (empty($s['current'])): ?><form method="post" action="<?= e_attr($basePath) ?>/admin/profile/sessions/<?= (int) $s['id'] ?>/revoke"><?= $csrf->field() ?><button class="btn small danger" type="submit">Sign out</button></form><?php endif; ?></td>
-</tr>
-<?php endforeach; ?>
-</table>
-</div>
+<?php if (is_array($recoveryCodes)): ?><section class="card recovery-code-card" role="status"><div class="card-heading"><div><p class="section-kicker">Shown once</p><h2>Save your recovery codes now</h2><p class="card-subtitle">Each code works one time. Store them somewhere separate from this website.</p></div><button class="btn small secondary" type="button" data-copy-target="#recovery-code-list">Copy all</button></div><div id="recovery-code-list" class="recovery-code-grid"><?php foreach ($recoveryCodes as $code): ?><code><?= e($code) ?></code><?php endforeach; ?></div></section><?php unset($_SESSION['_wc_show_recovery']); endif; ?>

@@ -18,6 +18,13 @@ final class ProfileController extends Controller
             $action = $r->string('action');
             if ($action === 'password') {
                 $error = $this->changePassword($r, $user->id);
+            } elseif ($action === 'identity') {
+                $error = $this->updateIdentity($r, $user->id);
+            } elseif ($action === 'recovery') {
+                $error = $this->regenerateRecoveryCodes($r, $user->id, $user->mfaEnabled);
+            }
+            if ($error === null && in_array($action, ['identity', 'password', 'recovery'], true)) {
+                return $this->redirect($r, '/admin/profile');
             }
         }
 
@@ -32,7 +39,46 @@ final class ProfileController extends Controller
                 ? Totp::otpauthUri('Website Core', $user->username, $pending)
                 : null,
             'recoveryCodes' => $_SESSION['_wc_show_recovery'] ?? null,
+            'recoveryRemaining' => (int) $this->db()->fetchColumn(
+                'SELECT COUNT(*) FROM `' . $this->db()->table('recovery_codes')
+                . '` WHERE admin_id = ? AND used_at IS NULL', [$user->id]
+            ),
         ], 'My Profile');
+    }
+
+    private function updateIdentity(Request $r, int $adminId): ?string
+    {
+        $username = trim($r->string('username'));
+        $email = strtolower(trim($r->string('email')));
+        if (!preg_match('/^[a-zA-Z0-9_.-]{3,60}$/', $username)) {
+            return 'Username must be 3–60 characters using letters, numbers, dots, dashes, or underscores.';
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return 'Enter a valid email address.';
+        $repo = $this->c->get(\Core\Auth\AdminRepository::class);
+        $named = $repo->findByUsername($username);
+        if ($named && (int) $named['id'] !== $adminId) return 'That username is already in use.';
+        $emailed = $repo->findByEmail($email);
+        if ($emailed && (int) $emailed['id'] !== $adminId) return 'That email address is already in use.';
+        $repo->update($adminId, ['username' => $username, 'email' => $email]);
+        $this->c->get(\Core\Audit\AuditLog::class)->record('admin.profile_updated', $adminId);
+        $this->flash('ok', 'Profile details updated.');
+        return null;
+    }
+
+    private function regenerateRecoveryCodes(Request $r, int $adminId, bool $mfaEnabled): ?string
+    {
+        if (!$mfaEnabled) return 'Enable MFA before creating recovery codes.';
+        $row = $this->db()->fetch(
+            'SELECT password_hash FROM `' . $this->db()->table('admins') . '` WHERE id = ?', [$adminId]
+        );
+        if (!$row || !password_verify((string) ($r->post['password'] ?? ''), (string) $row['password_hash'])) {
+            return 'Password confirmation failed. Existing recovery codes are unchanged.';
+        }
+        $_SESSION['_wc_show_recovery'] = $this->auth()->generateRecoveryCodes($adminId);
+        $this->auth()->revokeOtherSessions($adminId);
+        $this->c->get(\Core\Audit\AuditLog::class)->record('admin.recovery_codes_regenerated', $adminId);
+        $this->flash('ok', 'New recovery codes created; older codes and other sessions were revoked.');
+        return null;
     }
 
     private function changePassword(Request $r, int $adminId): ?string
@@ -72,6 +118,12 @@ final class ProfileController extends Controller
 
         if ($step === 'start') {
             $_SESSION['_wc_mfa_enroll'] = Totp::generateSecret();
+            return $this->redirect($r, '/admin/profile');
+        }
+
+        if ($step === 'cancel') {
+            unset($_SESSION['_wc_mfa_enroll']);
+            $this->flash('ok', 'MFA enrollment cancelled. No account settings changed.');
             return $this->redirect($r, '/admin/profile');
         }
 
@@ -120,8 +172,12 @@ final class ProfileController extends Controller
         $this->c->get(\Core\Auth\AdminRepository::class)->update($user->id, [
             'mfa_enabled' => 0, 'mfa_secret' => null, 'mfa_last_counter' => -1,
         ]);
+        $this->db()->run(
+            'DELETE FROM `' . $this->db()->table('recovery_codes') . '` WHERE admin_id = ?', [$user->id]
+        );
+        $this->auth()->revokeOtherSessions($user->id);
         $this->c->get(\Core\Audit\AuditLog::class)->record('admin.mfa_disabled', $user->id);
-        $this->flash('ok', 'Two-factor authentication disabled.');
+        $this->flash('ok', 'Two-factor authentication disabled; recovery codes and other sessions revoked.');
         return $this->redirect($r, '/admin/profile');
     }
 

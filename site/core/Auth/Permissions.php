@@ -12,6 +12,22 @@ use Core\Database\Connection;
  */
 final class Permissions
 {
+    private const CAPABILITY_LABELS = [
+        'content.manage' => ['Content', 'Manage content', 'Create and edit pages, translations, and reusable layouts.'],
+        'content.publish' => ['Content', 'Publish content', 'Publish, schedule, and approve public pages.'],
+        'forms.manage' => ['Website', 'Manage forms', 'Create forms and work with visitor submissions.'],
+        'media.manage' => ['Website', 'Manage media', 'Upload, organize, replace, and remove media.'],
+        'navigation.manage' => ['Website', 'Manage navigation', 'Change header/footer links and redirects.'],
+        'appearance.manage' => ['Website', 'Manage appearance', 'Change brand assets, design tokens, and themes.'],
+        'settings.manage' => ['System', 'Manage settings', 'Change site-wide configuration and security policy.'],
+        'modules.view' => ['Extensions', 'View modules', 'Review installed modules, add-ons, and themes.'],
+        'modules.install' => ['Extensions', 'Manage modules', 'Install, update, enable, disable, and remove packages.'],
+        'system.view' => ['System', 'View system tools', 'Review health, operations, updates, and diagnostics.'],
+        'audit.view' => ['System', 'View audit log', 'Inspect administrator and system activity evidence.'],
+        'backups.manage' => ['System', 'Manage backups', 'Create, restore, replicate, and remove recovery points.'],
+        'admins.view' => ['Access', 'View administrators', 'Review administrator accounts and security posture.'],
+        'admins.manage_nonowner' => ['Access', 'Manage non-owner accounts', 'Create, update, disable, and reset non-owner administrators.'],
+    ];
     /** Core capabilities by role. 'owner' implicitly has all capabilities. */
     private const ROLES = [
         'owner'  => ['*'],
@@ -43,6 +59,19 @@ final class Permissions
             array_filter(self::ROLES, fn ($c) => $c !== ['*'])
         ))));
         return array_merge($core, array_keys($this->extensions));
+    }
+
+    /** @return array<string,array{group:string,label:string,description:string}> */
+    public function capabilityCatalog(): array
+    {
+        $catalog = [];
+        foreach ($this->allCapabilities() as $capability) {
+            [$group, $label, $description] = self::CAPABILITY_LABELS[$capability]
+                ?? ['Module permissions', ucwords(str_replace(['.', '_'], ' ', $capability)), $this->extensions[$capability] ?? 'Permission supplied by an installed package.'];
+            $catalog[$capability] = compact('group', 'label', 'description');
+        }
+        uasort($catalog, static fn (array $a, array $b): int => [$a['group'], $a['label']] <=> [$b['group'], $b['label']]);
+        return $catalog;
     }
 
     public function roleExists(string $role): bool

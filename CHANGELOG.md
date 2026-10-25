@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.0.21 — 2026-10-24
+
+- Rebuilds Administrators, Roles, My Profile, and Security as responsive,
+  evidence-oriented workspaces with clearer account, assignment, MFA, session,
+  and recovery state.
+- Adds unique administrator-email validation, failed-create value retention,
+  self-service username/email updates, and grouped human capability guidance.
+- Enforces the non-owner management capability on enable/disable actions and
+  makes last-owner protection transactional with the requested mutation.
+- Adds cancellable MFA enrollment, password-confirmed recovery-code rotation,
+  one-time copy support, remaining-code visibility, and session revocation when
+  recovery credentials or MFA state changes.
+- Adds focused role/account security regression coverage without a schema
+  migration.
+
 ## 2.0.20 — 2026-10-24
 
 - Rebuilds Appearance as a responsive visual brand workspace with live token

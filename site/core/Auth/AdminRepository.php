@@ -26,6 +26,14 @@ final class AdminRepository
         );
     }
 
+    public function findByEmail(string $email): ?array
+    {
+        return $this->db->fetch(
+            'SELECT * FROM `' . $this->db->table('admins') . '` WHERE email = ?',
+            [$email]
+        );
+    }
+
     /** @return list<AdminUser> */
     public function all(): array
     {

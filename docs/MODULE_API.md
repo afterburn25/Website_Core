@@ -31,6 +31,20 @@ breaking changes bump the major and ship with a migration guide.
 | `starterForm($key, $label, $fields, $options = [], $validator = null, $onSubmitted = null)` | Declare or deliberately adopt one Core-owned starter form while retaining package business validation and record creation. |
 | `formSubmission($submissionId)` | Read a protected submission, consent, notification status and record links only when it belongs to this package. |
 | `linkFormSubmission($submissionId, $recordType, $recordId)` | Idempotently connect a package record to its Core submission without copying the shared form/inbox. |
+| `presentationBlocks()` | Read Core's canonical FAQ, gallery, testimonial, service, team and CTA block definitions for module editors/rendering. |
+| `coreServiceVersion($service)` | Read the installed semantic version of a named Core service contract declared in `requires.services`. |
+| `serviceArea($defaults = [])` | Enable the shared structured service-area profile with package defaults. |
+| `geocodingProvider($name, $geocoder, $attribution)` | Register this package's server-side geocoder without exposing or storing provider credentials. |
+| `configureServiceArea($input, $provider = '')` | Validate/geocode and save the shared center/radius through a provider registered by this package. |
+| `checkServiceAddress($address, $provider = '')` | Resolve a package-scoped inside/outside/unknown decision through a registered provider, including an audited override. |
+| `overrideServiceAddress($address, $inside, $reason, $adminId, $expiresAt = null)` | Record an audited, optionally expiring staff decision for an address requiring review. |
+| `serviceAreaMap($label = 'Service area')` | Render the accessible attributed no-JavaScript radius component and text fallback. |
+| `themeCollection($label, $variants)` | Register package-confined layouts/assets, contrast-safe palettes and Core Media slots. |
+| `activeModuleTheme($draft = false)` | Read the package's published or draft module-theme selection with safe layout/asset paths. |
+| `checkoutValidator($validator, $options = [])` | Register one fail-closed package checkout validator with bounded timeout/context and supported outcomes. |
+| `quoteAttachment($quoteId, $mediaId, $label, $adminId = null)` | Attach a public Core Media record to a package-owned quote. |
+| `quoteReminder($quoteId, $dueAt, $recipient, $message, $channel = 'email')` | Schedule an idempotent package-owned quote reminder through the Core queue. |
+| `quoteDocument($quoteId, $kind, $title, $html, $adminId = null)` | Save a sanitized, integrity-checked package-rendered proposal/contract/summary snapshot. |
 | `dashboardWidget($key, $label, $provider, $capability = null, $url = null)` | Contribute a capability-filtered live metric to the Core dashboard. |
 | `adminSearchProvider($provider, $capability = null)` | Contribute capability-filtered results to Core global search. |
 | `healthCheck($key, $label, $provider)` | Contribute an isolated `ok`, `warn`, or `error` check to System Health. |
@@ -53,6 +67,39 @@ breaking changes bump the major and ship with a migration guide.
 
 Relative image and font references inside package CSS are automatically
 rebased onto the rewrite-independent asset route by the core asset server.
+
+### Reuse platform services (Core 2.6)
+
+Packages may declare compatible shared-service ranges in `addon.json`:
+
+```json
+{
+  "requires": {
+    "core": ">=2.6.0,<3.0.0",
+    "api": "^1.0",
+    "services": {
+      "content.presentation": "^1.0",
+      "leads.quotes": "^2.0",
+      "business.service_area": "^1.0",
+      "appearance.collections": "^1.0",
+      "commerce.checkout_validation": "^1.0"
+    }
+  }
+}
+```
+
+Core checks these constraints before package provider code runs. An unknown or
+incompatible service quarantines the package. These contracts are optional:
+existing API-v1 packages that do not declare `requires.services` remain
+compatible.
+
+Geocoding and checkout callbacks execute server-side, are package scoped and
+fail closed. Keep provider credentials captured in callback configuration,
+never in returned data. Quote document HTML is sanitized before Core stores an
+immutable snapshot; modules own the source template and business language.
+Module-theme paths must resolve inside the installed package, while media slots
+refer to public Core Media IDs. See `docs/2.6.0_RELEASE_NOTES.md` for the full
+contract and remaining packaged-host/adoption gates.
 
 Each enabled package receives its **own** `ModuleContext` stamped with its
 packageId — registrations are attributed to the package and aggregated by

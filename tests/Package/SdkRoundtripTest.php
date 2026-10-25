@@ -86,19 +86,16 @@ PHP,
         );
         file_put_contents($pkgDir . '/src/Provider.php', $provider);
 
-        // Zip it exactly as the Module Manager would receive it.
+        // Build the directly installable root-level ZIP with the SDK packager.
         $zipPath = $this->tmp . '/probe.zip';
+        $command = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(WC_ROOT . '/../sdk/package.php')
+            . ' ' . escapeshellarg($pkgDir) . ' ' . escapeshellarg($zipPath);
+        exec($command, $output, $code);
+        $this->assertSame(0, $code, implode("\n", $output));
         $zip = new ZipArchive();
-        $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-        $it = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($pkgDir, \FilesystemIterator::SKIP_DOTS)
-        );
-        foreach ($it as $f) {
-            if ($f->isFile()) {
-                $rel = 'probe/' . str_replace('\\', '/', substr($f->getPathname(), strlen($pkgDir) + 1));
-                $zip->addFile($f->getPathname(), $rel);
-            }
-        }
+        $this->assertTrue($zip->open($zipPath, ZipArchive::RDONLY) === true);
+        $this->assertNotFalse($zip->locateName('addon.json'));
+        $this->assertFalse($zip->locateName('probe/addon.json'), 'The SDK must not add a wrapper directory.');
         $zip->close();
 
         // Full lifecycle through the real PackageManager.
@@ -130,5 +127,19 @@ PHP,
         $this->assertContains('probe.view', $perms->allCapabilities());
         $this->assertTrue($perms->allows('admin', 'probe.view'));
         $this->assertFalse($perms->allows('editor', 'probe.view'));
+    }
+
+    public function testSdkPackagerRejectsNestedZipFiles(): void
+    {
+        \WebsiteCore\Sdk\Scaffold::make('addon', 'acme/nested', $this->tmp . '/scaffold');
+        $pkgDir = $this->tmp . '/scaffold/nested';
+        file_put_contents($pkgDir . '/payload.zip', 'not a nested package');
+        $zipPath = $this->tmp . '/nested.zip';
+        $command = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(WC_ROOT . '/../sdk/package.php')
+            . ' ' . escapeshellarg($pkgDir) . ' ' . escapeshellarg($zipPath);
+        exec($command . ' 2>&1', $output, $code);
+        $this->assertSame(1, $code);
+        $this->assertStringContainsString('Nested ZIP files are forbidden', implode("\n", $output));
+        $this->assertFileDoesNotExist($zipPath);
     }
 }

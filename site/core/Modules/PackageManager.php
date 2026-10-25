@@ -692,6 +692,10 @@ final class PackageManager
             )->rowCount();
             if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} commerce order item row(s)");
         }
+        if ($this->db->tableExists('commerce_validation_snapshots')) {
+            $n=$this->db->run('DELETE FROM `'.$this->db->table('commerce_validation_snapshots').'` WHERE owner_package = ?',[$packageId])->rowCount();
+            if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} checkout validation snapshot row(s)");
+        }
         foreach ([['commerce_orders','source_package'],['commerce_products','owner_package']] as [$shared,$column]) {
             if (!$this->db->tableExists($shared)) continue;
             $n=$this->db->run('DELETE FROM `'.$this->db->table($shared).'` WHERE `'.$column.'` = ?',[$packageId])->rowCount();
@@ -707,6 +711,16 @@ final class PackageManager
             if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} customer account row(s)");
         }
         if ($this->db->tableExists('crm_quotes') && $this->db->tableExists('crm_quote_items')) {
+            if ($this->db->tableExists('crm_quote_attachments') && $this->db->tableExists('media_usage')) {
+                $n=$this->db->run('DELETE FROM `'.$this->db->table('media_usage').'` WHERE context=? AND context_id IN (SELECT id FROM `'
+                    .$this->db->table('crm_quote_attachments').'` WHERE owner_package=?)',['crm.quote.attachment',$packageId])->rowCount();
+                if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} quote attachment Media usage row(s)");
+            }
+            foreach (['crm_quote_attachments','crm_quote_reminders','crm_quote_documents'] as $shared) {
+                if (!$this->db->tableExists($shared)) continue;
+                $n=$this->db->run('DELETE FROM `'.$this->db->table($shared).'` WHERE owner_package = ?',[$packageId])->rowCount();
+                if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} {$shared} row(s)");
+            }
             $n=$this->db->run('DELETE FROM `'.$this->db->table('crm_quote_items').'` WHERE quote_id IN (SELECT id FROM `'
                 .$this->db->table('crm_quotes').'` WHERE owner_package = ?)',[$packageId])->rowCount();
             if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} CRM quote item row(s)");
@@ -720,6 +734,16 @@ final class PackageManager
             if (!$this->db->tableExists($shared)) continue;
             $n=$this->db->run('DELETE FROM `'.$this->db->table($shared).'` WHERE `'.$column.'` = ?',[$packageId])->rowCount();
             if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} {$shared} row(s)");
+        }
+        foreach (['module_theme_state','service_area_overrides'] as $shared) {
+            if (!$this->db->tableExists($shared)) continue;
+            $n=$this->db->run('DELETE FROM `'.$this->db->table($shared).'` WHERE owner_package = ?',[$packageId])->rowCount();
+            if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} {$shared} row(s)");
+        }
+        if ($this->db->tableExists('media_usage')) {
+            $context = 'module.theme.' . substr(hash('sha256', $packageId), 0, 24);
+            $n=$this->db->run('DELETE FROM `'.$this->db->table('media_usage').'` WHERE context=?',[$context])->rowCount();
+            if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} module theme Media usage row(s)");
         }
         if ($this->db->tableExists('settings')) {
             foreach (['commerce.products_seeded.','business.seeded.'] as $prefix) {

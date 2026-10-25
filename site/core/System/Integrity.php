@@ -20,6 +20,11 @@ final class Integrity
         'custom_roles',
         'api_keys', 'webhooks', 'webhook_deliveries',
         'agency_sites', 'marketplace_sources', 'managed_update_checks',
+        'commerce_products', 'commerce_orders', 'commerce_order_items',
+        'commerce_validation_snapshots', 'customer_accounts',
+        'crm_inquiries', 'crm_inquiry_notes', 'crm_quotes', 'crm_quote_items',
+        'crm_quote_attachments', 'crm_quote_reminders', 'crm_quote_documents',
+        'service_area_cache', 'service_area_overrides', 'module_theme_state',
     ];
 
     public function __construct(

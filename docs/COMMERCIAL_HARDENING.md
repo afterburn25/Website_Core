@@ -44,6 +44,29 @@ Every listed surface must satisfy all applicable gates:
 
 Status values: **queued**, **in progress**, **code complete**, **verified**.
 
+## 2.6.0 — Shared reuse platform
+
+- [x] Canonical FAQ, gallery, testimonial, service, team and CTA definitions
+      render through Core's safe responsive page-block pipeline.
+- [x] Package manifests enforce named semantic Core-service constraints before
+      provider registration while preserving API-v1 compatibility.
+- [x] Quote workflows include package-isolated Media attachments, idempotent
+      queued reminders and integrity-checked document snapshots.
+- [x] SDK scaffolds contain a working admin contribution, migration, view,
+      contract test and documentation; its packager creates one directly
+      installable root-level ZIP and rejects nested archives.
+- [x] Service areas cache normalized provider results, return explicit inside,
+      outside or unknown decisions, preserve audited overrides and render
+      accessible provider attribution without exposing credentials.
+- [x] Module theme collections validate confined layouts/assets and WCAG AA
+      palettes while Core owns Media selections and draft/publish/rollback.
+- [x] Checkout validators receive bounded context, return safe field/manual-
+      review/quote-only outcomes, rerun transactionally and persist immutable
+      PII-minimized evidence.
+- [ ] Complete the full CI/release-artifact matrix, packaged-host browser and
+      accessibility acceptance, then prove adoption by Catering and a second
+      independent industry module.
+
 ## 2.5.0 — Shared module forms and notifications
 
 - [x] Packages declare a stable starter form schema once without overwriting

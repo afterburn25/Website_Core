@@ -53,14 +53,27 @@ final class Manifest
         if (!is_array($requires)) {
             $errors[] = 'requires must be an object';
         } else {
-            if (isset($requires['core']) && !is_string($requires['core'])) {
+            if (isset($requires['core']) && (!is_string($requires['core'])
+                || trim($requires['core']) === '' || !Semver::constraintValid($requires['core']))) {
                 $errors[] = 'requires.core must be a version constraint string';
             }
             if (isset($requires['api']) && !is_int($requires['api'])) {
                 $errors[] = 'requires.api must be an integer (extension API major)';
             }
-            if (isset($requires['php']) && !is_string($requires['php'])) {
+            if (isset($requires['php']) && (!is_string($requires['php'])
+                || trim($requires['php']) === '' || !Semver::constraintValid($requires['php']))) {
                 $errors[] = 'requires.php must be a version constraint string';
+            }
+            if (isset($requires['services']) && !is_array($requires['services'])) {
+                $errors[] = 'requires.services must be an object of service-id => constraint';
+            } elseif (isset($requires['services'])) {
+                foreach ($requires['services'] as $service => $constraint) {
+                    if (!is_string($service) || !preg_match('/^[a-z][a-z0-9_.-]{2,119}$/', $service)
+                        || !is_string($constraint) || trim($constraint) === ''
+                        || !Semver::constraintValid($constraint)) {
+                        $errors[] = 'requires.services entries need a safe service id and version constraint';
+                    }
+                }
             }
         }
 
@@ -72,7 +85,7 @@ final class Manifest
                     if (!self::idOk($id)) {
                         $errors[] = "{$key} contains invalid package id '{$id}'";
                     }
-                    if (!is_string($c)) {
+                    if (!is_string($c) || trim($c) === '' || !Semver::constraintValid($c)) {
                         $errors[] = "{$key}.{$id} must be a constraint string";
                     }
                 }
@@ -192,7 +205,13 @@ final class Manifest
     }
 
     /** Does this manifest's requires block accept the given core/api/php? */
-    public static function compatible(array $m, string $coreVersion, int $apiVersion, string $phpVersion): array
+    public static function compatible(
+        array $m,
+        string $coreVersion,
+        int $apiVersion,
+        string $phpVersion,
+        ?array $serviceVersions = null,
+    ): array
     {
         $errors = [];
         $r = $m['requires'] ?? [];
@@ -204,6 +223,15 @@ final class Manifest
         }
         if (isset($r['php']) && !Semver::satisfies($phpVersion, (string) $r['php'])) {
             $errors[] = "requires PHP {$r['php']}, have {$phpVersion}";
+        }
+        $available = $serviceVersions ?? ServiceVersions::all();
+        foreach (($r['services'] ?? []) as $service => $constraint) {
+            $version = $available[(string) $service] ?? null;
+            if ($version === null) {
+                $errors[] = "requires unavailable Core service {$service}";
+            } elseif (!Semver::satisfies($version, (string) $constraint)) {
+                $errors[] = "requires Core service {$service} {$constraint}, have {$version}";
+            }
         }
         return $errors;
     }

@@ -69,6 +69,27 @@ final class Runner
             'core.managed_update' => function (array $payload, Container $c): void {
                 $c->get(\Core\Update\ManagedUpdateService::class)->run();
             },
+            'crm.quote_reminders' => function (array $payload, Container $c): void {
+                $quotes = $c->get(\Core\Leads\QuoteService::class);
+                foreach ($quotes->dueReminders((int) ($payload['limit'] ?? 50)) as $reminder) {
+                    if ($reminder['channel'] === 'email') {
+                        $c->get(\Core\Mail\SystemMail::class)->queue(
+                            (string) $reminder['recipient'],
+                            'Quote reminder',
+                            (string) $reminder['message'],
+                            'quote-reminder:' . (int) $reminder['id'],
+                        );
+                    } else {
+                        $c->get(\Core\Admin\NoticeCenter::class)->publish(
+                            'Quote reminder',
+                            (string) $reminder['message'],
+                            'info',
+                            '/admin/quotes/edit&id=' . (int) $reminder['quote_id'],
+                        );
+                    }
+                    $quotes->completeReminder((int) $reminder['id'], (string) $reminder['owner_package'], true);
+                }
+            },
             'core.backup' => function (array $payload, Container $c): void {
                 $config = $c->get(\Core\Config::class);
                 $storage = (string) $config->get('paths.storage', WC_ROOT . '/storage');

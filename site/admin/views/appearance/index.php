@@ -2,6 +2,7 @@
 /**
  * @var array $themes @var string $active @var array $branding @var array $mediaItems
  * @var array $brandPreviews @var array $socialProfiles @var string $socialPlacement
+ * @var array $moduleThemeCollections @var array $moduleThemeCurrent @var string $themeQuery
  * @var \Core\Security\Csrf $csrf @var string $basePath @var string $siteBasePath
  */
 $activeTheme = null;
@@ -78,4 +79,40 @@ $populatedSocial = count(array_filter($socialProfiles, static fn (array $profile
     </article>
 <?php endforeach; ?>
 </div>
+<?php endif; ?>
+
+<?php if (($moduleThemeCollections ?? []) !== [] || ($themeQuery ?? '') !== ''): ?>
+<section class="theme-library-heading"><div><p class="section-kicker">Industry layouts</p><h2>Module theme collections</h2><p class="muted">Draft, preview, publish, or roll back package layouts without replacing pages, navigation, records, or administrator-selected Media.</p></div></section>
+<form method="get" action="<?= e_attr($basePath) ?>/admin/appearance" class="toolbar-search">
+    <label for="module-theme-search">Search layouts</label>
+    <input id="module-theme-search" type="search" name="theme_q" value="<?= e_attr($themeQuery ?? '') ?>" maxlength="120" placeholder="Search layout name or description">
+    <button class="btn secondary" type="submit">Search</button>
+</form>
+<?php if (($moduleThemeCollections ?? []) === []): ?><div class="empty-state"><strong>No matching module layouts</strong><span>Clear the search or enable a module that registers a theme collection.</span></div><?php endif; ?>
+<?php foreach (($moduleThemeCollections ?? []) as $package => $collection): $current = $moduleThemeCurrent[$package] ?? null; ?>
+<section class="card" aria-labelledby="collection-<?= e_attr(substr(hash('sha256', (string) $package), 0, 10)) ?>">
+    <div class="card-heading"><div><h3 id="collection-<?= e_attr(substr(hash('sha256', (string) $package), 0, 10)) ?>"><?= e($collection['label']) ?></h3><p class="muted"><?= e($package) ?> · <?= count($collection['variants']) ?> available layouts</p></div><?php if ($current): ?><span class="badge ok"><?= e($current['variant']['name']) ?> / <?= e($current['palette']['name']) ?></span><?php endif; ?></div>
+    <div class="theme-card-grid">
+    <?php foreach ($collection['variants'] as $variant): ?>
+        <article class="theme-card">
+            <div class="theme-card-body"><h4><?= e($variant['name']) ?></h4><p><?= e($variant['description']) ?></p>
+            <?php foreach ($variant['palettes'] as $paletteId => $palette): $tokens = $palette['tokens']; ?>
+            <form method="post" action="<?= e_attr($basePath) ?>/admin/appearance/module-theme" class="appearance-panel">
+                <?= $csrf->field() ?><input type="hidden" name="operation" value="draft"><input type="hidden" name="package" value="<?= e_attr($package) ?>"><input type="hidden" name="variant" value="<?= e_attr($variant['id']) ?>"><input type="hidden" name="palette" value="<?= e_attr($paletteId) ?>">
+                <div class="theme-swatch" style="--theme-bg:<?= e_attr($tokens['background']) ?>;--theme-text:<?= e_attr($tokens['text']) ?>;--theme-accent:<?= e_attr($tokens['accent'] ?? $tokens['primary'] ?? $tokens['text']) ?>"><span></span><strong>Aa</strong><i></i></div>
+                <strong><?= e($palette['name']) ?></strong>
+                <?php foreach ($variant['media_slots'] as $slot => $slotDef): ?><label><?= e($slotDef['label']) ?><select name="media[<?= e_attr($slot) ?>]"><option value="">Bundled default</option><?php foreach ($mediaItems as $media): ?><option value="<?= (int) $media['id'] ?>"><?= e($media['original_name']) ?></option><?php endforeach; ?></select></label><?php endforeach; ?>
+                <button class="btn small secondary" type="submit">Save draft</button>
+            </form>
+            <?php endforeach; ?>
+            </div>
+        </article>
+    <?php endforeach; ?>
+    </div>
+    <div class="action-bar">
+        <form method="post" action="<?= e_attr($basePath) ?>/admin/appearance/module-theme"><?= $csrf->field() ?><input type="hidden" name="operation" value="rollback"><input type="hidden" name="package" value="<?= e_attr($package) ?>"><button class="btn secondary" type="submit">Roll back</button></form>
+        <form method="post" action="<?= e_attr($basePath) ?>/admin/appearance/module-theme" data-confirm="Publish this module layout and palette?"><?= $csrf->field() ?><input type="hidden" name="operation" value="publish"><input type="hidden" name="package" value="<?= e_attr($package) ?>"><button class="btn" type="submit">Publish draft</button></form>
+    </div>
+</section>
+<?php endforeach; ?>
 <?php endif; ?>

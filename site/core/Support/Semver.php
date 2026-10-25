@@ -41,8 +41,24 @@ final class Semver
         if ($constraint === '' || $constraint === '*') {
             return true;
         }
+        if (!self::constraintValid($constraint)) return false;
         foreach (explode(',', $constraint) as $part) {
             if (!self::satisfiesOne($version, trim($part))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Validate exactly the constraint grammar this runtime evaluates. */
+    public static function constraintValid(string $constraint): bool
+    {
+        $constraint = trim($constraint);
+        if ($constraint === '' || $constraint === '*') return true;
+        foreach (explode(',', $constraint) as $part) {
+            $part = trim($part);
+            if ($part === '' || (!preg_match('/^(?:\^|~|>=|<=|>|<|=)?\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?$/', $part)
+                && !preg_match('/^\d+(?:\.\d+)?\.\*$/', $part))) {
                 return false;
             }
         }

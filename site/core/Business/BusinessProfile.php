@@ -12,6 +12,8 @@ final class BusinessProfile
         'name', 'legal_name', 'email', 'phone', 'website', 'address_line_1',
         'address_line_2', 'city', 'region', 'postal_code', 'country',
         'service_area', 'hours',
+        'service_area_center_city', 'service_area_center_region', 'service_area_center_country',
+        'service_area_radius_miles',
     ];
 
     public function __construct(private SettingsRepository $settings) {}
@@ -29,7 +31,9 @@ final class BusinessProfile
     /** @return list<string> */
     public function save(array $input): array
     {
-        $values = $this->normalize($input);
+        // Optional module fields may be absent while their module is disabled;
+        // a partial profile edit must not erase preserved shared data.
+        $values = $this->normalize(array_replace($this->get(), $input));
         $errors = $this->validate($values);
         if ($errors !== []) return $errors;
         foreach ($values as $field => $value) $this->settings->set('business.' . $field, $value);
@@ -74,6 +78,12 @@ final class BusinessProfile
         }
         if ($values['phone'] !== '' && !preg_match('/^[+0-9().,; x-]{3,60}$/i', $values['phone'])) {
             $errors[] = 'Business phone contains unsupported characters.';
+        }
+        if ($values['service_area_radius_miles'] !== ''
+            && (!is_numeric($values['service_area_radius_miles'])
+                || (float) $values['service_area_radius_miles'] < 1
+                || (float) $values['service_area_radius_miles'] > 500)) {
+            $errors[] = 'Service-area radius must be between 1 and 500 miles.';
         }
         return $errors;
     }

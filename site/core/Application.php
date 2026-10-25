@@ -330,15 +330,37 @@ final class Application
         $this->container->instance(\Core\Commerce\PaymentMethods::class, new \Core\Commerce\PaymentMethods(
             $this->container->get(SettingsRepository::class)
         ));
+        $checkoutValidation = new \Core\Commerce\CheckoutValidation($db);
+        $this->container->instance(\Core\Commerce\CheckoutValidation::class, $checkoutValidation);
         $this->container->instance(\Core\Commerce\OrderService::class, new \Core\Commerce\OrderService(
-            $db, $this->container->get(Dispatcher::class)
+            $db, $this->container->get(Dispatcher::class), $checkoutValidation
         ));
         $this->container->instance(\Core\Accounts\CustomerAuth::class, new \Core\Accounts\CustomerAuth($db, $systemMail));
         $this->container->instance(\Core\Business\BusinessProfile::class, new \Core\Business\BusinessProfile(
             $this->container->get(SettingsRepository::class)
         ));
+        $this->container->instance(\Core\Business\ServiceAreaService::class, new \Core\Business\ServiceAreaService(
+            $db, $this->container->get(SettingsRepository::class), $this->container->get(AuditLog::class)
+        ));
+        $this->container->instance(\Core\Appearance\ModuleThemeCollections::class, new \Core\Appearance\ModuleThemeCollections(
+            $db, $this->container->get(AuditLog::class)
+        ));
         $this->container->instance(\Core\Leads\InquiryService::class, new \Core\Leads\InquiryService($db));
         $this->container->instance(\Core\Leads\QuoteService::class, new \Core\Leads\QuoteService($db));
+        try {
+            if ($db->tableExists('crm_quote_reminders')) {
+                $due = (int) $db->fetchColumn(
+                    'SELECT COUNT(*) FROM `' . $db->table('crm_quote_reminders') . '` WHERE status=? AND due_at<=?',
+                    ['pending', date('Y-m-d H:i:s')],
+                );
+                $queued = (int) $db->fetchColumn(
+                    'SELECT COUNT(*) FROM `' . $db->table('jobs') . "` WHERE type='crm.quote_reminders' AND status IN ('pending','uncertain','running')",
+                );
+                if ($due > 0 && $queued === 0) $this->container->get(JobQueue::class)->dispatch('crm.quote_reminders');
+            }
+        } catch (\Throwable) {
+            // An in-place update may be running before the reminder migration.
+        }
         $this->container->instance(\Core\Modules\ModuleAdminRenderer::class, new \Core\Modules\ModuleAdminRenderer($this->container));
     }
 
@@ -677,6 +699,8 @@ final class Application
             $r->any('/seo', fn (Request $req) => (new \Admin\Controllers\SeoController($c))->index($req), [$auth, $csrfCheck]);
             $r->get('/seo/redirects.csv', fn (Request $req) => (new \Admin\Controllers\SeoController($c))->export($req), [$auth]);
             $r->get('/content', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->index($req), [$auth]);
+            $r->get('/quotes/document', fn (Request $req) => (new \Admin\Controllers\LeadsController($c))->document($req), [$auth]);
+            $r->get('/quotes/attachment', fn (Request $req) => (new \Admin\Controllers\LeadsController($c))->attachment($req), [$auth]);
             $r->get('/content/list', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->list($req), [$auth]);
             $r->get('/content/edit', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->edit($req), [$auth]);
             $r->post('/content/save', fn (Request $req) => (new \Admin\Controllers\ContentTypesController($c))->save($req), [$auth, $csrfCheck]);
@@ -685,6 +709,7 @@ final class Application
             $r->get('/appearance', fn (Request $req) => (new \Admin\Controllers\AppearanceController($c))->index($req), [$auth]);
             $r->post('/appearance/activate', fn (Request $req) => (new \Admin\Controllers\AppearanceController($c))->activate($req), [$auth, $csrfCheck]);
             $r->post('/appearance/branding', fn (Request $req) => (new \Admin\Controllers\AppearanceController($c))->saveBranding($req), [$auth, $csrfCheck]);
+            $r->post('/appearance/module-theme', fn (Request $req) => (new \Admin\Controllers\AppearanceController($c))->moduleTheme($req), [$auth, $csrfCheck]);
             $r->post('/modules/upload', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->upload($req), [$auth, $csrfCheck]);
             $r->post('/modules/recovery', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->recovery($req), [$auth, $csrfCheck]);
             $r->post('/modules/{id:.+}/{op:[a-z]+}', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->action($req), [$auth, $csrfCheck]);

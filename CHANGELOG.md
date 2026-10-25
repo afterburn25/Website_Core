@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.6.0 — 2026-10-25
+
+- Completes the Core implementation for `CORE-REUSE-5` through
+  `CORE-REUSE-11` while keeping every surface dormant until an enabled package
+  declares it.
+- Adds canonical FAQ, gallery, testimonial, service, team and CTA composer
+  blocks plus semantic service-version constraints in package manifests.
+- Extends package-scoped quotes with protected Core Media attachments,
+  idempotent queued reminders, and hashed immutable proposal/contract/summary
+  snapshots whose wording remains package-owned.
+- Expands the SDK scaffold with a working shared-admin contribution,
+  migration, fallback view, contract test, documentation and a direct
+  root-level module ZIP builder that rejects nested ZIP files.
+- Adds server-side service-area geocoding providers, cached normalized
+  coordinates, distance decisions, ambiguous/unavailable fallbacks, audited
+  staff overrides, a structured business-profile editor and an accessible
+  no-JavaScript map/fallback component.
+- Adds package theme collections with confined layouts/assets, accessible
+  palettes, Core Media slots, searchable administration, draft/publish/
+  rollback persistence and deterministic fallback behavior.
+- Adds package checkout validators with preflight and transaction-time
+  revalidation, field errors, manual-review/quote-only outcomes, bounded
+  timeouts, retained input, immutable evidence and package isolation.
+- Adds migration `2026_10_25_0032`; Module API v1 remains backward compatible.
+
 ## 2.5.0 — 2026-10-25
 
 - Adds `starterForm()` so an industry package can declare one Core-owned form

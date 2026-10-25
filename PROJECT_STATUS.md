@@ -1,7 +1,8 @@
 # Project Status
 
-**Current**: `2.5.0` CI-verified shared module forms and notifications,
-pending packaged-host and cross-industry acceptance, building on the 2.4
+**Current**: `2.6.0` Core implementation for `CORE-REUSE-5` through
+`CORE-REUSE-11`, pending final CI, packaged-host and cross-industry adoption,
+building on the 2.5 CI-verified shared module forms and notifications and 2.4
 CI-verified shared module content, Media and structured data and 2.3 reusable module-record operations,
 2.2.2 CI-verified inquiry-detail repair,
 2.2.1 SMTP provider-host diagnostics, and 2.2.0 shared business profile and
@@ -11,6 +12,15 @@ are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
 produces checksummed installation and update artifacts.
+
+Version 2.6.0 adds reusable presentation blocks, semantic Core-service
+requirements, quote attachments/reminders/immutable documents, a complete SDK
+scaffold and direct module packager, cached server-side service-radius
+decisions with audited overrides, module layout/palette collections with
+draft/publish/rollback, and atomic package checkout validation. Migration
+`2026_10_25_0032` is additive and Module API v1 remains backward compatible.
+Catering and Landscaping adoption remains separate module work and neither
+module is modified by this Core release.
 
 Version 2.5.0 adds edit-preserving package starter forms, package validators,
 protected submission events and lookup, durable industry-record links,

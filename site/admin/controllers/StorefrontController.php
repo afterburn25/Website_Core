@@ -61,6 +61,8 @@ final class StorefrontController extends Controller
         if (!$cart['items']) return Response::redirect($r->routeUrl('/cart'));
         $methods = $this->c->get(PaymentMethods::class)->configured();
         $error = null;
+        $fieldErrors = [];
+        $validationOutcome = null;
         if (empty($_SESSION['_wc_checkout_nonce'])) $_SESSION['_wc_checkout_nonce'] = bin2hex(random_bytes(24));
         $checkoutNonce = (string) $_SESSION['_wc_checkout_nonce'];
         $customer = $this->customer();
@@ -71,10 +73,14 @@ final class StorefrontController extends Controller
                 $error = 'This checkout was already submitted or expired. Review your cart and try again.';
             } elseif (!$this->c->get(\Core\Security\RateLimiter::class)->attempt('checkout:' . $r->ip() . ':' . strtolower($r->string('email')), 8, 3600)) {
                 $error = 'Too many checkout attempts. Please wait and try again.';
-            } else [$order, $error] = $this->c->get(OrderService::class)->place(
-                $checkout, $cart, (string) $this->features()->provider('orders'),
-                $this->features()->fulfillment(), $methods
-            );
+            } else {
+                [$order, $error, $validation] = $this->c->get(OrderService::class)->place(
+                    $checkout, $cart, (string) $this->features()->provider('orders'),
+                    $this->features()->fulfillment(), $methods
+                );
+                $fieldErrors = is_array($validation['errors'] ?? null) ? $validation['errors'] : [];
+                $validationOutcome = $validation['outcome'] ?? null;
+            }
             if (!empty($order)) {
                 unset($_SESSION['_wc_checkout_nonce']);
                 $this->cartService()->clear();
@@ -95,7 +101,8 @@ final class StorefrontController extends Controller
         if (!$r->isPost() && $customer) $input += ['name'=>$customer['name'],'email'=>$customer['email'],'phone'=>$customer['phone']];
         return $this->render($r, 'commerce/checkout', [
             'cart' => $cart, 'methods' => $methods, 'fulfillment' => $this->features()->fulfillment(),
-            'error' => $error, 'input' => $input, 'checkoutNonce'=>$checkoutNonce, 'cartCount' => $this->cartService()->count(),
+            'error' => $error, 'fieldErrors' => $fieldErrors, 'validationOutcome' => $validationOutcome,
+            'input' => $input, 'checkoutNonce'=>$checkoutNonce, 'cartCount' => $this->cartService()->count(),
         ]);
     }
 

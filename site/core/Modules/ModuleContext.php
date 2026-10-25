@@ -3,15 +3,20 @@ declare(strict_types=1);
 
 namespace Core\Modules;
 
+use Core\Appearance\ModuleThemeCollections;
 use Core\Auth\Permissions;
 use Core\Branding\BrandAssets;
 use Core\Business\BusinessProfile;
+use Core\Business\ServiceAreaService;
+use Core\Commerce\CheckoutValidation;
 use Core\Content\ContentItems;
 use Core\Content\MenuService;
+use Core\Content\PresentationBlocks;
 use Core\Database\Connection;
 use Core\Events\Dispatcher;
 use Core\Forms\FormService;
 use Core\Http\Request;
+use Core\Leads\QuoteService;
 use Core\Routing\Router;
 use Core\Settings\SettingsRepository;
 use Core\View\View;
@@ -441,6 +446,8 @@ final class ModuleContext
         $allowed = [
             'commerce.catalog', 'commerce.cart', 'commerce.checkout', 'commerce.orders', 'accounts.customers',
             'business.profile', 'crm.inquiries', 'crm.quotes',
+            'business.service_area', 'appearance.collections', 'crm.quote_documents',
+            'commerce.checkout_validation',
         ];
         if (!in_array($feature, $allowed, true)) {
             throw new \InvalidArgumentException('Unknown Core feature: ' . $feature);
@@ -501,6 +508,122 @@ final class ModuleContext
         unset($options['quotes']);
         $this->coreFeature('crm.inquiries', $options);
         if ($quotes) $this->coreFeature('crm.quotes', $options);
+    }
+
+    /** Canonical FAQ/gallery/testimonial/service/team/CTA composer definitions. */
+    public function presentationBlocks(): array
+    {
+        return PresentationBlocks::definitions();
+    }
+
+    /** Report the installed semantic version of a named Core service contract. */
+    public function coreServiceVersion(string $service): ?string
+    {
+        return ServiceVersions::version($service);
+    }
+
+    /** Opt into and optionally seed the shared service-area profile. */
+    public function serviceArea(array $defaults = []): void
+    {
+        $this->coreFeature('business.service_area');
+        if ($defaults !== [] && $this->serviceResolver !== null) {
+            $this->service(BusinessProfile::class)->seed($this->packageId, $defaults);
+        }
+    }
+
+    public function configureServiceArea(array $input, string $provider = ''): array
+    {
+        return $this->service(ServiceAreaService::class)->configureRegistered($this->packageId, $input, $provider);
+    }
+
+    /** Register a server-side geocoder closure; captured credentials are never exposed to views or storage. */
+    public function geocodingProvider(string $name, callable $geocoder, string $attribution): void
+    {
+        $this->service(ServiceAreaService::class)->registerProvider($this->packageId, $name, $geocoder, $attribution);
+    }
+
+    public function checkServiceAddress(array|string $address, string $provider = ''): array
+    {
+        return $this->service(ServiceAreaService::class)->checkRegistered($this->packageId, $address, $provider);
+    }
+
+    /** Record an audited staff decision for an address that needs review. */
+    public function overrideServiceAddress(
+        array|string $address,
+        bool $inside,
+        string $reason,
+        int $adminId,
+        ?string $expiresAt = null,
+    ): array {
+        return $this->service(ServiceAreaService::class)->override(
+            $this->packageId, $address, $inside, $reason, $adminId, $expiresAt,
+        );
+    }
+
+    public function serviceAreaMap(string $label = 'Service area'): string
+    {
+        return $this->service(ServiceAreaService::class)->renderMap($label);
+    }
+
+    /** Register package-owned layouts while Core owns selection state. */
+    public function themeCollection(string $label, array $variants): void
+    {
+        if ($this->packageRoot === null || $this->packageRoot === '') {
+            throw new \RuntimeException('Package root is required to register a theme collection.');
+        }
+        $this->coreFeature('appearance.collections');
+        $this->service(ModuleThemeCollections::class)->register(
+            $this->packageId,
+            $label,
+            $variants,
+            $this->packageRoot,
+            $this->assetNamespace ?? basename($this->packageRoot),
+        );
+    }
+
+    /** Read Core's validated published or draft layout selection. */
+    public function activeModuleTheme(bool $draft = false): ?array
+    {
+        $selection = $this->service(ModuleThemeCollections::class)->current($this->packageId, $draft);
+        if ($selection === null || $this->packageRoot === null) return $selection;
+        $selection['layout_file'] = rtrim($this->packageRoot, '/\\') . '/'
+            . ltrim((string) $selection['variant']['layout'], '/\\');
+        $selection['asset_urls'] = ['css' => [], 'js' => []];
+        foreach ($selection['asset_urls'] as $kind => $_) {
+            foreach ($selection['variant']['assets'][$kind] ?? [] as $path) {
+                $selection['asset_urls'][$kind][] = $this->assetBase() . '/' . str_replace('%2F', '/', rawurlencode((string) $path));
+            }
+        }
+        return $selection;
+    }
+
+    /** Register the package's final server-side checkout rules. */
+    public function checkoutValidator(callable $validator, array $options = []): void
+    {
+        $this->coreFeature('commerce.checkout_validation');
+        $this->service(CheckoutValidation::class)->register($this->packageId, $validator, $options);
+    }
+
+    /** Attach Core Media to a package-owned quote. */
+    public function quoteAttachment(int $quoteId, int $mediaId, string $label, ?int $adminId = null): array
+    {
+        return $this->service(QuoteService::class)->attach($quoteId, $this->packageId, $mediaId, $label, $adminId);
+    }
+
+    public function quoteReminder(int $quoteId, string $dueAt, string $recipient, string $message, string $channel = 'email'): array
+    {
+        return $this->service(QuoteService::class)->scheduleReminder(
+            $quoteId, $this->packageId, $dueAt, $recipient, $message, $channel,
+        );
+    }
+
+    /** Store an immutable package-rendered proposal/contract/summary snapshot. */
+    public function quoteDocument(int $quoteId, string $kind, string $title, string $html, ?int $adminId = null): array
+    {
+        $this->coreFeatures['crm.quote_documents'] ??= [];
+        return $this->service(QuoteService::class)->snapshotDocument(
+            $quoteId, $this->packageId, $kind, $title, $html, $adminId,
+        );
     }
 
     private function normalizeFeatureOptions(array $options): array

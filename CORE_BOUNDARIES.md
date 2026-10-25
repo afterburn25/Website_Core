@@ -10,7 +10,8 @@ direction (packages → core API, never core → package internals).
 - Installation/configuration and environment detection (one-page, key-free).
 - Administrator identities, permissions (owner/admin/editor + extensible
   capabilities), sessions, recovery, and TOTP MFA.
-- Basic pages, content sections, menus, previews, revision recovery.
+- Basic pages, content sections, menus, previews, revision recovery, and
+  reusable FAQ/gallery/testimonial/service/team/CTA presentation blocks.
 - Basic media library and protected storage services.
 - Theme rendering, design tokens, assets, localization infrastructure.
 - Basic metadata, redirects, sitemap, indexing controls.
@@ -27,8 +28,21 @@ direction (packages → core API, never core → package internals).
   separate security realm.
 - One shared business profile and opt-in, package-scoped inquiry/quotation
   records. Core owns the generic pipeline, assignment, notes, item totals,
-  expiry, and acceptance audit; modules own industry questions, estimation
-  formulas, pricing rules, scheduling, and fulfillment.
+  expiry, acceptance audit, protected attachments, reminder delivery, and
+  integrity-checked document snapshots; modules own industry questions,
+  estimation formulas, document presentation, pricing rules, scheduling, and
+  fulfillment.
+- Opt-in structured service-area coordinates/radius, normalized geocode cache,
+  distance decisions, attributed accessible output, and audited manual
+  overrides. Packages register the server-side geocoding provider and retain
+  provider credentials outside Core storage.
+- Package-declared module theme collections with confined layouts/assets,
+  accessible palettes, Core Media slots, and Core-owned draft/publish/rollback
+  selection state. Packages still own their presentation files.
+- Package-scoped checkout validators with bounded input, safe field errors,
+  manual-review/quote-only outcomes, transaction-time revalidation, and
+  immutable PII-minimized evidence. Packages still own industry capacity and
+  fulfillment rules.
 - Reusable module admin-shell and record-editor contracts. Modules retain
   persistence callbacks and business validation; Core supplies consistent
   permissions, CSRF, filtering, pagination, errors, and accessible controls.
@@ -70,6 +84,7 @@ tools, or industry-specific tables and workflows.
   surface with `commerce()` or `coreFeature()`; undeclared features remain
   unreachable and absent from navigation. Gateway integrations, product
   meaning, tax rules, and industry fulfillment logic remain packages.
-- Generic inquiry intake and itemized quotes: core. Lead scoring, campaigns,
-  industry estimators, proposal templates, contracts, e-signature, and sales
-  automation remain packages or external integrations.
+- Generic inquiry intake and itemized quotes: core. Core may preserve a
+  sanitized, integrity-checked snapshot rendered by a package, but proposal
+  templates, contract rules, lead scoring, campaigns, industry estimators,
+  e-signature, and sales automation remain packages or external integrations.

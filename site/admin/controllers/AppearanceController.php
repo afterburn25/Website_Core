@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Admin\Controllers;
 
 use Core\Branding\BrandAssets;
+use Core\Appearance\ModuleThemeCollections;
 use Core\Http\Request;
 use Core\Http\Response;
 use Core\Media\MediaService;
@@ -49,6 +50,24 @@ final class AppearanceController extends Controller
                 if (array_key_exists($key, $submitted)) $branding[$key] = (string) $submitted[$key];
             }
         }
+        $moduleThemes = $this->c->get(ModuleThemeCollections::class);
+        $themeQuery = mb_strtolower(trim($r->string('theme_q')));
+        $collections = $moduleThemes->collections();
+        if ($themeQuery !== '') {
+            foreach ($collections as $package => &$collection) {
+                $collection['variants'] = array_filter(
+                    $collection['variants'],
+                    static fn (array $variant): bool => str_contains(
+                        mb_strtolower($collection['label'] . ' ' . $variant['name'] . ' ' . $variant['description']),
+                        $themeQuery,
+                    ),
+                );
+                if ($collection['variants'] === []) unset($collections[$package]);
+            }
+            unset($collection);
+        }
+        $currentCollections = [];
+        foreach (array_keys($collections) as $package) $currentCollections[$package] = $moduleThemes->current($package);
         return $this->page($r, 'appearance/index', [
             'themes' => $themes,
             'active' => (string) $this->settings()->get('theme.active', 'base'),
@@ -69,6 +88,9 @@ final class AppearanceController extends Controller
                     ?? $this->settings()->get('social.' . $platform . '.url', '')),
             ], $brand->socialDefinitions(), array_keys($brand->socialDefinitions())),
             'socialPlacement' => (string) ($submitted['social_placement'] ?? $brand->socialPlacement()),
+            'moduleThemeCollections' => $collections,
+            'moduleThemeCurrent' => $currentCollections,
+            'themeQuery' => $themeQuery,
         ], 'Appearance');
     }
 
@@ -180,6 +202,39 @@ final class AppearanceController extends Controller
         }
         $this->c->get(\Core\Audit\AuditLog::class)->record('appearance.branding', $u->id, ['media' => array_values(array_filter($ids))]);
         $this->flash('ok', 'Brand assets, social profiles, footer identity, and design tokens saved.');
+        return $this->redirect($r, '/admin/appearance');
+    }
+
+    public function moduleTheme(Request $r): Response
+    {
+        $u = $this->user();
+        if (!$u || !$this->auth()->has($u, 'appearance.manage')) return $this->forbidden();
+        $package = $r->string('package');
+        $operation = $r->string('operation');
+        $service = $this->c->get(ModuleThemeCollections::class);
+        if (!isset($service->collections()[$package])) {
+            $this->flash('error', 'Module theme collection is unavailable.');
+            return $this->redirect($r, '/admin/appearance');
+        }
+        [$ok, $error] = match ($operation) {
+            'draft' => $service->saveDraft(
+                $package,
+                $r->string('variant'),
+                $r->string('palette'),
+                is_array($r->input('media', [])) ? $r->input('media', []) : [],
+                $u->id,
+            ),
+            'publish' => $service->publish($package, $u->id),
+            'rollback' => $service->rollback($package, $u->id),
+            default => [false, 'Unknown module theme operation.'],
+        };
+        $this->flash($ok ? 'ok' : 'error', $ok
+            ? match ($operation) {
+                'draft' => 'Module theme draft saved. Preview it before publishing.',
+                'publish' => 'Module theme published. Content, navigation, and selected Media were preserved.',
+                default => 'Previous module theme restored.',
+            }
+            : (string) $error);
         return $this->redirect($r, '/admin/appearance');
     }
 

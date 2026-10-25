@@ -8,25 +8,45 @@ use Core\Events\Dispatcher;
 
 final class OrderService
 {
-    public function __construct(private Connection $db, private Dispatcher $events) {}
+    public function __construct(
+        private Connection $db,
+        private Dispatcher $events,
+        private ?CheckoutValidation $checkoutValidation = null,
+    ) {}
 
-    /** @return array{0:?array,1:?string} */
+    /** @return array{0:?array,1:?string,2:array{outcome:string,errors:array,message:string,snapshot:array,elapsed_ms:int}} */
     public function place(array $checkout, array $cart, string $sourcePackage, array $allowedFulfillment, array $paymentMethods): array
     {
+        $neutralValidation = ['outcome' => 'ok', 'errors' => [], 'message' => '', 'snapshot' => [], 'elapsed_ms' => 0];
         $name = trim(strip_tags((string) ($checkout['name'] ?? '')));
         $email = strtolower(trim((string) ($checkout['email'] ?? '')));
         $phone = trim(strip_tags((string) ($checkout['phone'] ?? '')));
         $fulfillment = (string) ($checkout['fulfillment'] ?? '');
         $payment = (string) ($checkout['payment_method'] ?? '');
-        if ($name === '' || mb_strlen($name) > 190) return [null, 'Enter your name.'];
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190) return [null, 'Enter a valid email address.'];
-        if (!in_array($fulfillment, $allowedFulfillment, true)) return [null, 'Select an available fulfillment method.'];
-        if (!isset($paymentMethods[$payment])) return [null, 'Select an available payment method.'];
-        if (empty($cart['items'])) return [null, 'Your cart is empty.'];
+        if ($name === '' || mb_strlen($name) > 190) return [null, 'Enter your name.', $neutralValidation];
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190) return [null, 'Enter a valid email address.', $neutralValidation];
+        if (!in_array($fulfillment, $allowedFulfillment, true)) return [null, 'Select an available fulfillment method.', $neutralValidation];
+        if (!isset($paymentMethods[$payment])) return [null, 'Select an available payment method.', $neutralValidation];
+        if (empty($cart['items'])) return [null, 'Your cart is empty.', $neutralValidation];
         $sourcePackage = trim($sourcePackage);
 
+        $validationContext = ['checkout' => $checkout, 'cart' => $cart];
+        $validation = $this->checkoutValidation?->validate($sourcePackage, $validationContext, false)
+            ?? $neutralValidation;
+        if ($validation['outcome'] !== 'ok') {
+            $this->checkoutValidation?->record($sourcePackage, $validationContext, $validation);
+            return [null, $validation['message'] ?: (string) ($validation['errors']['_form'] ?? 'Checkout requirements were not met.'), $validation];
+        }
         try {
-            $order = $this->db->transaction(function () use ($checkout, $cart, $sourcePackage, $name, $email, $phone, $fulfillment, $payment): array {
+            $order = $this->db->transaction(function () use ($checkout, $cart, $sourcePackage, $name, $email, $phone, $fulfillment, $payment, $validationContext, $neutralValidation, &$validation): array {
+                // Module rules are rerun inside the order transaction. Client
+                // results and the earlier preflight are never trusted.
+                $validation = $this->checkoutValidation?->validate($sourcePackage, $validationContext, true)
+                    ?? $neutralValidation;
+                $validationId = $this->checkoutValidation?->record($sourcePackage, $validationContext, $validation);
+                if ($validation['outcome'] !== 'ok') {
+                    throw new \DomainException($validation['message'] ?: (string) ($validation['errors']['_form'] ?? 'Checkout requirements were not met.'));
+                }
                 foreach ($cart['items'] as $line) {
                     $p = $line['product'];
                     if ((int) $p['track_inventory'] === 1) {
@@ -78,13 +98,19 @@ final class OrderService
                         if ($updated !== 1) throw new \DomainException($p['name'] . ' no longer has enough stock.');
                     }
                 }
+                if ($validationId !== null) $this->checkoutValidation?->attachToOrder($validationId, $id, $sourcePackage);
                 return ['id' => $id, 'order_number' => $number, 'payment_method' => $payment, 'total_minor' => $cart['subtotal'], 'currency' => $cart['currency']];
             });
         } catch (\DomainException $e) {
-            return [null, $e->getMessage()];
+            if ($validation['outcome'] !== 'ok') {
+                $this->checkoutValidation?->record($sourcePackage, $validationContext, $validation);
+            }
+            return [null, $e->getMessage(), $validation];
         }
-        $this->events->dispatch('commerce.order.placed', $order);
-        return [$order, null];
+        $this->events->dispatch('commerce.order.placed', $order + [
+            'validation_outcome' => $validation['outcome'],
+        ]);
+        return [$order, null, $validation];
     }
 
     public function all(string $sourcePackage, string $status = ''): array

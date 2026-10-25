@@ -35,19 +35,6 @@ final class PageBlocks
                 'image_id' => $text('Image media ID', 'media'),
                 'layout' => ['label' => 'Image position', 'type' => 'select', 'options' => ['left','right']],
             ]],
-            'gallery' => ['label' => 'Gallery', 'fields' => [
-                'heading' => $text('Heading'), 'media_ids' => $text('Media IDs (comma separated)', 'media_list'),
-            ]],
-            'cta' => ['label' => 'Call to action', 'fields' => [
-                'heading' => $text('Heading'), 'body' => $text('Text', 'richtext'),
-                'button_label' => $text('Button label'), 'button_url' => $text('Button URL', 'url'),
-            ]],
-            'testimonials' => ['label' => 'Testimonials', 'fields' => [
-                'heading' => $text('Heading'), 'items' => $text('One quote | name per line', 'lines'),
-            ]],
-            'faq' => ['label' => 'FAQ', 'fields' => [
-                'heading' => $text('Heading'), 'items' => $text('One question | answer per line', 'lines'),
-            ]],
             'stats' => ['label' => 'Statistics', 'fields' => [
                 'heading' => $text('Heading'), 'items' => $text('One value | label per line', 'lines'),
             ]],
@@ -64,6 +51,7 @@ final class PageBlocks
                 'size' => ['label' => 'Size', 'type' => 'select', 'options' => ['small','medium','large']],
             ]],
         ];
+        $defs = array_replace($defs, PresentationBlocks::definitions());
         foreach ($defs as $type => &$def) {
             $def['renderer'] = null;
             $def['package'] = 'core';
@@ -197,11 +185,34 @@ final class PageBlocks
             return '<section class="wc-block wc-' . e_attr(str_replace('_','-',$type)) . '">' . $heading . '<div class="wc-image-grid">' . $images . '</div></section>';
         }
         if ($type === 'cta') return '<section class="wc-block wc-cta">' . $heading . $body . $this->button($d, $basePath) . '</section>';
+        if ($type === 'services') {
+            $items = '';
+            foreach (PresentationBlocks::rows((string) ($d['items'] ?? ''), 3) as [$name, $description, $url]) {
+                if ($name === '') continue;
+                $link = $this->safeUrl($url);
+                if (str_starts_with($link, '/')) $link = rtrim($basePath, '/') . $link;
+                $title = $link !== ''
+                    ? '<h3><a href="' . e_url($link) . '">' . e($name) . '</a></h3>'
+                    : '<h3>' . e($name) . '</h3>';
+                $items .= '<article>' . $title . '<p>' . e($description) . '</p></article>';
+            }
+            return '<section class="wc-block wc-services">' . $heading . (string) ($d['intro'] ?? '')
+                . '<div class="wc-item-grid">' . $items . '</div></section>';
+        }
+        if ($type === 'team') {
+            $items = '';
+            foreach (PresentationBlocks::rows((string) ($d['items'] ?? ''), 3) as [$name, $role, $bio]) {
+                if ($name === '') continue;
+                $items .= '<article><h3>' . e($name) . '</h3>'
+                    . ($role !== '' ? '<p class="wc-team-role">' . e($role) . '</p>' : '')
+                    . ($bio !== '' ? '<p>' . e($bio) . '</p>' : '') . '</article>';
+            }
+            return '<section class="wc-block wc-team">' . $heading . (string) ($d['intro'] ?? '')
+                . '<div class="wc-item-grid">' . $items . '</div></section>';
+        }
         if (in_array($type, ['testimonials','faq','stats'], true)) {
             $items = '';
-            foreach (preg_split('/\R/', (string) ($d['items'] ?? '')) ?: [] as $line) {
-                if (trim($line) === '') continue;
-                [$a,$b] = array_pad(array_map('trim', explode('|', $line, 2)), 2, '');
+            foreach (PresentationBlocks::rows((string) ($d['items'] ?? ''), 2) as [$a, $b]) {
                 $items .= $type === 'faq'
                     ? '<details><summary>' . e($a) . '</summary><p>' . e($b) . '</p></details>'
                     : '<article><strong>' . e($a) . '</strong><span>' . e($b) . '</span></article>';

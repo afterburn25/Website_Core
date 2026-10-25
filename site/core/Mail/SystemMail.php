@@ -76,6 +76,36 @@ final class SystemMail
         );
     }
 
+    /**
+     * Verify an SMTP handshake and optional authentication without sending mail.
+     * Posted values may be supplied so an administrator can test before saving.
+     *
+     * @param array{host?:string,port?:int,secure?:string,username?:string,password?:string} $configuration
+     * @return array{0:bool,1:?string}
+     */
+    public function testSmtpConnection(array $configuration = []): array
+    {
+        $config = $this->smtpConfiguration($configuration);
+        if ($config['host'] === '') return [false, 'smtp.host not configured'];
+        if ($config['port'] < 1 || $config['port'] > 65535) return [false, 'invalid SMTP port'];
+        if (!in_array($config['secure'], ['', 'tls', 'ssl'], true)) return [false, 'invalid SMTP encryption mode'];
+
+        $mailer = new PHPMailer(true);
+        try {
+            $this->configureSmtp($mailer, $config);
+            if (!$mailer->smtpConnect()) {
+                $error = $mailer->ErrorInfo !== '' ? $mailer->ErrorInfo : 'SMTP handshake was rejected';
+                $mailer->smtpClose();
+                return [false, $error];
+            }
+            $mailer->smtpClose();
+            return [true, null];
+        } catch (\Throwable $e) {
+            if ($mailer->getSMTPInstance()->connected()) $mailer->smtpClose();
+            return [false, $e->getMessage()];
+        }
+    }
+
     /** Drain up to $limit queued messages through the configured transport. */
     public function flush(int $limit = 10): int
     {
@@ -141,24 +171,11 @@ final class SystemMail
             if ($transport === 'mail') {
                 $mailer->isMail();
             } else {
-                $mailer->isSMTP();
-                $mailer->Host = (string) $this->settings->get('smtp.host', '');
-                if ($mailer->Host === '') {
+                $smtp = $this->smtpConfiguration();
+                if ($smtp['host'] === '') {
                     return [false, 'smtp.host not configured'];
                 }
-                $mailer->Port = (int) $this->settings->get('smtp.port', '587') ?: 587;
-                $secure = (string) $this->settings->get('smtp.secure', 'tls');
-                if ($secure !== '') {
-                    $mailer->SMTPSecure = $secure;
-                }
-                $user = (string) $this->settings->get('smtp.user', '');
-                if ($user !== '') {
-                    $mailer->SMTPAuth = true;
-                    $mailer->Username = $user;
-                    $mailer->Password = (string) $this->settings->get('smtp.password', '');
-                }
-                $mailer->Timeout = 15;
-                $mailer->SMTPKeepAlive = false;
+                $this->configureSmtp($mailer, $smtp);
             }
             $mailer->setFrom($from, $fromName);
             $mailer->addAddress($to);
@@ -169,5 +186,34 @@ final class SystemMail
         } catch (\Throwable $e) {
             return [false, $e->getMessage()];
         }
+    }
+
+    /** @return array{host:string,port:int,secure:string,username:string,password:string} */
+    private function smtpConfiguration(array $overrides = []): array
+    {
+        return [
+            'host' => trim((string) ($overrides['host'] ?? $this->settings->get('smtp.host', ''))),
+            'port' => (int) ($overrides['port'] ?? $this->settings->get('smtp.port', 587) ?: 587),
+            'secure' => (string) ($overrides['secure'] ?? $this->settings->get('smtp.secure', 'tls')),
+            'username' => (string) ($overrides['username'] ?? $this->settings->get('smtp.user', '')),
+            'password' => (string) ($overrides['password'] ?? $this->settings->get('smtp.password', '')),
+        ];
+    }
+
+    /** @param array{host:string,port:int,secure:string,username:string,password:string} $config */
+    private function configureSmtp(PHPMailer $mailer, array $config): void
+    {
+        $mailer->isSMTP();
+        $mailer->Host = $config['host'];
+        $mailer->Port = $config['port'];
+        $mailer->SMTPSecure = $config['secure'];
+        $mailer->SMTPAutoTLS = $config['secure'] !== '';
+        $mailer->SMTPAuth = $config['username'] !== '';
+        if ($mailer->SMTPAuth) {
+            $mailer->Username = $config['username'];
+            $mailer->Password = $config['password'];
+        }
+        $mailer->Timeout = 15;
+        $mailer->SMTPKeepAlive = false;
     }
 }

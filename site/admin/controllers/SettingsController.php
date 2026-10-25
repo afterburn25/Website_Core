@@ -24,7 +24,7 @@ final class SettingsController extends Controller
         'mail.from'      => ['label' => 'From address', 'type' => 'email'],
         'smtp.host'      => ['label' => 'SMTP host', 'type' => 'text'],
         'smtp.port'      => ['label' => 'SMTP port', 'type' => 'number'],
-        'smtp.secure'    => ['label' => 'SMTP encryption (tls | ssl | blank)', 'type' => 'text'],
+        'smtp.secure'    => ['label' => 'SMTP encryption', 'type' => 'text'],
         'smtp.user'      => ['label' => 'SMTP username', 'type' => 'text'],
     ];
 
@@ -49,6 +49,36 @@ final class SettingsController extends Controller
                 }
                 return $this->redirect($r, '/admin/settings');
             }
+            if ($action === 'test_smtp') {
+                $host = trim($r->string('smtp_host'));
+                $secure = $r->string('smtp_secure');
+                $port = $this->smtpPort($r->string('smtp_port'), $secure);
+                $smtpErrors = [];
+                if ($r->string('mail_transport') !== 'smtp') $smtpErrors[] = 'Choose SMTP server as the mail transport.';
+                if ($host === '' || preg_match('/[\s\/]/', $host)) $smtpErrors[] = 'Enter a valid SMTP hostname.';
+                if ($port < 1 || $port > 65535) $smtpErrors[] = 'SMTP port must be between 1 and 65535.';
+                if (!in_array($secure, ['', 'tls', 'ssl'], true)) $smtpErrors[] = 'Choose a supported SMTP encryption mode.';
+                $username = $r->string('smtp_user');
+                $password = $r->string('smtp_password');
+                if ($username !== '' && $password === '') $password = (string) $settings->get('smtp.password', '');
+                if ($username !== '' && $password === '') $smtpErrors[] = 'Enter the SMTP password for this username.';
+                $_SESSION['_wc_settings_input'] = array_filter($r->post, static fn (string $key): bool => $key !== '_csrf' && $key !== 'smtp_password', ARRAY_FILTER_USE_KEY);
+                if ($smtpErrors !== []) {
+                    $this->flash('error', implode(' ', $smtpErrors) . ' Your non-secret entries are still below.');
+                } else {
+                    [$connected, $error] = $this->c->get(\Core\Mail\SystemMail::class)->testSmtpConnection([
+                        'host' => $host, 'port' => $port, 'secure' => $secure,
+                        'username' => $username, 'password' => $password,
+                    ]);
+                    $this->audit('settings.smtp_connection_tested', [
+                        'host' => $host, 'port' => $port, 'secure' => $secure, 'connected' => $connected,
+                    ]);
+                    $this->flash($connected ? 'ok' : 'error', $connected
+                        ? 'SMTP connection and authentication succeeded. No message was sent and settings were not saved.'
+                        : 'SMTP connection failed: ' . ($error ?? 'unknown connection error'));
+                }
+                return $this->redirect($r, '/admin/settings');
+            }
             if ($action === 'rotate_cron') {
                 $settings->set('system.cron_token', bin2hex(random_bytes(24)));
                 $this->audit('settings.cron_token_rotated');
@@ -68,7 +98,7 @@ final class SettingsController extends Controller
             if ($transport !== 'none' && !filter_var($from, FILTER_VALIDATE_EMAIL)) $errors[] = 'A valid From address is required when mail is enabled.';
             if ($transport === 'smtp') {
                 if (trim($r->string('smtp_host')) === '' || preg_match('/[\s\/]/', $r->string('smtp_host'))) $errors[] = 'Enter a valid SMTP hostname.';
-                $port = (int) $r->string('smtp_port', '0');
+                $port = $this->smtpPort($r->string('smtp_port'), $r->string('smtp_secure'));
                 if ($port < 1 || $port > 65535) $errors[] = 'SMTP port must be between 1 and 65535.';
                 if (!in_array($r->string('smtp_secure'), ['', 'tls', 'ssl'], true)) $errors[] = 'Choose a supported SMTP encryption mode.';
                 if ($r->string('smtp_user') !== '' && $r->string('smtp_password') === '' && $settings->get('smtp.password', '') === '') $errors[] = 'Enter the SMTP password for this username.';
@@ -88,7 +118,7 @@ final class SettingsController extends Controller
             // browsers and must never erase a working SMTP configuration.
             if ($transport === 'smtp') {
                 foreach (['smtp.host', 'smtp.port', 'smtp.secure', 'smtp.user'] as $key) {
-                    $settings->set($key, $r->string(str_replace('.', '_', $key)));
+                    $settings->set($key, $key === 'smtp.port' ? $port : $r->string(str_replace('.', '_', $key)));
                 }
                 $pw = $r->string('smtp_password');
                 if ($pw !== '') {
@@ -134,6 +164,12 @@ final class SettingsController extends Controller
             'hasSmtpPassword' => $settings->get('smtp.password', '') !== '',
             'cronToken' => (string) $settings->get('system.cron_token', ''),
         ], 'Settings');
+    }
+
+    private function smtpPort(string $value, string $secure): int
+    {
+        if ($value !== '') return (int) $value;
+        return $secure === 'ssl' ? 465 : ($secure === 'tls' ? 587 : 25);
     }
 
     /**

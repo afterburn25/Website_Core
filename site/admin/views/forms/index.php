@@ -43,10 +43,9 @@ $newCount = array_sum(array_map(static fn (array $form): int => (int) ($form['ne
   </section>
 
   <aside class="forms-guide">
-    <span class="section-kicker">Three-step workflow</span>
-    <h2>From form to follow-up</h2>
-    <ol><li><strong>Build</strong><span>Add only the information your team needs.</span></li><li><strong>Place</strong><span>Choose the form from a page’s Form block.</span></li><li><strong>Respond</strong><span>Use the inbox, status tools, and exports to process enquiries.</span></li></ol>
-    <p>Pausing a form removes it from public pages without deleting its settings or submission history.</p>
+    <div><span class="section-kicker">How forms work</span><h2>From idea to follow-up</h2><p>Create the form here, place it on a page, then handle every response in the shared inbox.</p></div>
+    <ol><li><strong>Build</strong><span>Choose a starter or add only the fields your team needs.</span></li><li><strong>Place</strong><span>Open a page and select this form in its Form block.</span></li><li><strong>Respond</strong><span>Review, track, and export entries from the inbox.</span></li></ol>
+    <p>Pausing a form hides it from visitors without deleting its settings or submission history.</p>
   </aside>
 </div>
 
@@ -55,14 +54,15 @@ $newCount = array_sum(array_map(static fn (array $form): int => (int) ($form['ne
     <div><span class="section-kicker"><?= $isEditing ? 'Form #' . $editingId : 'New form' ?></span><h2><?= $isEditing ? 'Edit “' . e((string) $editing['name']) . '”' : 'Build a form' ?></h2><p class="card-subtitle">Configure the visitor experience, internal notification, and response fields.</p></div>
     <?php if ($isEditing): ?><a class="btn secondary" href="<?= e_attr($basePath) ?>/admin/forms#form-editor">Create another</a><?php endif; ?>
   </div>
+  <nav class="form-progress-nav" aria-label="Form-building workflow"><a href="#form-setup"><span>1</span><strong>Set up</strong><small>Name, delivery, confirmation</small></a><a href="#form-fields"><span>2</span><strong>Add fields</strong><small>Questions visitors answer</small></a><a href="#form-save"><span>3</span><strong>Save and place</strong><small>Publish with a page Form block</small></a></nav>
   <form method="post" action="<?= e_attr($basePath) ?>/admin/forms/save" data-busy-label="Saving form…" data-protect-unsaved>
     <?= $csrf->field() ?>
     <input type="hidden" name="id" value="<?= $editingId ?>">
     <input type="hidden" data-form-fields-json name="fields_json" value="<?= e_attr(json_encode($editingFields, JSON_UNESCAPED_SLASHES)) ?>">
 
-    <div class="form-config-grid">
+    <div class="form-config-grid" id="form-setup">
       <section class="form-settings-panel" aria-labelledby="form-settings-title">
-        <div class="panel-heading"><span class="step-number">01</span><div><h3 id="form-settings-title">Form settings</h3><p>Name the form and control its public availability.</p></div></div>
+        <div class="panel-heading"><span class="panel-icon" aria-hidden="true">Aa</span><div><h3 id="form-settings-title">Form basics</h3><p>Name the form and control its public availability.</p></div></div>
         <label for="form-name">Internal form name</label>
         <input id="form-name" name="name" maxlength="190" value="<?= e_attr($editing['name'] ?? '') ?>" placeholder="Request a quote" required>
         <p class="field-note">Administrators see this name; visitors do not.</p>
@@ -73,7 +73,7 @@ $newCount = array_sum(array_map(static fn (array $form): int => (int) ($form['ne
       </section>
 
       <section class="form-settings-panel" aria-labelledby="form-notification-title">
-        <div class="panel-heading"><span class="step-number">02</span><div><h3 id="form-notification-title">Notification</h3><p>Optionally queue an email when a response arrives.</p></div></div>
+        <div class="panel-heading"><span class="panel-icon" aria-hidden="true">@</span><div><h3 id="form-notification-title">Email alerts</h3><p>Optionally notify the right person when a response arrives.</p></div></div>
         <label for="form-recipient">Notification recipient</label>
         <input id="form-recipient" type="email" maxlength="190" name="recipient" value="<?= e_attr($editing['recipient'] ?? '') ?>" placeholder="hello@example.com">
         <p class="field-note">Leave blank to store responses without email alerts.</p>
@@ -82,17 +82,18 @@ $newCount = array_sum(array_map(static fn (array $form): int => (int) ($form['ne
       </section>
 
       <section class="form-settings-panel" aria-labelledby="form-response-title">
-        <div class="panel-heading"><span class="step-number">03</span><div><h3 id="form-response-title">Visitor response</h3><p>Confirm that the submission was received.</p></div></div>
+        <div class="panel-heading"><span class="panel-icon" aria-hidden="true">✓</span><div><h3 id="form-response-title">Thank-you message</h3><p>Tell visitors their submission was received.</p></div></div>
         <label for="form-success">Success message</label>
         <textarea id="form-success" maxlength="500" rows="4" name="success_message"><?= e($editing['success_message'] ?? 'Thank you. Your message has been received.') ?></textarea>
       </section>
     </div>
 
-    <section class="form-builder-panel" aria-labelledby="form-fields-title">
+    <section class="form-builder-panel" id="form-fields" aria-labelledby="form-fields-title">
       <div class="card-heading">
-        <div><span class="section-kicker">Visitor fields</span><h3 id="form-fields-title">Build the response</h3><p class="card-subtitle">Drag fields into order or use the arrow buttons. Public preview updates as you work.</p></div>
+        <div><span class="section-kicker">Step 2 of 3 · Visitor fields</span><h3 id="form-fields-title">Build what visitors will answer</h3><p class="card-subtitle">Add questions, drag them into order, and check the live preview.</p></div>
         <div class="field-add-control"><label class="sr-only" for="new-field-type">New field type</label><select id="new-field-type" data-new-field-type><option value="text">Short text</option><option value="email">Email address</option><option value="tel">Phone number</option><option value="number">Number</option><option value="date">Date</option><option value="textarea">Long message</option><option value="select">Dropdown choice</option><option value="checkbox">Checkbox / consent</option></select><button type="button" class="btn" data-add-form-field>Add field</button></div>
       </div>
+      <div class="form-quick-start" data-form-quick-start><div><strong>Start with a useful field set</strong><span>Choose a starting point, then rename, remove, or reorder anything.</span></div><div class="button-row"><button type="button" class="btn small secondary" data-form-template="contact">Contact</button><button type="button" class="btn small secondary" data-form-template="quote">Quote request</button><button type="button" class="btn small secondary" data-form-template="event">Event enquiry</button></div></div>
       <div class="form-builder-layout">
         <div>
           <div data-form-fields class="form-fields-list" aria-live="polite"></div>
@@ -103,6 +104,6 @@ $newCount = array_sum(array_map(static fn (array $form): int => (int) ($form['ne
       <p class="sr-only" data-form-builder-status aria-live="polite"></p>
     </section>
 
-    <div class="action-bar form-save-bar"><span><strong data-form-field-count>0 fields</strong><small>Field names become column headings in exports and notification emails.</small></span><div class="button-row"><?php if ($isEditing): ?><a class="btn secondary" href="<?= e_attr($basePath) ?>/admin/forms">Discard changes</a><?php endif; ?><button class="btn">Save form</button></div></div>
+    <div class="action-bar form-save-bar" id="form-save"><span><strong><b>Step 3 of 3</b> · <span data-form-field-count>0 fields</span></strong><small>Save the form, then add a Form block to the page where it should appear.</small></span><div class="button-row"><?php if ($isEditing): ?><a class="btn secondary" href="<?= e_attr($basePath) ?>/admin/forms">Discard changes</a><?php endif; ?><button class="btn">Save form</button></div></div>
   </form>
 </section>

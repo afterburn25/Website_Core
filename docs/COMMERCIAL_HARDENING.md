@@ -60,7 +60,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | code complete — 2.0.26; packaged-browser check pending |
 | 14 | Installer and reinstall/upgrade | Single-page polish, database test, HTTPS, safe writable-path provisioning, existing DB handling, cleanup and manual recheck | code complete — 2.0.27; packaged-host check pending |
 | 15 | Industry-module contract | Module admin category, default navigation takeover, shared services, uninstall/reinstall, compatibility and isolated failure | code complete — 2.0.28; packaged-module check pending |
-| 16 | Final cross-browser release gate | Chrome/Edge/Firefox/Safari where available, mobile breakpoints, accessibility review, performance/load, clean-host install and oldest-supported upgrade | in progress — hosted recovery repairs shipped in 2.0.29–2.0.30 |
+| 16 | Final cross-browser release gate | Chrome/Edge/Firefox/Safari where available, mobile breakpoints, accessibility review, performance/load, clean-host install and oldest-supported upgrade | in progress — hosted recovery and workflow repairs shipped in 2.0.29–2.0.31 |
 
 ## 2.0.29 — Hosted acceptance repair
 
@@ -73,7 +73,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       public pages, no-rewrite 404, contact handling, quote review, keyboard
       entry, and persistent admin navigation state.
 - [x] Deployed 2.0.29 and verified live MariaDB backup creation/inspection.
-- [ ] Deploy 2.0.30 and verify download/restore/update rollback after the live
+- [ ] Deploy 2.0.31 and verify download/restore/update rollback after the live
       restore exposed a panel-owned document-root file.
 - [ ] Complete root-domain, Landscaping, non-Chrome browser, mobile assistive-
       technology, installer/reinstall, performance, and destructive lifecycle
@@ -90,6 +90,17 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       responses have focused regression coverage.
 - [ ] Deploy to the shared-host target and repeat create, download, restore,
       integrity, and update-rollback acceptance before module lifecycle tests.
+
+## 2.0.31 — Administration workflow acceptance
+
+- [x] Managed-site fields use a stable responsive grid.
+- [x] 404 resolution records use self-contained responsive cards.
+- [x] Missing MFA on the signed-in account has a direct setup action.
+- [x] SMTP encryption selects standard ports while preserving custom values.
+- [x] SMTP handshake/authentication can be tested without saving or sending.
+- [x] Forms uses one clear three-step workflow and offers editable starter sets.
+- [ ] Verify these surfaces in the uploaded shared-host package before final
+      cross-browser and assistive-technology release gates.
 
 ## 2.0.27 — Installer and reinstall/upgrade acceptance
 

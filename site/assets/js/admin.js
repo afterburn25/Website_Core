@@ -201,6 +201,19 @@
     refresh();
   });
 
+  const smtpSecure = document.querySelector('[data-smtp-secure]');
+  const smtpPort = document.querySelector('[data-smtp-port]');
+  if (smtpSecure && smtpPort) {
+    const standardPorts = ['', '25', '465', '587'];
+    const syncSmtpPort = () => {
+      if (!standardPorts.includes(smtpPort.value.trim())) return;
+      smtpPort.value = smtpSecure.value === 'ssl' ? '465' : (smtpSecure.value === 'tls' ? '587' : '25');
+      smtpPort.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    smtpSecure.addEventListener('change', syncSmtpPort);
+    if (smtpPort.value.trim() === '') syncSmtpPort();
+  }
+
   document.querySelectorAll('[data-auto-submit]').forEach((control) => {
     control.addEventListener('change', () => {
       const form = control.closest('form');
@@ -556,11 +569,34 @@
     const preview = builder.querySelector('[data-form-preview]');
     const typePicker = builder.querySelector('[data-new-field-type]');
     const add = builder.querySelector('[data-add-form-field]');
+    const quickStart = builder.querySelector('[data-form-quick-start]');
     if (!form || !json || !list || !add) return;
 
     const types = {
       text: 'Short text', email: 'Email address', tel: 'Phone number', number: 'Number',
       date: 'Date', textarea: 'Long message', select: 'Dropdown choice', checkbox: 'Checkbox / consent',
+    };
+    const templates = {
+      contact: [
+        { label: 'Name', name: 'name', type: 'text', required: true, autocomplete: 'name' },
+        { label: 'Email address', name: 'email', type: 'email', required: true, autocomplete: 'email' },
+        { label: 'Phone number', name: 'phone', type: 'tel', required: false, autocomplete: 'tel' },
+        { label: 'How can we help?', name: 'message', type: 'textarea', required: true },
+      ],
+      quote: [
+        { label: 'Name', name: 'name', type: 'text', required: true, autocomplete: 'name' },
+        { label: 'Email address', name: 'email', type: 'email', required: true, autocomplete: 'email' },
+        { label: 'Phone number', name: 'phone', type: 'tel', required: true, autocomplete: 'tel' },
+        { label: 'Service needed', name: 'service', type: 'text', required: true },
+        { label: 'Project details', name: 'details', type: 'textarea', required: true },
+      ],
+      event: [
+        { label: 'Name', name: 'name', type: 'text', required: true, autocomplete: 'name' },
+        { label: 'Email address', name: 'email', type: 'email', required: true, autocomplete: 'email' },
+        { label: 'Event date', name: 'event_date', type: 'date', required: true },
+        { label: 'Estimated guest count', name: 'guest_count', type: 'number', required: false },
+        { label: 'Tell us about the event', name: 'event_details', type: 'textarea', required: true },
+      ],
     };
     const autocomplete = {
       '': 'No browser suggestion', name: 'Full name', 'given-name': 'First name',
@@ -599,8 +635,20 @@
       json.value = JSON.stringify(serialized());
       if (initialized) json.dispatchEvent(new Event('input', { bubbles: true }));
       if (empty) empty.hidden = fields.length > 0;
+      if (quickStart) quickStart.hidden = fields.length > 0;
       if (count) count.textContent = `${fields.length} field${fields.length === 1 ? '' : 's'}`;
     };
+    builder.querySelectorAll('[data-form-template]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const recipe = templates[button.dataset.formTemplate];
+        if (!recipe || fields.length) return;
+        fields = recipe.map((field) => ({
+          options: [], placeholder: '', help: '', autocomplete: '', ...field,
+        }));
+        announce(`${button.textContent.trim()} starter added with ${fields.length} fields.`);
+        render();
+      });
+    });
     const previewField = (field) => {
       const wrap = document.createElement('div');
       wrap.className = 'preview-form-field';

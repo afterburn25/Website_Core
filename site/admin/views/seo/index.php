@@ -9,6 +9,7 @@ $errorCount = array_sum(array_map(
     $audits
 ));
 $formatSeen = static function (mixed $value): string {
+    if (trim((string) $value) === '') return 'Never';
     $timestamp = strtotime((string) $value);
     return $timestamp === false ? (string) $value : date('M j, Y · g:i a', $timestamp);
 };
@@ -40,45 +41,40 @@ $formatSeen = static function (mixed $value): string {
             <span>Core assets and administration routes are excluded so this report stays focused on visitor-facing links.</span>
         </div>
     <?php else: ?>
-        <div class="responsive-table">
-            <table>
-                <thead><tr><th>Missing path</th><th>Traffic</th><th>Last seen</th><th>Resolution</th></tr></thead>
-                <tbody>
-                <?php foreach ($missing as $row): ?>
-                    <tr>
-                        <td>
-                            <code class="seo-path"><?= e($row['path']) ?></code>
-                            <?php if ($row['last_referrer']): ?>
-                                <span class="seo-referrer">Linked from <?= e($row['last_referrer']) ?></span>
-                            <?php endif; ?>
-                        </td>
-                        <td><span class="metric-value"><?= number_format((int) $row['hits']) ?></span><span class="metric-label">visit<?= (int) $row['hits'] === 1 ? '' : 's' ?></span></td>
-                        <td><span class="seo-last-seen"><?= e($formatSeen($row['last_seen'])) ?></span></td>
-                        <td>
-                            <form method="post" class="seo-resolution-form">
-                                <?= $csrf->field() ?>
-                                <input type="hidden" name="action" value="redirect">
-                                <input type="hidden" name="source" value="<?= e_attr($row['path']) ?>">
-                                <label class="sr-only" for="redirect-target-<?= e_attr($row['path_hash']) ?>">Redirect destination</label>
-                                <select id="redirect-target-<?= e_attr($row['path_hash']) ?>" name="target" required>
-                                    <option value="">Choose live page…</option>
-                                    <?php foreach ($pages as $page): ?>
-                                        <?php $pagePath = $page['slug'] === 'home' ? '/' : '/' . ltrim((string) $page['slug'], '/'); ?><option value="<?= e_attr($pagePath) ?>"><?= e($page['title']) ?> — <?= e($pagePath) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <button class="btn small" type="submit">Create redirect</button>
-                            </form>
-                            <form method="post" class="seo-dismiss-form">
-                                <?= $csrf->field() ?>
-                                <input type="hidden" name="action" value="dismiss_missing">
-                                <input type="hidden" name="source" value="<?= e_attr($row['path']) ?>">
-                                <button class="text-button" type="submit">Dismiss without redirect</button>
-                            </form>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
+        <div class="seo-missing-list">
+            <?php foreach ($missing as $row): $rowPath = (string) ($row['path'] ?? ''); if ($rowPath === '') continue; $rowKey = (string) ($row['path_hash'] ?? hash('sha256', $rowPath)); ?>
+                <article class="seo-missing-item">
+                    <div class="seo-missing-path">
+                        <span class="section-kicker">Missing path</span>
+                        <code class="seo-path"><?= e($rowPath) ?></code>
+                        <?php if (!empty($row['last_referrer'])): ?><span class="seo-referrer">Linked from <?= e($row['last_referrer']) ?></span><?php endif; ?>
+                    </div>
+                    <dl class="seo-missing-meta">
+                        <div><dt>Traffic</dt><dd><?= number_format((int) ($row['hits'] ?? 0)) ?> visit<?= (int) ($row['hits'] ?? 0) === 1 ? '' : 's' ?></dd></div>
+                        <div><dt>Last seen</dt><dd><?= e($formatSeen($row['last_seen'] ?? '')) ?></dd></div>
+                    </dl>
+                    <div class="seo-missing-resolution">
+                        <form method="post" class="seo-resolution-form">
+                            <?= $csrf->field() ?>
+                            <input type="hidden" name="action" value="redirect">
+                            <input type="hidden" name="source" value="<?= e_attr($rowPath) ?>">
+                            <div><label for="redirect-target-<?= e_attr($rowKey) ?>">Redirect destination</label><select id="redirect-target-<?= e_attr($rowKey) ?>" name="target" required>
+                                <option value="">Choose live page…</option>
+                                <?php foreach ($pages as $page): ?>
+                                    <?php $pagePath = $page['slug'] === 'home' ? '/' : '/' . ltrim((string) $page['slug'], '/'); ?><option value="<?= e_attr($pagePath) ?>"><?= e($page['title']) ?> — <?= e($pagePath) ?></option>
+                                <?php endforeach; ?>
+                            </select></div>
+                            <button class="btn small" type="submit">Create redirect</button>
+                        </form>
+                        <form method="post" class="seo-dismiss-form">
+                            <?= $csrf->field() ?>
+                            <input type="hidden" name="action" value="dismiss_missing">
+                            <input type="hidden" name="source" value="<?= e_attr($rowPath) ?>">
+                            <button class="text-button" type="submit">Dismiss without redirect</button>
+                        </form>
+                    </div>
+                </article>
+            <?php endforeach; ?>
         </div>
     <?php endif; ?>
 </section>

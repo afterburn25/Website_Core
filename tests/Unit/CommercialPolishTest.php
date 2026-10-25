@@ -53,4 +53,28 @@ final class CommercialPolishTest extends TestCase
         self::assertStringContainsString("if (\$transport === 'smtp')", $controller);
         self::assertStringContainsString('must never erase a working SMTP configuration', $controller);
     }
+
+    public function testOperationalFormsAndInsightsHaveDedicatedResponsiveContracts(): void
+    {
+        $agency = (string) file_get_contents(WC_ROOT . '/admin/views/agency/index.php');
+        $seo = (string) file_get_contents(WC_ROOT . '/admin/views/seo/index.php');
+        $settings = (string) file_get_contents(WC_ROOT . '/admin/views/settings/index.php');
+        $security = (string) file_get_contents(WC_ROOT . '/admin/views/security/index.php');
+        $forms = (string) file_get_contents(WC_ROOT . '/admin/views/forms/index.php');
+        $css = (string) file_get_contents(WC_ROOT . '/assets/css/admin.css');
+        $js = (string) file_get_contents(WC_ROOT . '/assets/js/admin.js');
+
+        self::assertStringContainsString('agency-create-grid', $agency);
+        self::assertStringContainsString('agency-create-grid', $css);
+        self::assertStringContainsString('seo-missing-item', $seo);
+        self::assertStringContainsString('seo-missing-item', $css);
+        self::assertStringContainsString('Test SMTP connection', $settings);
+        self::assertStringContainsString('data-smtp-secure', $settings);
+        self::assertStringContainsString("smtpSecure.value === 'ssl' ? '465'", $js);
+        self::assertStringContainsString('MFA not configured', $security);
+        self::assertStringContainsString('Set up MFA on your profile', $security);
+        self::assertStringContainsString('form-progress-nav', $forms);
+        self::assertStringContainsString('data-form-template="quote"', $forms);
+        self::assertStringContainsString('const templates = {', $js);
+    }
 }

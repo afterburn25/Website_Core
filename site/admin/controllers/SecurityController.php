@@ -46,6 +46,7 @@ final class SecurityController extends Controller
                 'disabled' => count($admins) - count($enabled),
             ],
             'canManage' => $this->auth()->has($u, 'settings.manage'),
+            'currentUserId' => $u->id,
         ], 'Security');
     }
 }

@@ -17,7 +17,7 @@ define('WC_CORE', WC_ROOT . '/core');
 define('WC_THEMES', WC_ROOT . '/themes');
 define('WC_MODULES', WC_ROOT . '/modules');
 define('WC_INSTALLED_LOCK', WC_CONFIG . '/installed.lock');
-define('WC_VERSION', '2.0.30');
+define('WC_VERSION', '2.0.31');
 define('WC_API_VERSION', 1);
 // Latest core migration bundled with this code. Installed sites compare this
 // marker with the migration journal during boot so a manual shared-hosting

@@ -1,5 +1,23 @@
 # Session Handoff
 
+## 2.0.31 Admin workflow completion
+
+- The managed-site create form uses a dedicated aligned grid and no longer
+  lets the remote API key field wrap out of line.
+- 404 insights now uses responsive resolution cards instead of an oversized
+  table action column; incomplete legacy rows display `0 visits` and `Never`
+  without collapsing the layout.
+- The Security screen marks the signed-in account and links directly to MFA
+  setup when that account is unprotected.
+- SMTP encryption selects its normal port (TLS/STARTTLS 587, SSL 465, plain
+  25) while retaining custom ports. Administrators can test the displayed
+  handshake and authentication before saving, without sending a message.
+- Forms now presents one three-step workflow, a full-width workflow guide,
+  starter Contact/Quote/Event field sets, a wider builder, and a clearer
+  save-and-place handoff.
+- Core advances to 2.0.31 without a database migration or API change. The
+  2.0.30 hosted recovery verification remains required after deployment.
+
 ## 2.0.30 Split-runtime recovery repair
 
 - The deployed 2.0.29 build created and verified a live 1.63 MB MariaDB

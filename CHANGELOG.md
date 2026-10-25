@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.31 — 2026-10-25
+
+- Rebuilds 404 insights as responsive resolution cards so paths, traffic,
+  timestamps, redirect choices, and dismissal actions remain aligned.
+- Aligns the managed-site connection form and gives the current administrator
+  a direct, clearly worded MFA setup action when protection is missing.
+- Adds encryption-aware SMTP port defaults and a connection/authentication
+  test that neither sends mail nor saves unverified values.
+- Reworks Forms into one coherent three-step workspace with full-width
+  guidance, a wider field editor, starter field sets, live preview, and a
+  clearer save-and-place handoff.
+
 ## 2.0.30 — 2026-10-25
 
 - Backs up and restores configured private configuration, upload, and media

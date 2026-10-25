@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.30` shared-host recovery repair. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.31` admin workflow and shared-host recovery repair. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -231,6 +231,14 @@ deployment files, and exposes verified owner-only archive downloads. This
 prevents panel-owned `.htaccess`, module, and theme files from causing a late
 partial restore on ordinary shared hosting. No migration or API change is
 required.
+
+Version 2.0.31 closes the administration gaps found in the next polish review.
+Agency connection fields and 404 resolution actions now remain aligned across
+desktop and mobile layouts; the signed-in administrator gets a direct MFA
+setup path; and SMTP settings choose standard encryption ports and can verify
+the connection without sending or saving. Forms is reorganized into one clear
+three-step build/place/respond workflow with reusable starter field sets and a
+wider editor. No migration or API change is required.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

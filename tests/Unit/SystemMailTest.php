@@ -95,6 +95,19 @@ final class SystemMailTest extends TestCase
         $this->assertStringContainsString('smtp.host', (string) $row['last_error']);
     }
 
+    public function testSmtpConnectionCheckRejectsMissingHostWithoutSending(): void
+    {
+        [$connected, $error] = $this->mail()->testSmtpConnection([
+            'host' => '', 'port' => 587, 'secure' => 'tls',
+        ]);
+
+        $this->assertFalse($connected);
+        $this->assertStringContainsString('smtp.host', (string) $error);
+        $this->assertSame(0, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('system_messages') . '`'
+        ));
+    }
+
     public function testConcurrentClaimSkipsActiveAndReclaimsStale(): void
     {
         $captured = 0;

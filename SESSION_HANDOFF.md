@@ -1,5 +1,17 @@
 # Session Handoff
 
+## 2.0.25 System-control completion
+
+- Audit now reads canonical actor/context columns and adds useful filters,
+  timeline presentation, and spreadsheet-safe export.
+- Update review is bound to archive SHA-256, supports discard, and restores
+  replaced files when migrations fail.
+- Settings validates all website/mail fields before writes, retains non-secret
+  failed input, requires HTTPS, and rotates cron tokens. Health adds HTTPS,
+  extension, and cron-heartbeat evidence.
+- Core advances to 2.0.25 without a migration. Continue with surface 13,
+  Agency management.
+
 ## 2.0.24 Backups and Operations completion
 
 - Recovery points are inspected and presented with verification evidence;

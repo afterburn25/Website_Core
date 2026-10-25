@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.25 — 2026-10-24
+
+- Repairs Audit’s canonical schema use and adds context/IP search, event-family
+  filtering, responsive timeline presentation, and safe bounded CSV export.
+- Cryptographically binds staged-update review to the archive, adds discard,
+  and rolls replaced Core files back when post-write migrations fail.
+- Validates all website/mail settings as one change, retains non-secret failed
+  input, enforces HTTPS base URLs, and adds scheduled-task token rotation.
+- Adds HTTPS, required-extension, and cron-heartbeat evidence to isolated
+  System Health collectors.
+- Adds focused system-control regression coverage without a schema migration.
+
 ## 2.0.24 — 2026-10-24
 
 - Adds automatic integrity inspection and detailed verification evidence to

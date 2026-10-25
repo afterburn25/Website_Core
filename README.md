@@ -26,10 +26,10 @@ installed through the Module Manager.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
-- **Status**: `2.0.24` commercial hardening. Broad feature development is
+- **Status**: `2.0.25` commercial hardening. Broad feature development is
   frozen while every existing workflow is completed, polished, and verified
   screen by screen. See `PROJECT_STATUS.md`, `docs/COMMERCIAL_HARDENING.md`,
-  `docs/2.0.23_RELEASE_NOTES.md`, and `docs/2.0.24_RELEASE_NOTES.md`.
+  `docs/2.0.24_RELEASE_NOTES.md`, and `docs/2.0.25_RELEASE_NOTES.md`.
 - **Bundled industries**: catering and landscaping are synchronized release
   snapshots. Landscaping 1.0 includes four selectable themes, with Bold
   Outdoors as its default presentation.
@@ -94,6 +94,7 @@ php tools/build-web-installer.php \
 | `docs/2.0.22_RELEASE_NOTES.md` | Privacy lifecycle, consent, API credential, and webhook completion |
 | `docs/2.0.23_RELEASE_NOTES.md` | Module lifecycle, recovery, and signed marketplace completion |
 | `docs/2.0.24_RELEASE_NOTES.md` | Verified backups, restore safety, queue, and operations completion |
+| `docs/2.0.25_RELEASE_NOTES.md` | Health, reviewed updates, audit evidence, and settings completion |
 | `docs/COMMERCIAL_HARDENING.md` | Ordered screen-by-screen audit and commercial completion gates |
 | `docs/MODULE_API.md` | Supported extension API surface |
 | `docs/MODULE_RULES.md` | Permanent cross-industry module ownership, UX, lifecycle, and release rules |

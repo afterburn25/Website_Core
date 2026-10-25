@@ -56,7 +56,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 9 | Privacy and integrations | Consent behavior, privacy requests, API keys, webhooks, scopes, delivery failures, exports and secret rotation | code complete — 2.0.22; packaged-browser check pending |
 | 10 | Modules and marketplace | Install/upgrade/enable/disable/uninstall/purge, dependency errors, protected Core, recovery mode, catalog trust and rollback | code complete — 2.0.23; packaged-browser check pending |
 | 11 | Backups and operations | Create/delete/restore, remote replication, queue states, retries, schedules, interrupted operations, disaster recovery | code complete — 2.0.24; packaged-browser check pending |
-| 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | code complete through 2.0.15; packaged-browser check pending |
+| 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | code complete — 2.0.25; packaged-browser check pending |
 | 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | code complete — 2.0.6; packaged-browser check pending |
 | 14 | Installer and reinstall/upgrade | Single-page polish, database test, HTTPS, safe writable-path provisioning, existing DB handling, cleanup and manual recheck | code complete — 2.0.6; packaged-host check pending |
 | 15 | Industry-module contract | Module admin category, default navigation takeover, shared services, uninstall/reinstall, compatibility and isolated failure | code complete — 2.0.6; packaged-module check pending |
@@ -306,6 +306,23 @@ run against packaged builds; code-complete does not mean externally verified.
       write/removal failures with actionable manual guidance.
 - [ ] Packaged browser verification covers create/inspect/delete/restore,
       remote failure, queue retry/recovery, schedules, cron and responsive UI.
+
+## 2.0.25 — Health, updates, audit, and settings acceptance
+
+- [x] Health collectors fail independently and expose database, storage, disk,
+      jobs, backups, packages, integrity, mail, HTTPS, PHP extensions and cron.
+- [x] Update GET never parses an archive; explicit stage verifies archive,
+      signature, manifest, version, replay floor, hashes and protected paths.
+- [x] Review stores the staged SHA-256; apply rechecks it, creates rollback
+      files, uses an exclusive lock, runs migrations, and restores replaced
+      files if migration fails. Staged files can be deliberately discarded.
+- [x] Audit uses the canonical schema, redacts sensitive context, searches
+      context/IP/event, filters families, paginates, and exports safe CSV.
+- [x] Settings validates the whole website/mail change before writes, preserves
+      non-secret invalid input, never renders SMTP password, tests mail, and
+      rotates cron credentials with confirmation.
+- [ ] Packaged browser verification covers degraded health, update stage/hash/
+      discard/apply/rollback, audit search/export, settings errors and mail.
 
 ## 2.0.14 — diagnostic and fatal-page recovery acceptance
 

@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.24` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.25` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -184,6 +184,13 @@ creation, local and remote outcomes are separated, and restore keeps its owner,
 safety-snapshot, maintenance, checksum, and lock gates. Operations adds real
 cron heartbeat, duplicate-backup prevention, interrupted-lease recovery, and
 truthful shared-host maintenance results. No schema migration is required.
+
+Version 2.0.25 completes Health, Core Updates, Audit, and Settings. Audit now
+reads its canonical schema and supports useful filters/export. Update review is
+bound to the archive hash and migration failure triggers replaced-file
+rollback. Settings validates the complete website/mail change before writes,
+retains non-secret failed input, and can rotate cron credentials. Health adds
+HTTPS, PHP-extension, and cron-heartbeat evidence. No migration is required.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

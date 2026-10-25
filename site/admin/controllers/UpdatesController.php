@@ -74,8 +74,14 @@ final class UpdatesController extends Controller
                 'version' => (string) $info['version'],
                 'members' => (int) $info['members'],
                 'signed' => (bool) $info['signed'],
+                'sha256' => hash_file('sha256', $staged),
+                'reviewed_at' => date('c'),
             ];
-            @file_put_contents($this->reviewPath(), json_encode($review, JSON_PRETTY_PRINT), LOCK_EX);
+            if (@file_put_contents($this->reviewPath(), json_encode($review, JSON_PRETTY_PRINT), LOCK_EX) === false) {
+                @unlink($staged);
+                $this->flash('error', 'The update was valid, but its protected review record could not be written. Check storage permissions.');
+                return Response::redirect($r->routeUrl('/admin/updates'));
+            }
             $this->audit('core.update_staged', ['file' => (string) ($file['name'] ?? '')]);
             $this->flash('ok', 'Update staged — review and apply.');
         }
@@ -89,8 +95,14 @@ final class UpdatesController extends Controller
             return $this->forbidden();
         }
         $staged = $this->stagedPath();
-        if (!is_file($staged) || $this->readReview() === null) {
+        $review = $this->readReview();
+        if (!is_file($staged) || $review === null) {
             $this->flash('error', 'No reviewed update is staged — upload it again first.');
+            return Response::redirect($r->routeUrl('/admin/updates'));
+        }
+        $actualHash = hash_file('sha256', $staged);
+        if (!is_string($actualHash) || !hash_equals((string) $review['sha256'], $actualHash)) {
+            $this->flash('error', 'The staged archive changed after review. Discard it and upload the update again.');
             return Response::redirect($r->routeUrl('/admin/updates'));
         }
 
@@ -114,7 +126,14 @@ final class UpdatesController extends Controller
         if (function_exists('opcache_reset')) {
             @opcache_reset();
         }
-        (new \Core\Database\Migrator($this->db(), WC_ROOT . '/database/migrations'))->migrate();
+        try {
+            (new \Core\Database\Migrator($this->db(), WC_ROOT . '/database/migrations'))->migrate();
+        } catch (\Throwable $e) {
+            [$rolledBack, $rollbackError] = $backup ? $this->updater()->restoreFiles((string) $backup) : [false, 'No rollback archive was created.'];
+            $this->c->get(\Core\Audit\AuditLog::class)->record('core.update_migration_failed', $u->id, ['rolled_back' => $rolledBack, 'error' => $e->getMessage()]);
+            $this->flash('error', 'Update migrations failed: ' . $e->getMessage() . ($rolledBack ? ' Replaced Core files were rolled back.' : ' File rollback also failed: ' . $rollbackError));
+            return Response::redirect($r->routeUrl('/admin/updates'));
+        }
         $this->c->get(\Core\Audit\AuditLog::class)->record('core.update', $u->id, [
             'backup' => $backup ? basename($backup) : null,
         ]);
@@ -122,6 +141,19 @@ final class UpdatesController extends Controller
             'by' => $u->id, 'backup' => $backup ? basename($backup) : null,
         ]);
         $this->flash('ok', 'Update applied; migrations run; replaced files backed up.');
+        return Response::redirect($r->routeUrl('/admin/updates'));
+    }
+
+    public function discard(Request $r): Response
+    {
+        $user = $this->user();
+        if (!$user || !$this->auth()->has($user, 'system.update')) return $this->forbidden();
+        $failed = [];
+        foreach ([$this->stagedPath(), $this->reviewPath()] as $path) {
+            if (is_file($path) && !@unlink($path)) $failed[] = basename($path);
+        }
+        $this->audit('core.update_discarded', ['ok' => $failed === []]);
+        $this->flash($failed === [] ? 'ok' : 'error', $failed === [] ? 'Staged update discarded.' : 'Could not remove: ' . implode(', ', $failed) . '. Delete these files from private storage.');
         return Response::redirect($r->routeUrl('/admin/updates'));
     }
 
@@ -163,7 +195,8 @@ final class UpdatesController extends Controller
         }
         $review = json_decode((string) @file_get_contents($path), true);
         if (!is_array($review) || !is_string($review['version'] ?? null)
-            || !is_int($review['members'] ?? null) || !is_bool($review['signed'] ?? null)) {
+            || !is_int($review['members'] ?? null) || !is_bool($review['signed'] ?? null)
+            || !is_string($review['sha256'] ?? null) || !preg_match('/^[a-f0-9]{64}$/', $review['sha256'])) {
             return null;
         }
         return $review;

@@ -82,6 +82,12 @@ final class HealthController extends Controller
                 ? number_format($bytes / 1048576, 0) . ' MB'
                 : 'unavailable';
         }, 'unavailable');
+        $cronLastRun = (string) $this->settings()->get('system.cron_last_run', '');
+        $requiredExtensions = ['pdo_mysql', 'mbstring', 'openssl', 'json', 'fileinfo', 'session', 'ctype', 'zip'];
+        $missingExtensions = array_values(array_filter(
+            $requiredExtensions,
+            static fn (string $extension): bool => !extension_loaded($extension)
+        ));
 
         return $this->page($r, 'system/health', [
             'warnings' => array_values(array_unique($warnings)),
@@ -101,6 +107,9 @@ final class HealthController extends Controller
                         (string) ($p['package_id'] ?? '?') . ' (' . (string) ($p['state'] ?? '?') . ')', $failedPackages)),
                 'Storage writable' => is_dir($storage) && is_writable($storage) ? 'yes' : 'NO',
                 'Disk free' => $diskFree,
+                'Cron heartbeat' => $cronLastRun !== '' ? $cronLastRun : 'never',
+                'Required PHP extensions' => $missingExtensions === [] ? 'all loaded' : 'missing: ' . implode(', ', $missingExtensions),
+                'HTTPS' => $r->isSecure() ? 'yes' : 'NO',
             ],
         ], 'System health');
     }

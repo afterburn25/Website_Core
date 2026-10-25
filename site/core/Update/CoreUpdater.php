@@ -284,6 +284,31 @@ final class CoreUpdater
         return array_slice(array_filter(explode("\n", trim($contents))), -$lines);
     }
 
+    /** Restore files captured immediately before an update write. */
+    public function restoreFiles(string $backupPath): array
+    {
+        if (!is_file($backupPath)) return [false, 'Rollback archive not found.'];
+        $errors = $this->inspector->inspectSafety($backupPath);
+        if ($errors !== []) return [false, implode(' ', $errors)];
+        $zip = new ZipArchive();
+        if ($zip->open($backupPath, ZipArchive::RDONLY) !== true) return [false, 'Rollback archive is unreadable.'];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = str_replace('\\', '/', (string) $zip->getNameIndex($i));
+            if (str_ends_with($name, '/') || $this->isSkipped($name)) continue;
+            $contents = $zip->getFromIndex($i);
+            if ($contents === false) { $zip->close(); return [false, "Rollback member is unreadable: {$name}"]; }
+            $dest = $this->rootDir . '/' . $name;
+            @mkdir(dirname($dest), 0750, true);
+            $tmp = $dest . '.rollback-' . getmypid();
+            if (@file_put_contents($tmp, $contents, LOCK_EX) === false || !@rename($tmp, $dest)) {
+                @unlink($tmp); $zip->close(); return [false, "Rollback could not restore {$name}"];
+            }
+        }
+        $zip->close();
+        $this->journal('rollback archive=' . basename($backupPath));
+        return [true, null];
+    }
+
     private function journal(string $entry): void
     {
         @mkdir($this->storageDir, 0777, true);

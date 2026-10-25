@@ -37,7 +37,8 @@ final class SettingsController extends Controller
 
         $settings = $this->settings();
         if ($r->isPost()) {
-            if ($r->string('action') === 'test_mail') {
+            $action = $r->string('action');
+            if ($action === 'test_mail') {
                 $recipient = strtolower($r->string('test_recipient'));
                 if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
                     $this->flash('error', 'Enter a valid recipient for the test message.');
@@ -48,17 +49,37 @@ final class SettingsController extends Controller
                 }
                 return $this->redirect($r, '/admin/settings');
             }
+            if ($action === 'rotate_cron') {
+                $settings->set('system.cron_token', bin2hex(random_bytes(24)));
+                $this->audit('settings.cron_token_rotated');
+                $this->flash('ok', 'Scheduled-task token rotated. Update the URL in your hosting control panel.');
+                return $this->redirect($r, '/admin/settings');
+            }
             $baseUrl = trim($r->string('app_url'));
-            if ($baseUrl !== '' && !preg_match('#^https?://#i', $baseUrl)) {
-                $this->flash('error', 'Base URL must start with http:// or https://');
+            $transport = $r->string('mail_transport');
+            $errors = [];
+            if ($baseUrl !== '' && !preg_match('#^https://[^\s/]+(?:/.*)?$#i', $baseUrl)) $errors[] = 'Base URL must be a complete HTTPS URL.';
+            if (trim($r->string('site_name')) === '') $errors[] = 'Site name is required.';
+            $contact = trim($r->string('site_contact_email'));
+            if ($contact !== '' && !filter_var($contact, FILTER_VALIDATE_EMAIL)) $errors[] = 'Public contact email is invalid.';
+            if (!preg_match('/^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})?$/', $r->string('site_locale', 'en'))) $errors[] = 'Locale must look like en or en-US.';
+            if (!in_array($transport, ['none', 'smtp', 'mail'], true)) $errors[] = 'Choose a supported mail transport.';
+            $from = trim($r->string('mail_from'));
+            if ($transport !== 'none' && !filter_var($from, FILTER_VALIDATE_EMAIL)) $errors[] = 'A valid From address is required when mail is enabled.';
+            if ($transport === 'smtp') {
+                if (trim($r->string('smtp_host')) === '' || preg_match('/[\s\/]/', $r->string('smtp_host'))) $errors[] = 'Enter a valid SMTP hostname.';
+                $port = (int) $r->string('smtp_port', '0');
+                if ($port < 1 || $port > 65535) $errors[] = 'SMTP port must be between 1 and 65535.';
+                if (!in_array($r->string('smtp_secure'), ['', 'tls', 'ssl'], true)) $errors[] = 'Choose a supported SMTP encryption mode.';
+                if ($r->string('smtp_user') !== '' && $r->string('smtp_password') === '' && $settings->get('smtp.password', '') === '') $errors[] = 'Enter the SMTP password for this username.';
+            }
+            if ($errors !== []) {
+                $_SESSION['_wc_settings_input'] = array_filter($r->post, static fn (string $key): bool => $key !== '_csrf' && $key !== 'smtp_password', ARRAY_FILTER_USE_KEY);
+                $this->flash('error', implode(' ', $errors) . ' Your non-secret entries are still below.');
                 return $this->redirect($r, '/admin/settings');
             }
             foreach (self::FIELDS as $key => $meta) {
                 $settings->set($key, $r->string(str_replace('.', '_', $key)));
-            }
-            $transport = $r->string('mail_transport');
-            if (!in_array($transport, ['none', 'smtp', 'mail'], true)) {
-                $transport = 'none';
             }
             $settings->set('mail.transport', $transport);
             $settings->set('mail.from', $r->string('mail_from'));
@@ -88,6 +109,14 @@ final class SettingsController extends Controller
             . ((string) $this->c->get(\Core\Config::class)->get('app.url', '') ?: 'the installed URL');
         foreach ($fields + self::MAIL_FIELDS as $key => $meta) {
             $values[$key] = (string) $settings->get($key, '');
+        }
+        $submitted = $_SESSION['_wc_settings_input'] ?? null;
+        unset($_SESSION['_wc_settings_input']);
+        if (is_array($submitted)) {
+            foreach (array_keys($values) as $key) {
+                $field = str_replace('.', '_', $key);
+                if (array_key_exists($field, $submitted)) $values[$key] = (string) $submitted[$field];
+            }
         }
         // License status
         $licenseStatus = null;

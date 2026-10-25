@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.26 — 2026-10-24
+
+- Completes agency credential editing, encrypted key rotation, pause/re-enable,
+  duplicate prevention, and confirmed credential removal.
+- Hardens outbound health checks with current public-HTTPS validation, strict
+  TLS/protocol controls, no redirects, bounded responses, and safe errors.
+- Preserves last known healthy remote inventory across failures while adding
+  latency, consecutive-failure, active-state, and key-update evidence.
+- Rebuilds the Agency dashboard around actionable health and relative Core
+  version signals and expands focused lifecycle coverage.
+- Adds additive migration `2026_10_25_0027` for agency lifecycle telemetry.
+
 ## 2.0.25 — 2026-10-24
 
 - Repairs Audit’s canonical schema use and adds context/IP search, event-family

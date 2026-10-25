@@ -1,5 +1,16 @@
 # Session Handoff
 
+## 2.0.26 Agency management completion
+
+- Agency connections now support edit, encrypted key rotation, pause/re-enable,
+  and confirmed removal with duplicate canonical-URL protection.
+- Remote health checks revalidate public HTTPS, enforce verified TLS and strict
+  bounds, preserve last healthy inventory, and record latency/failure evidence.
+- The dashboard exposes actionable health and relative Core-version posture;
+  migration 0027 adds the lifecycle fields without replacing credentials.
+- Core advances to 2.0.26. Continue with surface 14, Installer and
+  reinstall/upgrade.
+
 ## 2.0.25 System-control completion
 
 - Audit now reads canonical actor/context columns and adds useful filters,

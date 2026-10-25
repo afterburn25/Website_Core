@@ -57,7 +57,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 10 | Modules and marketplace | Install/upgrade/enable/disable/uninstall/purge, dependency errors, protected Core, recovery mode, catalog trust and rollback | code complete — 2.0.23; packaged-browser check pending |
 | 11 | Backups and operations | Create/delete/restore, remote replication, queue states, retries, schedules, interrupted operations, disaster recovery | code complete — 2.0.24; packaged-browser check pending |
 | 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | code complete — 2.0.25; packaged-browser check pending |
-| 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | code complete — 2.0.6; packaged-browser check pending |
+| 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | code complete — 2.0.26; packaged-browser check pending |
 | 14 | Installer and reinstall/upgrade | Single-page polish, database test, HTTPS, safe writable-path provisioning, existing DB handling, cleanup and manual recheck | code complete — 2.0.6; packaged-host check pending |
 | 15 | Industry-module contract | Module admin category, default navigation takeover, shared services, uninstall/reinstall, compatibility and isolated failure | code complete — 2.0.6; packaged-module check pending |
 | 16 | Final cross-browser release gate | Chrome/Edge/Firefox/Safari where available, mobile breakpoints, accessibility review, performance/load, clean-host install and oldest-supported upgrade | queued |
@@ -323,6 +323,23 @@ run against packaged builds; code-complete does not mean externally verified.
       rotates cron credentials with confirmation.
 - [ ] Packaged browser verification covers degraded health, update stage/hash/
       discard/apply/rollback, audit search/export, settings errors and mail.
+
+## 2.0.26 — Agency management acceptance
+
+- [x] Connections reject duplicate canonical URLs and support identity edits,
+      encrypted key rotation, pause/re-enable, and confirmed removal.
+- [x] Secrets are encrypted at rest, never redisplayed, and setup guidance
+      requires a least-privilege remote `health.read` credential.
+- [x] Every check revalidates public HTTPS resolution and uses verified TLS,
+      no redirects, strict timeouts, HTTPS protocol limits, and bounded bodies.
+- [x] Authentication, endpoint, transport, and remote-server failures produce
+      safe actionable messages without exposing credentials or cURL output.
+- [x] Failed checks preserve last known healthy identity/version inventory and
+      record check time, latency, and consecutive failures.
+- [x] The responsive dashboard summarizes active, healthy, attention, and
+      older-Core state with inline connection management.
+- [ ] Packaged browser verification covers add, duplicate, invalid URL/key,
+      successful/failed check, rotate, pause, re-enable, and remove.
 
 ## 2.0.14 — diagnostic and fatal-page recovery acceptance
 

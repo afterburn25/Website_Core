@@ -39,6 +39,32 @@ final class AgencyMarketplaceTest extends TestCase
         $this->assertSame($token, (new SecretBox($this->config))->open($cipher));
     }
 
+    public function testAgencyConnectionCanBeEditedPausedAndHaveItsKeyRotated(): void
+    {
+        $service = new AgencyService($this->db, $this->config);
+        $first = 'wcp_' . str_repeat('a', 48);
+        $second = 'wcp_' . str_repeat('b', 48);
+        $id = $service->add('Client', 'https://93.184.216.34', $first);
+        $service->update($id, 'Renamed client', 'https://93.184.216.34/core', $second);
+        $service->setActive($id, false);
+
+        $row = $this->db->fetch('SELECT * FROM `wc_agency_sites` WHERE id = ?', [$id]);
+        $this->assertSame('Renamed client', $row['label']);
+        $this->assertSame('https://93.184.216.34/core', $row['base_url']);
+        $this->assertSame('paused', $row['status']);
+        $this->assertSame(0, (int) $row['active']);
+        $this->assertSame($second, (new SecretBox($this->config))->open((string) $row['token_cipher']));
+    }
+
+    public function testAgencyRejectsDuplicateCanonicalSiteUrl(): void
+    {
+        $service = new AgencyService($this->db, $this->config);
+        $token = 'wcp_' . str_repeat('a', 48);
+        $service->add('First', 'https://93.184.216.34', $token);
+        $this->expectException(\InvalidArgumentException::class);
+        $service->add('Duplicate', 'https://93.184.216.34/', $token);
+    }
+
     public function testSignedCatalogIsNormalizedAndSelectsLatestCore(): void
     {
         if (!function_exists('sodium_crypto_sign_keypair')) $this->markTestSkipped('sodium unavailable');
@@ -60,6 +86,10 @@ final class AgencyMarketplaceTest extends TestCase
         $this->assertContains('page_id', $menuColumns);
         $this->assertContains('target', $menuColumns);
         $this->assertTrue($this->db->tableExists('agency_sites'));
+        $agencyColumns = array_column($this->db->fetchAll('PRAGMA table_info(`wc_agency_sites`)'), 'name');
+        $this->assertContains('active', $agencyColumns);
+        $this->assertContains('consecutive_failures', $agencyColumns);
+        $this->assertContains('last_latency_ms', $agencyColumns);
         $this->assertTrue($this->db->tableExists('marketplace_sources'));
     }
 

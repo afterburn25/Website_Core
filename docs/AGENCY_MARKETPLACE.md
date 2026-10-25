@@ -7,9 +7,20 @@
    HTTPS base URL and one-time key.
 3. Use **Check now** to retrieve authenticated identity and version data.
 
+Connections can be renamed, moved to a new canonical URL, paused without
+losing their last healthy inventory, or have their key rotated without ever
+revealing the saved secret. A successful check records remote identity, Core
+and industry versions, latency, and check time. Failures retain the last known
+healthy inventory while recording a safe operator message and consecutive
+failure count. The dashboard identifies sites running a Core version older
+than the managing installation.
+
 Tokens are recoverable only because health checks must send them, so they are
 encrypted with sodium and the local `security.app_key`. Moving the database
 without its matching config intentionally makes those credentials unreadable.
+Remote requests require a currently public HTTPS destination, verified TLS,
+no redirects, a 15-second deadline, and a 1 MB response ceiling. Authentication
+errors do not expose credentials or arbitrary transport output to the admin.
 
 ## Catalog contract
 

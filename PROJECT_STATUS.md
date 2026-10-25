@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.25` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.26` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -191,6 +191,14 @@ bound to the archive hash and migration failure triggers replaced-file
 rollback. Settings validates the complete website/mail change before writes,
 retains non-secret failed input, and can rotate cron credentials. Health adds
 HTTPS, PHP-extension, and cron-heartbeat evidence. No migration is required.
+
+Version 2.0.26 completes Agency management. Connections can be edited,
+paused, re-enabled, removed, or have their encrypted remote key rotated
+without secret disclosure. Every check revalidates a public HTTPS destination
+and uses bounded TLS-only transport. The dashboard retains last known healthy
+inventory through failures and adds latency, consecutive-failure, key-age, and
+relative Core-version evidence. Migration 0027 adds lifecycle telemetry while
+preserving and enabling existing agency records.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

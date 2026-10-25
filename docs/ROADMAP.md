@@ -114,6 +114,12 @@ preservation of existing content, inquiry history, IDs, and customizations.
 | CORE-REUSE-7 | Common enquiry and quotation services | **2.2 foundation delivered:** package-scoped inbox, assignment, priorities, notes, submission deduplication, itemized totals, expiry and secure acceptance. Attachments, reminders and generated documents remain. |
 | CORE-REUSE-8 | Shared SDK scaffold and contract test kit | Generate the manifest/provider, admin contributions, migrations, docs and module-only package once; validate compatibility, install/upgrade preservation, access controls and rendering with two different industries. Integration waits for explicit owner instruction; the module ZIP remains directly installable. |
 
+### Commercial operations follow-ups
+
+| ID | Requirement | Acceptance criteria |
+| --- | --- | --- |
+| CORE-OPS-1 | Actionable SMTP provider-host discovery | When DNS and TCP succeed but the encrypted SMTP handshake fails, safely inspect the resolved server's reverse/provider hostname. Suggest it only when forward DNS maps it back to the same server address; never weaken certificate checks or save the suggestion automatically. Also test and report the standard SSL/465 and STARTTLS/587 pair separately so the owner receives a concrete hostname/encryption correction instead of a generic connection error. Add unit coverage for unverified PTR results, timeouts, and secret-free diagnostics, then verify on shared hosting. |
+
 ### Delivered common product services
 
 Core 2.1 delivers optional shared catalog/products, cart, checkout/orders,

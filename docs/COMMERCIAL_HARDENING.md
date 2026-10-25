@@ -63,9 +63,12 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 - [x] Checkout validators receive bounded context, return safe field/manual-
       review/quote-only outcomes, rerun transactionally and persist immutable
       PII-minimized evidence.
-- [ ] Complete the full CI/release-artifact matrix, packaged-host browser and
-      accessibility acceptance, then prove adoption by Catering and a second
-      independent industry module.
+- [x] GitHub Actions push run 562 and PR run 563 passed PHP 8.4/8.5,
+      Core-only boot, native MySQL 8.4, MariaDB 11.4 and release-artifact
+      verification on source commit
+      `f511e5f42ea82f62dcce0f5153609da3ca8d45aa`.
+- [ ] Complete packaged-host browser and accessibility acceptance, then prove
+      adoption by Catering and a second independent industry module.
 
 ## 2.5.0 — Shared module forms and notifications
 

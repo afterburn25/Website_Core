@@ -1,7 +1,7 @@
 # Project Status
 
-**Current**: `2.6.0` Core implementation for `CORE-REUSE-5` through
-`CORE-REUSE-11`, pending final CI, packaged-host and cross-industry adoption,
+**Current**: `2.6.0` CI-verified Core implementation for `CORE-REUSE-5`
+through `CORE-REUSE-11`, pending packaged-host and cross-industry adoption,
 building on the 2.5 CI-verified shared module forms and notifications and 2.4
 CI-verified shared module content, Media and structured data and 2.3 reusable module-record operations,
 2.2.2 CI-verified inquiry-detail repair,
@@ -21,6 +21,9 @@ draft/publish/rollback, and atomic package checkout validation. Migration
 `2026_10_25_0032` is additive and Module API v1 remains backward compatible.
 Catering and Landscaping adoption remains separate module work and neither
 module is modified by this Core release.
+GitHub Actions push run 562 and PR run 563 passed all six PHP 8.4/8.5,
+Core-only, native MySQL 8.4, MariaDB 11.4 and release-artifact jobs on source
+commit `f511e5f42ea82f62dcce0f5153609da3ca8d45aa`.
 
 Version 2.5.0 adds edit-preserving package starter forms, package validators,
 protected submission events and lookup, durable industry-record links,

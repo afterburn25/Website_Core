@@ -35,7 +35,7 @@ adapt to real dependencies; scope is preserved, not deferred silently.
 | 2.3 | reusable module-record ordering and bulk actions | implementation complete; CI verified; packaged-host acceptance pending | `docs/2.3.0_RELEASE_NOTES.md` |
 | 2.4 | seed-once module content, Core Media fields and safe structured-data contributions | implementation complete; CI verified; packaged-host acceptance pending | `docs/2.4.0_RELEASE_NOTES.md` |
 | 2.5 | package starter forms, custom validation, protected submission links/events and notification templates | implementation complete; CI verified; packaged-host and cross-industry adoption pending | `docs/2.5.0_RELEASE_NOTES.md` |
-| 2.6 | reusable presentation, service contracts, quote workflows, SDK, service areas, module theme collections and checkout validation | Core implementation complete; CI, packaged-host and cross-industry adoption pending | `docs/2.6.0_RELEASE_NOTES.md` |
+| 2.6 | reusable presentation, service contracts, quote workflows, SDK, service areas, module theme collections and checkout validation | Core implementation complete; CI verified; packaged-host and cross-industry adoption pending | `docs/2.6.0_RELEASE_NOTES.md` |
 
 New shared features remain dormant unless an enabled module declares them.
 The ordered audit in `docs/COMMERCIAL_HARDENING.md` remains the acceptance

@@ -53,7 +53,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 6 | SEO, redirects, translations, patterns | Actionable audits, previews, redirect import/export, localized content, reusable layouts, errors and conflicts | code complete — 2.0.19; packaged-browser check pending |
 | 7 | Appearance and public theme | Branding, theme preview/activation, header/footer layouts, responsive output, attribution, status/error pages | code complete — 2.0.20; packaged-browser check pending |
 | 8 | Administrators, roles, profile, security | Account lifecycle, role safety, capability clarity, MFA, sessions, recovery, lockouts, audit evidence | code complete — 2.0.21; packaged-browser check pending |
-| 9 | Privacy and integrations | Consent behavior, privacy requests, API keys, webhooks, scopes, delivery failures, exports and secret rotation | code complete — 2.0.6; packaged-browser check pending |
+| 9 | Privacy and integrations | Consent behavior, privacy requests, API keys, webhooks, scopes, delivery failures, exports and secret rotation | code complete — 2.0.22; packaged-browser check pending |
 | 10 | Modules and marketplace | Install/upgrade/enable/disable/uninstall/purge, dependency errors, protected Core, recovery mode, catalog trust and rollback | code complete through 2.0.14; failed-migration file rollback and landscaping lifecycle CI covered; packaged-browser check pending |
 | 11 | Backups and operations | Create/delete/restore, remote replication, queue states, retries, schedules, interrupted operations, disaster recovery | code complete — 2.0.6; packaged-browser check pending |
 | 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | code complete through 2.0.15; packaged-browser check pending |
@@ -255,6 +255,23 @@ run against packaged builds; code-complete does not mean externally verified.
 - [ ] Packaged browser verification covers owner/non-owner boundaries, failed
       create retention, role editing, profile changes, MFA enrollment and
       recovery, session revocation, and responsive layouts.
+
+## 2.0.22 — Privacy and integrations acceptance
+
+- [x] Visitors can reopen consent choices and withdraw analytics permission;
+      optional analytics cannot be saved without an explicit choice banner.
+- [x] Public privacy intake retains invalid values, uses CSRF, honeypot and
+      rate limiting, returns a reference, and is private/noindex.
+- [x] Requests require recorded identity verification before completion and
+      retain timestamps, resolution evidence, reopening, and audited safe CSV.
+- [x] API keys remain hashed, scoped, one-time-visible, revocable, and safely
+      rotatable with the prior credential revoked after replacement creation.
+- [x] Webhooks support public-HTTPS validation, event editing, HMAC-secret
+      rotation, signed test delivery, enable/disable, and failed retry.
+- [x] Portable imports are capped at 5 MB and exclude credentials, accounts,
+      submissions, and other private data.
+- [ ] Packaged browser verification covers consent changes, request lifecycle,
+      CSV, key/webhook rotation, tests, retries, site transfer, and mobile UI.
 
 ## 2.0.14 — diagnostic and fatal-page recovery acceptance
 

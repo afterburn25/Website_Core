@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.22 — 2026-10-24
+
+- Adds persistent visitor privacy-choice management and enforces explicit
+  consent whenever optional analytics is configured.
+- Expands privacy requests into a verified, resolution-evidenced lifecycle
+  with reopening, audit history, safe CSV export, and a polished public center.
+- Adds atomic API-key rotation and webhook editing, test delivery, HMAC-secret
+  rotation, activation, and failed-delivery retry controls.
+- Bounds portable site imports at 5 MB and strengthens workflow feedback while
+  preserving the private-data exclusion contract.
+- Adds additive MySQL/MariaDB/SQLite-compatible privacy evidence columns and
+  focused integration/consent regression coverage.
+
 ## 2.0.21 — 2026-10-24
 
 - Rebuilds Administrators, Roles, My Profile, and Security as responsive,

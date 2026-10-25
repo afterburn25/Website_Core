@@ -17,6 +17,8 @@ final class ConsentManagerTest extends TestCase
         $html=(new ConsentManager($settings))->inject('<html><body><h1>Hi</h1></body></html>','/index.php?p=');
         self::assertStringContainsString('data-wc-consent',$html);
         self::assertStringContainsString('localStorage.getItem',$html);
+        self::assertStringContainsString('data-consent-manage',$html);
+        self::assertStringContainsString('location.reload()',$html);
         self::assertStringContainsString('G-ABC123',$html);
         self::assertStringContainsString('/index.php?p=/privacy/request',$html);
         self::assertSame(1,substr_count($html,'googletagmanager.com'));

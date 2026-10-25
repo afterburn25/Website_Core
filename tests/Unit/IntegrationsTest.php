@@ -37,6 +37,17 @@ final class IntegrationsTest extends TestCase
         $this->assertNull($keys->authenticate($request, 'health.read'));
     }
 
+    public function testApiKeyRotationRevokesOldCredential(): void
+    {
+        $keys = new ApiKeyService($this->db);
+        $old = $keys->create('Monitor', ['health.read']);
+        $new = $keys->rotate($old['id']);
+        $oldRequest = new Request('GET', '/api/v1/health', '', [], [], [], [], ['HTTP_AUTHORIZATION' => 'Bearer ' . $old['token']]);
+        $newRequest = new Request('GET', '/api/v1/health', '', [], [], [], [], ['HTTP_AUTHORIZATION' => 'Bearer ' . $new['token']]);
+        $this->assertNull($keys->authenticate($oldRequest, 'health.read'));
+        $this->assertNotNull($keys->authenticate($newRequest, 'health.read'));
+    }
+
     public function testSiteTransferMergesDraftContentWithoutPrivateData(): void
     {
         $transfer = new SiteTransfer($this->db);
@@ -100,5 +111,19 @@ final class IntegrationsTest extends TestCase
 
         $hooks->setActive($hookId, false);
         $this->assertFalse($hooks->retry($deliveryId));
+    }
+
+    public function testWebhookCanBeEditedTestedAndSecretRotated(): void
+    {
+        $configPath = tempnam(sys_get_temp_dir(), 'wc-config-');
+        file_put_contents($configPath, '<?php return ["security"=>["app_key"=>"' . str_repeat('ab', 32) . '"]];');
+        $hooks = new WebhookService($this->db, new JobQueue($this->db), new Config($configPath));
+        $hook = $hooks->create('CRM', 'https://hooks.example.test/one', ['page.saved']);
+        $this->assertTrue($hooks->update($hook['id'], 'CRM two', 'https://hooks.example.test/two', ['page.published']));
+        $rotated = $hooks->rotateSecret($hook['id']);
+        $this->assertNotSame($hook['secret'], $rotated['secret']);
+        $delivery = $hooks->test($hook['id']);
+        $this->assertSame('webhook.test', $this->db->fetchColumn('SELECT event FROM `wc_webhook_deliveries` WHERE id=?', [$delivery]));
+        @unlink($configPath);
     }
 }

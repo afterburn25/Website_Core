@@ -51,6 +51,19 @@ final class ApiKeyService
         $this->db->update('api_keys', ['revoked_at' => date('Y-m-d H:i:s')], 'id = ?', [$id]);
     }
 
+    /** @return array{id:int,token:string} */
+    public function rotate(int $id): array
+    {
+        return $this->db->transaction(function () use ($id): array {
+            $row = $this->db->fetch('SELECT * FROM `' . $this->db->table('api_keys') . '` WHERE id = ? AND revoked_at IS NULL', [$id]);
+            if (!$row) throw new \InvalidArgumentException('Active API key not found.');
+            $capabilities = json_decode((string) $row['capabilities_json'], true);
+            $created = $this->create((string) $row['label'], is_array($capabilities) ? $capabilities : []);
+            $this->revoke($id);
+            return $created;
+        });
+    }
+
     public function all(): array
     {
         return $this->db->fetchAll('SELECT * FROM `' . $this->db->table('api_keys') . '` ORDER BY id DESC');

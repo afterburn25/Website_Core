@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.21` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.22` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -163,6 +163,13 @@ human capability groups and assignment evidence. Profiles support identity
 updates, device-oriented session review, cancellable MFA enrollment, and safe
 recovery-code rotation. The Security workspace summarizes actionable account,
 session, owner, MFA, and recovery posture. No schema migration is required.
+
+Version 2.0.22 completes Privacy and Integrations. Consent can be reopened and
+withdrawn, analytics remains explicitly gated, and privacy requests carry
+verification and resolution evidence. API keys rotate without leaving the old
+credential active; webhooks support editing, signed test delivery, secret
+rotation, activation, and retry. Site imports are bounded and remain private-
+data safe. Migration 0026 adds portable privacy workflow evidence columns.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

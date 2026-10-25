@@ -1,5 +1,16 @@
 # Session Handoff
 
+## 2.0.22 Privacy and integrations completion
+
+- Consent can be reopened/withdrawn and analytics configuration requires the
+  explicit-choice UI.
+- Privacy requests now retain identity verification, resolution, completion,
+  reopening, audit, and spreadsheet-safe export evidence through migration
+  0026.
+- API keys rotate atomically; webhooks can be edited, tested, activated,
+  retried, and have signing secrets rotated with one-time disclosure.
+- Core advances to 2.0.22. Continue with surface 10, Modules and Marketplace.
+
 ## 2.0.21 Administrator-access completion
 
 - Administrators, Roles, My Profile, and Security now form one polished access

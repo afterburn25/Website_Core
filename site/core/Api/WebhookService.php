@@ -78,6 +78,36 @@ final class WebhookService
 
     public function disable(int $id): void { $this->setActive($id, false); }
 
+    public function update(int $id, string $label, string $url, array $events): bool
+    {
+        $label = trim(strip_tags($label));
+        if ($label === '') throw new \InvalidArgumentException('A webhook label is required.');
+        if (!PublicHttpsUrl::valid($url)) throw new \InvalidArgumentException('Webhook URLs must be public HTTPS URLs.');
+        $events = array_values(array_intersect(self::EVENTS, array_map('strval', $events)));
+        if ($events === []) throw new \InvalidArgumentException('Select at least one event.');
+        return $this->db->update('webhooks', ['label' => mb_substr($label, 0, 120), 'url' => $url, 'events_json' => json_encode($events, JSON_UNESCAPED_SLASHES)], 'id = ?', [$id]) > 0;
+    }
+
+    /** @return array{id:int,secret:string} */
+    public function rotateSecret(int $id): array
+    {
+        $row = $this->db->fetch('SELECT id FROM `' . $this->db->table('webhooks') . '` WHERE id = ?', [$id]);
+        if (!$row) throw new \InvalidArgumentException('Webhook not found.');
+        $secret = bin2hex(random_bytes(24));
+        $this->db->update('webhooks', ['secret_hash' => hash('sha256', $secret), 'secret_cipher' => (new SecretBox($this->config))->seal($secret)], 'id = ?', [$id]);
+        return ['id' => $id, 'secret' => $secret];
+    }
+
+    public function test(int $id): int
+    {
+        $hook = $this->db->fetch('SELECT id,active FROM `' . $this->db->table('webhooks') . '` WHERE id = ?', [$id]);
+        if (!$hook || !(bool) $hook['active']) throw new \InvalidArgumentException('Enable the webhook before sending a test.');
+        $body = ['event' => 'webhook.test', 'created_at' => date('c'), 'data' => ['message' => 'Website Core test delivery']];
+        $delivery = (int) $this->db->insert('webhook_deliveries', ['webhook_id' => $id, 'event' => 'webhook.test', 'payload_json' => json_encode($body, JSON_UNESCAPED_SLASHES), 'status' => 'pending', 'created_at' => date('Y-m-d H:i:s')]);
+        $this->jobs->dispatch('webhook.deliver', ['delivery_id' => $delivery]);
+        return $delivery;
+    }
+
     public function retry(int $deliveryId): bool
     {
         $row = $this->db->fetch(

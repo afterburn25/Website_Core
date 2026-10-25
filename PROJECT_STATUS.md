@@ -363,7 +363,8 @@ Website Core now supports a DRM licensing model for bundled products:
 
 ## Test status
 
-- `unit`+`package`: 179 tests / 714 assertions green in CI (PHP 8.4.27);
+- `unit`+`package`: 337 tests / 1,720 assertions green in CI run 503 on
+  PHP 8.4 and PHP 8.5;
   3 skips are native-DB gated. Sodium tests run via `sodium_compat`.
   AccessibilityTest (7 tests) asserts aria-label, for labels, alt text,
   focus-visible, reduced-motion across admin layout and all 3 themes.
@@ -371,8 +372,9 @@ Website Core now supports a DRM licensing model for bundled products:
   LicenseApiContractTest (6 tests) spawns a real `php -S` mock of the
   Cajunwebpro endpoint and verifies the wire contract — well-formed POST,
   explicit denials vs inconclusive failures, reactivation.
-- `native`: green in CI on mysql:8.4 and mariadb:11.4 service jobs —
+- `native`: green in CI run 503 on mysql:8.4 and mariadb:11.4 service jobs —
   each leg also exercises the real installer through the SSL proxy contract
   (claim → database test → POST → lock/config/full-cleanup assertions).
-- CI: 6 jobs — lint+unit PHP 8.4/8.5, native MySQL, native MariaDB,
-  core-only boot, release-artifact contract.
+- CI: all 6 jobs passed in run 503 (`40163522209`) — lint+unit/package PHP
+  8.4/8.5, native MySQL, native MariaDB, Core-only boot, and the complete
+  release-artifact contract.

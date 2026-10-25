@@ -95,6 +95,9 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       filesystem finalization, and bundled setup; missing declarations fail.
 - [x] Only one industry may be enabled, while add-ons/themes stay independent;
       Core retains editable navigation, branding, dashboard, and shared tools.
+- [x] PHP 8.4/8.5, package, MySQL 8.4, MariaDB 11.4, Core-only boot, and
+      release-artifact contracts pass in GitHub Actions run 503
+      (run ID `40163522209`).
 - [ ] Packaged-module verification covers catering/landscaping fresh install,
       upgrade, disable/enable, uninstall/reinstall, purge, and quarantine.
 

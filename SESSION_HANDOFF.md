@@ -9,8 +9,10 @@
   contribution validation, and one active industry.
 - Migration-directory lists work through uploaded, direct-file, and bundled
   installs; invalid packages quarantine without breaking Core.
-- Core advances to 2.0.28. Next gate is final packaged/browser/host validation
-  and release evidence, not another broad feature phase.
+- Core advances to 2.0.28. All six automated release jobs passed in GitHub
+  Actions run 503 (`40163522209`) on source commit `c60ab08f351a9164bb09afb87a1b420b02a86dc8`.
+  The remaining gate is external packaged browser/host validation, not another
+  broad feature phase.
 
 ## 2.0.27 Installer and reinstall completion
 

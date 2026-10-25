@@ -21,7 +21,7 @@ final class StorefrontController extends Controller
         if (!$this->features()->enabled('catalog')) return $this->missing($r);
         return $this->render($r, 'commerce/store', [
             'products' => $this->c->get(ProductRepository::class)->all($this->features()->provider('catalog'), true),
-            'storeName' => $this->features()->storeName(), 'cartCount' => $this->cart()->count(),
+            'storeName' => $this->features()->storeName(), 'cartCount' => $this->cartService()->count(),
         ]);
     }
 
@@ -30,13 +30,13 @@ final class StorefrontController extends Controller
         if (!$this->features()->enabled('catalog')) return $this->missing($r);
         $product=$this->c->get(ProductRepository::class)->findActiveBySlug((string)($r->attributes['slug']??''),(string)$this->features()->provider('catalog'));
         if (!$product) return $this->missing($r);
-        return $this->render($r,'commerce/product',['product'=>$product,'storeName'=>$this->features()->storeName(),'cartCount'=>$this->cart()->count()]);
+        return $this->render($r,'commerce/product',['product'=>$product,'storeName'=>$this->features()->storeName(),'cartCount'=>$this->cartService()->count()]);
     }
 
     public function add(Request $r): Response
     {
         if (!$this->features()->enabled('cart') || !$this->features()->enabled('catalog')) return $this->missing($r);
-        $error = $this->cart()->add((int) $r->input('product_id', 0), (int) $r->input('quantity', 1), $this->features()->provider('catalog'));
+        $error = $this->cartService()->add((int) $r->input('product_id', 0), (int) $r->input('quantity', 1), $this->features()->provider('catalog'));
         $_SESSION['_wc_store_flash'] = $error ?: 'Added to your cart.';
         return Response::redirect($r->routeUrl($error ? '/store' : '/cart'));
     }
@@ -46,18 +46,18 @@ final class StorefrontController extends Controller
         if (!$this->features()->enabled('cart') || !$this->features()->enabled('catalog')) return $this->missing($r);
         if ($r->isPost()) {
             $quantities = $r->input('quantity', []);
-            $this->cart()->update(is_array($quantities) ? $quantities : [], $this->features()->provider('catalog'));
+            $this->cartService()->update(is_array($quantities) ? $quantities : [], $this->features()->provider('catalog'));
             $_SESSION['_wc_store_flash'] = 'Cart updated.';
             return Response::redirect($r->routeUrl('/cart'));
         }
-        return $this->render($r, 'commerce/cart', ['cart' => $this->cart()->summary($this->features()->provider('catalog')), 'cartCount' => $this->cart()->count()]);
+        return $this->render($r, 'commerce/cart', ['cart' => $this->cartService()->summary($this->features()->provider('catalog')), 'cartCount' => $this->cartService()->count()]);
     }
 
     public function checkout(Request $r): Response
     {
         if (!$this->features()->enabled('catalog') || !$this->features()->enabled('cart')
             || !$this->features()->enabled('checkout') || !$this->features()->enabled('orders')) return $this->missing($r);
-        $cart = $this->cart()->summary($this->features()->provider('catalog'));
+        $cart = $this->cartService()->summary($this->features()->provider('catalog'));
         if (!$cart['items']) return Response::redirect($r->routeUrl('/cart'));
         $methods = $this->c->get(PaymentMethods::class)->configured();
         $error = null;
@@ -77,7 +77,7 @@ final class StorefrontController extends Controller
             );
             if (!empty($order)) {
                 unset($_SESSION['_wc_checkout_nonce']);
-                $this->cart()->clear();
+                $this->cartService()->clear();
                 $_SESSION['_wc_last_order'] = $order;
                 $selectedMethod = $methods[$order['payment_method']] ?? ['label'=>ucfirst($order['payment_method']),'instructions'=>''];
                 $body = "Order {$order['order_number']} was received.\n\nTotal: {$order['currency']} " . number_format($order['total_minor'] / 100, 2)
@@ -95,7 +95,7 @@ final class StorefrontController extends Controller
         if (!$r->isPost() && $customer) $input += ['name'=>$customer['name'],'email'=>$customer['email'],'phone'=>$customer['phone']];
         return $this->render($r, 'commerce/checkout', [
             'cart' => $cart, 'methods' => $methods, 'fulfillment' => $this->features()->fulfillment(),
-            'error' => $error, 'input' => $input, 'checkoutNonce'=>$checkoutNonce, 'cartCount' => $this->cart()->count(),
+            'error' => $error, 'input' => $input, 'checkoutNonce'=>$checkoutNonce, 'cartCount' => $this->cartService()->count(),
         ]);
     }
 
@@ -123,7 +123,7 @@ final class StorefrontController extends Controller
     }
 
     private function features(): CommerceFeatures { return $this->c->get(CommerceFeatures::class); }
-    private function cart(): CartService { return $this->c->get(CartService::class); }
+    private function cartService(): CartService { return $this->c->get(CartService::class); }
     private function customer(): ?array
     {
         $feature = $this->c->get(\Core\Modules\ModuleRegistry::class)->feature('accounts.customers');

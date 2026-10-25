@@ -202,6 +202,7 @@ final class SystemMail
         }
 
         $mailer = new PHPMailer(true);
+        $smtp = null;
         try {
             $from = (string) (array_key_exists('mail.from',$stored)?$stored['mail.from']:$defaults['from']);
             $fromName = (string) $this->settings->get('site.name', 'Website Core');
@@ -221,7 +222,7 @@ final class SystemMail
             $mailer->send();
             return [true, null];
         } catch (\Throwable $e) {
-            return [false, $e->getMessage()];
+            return [false, is_array($smtp) ? $this->friendlySmtpError($e->getMessage(), $smtp) : $e->getMessage()];
         }
     }
 

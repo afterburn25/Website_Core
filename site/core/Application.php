@@ -617,6 +617,7 @@ final class Application
             $r->get('/quotes', fn (Request $req) => (new \Admin\Controllers\LeadsController($c))->quotes($req), [$auth]);
             $r->any('/quotes/edit', fn (Request $req) => (new \Admin\Controllers\LeadsController($c))->quote($req), [$auth, $csrfCheck]);
             $r->post('/settings/test-smtp', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->testSmtp($req), [$auth, $csrfCheck]);
+            $r->post('/settings/diagnose-smtp', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->diagnoseSmtp($req), [$auth, $csrfCheck]);
             $r->post('/settings/test-mail', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->testMail($req), [$auth, $csrfCheck]);
             $r->any('/privacy', fn (Request $req) => (new \Admin\Controllers\PrivacyController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/integrations', fn (Request $req) => (new \Admin\Controllers\IntegrationsController($c))->index($req), [$auth, $csrfCheck]);

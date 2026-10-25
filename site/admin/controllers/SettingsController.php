@@ -169,6 +169,18 @@ final class SettingsController extends Controller
             : ($error??'The SMTP connection failed for an unknown reason.')])->header('Cache-Control','private, no-store');
     }
 
+    /** Credential-free host/port discovery; never changes the saved transport. */
+    public function diagnoseSmtp(Request $r): Response
+    {
+        $user = $this->user();
+        if (!$user || !$this->auth()->has($user, 'settings.manage')) {
+            return Response::json(['ok' => false, 'message' => 'Your account cannot test mail settings.'], 403);
+        }
+        $result = (new \Core\Mail\SmtpDiagnostics())->inspect($r->string('smtp_host'));
+        $this->audit('settings.smtp_diagnosed', ['available' => $result['ok'], 'checks' => count($result['checks'])]);
+        return Response::json($result)->header('Cache-Control', 'private, no-store');
+    }
+
     /** In-page delivery test against the currently saved transport. */
     public function testMail(Request $r): Response
     {

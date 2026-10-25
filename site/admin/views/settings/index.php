@@ -17,9 +17,9 @@
     <div class="mail-test-panel">
       <div><p class="section-kicker">Verify configuration</p><h3>Test transactional email</h3><p class="card-subtitle">Connection test uses the SMTP values shown above without saving or sending. Delivery test uses the currently saved transport.</p></div>
       <label for="test-recipient">Test recipient<input id="test-recipient" name="test_recipient" type="email" placeholder="you@example.com" data-no-dirty></label>
-      <div class="button-row"><button class="btn secondary" type="button" data-smtp-test data-endpoint="<?= e_attr($basePath) ?>/admin/settings/test-smtp" data-busy-label="Testing connection…">Test SMTP connection</button><button class="btn secondary" type="button" data-mail-test data-endpoint="<?= e_attr($basePath) ?>/admin/settings/test-mail" data-busy-label="Sending test…">Send test email</button></div>
+      <div class="button-row"><button class="btn secondary" type="button" data-smtp-test data-endpoint="<?= e_attr($basePath) ?>/admin/settings/test-smtp" data-busy-label="Testing connection…">Test SMTP connection</button><button class="btn secondary" type="button" data-smtp-diagnose data-endpoint="<?= e_attr($basePath) ?>/admin/settings/diagnose-smtp" data-busy-label="Checking host and ports…">Diagnose host and ports</button><button class="btn secondary" type="button" data-mail-test data-endpoint="<?= e_attr($basePath) ?>/admin/settings/test-mail" data-busy-label="Sending test…">Send test email</button></div>
       <div class="mail-test-result" data-mail-test-result role="status" aria-live="polite" hidden></div>
-      <p class="field-note">The suggested <code>mail.yourdomain.com</code> host is not guaranteed. If the test says DNS or TCP failed, use the exact outgoing-mail hostname from your hosting panel. Common pairs are SSL/465 and STARTTLS/587.</p>
+      <p class="field-note">The suggested <code>mail.yourdomain.com</code> host is not guaranteed. Diagnose host and ports checks SSL/465 and STARTTLS/587 without credentials, and checks a forward-confirmed provider hostname when available. Review the results, then test authentication before saving.</p>
     </div>
   </section>
 </div>

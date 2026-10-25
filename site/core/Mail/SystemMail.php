@@ -137,7 +137,7 @@ final class SystemMail
         }
         if (str_contains($lower, 'connect')) {
             return 'TCP port ' . $config['port'] . ' answered, but the SMTP greeting or encrypted handshake did not complete. '
-                . 'Confirm the host, port, and encryption with the hosting provider. Server detail: ' . $error;
+                . 'Use Diagnose host and ports in Settings to check SSL/465, STARTTLS/587, and a verified provider hostname. Server detail: ' . $error;
         }
         return 'The SMTP server was reached but rejected the connection. Server detail: ' . $error;
     }

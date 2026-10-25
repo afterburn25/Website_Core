@@ -93,5 +93,22 @@ final class SettingsControllerTest extends TestCase
         self::assertStringContainsString('value="https://demo.cajunwebpro.com/catering"',$response->body());
         self::assertStringContainsString('readonly aria-readonly="true" class="locked-field"',$response->body());
         self::assertStringNotContainsString('leave blank to keep',$response->body());
+        self::assertStringContainsString('/catering/index.php?p=/admin/settings/diagnose-smtp', $response->body());
+
+        $settings->set('smtp.password', 'saved-password-must-not-leak');
+        $settings->set('smtp.host', 'saved.example.test');
+        $request = new Request('POST', '/admin/settings/diagnose-smtp', '/catering', [], [
+            'smtp_host' => 'invalid://host', 'smtp_password' => 'posted-password-must-not-leak',
+        ], [], [], []);
+        $diagnostic = (new SettingsController($container))->diagnoseSmtp($request);
+        self::assertSame(200, $diagnostic->status());
+        self::assertStringContainsString('Enter a valid SMTP hostname', $diagnostic->body());
+        self::assertStringNotContainsString('must-not-leak', $diagnostic->body());
+        self::assertSame('saved.example.test', $settings->get('smtp.host'));
+        self::assertSame('saved-password-must-not-leak', $settings->get('smtp.password'));
+        self::assertSame(0, (int) $db->fetchColumn('SELECT COUNT(*) FROM wc_system_messages'));
+
+        $auth->logout();
+        self::assertSame(403, (new SettingsController($container))->diagnoseSmtp($request)->status());
     }
 }

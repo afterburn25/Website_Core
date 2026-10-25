@@ -44,6 +44,19 @@ Every listed surface must satisfy all applicable gates:
 
 Status values: **queued**, **in progress**, **code complete**, **verified**.
 
+## 2.2.1 — SMTP provider-host diagnostics
+
+- [x] Separate credential-free discovery checks SSL/465 and STARTTLS/587.
+- [x] Reverse hostnames require forward confirmation of the original server
+      address; probe sockets use that same address with hostname/certificate
+      validation intact. Suggestions never change saved settings.
+- [x] Socket connect, TLS, and SMTP reads use a shared per-probe deadline;
+      responses have fixed messages and bounded reply parsing.
+- [x] Adds DNS/deadline tests and real loopback implicit-TLS/STARTTLS tests,
+      including hostname mismatch, plain-server rejection and silent sockets.
+- [ ] PHP 8.4/8.5 and native MySQL/MariaDB CI and artifact verification.
+- [ ] Packaged shared-host browser acceptance and actual provider correction.
+
 ## 2.2.0 — Shared business and sales foundation
 
 - [x] One Core-owned business profile provides identity, contact, location,

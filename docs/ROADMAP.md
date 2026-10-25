@@ -31,7 +31,7 @@ adapt to real dependencies; scope is preserved, not deferred silently.
 | 2.0.1 | module-owned navigation defaults imported into Core's editable tree | complete | commit “Let modules define editable site navigation” |
 | 2.0.2–2.0.32 | screen-by-screen hardening, hosted repairs, analytics and mail acceptance | code complete; remaining browser matrix tracked separately | `docs/COMMERCIAL_HARDENING.md` |
 | 2.1 | opt-in commerce, manual payments and customer accounts | complete; CI verified | `docs/2.1.0_RELEASE_NOTES.md` |
-| 2.2 | shared business profile, module admin helpers, inquiries and quotations | implementation complete; CI and packaged-host acceptance pending | `docs/2.2.0_RELEASE_NOTES.md` |
+| 2.2 | shared business profile, module admin helpers, inquiries and quotations | implementation complete; CI verified; packaged-host acceptance pending | `docs/2.2.0_RELEASE_NOTES.md` |
 
 New shared features remain dormant unless an enabled module declares them.
 The ordered audit in `docs/COMMERCIAL_HARDENING.md` remains the acceptance
@@ -119,6 +119,12 @@ preservation of existing content, inquiry history, IDs, and customizations.
 | ID | Requirement | Acceptance criteria |
 | --- | --- | --- |
 | CORE-OPS-1 | Actionable SMTP provider-host discovery | When DNS and TCP succeed but the encrypted SMTP handshake fails, safely inspect the resolved server's reverse/provider hostname. Suggest it only when forward DNS maps it back to the same server address; never weaken certificate checks or save the suggestion automatically. Also test and report the standard SSL/465 and STARTTLS/587 pair separately so the owner receives a concrete hostname/encryption correction instead of a generic connection error. Add unit coverage for unverified PTR results, timeouts, and secret-free diagnostics, then verify on shared hosting. |
+
+CORE-OPS-1 implementation: **2.2.1 candidate** adds a separate credential-free
+diagnostic action with forward-confirmed provider discovery, pinned-address
+sockets, strict TLS checks, separate SSL/465 and STARTTLS/587 results, and
+bounded network probes. CI and real shared-host verification remain pending.
+No provider correction or successful email delivery has been claimed.
 
 ### Delivered common product services
 

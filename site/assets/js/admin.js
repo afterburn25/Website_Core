@@ -224,7 +224,7 @@
       if (recipient && !recipient.reportValidity()) return;
     }
     const original = button.textContent;
-    const controls = mailSettingsForm.querySelectorAll('[data-smtp-test],[data-mail-test]');
+    const controls = mailSettingsForm.querySelectorAll('[data-smtp-test],[data-mail-test],[data-smtp-diagnose]');
     controls.forEach((control) => { control.disabled = true; });
     button.classList.add('is-busy'); button.setAttribute('aria-busy','true');
     button.textContent = button.dataset.busyLabel || 'Testing…';
@@ -232,12 +232,25 @@
     const aborter = new AbortController();
     const timeout = window.setTimeout(() => aborter.abort(), 12000);
     try {
-      const response = await fetch(button.dataset.endpoint, { method:'POST', body:new FormData(mailSettingsForm), credentials:'same-origin', signal:aborter.signal, headers:{'X-Requested-With':'XMLHttpRequest'} });
+      const body = button.hasAttribute('data-smtp-diagnose') ? new FormData() : new FormData(mailSettingsForm);
+      if (button.hasAttribute('data-smtp-diagnose')) {
+        ['_csrf', 'smtp_host'].forEach((name) => body.set(name, mailSettingsForm.elements.namedItem(name)?.value || ''));
+      }
+      const response = await fetch(button.dataset.endpoint, { method:'POST', body, credentials:'same-origin', signal:aborter.signal, headers:{'X-Requested-With':'XMLHttpRequest'} });
       const type = response.headers.get('content-type') || '';
       if (!type.includes('application/json')) throw new Error(`Server returned ${response.status}${response.statusText ? ` ${response.statusText}` : ''}.`);
       const result = await response.json();
       mailResult.className = `mail-test-result ${result.ok ? 'is-ok' : 'is-error'}`;
       mailResult.textContent = result.message || (result.ok ? 'Test succeeded.' : 'Test failed.');
+      if (Array.isArray(result.checks) && result.checks.length) {
+        const list = document.createElement('ul');
+        result.checks.forEach((check) => {
+          const item = document.createElement('li');
+          item.textContent = `${check.host} · ${check.secure === 'ssl' ? 'SSL' : 'STARTTLS'}/${check.port}: ${check.message}`;
+          list.append(item);
+        });
+        mailResult.append(list);
+      }
     } catch (error) {
       mailResult.className = 'mail-test-result is-error';
       mailResult.textContent = error?.name === 'AbortError'
@@ -248,7 +261,7 @@
       button.classList.remove('is-busy'); button.removeAttribute('aria-busy'); button.textContent = original;
     }
   };
-  document.querySelectorAll('[data-smtp-test],[data-mail-test]').forEach((button) => button.addEventListener('click', () => runMailTest(button)));
+  document.querySelectorAll('[data-smtp-test],[data-mail-test],[data-smtp-diagnose]').forEach((button) => button.addEventListener('click', () => runMailTest(button)));
 
   document.querySelectorAll('[data-auto-submit]').forEach((control) => {
     control.addEventListener('change', () => {

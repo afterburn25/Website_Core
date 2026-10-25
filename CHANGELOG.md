@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.2.1 — 2026-10-25
+
+- Adds credential-free SMTP discovery in Settings with separate SSL/465 and
+  STARTTLS/587 results and certificate-verified encrypted greetings.
+- Suggests a reverse/provider hostname only after forward DNS confirms the
+  original server address; diagnostic sockets remain pinned to that address.
+- Keeps discovery separate from authentication and saved mail configuration.
+  No message or credentials are sent, and no settings are saved by discovery.
+- Adds bounded socket operations and reply sizes, safe diagnostic messages,
+  DNS/deadline coverage, and real loopback TLS/STARTTLS protocol tests.
+- No schema migration, industry snapshot change, or Module API change.
+
 ## 2.2.0 — 2026-10-25
 
 - Adds one Core-owned business profile for contact details, address, service

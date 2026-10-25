@@ -238,7 +238,9 @@ final class Application
         $view->addResolver('theme', function (string $v) use ($themeDir, $themesRoot): ?string {
             $manifest = is_file($themesRoot . '/' . $themeDir . '/theme.json')
                 ? json_decode((string) file_get_contents($themesRoot . '/' . $themeDir . '/theme.json'), true) : [];
-            $parent = is_array($manifest) ? basename((string) ($manifest['extends'] ?? '')) : '';
+            $parent = is_array($manifest)
+                ? basename((string) ($manifest['extends'] ?? $manifest['parent'] ?? ''))
+                : '';
             foreach (array_values(array_unique(array_filter([$themeDir, $parent, 'base']))) as $theme) {
                 $path = $themesRoot . '/' . $theme . '/templates/' . $v . '.php';
                 if (is_file($path)) {

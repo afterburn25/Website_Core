@@ -3,6 +3,8 @@
 $brandLogoUrl = $brandLogoUrl ?? null;
 $faviconUrl = $faviconUrl ?? null;
 $socialImageUrl = $socialImageUrl ?? null;
+$themeStyleUrls = is_array($themeStyleUrls ?? null) ? $themeStyleUrls : [];
+$themeScriptUrls = is_array($themeScriptUrls ?? null) ? $themeScriptUrls : [];
 $currentUrl = $currentUrl ?? '';
 $organization = is_array($organization ?? null) ? $organization : [];
 $designTokens = array_replace(
@@ -22,6 +24,10 @@ $designTokens = array_replace(
 <meta name="description" content="<?= e_attr($tagline) ?>">
 <?php endif; ?>
 <meta property="og:type" content="website"><meta property="og:url" content="<?= e_attr($currentUrl) ?>">
+<meta property="og:site_name" content="<?= e_attr($siteName) ?>">
+<meta property="og:title" content="<?= e_attr($page['meta_title'] ?? $page['title'] ?? $siteName) ?>">
+<meta property="og:description" content="<?= e_attr($page['meta_description'] ?? $tagline) ?>">
+<meta name="twitter:card" content="<?= !empty($page['og_image_url']) || !empty($socialImageUrl) ? 'summary_large_image' : 'summary' ?>">
 <?php if (!empty($page['noindex'])): ?>
 <meta name="robots" content="noindex, nofollow">
 <?php endif; ?>
@@ -29,15 +35,13 @@ $designTokens = array_replace(
 <link rel="canonical" href="<?= e_attr($page['canonical']) ?>">
 <?php endif; ?>
 <?php if (!empty($page['og_image_url'])): ?>
-<meta property="og:title" content="<?= e_attr($page['meta_title'] ?? $page['title'] ?? '') ?>">
 <meta property="og:image" content="<?= e_attr($page['og_image_url']) ?>">
 <?php elseif (!empty($socialImageUrl)): ?>
-<meta property="og:title" content="<?= e_attr($page['meta_title'] ?? $page['title'] ?? $siteName) ?>">
 <meta property="og:image" content="<?= e_attr($socialImageUrl) ?>">
 <?php endif; ?>
 <?php if (!empty($faviconUrl)): ?><link rel="icon" href="<?= e_attr($faviconUrl) ?>"><?php endif; ?>
 <?php foreach (($languageLinks ?? []) as $language): ?><link rel="alternate" hreflang="<?= e_attr($language['locale']) ?>" href="<?= e_attr($language['url']) ?>"><?php endforeach; ?>
-<link rel="stylesheet" href="<?= e_attr($basePath . '/index.php?p=/_a/themes/base/assets/css/style.css&v=' . rawurlencode(defined('WC_VERSION') ? WC_VERSION : 'development')) ?>">
+<?php foreach ($themeStyleUrls as $themeStyleUrl): ?><link rel="stylesheet" href="<?= e_attr($themeStyleUrl) ?>"><?php endforeach; ?>
 <style>:root{--color-accent:<?= e_attr($designTokens['primary']) ?>;--color-highlight:<?= e_attr($designTokens['accent']) ?>;--radius:<?= (int) $designTokens['radius'] ?>px}</style>
 <?php
 $schema = ['@context' => 'https://schema.org', '@type' => 'Organization'] + array_filter($organization);
@@ -50,7 +54,8 @@ if (!empty($brandLogoUrl)) $schema['logo'] = $brandLogoUrl;
 <header class="site-header">
 <a class="site-brand" href="<?= e_attr($basePath) ?>/"><?php if (!empty($brandLogoUrl)): ?><img src="<?= e_attr($brandLogoUrl) ?>" alt="<?= e_attr($siteName) ?>"><?php else: ?><?= e($siteName) ?><?php endif; ?></a>
 <?php if ($tagline !== ''): ?><span class="site-tagline"><?= e($tagline) ?></span><?php endif; ?>
-<nav class="site-nav" aria-label="Primary">
+<button class="site-nav-toggle" type="button" aria-expanded="false" aria-controls="site-primary-nav"><span aria-hidden="true"></span><span class="sr-only">Open navigation</span></button>
+<nav class="site-nav" id="site-primary-nav" aria-label="Primary">
 <?php
 $currentSlug = (string) ($page['slug'] ?? '');
 $renderMenu = function (array $items, bool $child = false) use (&$renderMenu, $basePath, $currentPath, $currentSlug): void {
@@ -87,6 +92,7 @@ $renderMenu($pages ?? []);
 <?php if (!empty($footerSocialLinks)): ?><nav class="footer-social social-icons" aria-label="Social media"><?php foreach ($footerSocialLinks as $social): ?><a href="<?= e_attr($social['url']) ?>" target="_blank" rel="noopener noreferrer" aria-label="<?= e_attr($social['label']) ?>"><?= \Core\Branding\SocialIcon::svg((string) $social['platform']) ?></a><?php endforeach; ?></nav><?php endif; ?>
 <p><?= e($copyrightNotice ?? ('© ' . date('Y') . ' ' . $siteName . '. All rights reserved.')) ?></p>
 </footer>
-<script>document.querySelectorAll('[data-open-window]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();window.open(link.href,'wc-nav-window','noopener,noreferrer,width=1200,height=800,resizable=yes,scrollbars=yes');}));</script>
+<?php foreach ($themeScriptUrls as $themeScriptUrl): ?><script src="<?= e_attr($themeScriptUrl) ?>" defer></script><?php endforeach; ?>
+<script>document.documentElement.classList.add('nav-ready');const t=document.querySelector('.site-nav-toggle'),n=document.querySelector('#site-primary-nav');const close=()=>{t?.setAttribute('aria-expanded','false');document.body.classList.remove('site-menu-open');const l=t?.querySelector('.sr-only');if(l)l.textContent='Open navigation'};t?.addEventListener('click',()=>{const o=t.getAttribute('aria-expanded')!=='true';t.setAttribute('aria-expanded',String(o));document.body.classList.toggle('site-menu-open',o);const l=t.querySelector('.sr-only');if(l)l.textContent=o?'Close navigation':'Open navigation'});n?.addEventListener('click',e=>{if(e.target.closest('a'))close()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){close();t?.focus()}});document.querySelectorAll('[data-open-window]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();window.open(link.href,'wc-nav-window','noopener,noreferrer,width=1200,height=800,resizable=yes,scrollbars=yes');}));</script>
 </body>
 </html>

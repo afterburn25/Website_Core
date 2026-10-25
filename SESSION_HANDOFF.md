@@ -1,5 +1,18 @@
 # Session Handoff
 
+## 2.0.20 Appearance and public-theme completion
+
+- Appearance is now a responsive brand workspace with status summaries,
+  direct uploads for all three brand-image roles, Media selection, design and
+  layout controls, social profiles, and a representative live preview.
+- Failed branding validation retains the administrator's submitted values.
+- Theme activation refuses incompatible discovered packages.
+- The public base layout loads active-theme assets through the constrained
+  route, resolves documented `parent` inheritance, emits baseline Open Graph
+  data, and provides accessible responsive primary navigation.
+- Core advances to 2.0.20 with no schema migration. Continue next with surface
+  8, Administrators, roles, profile, and security.
+
 ## 2.0.19 SEO, redirects, translations, and patterns completion
 
 - SEO is the authoritative Redirect Manager. Navigation contains a direct

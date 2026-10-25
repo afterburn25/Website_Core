@@ -31,20 +31,28 @@ final class AppearanceController extends Controller
             }
         }
         $brand = $this->c->get(BrandAssets::class);
+        $branding = [
+            'logo_media_id' => (string) $this->settings()->get('brand.logo_media_id', ''),
+            'favicon_media_id' => (string) $this->settings()->get('brand.favicon_media_id', ''),
+            'social_media_id' => (string) $this->settings()->get('brand.social_media_id', ''),
+            'primary_color' => (string) $this->settings()->get('design.primary_color', '#0369a1'),
+            'accent_color' => (string) $this->settings()->get('design.accent_color', '#0ea5e9'),
+            'radius' => (string) $this->settings()->get('design.radius', '8'),
+            'header_layout' => (string) $this->settings()->get('design.header_layout', 'classic'),
+            'footer_layout' => (string) $this->settings()->get('design.footer_layout', 'centered'),
+            'copyright' => (string) $this->settings()->get('footer.copyright', ''),
+        ];
+        $submitted = $_SESSION['_wc_appearance_input'] ?? null;
+        unset($_SESSION['_wc_appearance_input']);
+        if (is_array($submitted)) {
+            foreach (array_keys($branding) as $key) {
+                if (array_key_exists($key, $submitted)) $branding[$key] = (string) $submitted[$key];
+            }
+        }
         return $this->page($r, 'appearance/index', [
             'themes' => $themes,
             'active' => (string) $this->settings()->get('theme.active', 'base'),
-            'branding' => [
-                'logo_media_id' => (string) $this->settings()->get('brand.logo_media_id', ''),
-                'favicon_media_id' => (string) $this->settings()->get('brand.favicon_media_id', ''),
-                'social_media_id' => (string) $this->settings()->get('brand.social_media_id', ''),
-                'primary_color' => (string) $this->settings()->get('design.primary_color', '#0369a1'),
-                'accent_color' => (string) $this->settings()->get('design.accent_color', '#0ea5e9'),
-                'radius' => (string) $this->settings()->get('design.radius', '8'),
-                'header_layout' => (string) $this->settings()->get('design.header_layout', 'classic'),
-                'footer_layout' => (string) $this->settings()->get('design.footer_layout', 'centered'),
-                'copyright' => (string) $this->settings()->get('footer.copyright', ''),
-            ],
+            'branding' => $branding,
             'mediaItems' => $this->db()->fetchAll(
                 'SELECT id, original_name FROM `' . $this->db()->table('media')
                 . "` WHERE is_private = 0 AND mime LIKE 'image/%' ORDER BY id DESC LIMIT 200"
@@ -57,9 +65,10 @@ final class AppearanceController extends Controller
             'socialProfiles' => array_map(fn (string $label, string $platform): array => [
                 'platform' => $platform,
                 'label' => $label,
-                'url' => (string) $this->settings()->get('social.' . $platform . '.url', ''),
+                'url' => (string) ($submitted['social_' . $platform]
+                    ?? $this->settings()->get('social.' . $platform . '.url', '')),
             ], $brand->socialDefinitions(), array_keys($brand->socialDefinitions())),
-            'socialPlacement' => $brand->socialPlacement(),
+            'socialPlacement' => (string) ($submitted['social_placement'] ?? $brand->socialPlacement()),
         ], 'Appearance');
     }
 
@@ -70,8 +79,20 @@ final class AppearanceController extends Controller
             return $this->forbidden();
         }
         $slug = basename($r->string('slug'));
-        if (!is_dir(WC_THEMES . '/' . $slug) || !is_file(WC_THEMES . '/' . $slug . '/theme.json')) {
+        $registry = $this->c->get(ModuleRegistry::class);
+        $registry->discover();
+        $theme = null;
+        foreach ($registry->all() as $info) {
+            if (basename((string) ($info['dir'] ?? '')) === $slug && ($info['manifest']['type'] ?? '') === 'theme') {
+                $theme = $info; break;
+            }
+        }
+        if ($theme === null) {
             $this->flash('error', 'Theme not found.');
+            return $this->redirect($r, '/admin/appearance');
+        }
+        if (($theme['errors'] ?? []) !== []) {
+            $this->flash('error', 'That theme is not compatible: ' . (string) $theme['errors'][0]);
             return $this->redirect($r, '/admin/appearance');
         }
         $this->settings()->set('theme.active', $slug);
@@ -87,8 +108,7 @@ final class AppearanceController extends Controller
         $primary = strtolower($r->string('primary_color'));
         $accent = strtolower($r->string('accent_color'));
         if (!preg_match('/^#[0-9a-f]{6}$/', $primary) || !preg_match('/^#[0-9a-f]{6}$/', $accent)) {
-            $this->flash('error', 'Brand colors must use six-digit hex values such as #0369a1.');
-            return $this->redirect($r, '/admin/appearance');
+            return $this->brandingError($r, 'Brand colors must use six-digit hex values such as #0369a1.');
         }
         $radius = max(0, min(24, (int) $r->string('radius', '8')));
         $socialProfiles = [];
@@ -98,8 +118,7 @@ final class AppearanceController extends Controller
         foreach ($brand->socialDefinitions() as $platform => $label) {
             $url = mb_substr($r->string('social_' . $platform), 0, 500);
             if ($url !== '' && !BrandAssets::validSocialUrl($url)) {
-                $this->flash('error', $label . ' must be a complete HTTPS profile URL or left blank.');
-                return $this->redirect($r, '/admin/appearance');
+                return $this->brandingError($r, $label . ' must be a complete HTTPS profile URL or left blank.');
             }
             $socialProfiles[$platform] = $url;
         }
@@ -110,28 +129,25 @@ final class AppearanceController extends Controller
                 'SELECT COUNT(*) FROM `' . $this->db()->table('media') . "` WHERE id = ? AND is_private = 0 AND mime LIKE 'image/%'",
                 [$value]
             )) {
-                $this->flash('error', 'One of the selected brand images is unavailable or private.');
-                return $this->redirect($r, '/admin/appearance');
+                return $this->brandingError($r, 'One of the selected brand images is unavailable or private.');
             }
             $ids[$field] = $value > 0 ? $value : null;
         }
 
         $created = [];
-        foreach (['logo_upload' => 'logo_media_id', 'favicon_upload' => 'favicon_media_id'] as $upload => $field) {
+        foreach (['logo_upload' => 'logo_media_id', 'favicon_upload' => 'favicon_media_id', 'social_upload' => 'social_media_id'] as $upload => $field) {
             $file = $r->files[$upload] ?? null;
             if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
             if ($error = $this->uploadError($r, $upload)) {
                 foreach ($created as $id) $this->c->get(MediaService::class)->delete($id);
-                $this->flash('error', ucfirst(str_replace('_', ' ', $upload)) . ': ' . $error);
-                return $this->redirect($r, '/admin/appearance');
+                return $this->brandingError($r, ucfirst(str_replace('_', ' ', $upload)) . ': ' . $error);
             }
             [$id, $error] = $this->c->get(MediaService::class)->store($file, $u->id, false, 'Branding');
             $record = $id ? $this->c->get(MediaService::class)->find($id) : null;
             if ($error !== null || $id === null || !$record || !str_starts_with((string) $record['mime'], 'image/')) {
                 if ($id) $this->c->get(MediaService::class)->delete($id);
                 foreach ($created as $createdId) $this->c->get(MediaService::class)->delete($createdId);
-                $this->flash('error', ucfirst(str_replace('_', ' ', $upload)) . ': ' . ($error ?? 'Choose a supported image file.'));
-                return $this->redirect($r, '/admin/appearance');
+                return $this->brandingError($r, ucfirst(str_replace('_', ' ', $upload)) . ': ' . ($error ?? 'Choose a supported image file.'));
             }
             $created[] = $id;
             $ids[$field] = $id;
@@ -164,6 +180,17 @@ final class AppearanceController extends Controller
         }
         $this->c->get(\Core\Audit\AuditLog::class)->record('appearance.branding', $u->id, ['media' => array_values(array_filter($ids))]);
         $this->flash('ok', 'Brand assets, social profiles, footer identity, and design tokens saved.');
+        return $this->redirect($r, '/admin/appearance');
+    }
+
+    private function brandingError(Request $r, string $message): Response
+    {
+        $_SESSION['_wc_appearance_input'] = array_filter(
+            $r->post,
+            static fn (string $key): bool => $key !== '_csrf',
+            ARRAY_FILTER_USE_KEY
+        );
+        $this->flash('error', $message . ' Your entered settings are still below.');
         return $this->redirect($r, '/admin/appearance');
     }
 }

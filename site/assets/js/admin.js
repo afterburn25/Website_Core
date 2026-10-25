@@ -887,6 +887,30 @@
     refresh();
   });
 
+  document.querySelectorAll('[data-appearance-form]').forEach((form) => {
+    const preview = document.querySelector('[data-appearance-preview]');
+    const frame = document.querySelector('[data-appearance-frame]');
+    const radius = form.querySelector('[data-appearance-radius]');
+    const output = radius?.closest('.range-field')?.querySelector('output');
+    const sync = () => {
+      const primary = form.querySelector('[data-appearance-primary]')?.value || '#0369a1';
+      const accent = form.querySelector('[data-appearance-accent]')?.value || '#0ea5e9';
+      const pixels = `${radius?.value || 8}px`;
+      preview?.style.setProperty('--preview-primary', primary);
+      preview?.style.setProperty('--preview-accent', accent);
+      preview?.style.setProperty('--preview-radius', pixels);
+      if (output) output.textContent = pixels;
+      if (frame) {
+        frame.className = `appearance-preview-frame header-${form.querySelector('[data-appearance-header]')?.value || 'classic'} footer-${form.querySelector('[data-appearance-footer]')?.value || 'centered'}`;
+      }
+    };
+    form.querySelectorAll('[data-appearance-primary],[data-appearance-accent],[data-appearance-radius],[data-appearance-header],[data-appearance-footer]').forEach((field) => {
+      field.addEventListener('input', sync);
+      field.addEventListener('change', sync);
+    });
+    sync();
+  });
+
   document.querySelectorAll('[data-pattern-filter]').forEach((input) => {
     const library = document.querySelector('[data-pattern-library]');
     const empty = document.querySelector('[data-pattern-empty]');

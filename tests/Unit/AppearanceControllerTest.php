@@ -38,5 +38,20 @@ final class AppearanceControllerTest extends TestCase
         $this->assertStringContainsString('footer-social', $theme);
         $this->assertStringContainsString('header-social', $theme);
         $this->assertStringContainsString('SocialIcon::svg', $theme);
+        $this->assertStringContainsString('social_upload', $view);
+        $this->assertStringContainsString('data-appearance-preview', $view);
+        $this->assertStringContainsString('brandingError', $controller);
+        $this->assertStringContainsString('That theme is not compatible', $controller);
+        $this->assertStringContainsString('themeStyleUrls', $public);
+        $this->assertStringContainsString('themeScriptUrls', $public);
+        $this->assertStringContainsString('site-nav-toggle', $theme);
+        $this->assertStringContainsString('aria-expanded="false"', $theme);
+        $this->assertStringContainsString('og:site_name', $theme);
+    }
+
+    public function testParentThemeContractAcceptsDocumentedParentKey(): void
+    {
+        $application = (string) file_get_contents(WC_ROOT . '/core/Application.php');
+        $this->assertStringContainsString("\$manifest['parent']", $application);
     }
 }

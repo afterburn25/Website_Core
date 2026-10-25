@@ -182,6 +182,9 @@ final class PublicPageController extends Controller
         $v->share('footerNavigation', (new \Core\Content\MenuService($this->db()))->tree('footer'));
         $v->share('headerSocialLinks', $brand->socialLinks('header'));
         $v->share('footerSocialLinks', $brand->socialLinks('footer'));
+        [$themeStyles, $themeScripts] = $this->themeAssets($r);
+        $v->share('themeStyleUrls', $themeStyles);
+        $v->share('themeScriptUrls', $themeScripts);
         $primary = (string) $this->settings()->get('design.primary_color', '#0369a1');
         $accent = (string) $this->settings()->get('design.accent_color', '#0ea5e9');
         $radius = max(0, min(24, (int) $this->settings()->get('design.radius', 8)));
@@ -195,6 +198,31 @@ final class PublicPageController extends Controller
         $translations=new \Core\I18n\ContentTranslations($this->db());
         $v->share('languageLinks',$currentPage?array_map(fn(array $x)=>$x+['url'=>$r->routeUrl('/l/'.$x['locale'].'/'.$x['slug'])],$translations->alternates((int)$currentPage['id'])):[]);
         $v->share('currentLocale',$locale);
+    }
+
+    /** @return array{0:list<string>,1:list<string>} */
+    private function themeAssets(Request $r): array
+    {
+        $version = rawurlencode(defined('WC_VERSION') ? WC_VERSION : 'development');
+        $styles = [$r->routeUrl('/_a/themes/base/assets/css/style.css') . '&v=' . $version];
+        $scripts = [];
+        $slug = basename((string) $this->settings()->get('theme.active', 'base'));
+        if ($slug === '' || $slug === 'base') return [$styles, $scripts];
+        $root = defined('WC_THEMES') ? WC_THEMES : dirname(__DIR__, 2) . '/themes';
+        $manifestFile = $root . '/' . $slug . '/theme.json';
+        $manifest = is_file($manifestFile) ? json_decode((string) file_get_contents($manifestFile), true) : null;
+        if (!is_array($manifest)) return [$styles, $scripts];
+        foreach (['css', 'js'] as $kind) {
+            foreach ((array) ($manifest['assets'][$kind] ?? []) as $asset) {
+                $asset = ltrim(str_replace('\\', '/', (string) $asset), '/');
+                if ($asset === '' || str_contains($asset, '..') || !preg_match('/\.' . $kind . '$/i', $asset)) continue;
+                if (!is_file($root . '/' . $slug . '/' . $asset)) continue;
+                $url = $r->routeUrl('/_a/themes/' . rawurlencode($slug) . '/' . str_replace('%2F', '/', rawurlencode($asset))) . '&v=' . $version;
+                if ($kind === 'css') $styles[] = $url;
+                else $scripts[] = $url;
+            }
+        }
+        return [array_values(array_unique($styles)), array_values(array_unique($scripts))];
     }
 
 }

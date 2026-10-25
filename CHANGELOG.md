@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.20 — 2026-10-24
+
+- Rebuilds Appearance as a responsive visual brand workspace with live token
+  preview, direct social-image upload, clearer asset guidance, and visual theme
+  cards while retaining entered settings after validation errors.
+- Rejects incompatible theme activation and completes child-theme inheritance
+  by accepting the documented `parent` key as well as legacy `extends`.
+- Loads declared child-theme CSS/JS through Core's constrained subfolder-safe
+  asset route and adds complete baseline social metadata.
+- Adds an accessible mobile public-navigation control with Escape and link
+  close behavior while preserving a usable no-JavaScript menu.
+- Adds focused appearance/theme contract regression coverage without a schema
+  migration or industry-specific Core behavior.
+
 ## 2.0.19 — 2026-10-25
 
 - Consolidates redirect ownership in SEO with complete create, edit, remove,

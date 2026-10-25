@@ -51,7 +51,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 4 | Navigation Menu | Existing-menu import, tree editing, targets, page/external links, nesting, keyboard alternatives, validation, public rendering | code complete — 2.0.16; packaged-browser check pending |
 | 5 | Forms and submissions | Field builder, validation, notifications, spam controls, consent evidence, inbox, filters, read state, archive/export | code complete — 2.0.17; packaged-browser check pending |
 | 6 | SEO, redirects, translations, patterns | Actionable audits, previews, redirect import/export, localized content, reusable layouts, errors and conflicts | code complete — 2.0.19; packaged-browser check pending |
-| 7 | Appearance and public theme | Branding, theme preview/activation, header/footer layouts, responsive output, attribution, status/error pages | code complete — 2.0.6; packaged-browser check pending |
+| 7 | Appearance and public theme | Branding, theme preview/activation, header/footer layouts, responsive output, attribution, status/error pages | code complete — 2.0.20; packaged-browser check pending |
 | 8 | Administrators, roles, profile, security | Account lifecycle, role safety, capability clarity, MFA, sessions, recovery, lockouts, audit evidence | code complete — 2.0.6; packaged-browser check pending |
 | 9 | Privacy and integrations | Consent behavior, privacy requests, API keys, webhooks, scopes, delivery failures, exports and secret rotation | code complete — 2.0.6; packaged-browser check pending |
 | 10 | Modules and marketplace | Install/upgrade/enable/disable/uninstall/purge, dependency errors, protected Core, recovery mode, catalog trust and rollback | code complete through 2.0.14; failed-migration file rollback and landscaping lifecycle CI covered; packaged-browser check pending |
@@ -214,6 +214,26 @@ run against packaged builds; code-complete does not mean externally verified.
       redirect conflict/import/export, language lifecycle, failed translation
       save retention, public localized routing, pattern search/duplicate/apply,
       revision recovery, and mobile layouts.
+
+## 2.0.20 — Appearance and public theme acceptance
+
+- [x] Appearance provides one responsive brand workspace with current-state
+      summaries, direct logo/favicon/social-image upload, Media selection,
+      shared social placement, layout choices, and representative live preview.
+- [x] Validation failures retain entered design, copyright, and social values
+      and return an actionable message instead of silently discarding work.
+- [x] Theme activation validates discovered package compatibility before the
+      active-theme setting changes.
+- [x] Child themes may use the documented `parent` key or legacy `extends`, and
+      declared CSS/JS loads through the constrained subfolder-safe asset route.
+- [x] Public output supplies baseline Open Graph metadata, brand social image,
+      responsive nested navigation, keyboard Escape handling, and a usable
+      no-JavaScript navigation fallback.
+- [x] Core keeps required attribution protected separately from theme markup
+      and administrator-editable business copyright content.
+- [ ] Packaged browser verification covers upload previews, invalid-value
+      retention, theme activation, child assets, mobile navigation, social
+      metadata, and public layout variants on a real subfolder installation.
 
 ## 2.0.14 — diagnostic and fatal-page recovery acceptance
 

@@ -122,6 +122,7 @@ preservation of existing content, inquiry history, IDs, and customizations.
 | ID | Requirement | Acceptance criteria |
 | --- | --- | --- |
 | CORE-OPS-1 | Actionable SMTP provider-host discovery | When DNS and TCP succeed but the encrypted SMTP handshake fails, safely inspect the resolved server's reverse/provider hostname. Suggest it only when forward DNS maps it back to the same server address; never weaken certificate checks or save the suggestion automatically. Also test and report the standard SSL/465 and STARTTLS/587 pair separately so the owner receives a concrete hostname/encryption correction instead of a generic connection error. Add unit coverage for unverified PTR results, timeouts, and secret-free diagnostics, then verify on shared hosting. |
+| CORE-OPS-2 | Verified mail-certificate deployment handoff | Track the external Privora Command Center dependency exposed while provisioning `mail.cajunwebpro.com`: an ACME client success is not a completed AutoSSL operation until the issued certificate and private-key files are located, readable, cryptographically matched and verified for the requested hostname. The control panel must support the ACME client's reported output plus common RSA/ECC layouts without relying on one hard-coded directory; install the full chain and key atomically with mail-service ownership and restrictive permissions; bind them to SMTP and IMAP; reload the affected services; and verify the certificate presented on SSL/465 and STARTTLS/587. Report DNS validation, ACME issuance, file discovery, installation, binding, reload and final handshake as separate states with secret-free errors. A retry must be idempotent, retain the last valid certificate on any failure and never report success when files are absent. Core keeps strict certificate verification and consumes only the verified hostname/result; it does not receive server certificate keys or attempt privileged repair. |
 
 CORE-OPS-1 implementation: **2.2.1 implemented; CI verified** adds a separate credential-free
 diagnostic action with forward-confirmed provider discovery, pinned-address
@@ -129,6 +130,14 @@ sockets, strict TLS checks, separate SSL/465 and STARTTLS/587 results, and
 bounded network probes. CI run 535 passed all six jobs; real shared-host
 verification remains pending.
 No provider correction or successful email delivery has been claimed.
+
+CORE-OPS-2 state: **external Privora/server repair required.** Live provisioning
+reached ACME success, but Privora reported that the certificate files were
+missing before SMTP/IMAP deployment. This is no longer a DNS-pending or SMTP
+credential problem. Website Core cannot install or bind privileged mail-server
+certificates; hosted acceptance for `mail.cajunwebpro.com` remains blocked until
+Privora completes the deployment handoff and both encrypted SMTP ports present
+a certificate valid for that hostname.
 
 ### Delivered common product services
 

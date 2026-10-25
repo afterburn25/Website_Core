@@ -20,5 +20,19 @@ final class NavigationEditorTest extends TestCase
         $this->assertStringContainsString('$locationMeta', $view);
         $this->assertStringContainsString('name="location"', $view);
         $this->assertStringContainsString('menu-location-tabs', $view);
+        $this->assertStringContainsString('data-menu-editor', $view);
+        $this->assertStringContainsString('data-root-drop', $view);
+        $this->assertStringContainsString('Visible on website', $view);
+        $this->assertStringContainsString('data-reset-tree', $view);
+        $this->assertStringContainsString('redirect_save', $view);
+
+        $script = (string) file_get_contents(WC_ROOT . '/assets/js/admin.js');
+        $this->assertStringContainsString("ratio < .28 ? 'before'", $script);
+        $this->assertStringContainsString("ratio > .72 ? 'after'", $script);
+        $this->assertStringContainsString('Save or discard the menu structure', $script);
+
+        $public = (string) file_get_contents(WC_ROOT . '/admin/controllers/PublicPageController.php');
+        $this->assertStringContainsString("'target' => \$i['target']", $public);
+        $this->assertStringContainsString("itemsFor('primary', true)", $public);
     }
 }

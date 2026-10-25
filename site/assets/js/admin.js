@@ -346,6 +346,198 @@
     });
   });
 
+  document.querySelectorAll('[data-menu-editor]').forEach((editor) => {
+    const tree = editor.querySelector('[data-menu-tree]');
+    const rootDrop = editor.querySelector('[data-root-drop]');
+    const save = editor.querySelector('[data-save-tree]');
+    const reset = editor.querySelector('[data-reset-tree]');
+    const status = editor.querySelector('[data-tree-status]');
+    const json = editor.querySelector('[data-tree-json]');
+    const treeForm = editor.querySelector('[data-tree-form]');
+    const maxDepth = Number(editor.dataset.maxMenuDepth || 5);
+    if (!tree || !rootDrop || !save || !status || !json || !treeForm) return;
+    let dragging = null;
+    let dragArmed = false;
+    let dirty = false;
+
+    const nodesIn = (list) => [...list.children].filter((node) => node.matches('[data-menu-node]'));
+    const serialize = (list) => nodesIn(list).map((node) => ({
+      id: Number(node.dataset.id),
+      children: serialize(node.querySelector(':scope > .menu-children')),
+    }));
+    const depthOf = (node) => {
+      let depth = 0;
+      let parent = node.parentElement?.closest('[data-menu-node]');
+      while (parent) { depth += 1; parent = parent.parentElement?.closest('[data-menu-node]'); }
+      return depth;
+    };
+    const branchHeight = (node) => {
+      const children = nodesIn(node.querySelector(':scope > .menu-children'));
+      return children.length === 0 ? 0 : 1 + Math.max(...children.map(branchHeight));
+    };
+    const canPlace = (node, depth) => depth + branchHeight(node) <= maxDepth;
+    const clearDropState = () => {
+      editor.querySelectorAll('.drop-before,.drop-inside,.drop-after,.is-over').forEach((node) => {
+        node.classList.remove('drop-before', 'drop-inside', 'drop-after', 'is-over');
+        delete node.dataset.dropMode;
+      });
+    };
+    const refreshControls = () => {
+      editor.querySelectorAll('[data-menu-node]').forEach((node) => {
+        const parentNode = node.parentElement?.closest('[data-menu-node]');
+        const previous = node.previousElementSibling;
+        node.querySelector(':scope > .menu-card .move-up').disabled = !previous;
+        node.querySelector(':scope > .menu-card .move-down').disabled = !node.nextElementSibling;
+        node.querySelector(':scope > .menu-card .indent').disabled = !previous || !canPlace(node, depthOf(previous) + 1);
+        node.querySelector(':scope > .menu-card .outdent').disabled = !parentNode;
+      });
+    };
+    const changed = () => {
+      dirty = true;
+      json.value = JSON.stringify(serialize(tree));
+      save.disabled = false;
+      if (reset) reset.hidden = false;
+      status.textContent = 'Unsaved structure changes — save the menu before editing link details.';
+      refreshControls();
+    };
+    const rejectDepth = () => {
+      status.textContent = `That move would exceed the ${maxDepth + 1}-level menu limit.`;
+    };
+
+    editor.querySelectorAll('[data-menu-node]').forEach((node) => {
+      const grip = node.querySelector(':scope > .menu-card .drag-grip');
+      const card = node.querySelector(':scope > .menu-card');
+      grip?.addEventListener('pointerdown', () => { dragArmed = true; });
+      grip?.addEventListener('pointerup', () => { if (!dragging) dragArmed = false; });
+      node.addEventListener('dragstart', (event) => {
+        if (event.target !== node) return;
+        if (!dragArmed) { event.preventDefault(); return; }
+        dragging = node;
+        node.classList.add('is-dragging');
+        event.dataTransfer.effectAllowed = 'move';
+      });
+      node.addEventListener('dragend', (event) => {
+        if (event.target !== node) return;
+        node.classList.remove('is-dragging');
+        dragging = null;
+        dragArmed = false;
+        clearDropState();
+      });
+      card?.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        clearDropState();
+        if (!dragging || dragging === node || dragging.contains(node)) return;
+        const rect = card.getBoundingClientRect();
+        const ratio = (event.clientY - rect.top) / Math.max(1, rect.height);
+        const mode = ratio < .28 ? 'before' : (ratio > .72 ? 'after' : 'inside');
+        const destinationDepth = mode === 'inside' ? depthOf(node) + 1 : depthOf(node);
+        if (!canPlace(dragging, destinationDepth)) { rejectDepth(); return; }
+        node.dataset.dropMode = mode;
+        node.classList.add(`drop-${mode}`);
+      });
+      card?.addEventListener('dragleave', (event) => {
+        if (!card.contains(event.relatedTarget)) clearDropState();
+      });
+      card?.addEventListener('drop', (event) => {
+        event.preventDefault();
+        const mode = node.dataset.dropMode;
+        clearDropState();
+        if (!dragging || !mode || dragging === node || dragging.contains(node)) return;
+        if (mode === 'inside') {
+          node.querySelector(':scope > .menu-children').appendChild(dragging);
+        } else if (mode === 'before') {
+          node.parentElement.insertBefore(dragging, node);
+        } else {
+          node.parentElement.insertBefore(dragging, node.nextElementSibling);
+        }
+        changed();
+      });
+      node.querySelector(':scope > .menu-card .move-up')?.addEventListener('click', () => {
+        const previous = node.previousElementSibling;
+        if (previous) { node.parentElement.insertBefore(node, previous); changed(); }
+      });
+      node.querySelector(':scope > .menu-card .move-down')?.addEventListener('click', () => {
+        const next = node.nextElementSibling;
+        if (next) { node.parentElement.insertBefore(next, node); changed(); }
+      });
+      node.querySelector(':scope > .menu-card .indent')?.addEventListener('click', () => {
+        const previous = node.previousElementSibling;
+        if (!previous) return;
+        if (!canPlace(node, depthOf(previous) + 1)) { rejectDepth(); return; }
+        previous.querySelector(':scope > .menu-children').appendChild(node);
+        changed();
+      });
+      node.querySelector(':scope > .menu-card .outdent')?.addEventListener('click', () => {
+        const parentNode = node.parentElement?.closest('[data-menu-node]');
+        if (parentNode) { parentNode.parentElement.insertBefore(node, parentNode.nextElementSibling); changed(); }
+      });
+    });
+
+    rootDrop.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      clearDropState();
+      if (dragging) rootDrop.classList.add('is-over');
+    });
+    rootDrop.addEventListener('dragleave', () => rootDrop.classList.remove('is-over'));
+    rootDrop.addEventListener('drop', (event) => {
+      event.preventDefault();
+      rootDrop.classList.remove('is-over');
+      if (dragging) { tree.appendChild(dragging); changed(); }
+    });
+    treeForm.addEventListener('submit', () => {
+      dirty = false;
+      json.value = JSON.stringify(serialize(tree));
+    });
+    editor.querySelectorAll('[data-menu-detail-form]').forEach((form) => {
+      form.addEventListener('submit', (event) => {
+        if (!dirty) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        status.textContent = 'Save or discard the menu structure before editing, adding, or removing links.';
+        save.focus();
+      }, true);
+    });
+
+    const wireSource = (form) => {
+      const page = form.querySelector('select[name="page_id"]');
+      const url = form.querySelector('input[name="url"]');
+      const label = form.querySelector('input[name="label"]');
+      if (!page || !url) return;
+      const sync = (changedByUser = false) => {
+        const linked = page.value !== '';
+        if (linked && !url.disabled) url.dataset.customUrl = url.value;
+        url.disabled = linked;
+        if (linked) {
+          url.value = '';
+          if (changedByUser && label && label.value.trim() === '') {
+            label.value = page.selectedOptions[0]?.dataset.pageTitle || '';
+          }
+        } else if (changedByUser && url.value === '' && url.dataset.customUrl) {
+          url.value = url.dataset.customUrl;
+        }
+      };
+      page.addEventListener('change', () => sync(true));
+      sync(false);
+    };
+    editor.querySelectorAll('[data-menu-detail-form]').forEach(wireSource);
+    json.value = JSON.stringify(serialize(tree));
+    refreshControls();
+    window.addEventListener('beforeunload', (event) => {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    });
+  });
+
+  document.querySelectorAll('.row-editor').forEach((details) => {
+    details.addEventListener('toggle', () => {
+      if (!details.open) return;
+      document.querySelectorAll('.row-editor[open]').forEach((other) => {
+        if (other !== details) other.removeAttribute('open');
+      });
+    });
+  });
+
   const accountMenu = document.querySelector('.account-menu');
   document.addEventListener('click', (event) => {
     if (accountMenu?.open && !accountMenu.contains(event.target)) {

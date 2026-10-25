@@ -42,7 +42,14 @@ final class IntegrationsTest extends TestCase
         $transfer = new SiteTransfer($this->db);
         $counts = $transfer->import(['format' => 'website-core-site', 'version' => 1,
             'settings' => ['site.name' => 'Imported Site', 'footer.copyright' => '© {year} Imported Site', 'social.instagram.url' => 'https://instagram.com/imported', 'social.placement' => 'both', 'security.app_key' => 'never'],
-            'pages' => [['slug' => 'about-us', 'title' => 'About', 'body' => '<p>Hello</p><script>bad()</script>', 'status' => 'published']]]);
+            'pages' => [['slug' => 'about-us', 'title' => 'About', 'body' => '<p>Hello</p><script>bad()</script>', 'status' => 'published']],
+            'menus' => [['location' => 'primary', 'label' => 'Header']],
+            'menu_items' => [[
+                'source_id' => 10, 'menu_location' => 'primary', 'source_parent_id' => null,
+                'label' => 'Staged page', 'url' => '/about-us', 'sort_order' => 0,
+                'target' => 'tab', 'is_enabled' => 0, 'linked_page_slug' => 'about-us',
+            ]],
+        ]);
         $this->assertSame(1, $counts['pages']);
         $page = $this->db->fetch('SELECT * FROM `wc_pages` WHERE slug = ?', ['about-us']);
         $this->assertSame('draft', $page['status']);
@@ -53,6 +60,8 @@ final class IntegrationsTest extends TestCase
         $this->assertSame('https://instagram.com/imported', $document['settings']['social.instagram.url']);
         $this->assertSame('both', $document['settings']['social.placement']);
         $this->assertArrayNotHasKey('security.app_key', $document['settings']);
+        $this->assertSame(0, (int) $document['menu_items'][0]['is_enabled']);
+        $this->assertSame('tab', $document['menu_items'][0]['target']);
     }
 
     public function testFailedWebhookDeliveryCanBeRequeuedAndDisabledHooksCannot(): void

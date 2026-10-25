@@ -35,7 +35,7 @@ final class SiteTransfer
             'settings' => $settings,
             'pages' => $this->db->fetchAll('SELECT slug,title,body,blocks_json,status,meta_title,meta_description,noindex,canonical,schema_json FROM `' . $this->db->table('pages') . '` WHERE deleted_at IS NULL ORDER BY id'),
             'menus' => $this->db->fetchAll('SELECT location,label FROM `' . $this->db->table('menus') . '` ORDER BY id'),
-            'menu_items' => $this->db->fetchAll('SELECT i.id source_id,m.location menu_location,i.parent_id source_parent_id,i.label,i.url,i.sort_order,i.target,p.slug linked_page_slug FROM `' . $this->db->table('menu_items') . '` i JOIN `' . $this->db->table('menus') . '` m ON m.id=i.menu_id LEFT JOIN `' . $this->db->table('pages') . '` p ON p.id=i.page_id ORDER BY m.id,i.sort_order,i.id'),
+            'menu_items' => $this->db->fetchAll('SELECT i.id source_id,m.location menu_location,i.parent_id source_parent_id,i.label,i.url,i.sort_order,i.target,i.is_enabled,p.slug linked_page_slug FROM `' . $this->db->table('menu_items') . '` i JOIN `' . $this->db->table('menus') . '` m ON m.id=i.menu_id LEFT JOIN `' . $this->db->table('pages') . '` p ON p.id=i.page_id ORDER BY m.id,i.sort_order,i.id'),
             'languages' => $this->db->fetchAll('SELECT locale,name,active FROM `' . $this->db->table('site_languages') . '` ORDER BY locale'),
             'translations' => $this->db->fetchAll('SELECT p.slug page_slug,t.locale,t.slug,t.title,t.body,t.blocks_json,t.meta_title,t.meta_description,t.schema_json FROM `' . $this->db->table('page_translations') . '` t JOIN `' . $this->db->table('pages') . '` p ON p.id=t.page_id ORDER BY p.id,t.locale')];
     }
@@ -85,6 +85,7 @@ final class SiteTransfer
                 $newId = (int) $this->db->insert('menu_items', ['menu_id' => $menuIds[$item['menu_location']], 'parent_id' => null,
                     'label' => mb_substr(strip_tags((string) ($item['label'] ?? 'Link')), 0, 190), 'url' => mb_substr((string) ($item['url'] ?? '/'), 0, 500),
                     'sort_order' => (int) ($item['sort_order'] ?? 0), 'target' => $target, 'page_id' => $linkedPage !== false ? (int) $linkedPage : null,
+                    'is_enabled' => array_key_exists('is_enabled', $item) && empty($item['is_enabled']) ? 0 : 1,
                     'created_at' => date('Y-m-d H:i:s')]);
                 $itemIds[(int) ($item['source_id'] ?? 0)] = $newId;
             }

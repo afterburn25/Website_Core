@@ -90,6 +90,25 @@ final class RedirectsSectionsTest extends TestCase
         $this->assertTrue($ok);
     }
 
+    public function testRedirectCanBeEditedWithoutTurningDuplicatePathsIntoErrors(): void
+    {
+        $service = new RedirectService($this->db);
+        [$ok, $error] = $service->save(null, '/old', '/first', 301, 1);
+        $this->assertTrue($ok, (string) $error);
+        $id = (int) $this->db->fetchColumn(
+            'SELECT id FROM `' . $this->db->table('redirects') . '` WHERE source = ?', ['/old']
+        );
+        [$ok, $error] = $service->save($id, '/old', '/second', 308, 1);
+        $this->assertTrue($ok, (string) $error);
+        $row = $service->match('/old');
+        $this->assertSame('/second', $row['target']);
+        $this->assertSame(308, (int) $row['status_code']);
+
+        [$ok, $error] = $service->save(99999, '/missing', '/target', 301, 1);
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('no longer exists', (string) $error);
+    }
+
     public function testSectionSaveRenderSanitized(): void
     {
         $s = new SectionService($this->db);

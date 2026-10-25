@@ -33,7 +33,7 @@ main { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1rem; }
 .site-nav .nav-root { display: flex; gap: 1rem; flex-wrap: wrap; }
 .site-nav .nav-item { position: relative; }
 .site-nav a { color: var(--color-accent); text-decoration: none; }
-.site-nav a:hover, .site-nav a:focus-visible { text-decoration: underline; }
+.site-nav a:hover, .site-nav a:focus-visible, .site-nav a[aria-current="page"] { text-decoration: underline; text-underline-offset: .22em; }
 .site-nav .nav-children { display: none; position: absolute; z-index: 20; top: 100%; left: 0; min-width: 12rem; padding: .45rem; background: var(--color-bg); border: 1px solid #e2e8f0; border-radius: var(--radius); box-shadow: 0 .75rem 1.5rem #0f172a20; }
 .site-nav .nav-children .nav-children { top: 0; left: 100%; }
 .site-nav .nav-item:hover > .nav-children, .site-nav .nav-item:focus-within > .nav-children { display: grid; gap: .2rem; }

@@ -132,10 +132,11 @@ final class PublicPageController extends Controller
         if($locale!==null){return array_map(fn(array $p)=>['slug'=>$p['slug'],'title'=>$p['title'],'url'=>'/l/'.$locale.'/'.$p['slug'],'children'=>[]],(new \Core\I18n\ContentTranslations($this->db()))->translatedNav($locale));}
         $menu = new \Core\Content\MenuService($this->db());
         $tree = $menu->tree('primary');
-        if ($tree !== []) {
+        if ($menu->itemsFor('primary', true) !== []) {
             return array_map(fn (array $i) => [
-                'slug' => '', 'title' => $i['label'], 'url' => $i['url'],
-                'children' => $i['children'],
+                'slug' => $i['page_slug'] ?? '', 'page_slug' => $i['page_slug'] ?? '',
+                'title' => $i['label'], 'url' => $i['url'],
+                'target' => $i['target'] ?? 'self', 'children' => $i['children'],
             ], $tree);
         }
         return array_map(fn (array $p) => [
@@ -159,6 +160,7 @@ final class PublicPageController extends Controller
     private function shareGlobals(View $v, Request $r, ?array $currentPage=null, ?string $locale=null): void
     {
         $v->share('basePath', $r->basePath);
+        $v->share('currentPath', rtrim($r->path, '/') ?: '/');
         $v->share('siteName', $this->settings()->get('site.name', 'Website Core'));
         $v->share('tagline', $this->settings()->get('site.tagline', ''));
         $siteUrl = rtrim((string) ($this->settings()->get('app.url', '')

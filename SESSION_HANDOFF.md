@@ -1,5 +1,23 @@
 # Session Handoff
 
+## 2.0.16 Navigation workspace completion
+
+- Migration `2026_10_25_0024` adds `menu_items.is_enabled` with existing links
+  remaining visible by default on upgraded sites.
+- The administrator tree supports before/inside/after drag placement, retains
+  arrow-button alternatives, blocks excessive depth, and requires structure
+  changes to be saved or discarded before another menu mutation.
+- Header/footer tabs expose total and hidden counts. New links may be staged,
+  placed under a parent immediately, and opened in the same tab, a new tab, or
+  a named new window.
+- Core public navigation retains the selected target, marks the active route,
+  filters hidden subtrees, and does not replace an intentionally hidden custom
+  menu with the published-page fallback.
+- Redirects can be edited in place with bounded fields and recoverable
+  duplicate/missing-row validation.
+- Release as Core 2.0.16 after the full CI matrix and package contracts pass;
+  packaged browser verification remains the external acceptance gate.
+
 ## 2.0.15 landscaping lifecycle carried into latest Core
 
 - Package Manager now retains the previous package directory until replacement

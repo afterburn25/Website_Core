@@ -132,8 +132,13 @@ final class ContentMediaTest extends TestCase
         $this->assertTrue($menu->urlOk('/about'));
         $this->assertTrue($menu->urlOk('https://example.com/x'));
         $this->assertTrue($menu->urlOk('mailto:a@b.c'));
+        $this->assertTrue($menu->urlOk('tel:+13375551212'));
+        $this->assertTrue($menu->urlOk('#menu-packages'));
         $this->assertFalse($menu->urlOk('javascript:alert(1)'));
+        $this->assertFalse($menu->urlOk('https:broken'));
+        $this->assertFalse($menu->urlOk('mailto:not-an-email'));
         $this->assertFalse($menu->urlOk('//evil.test/x'));
+        $this->assertFalse($menu->urlOk('#123-invalid'));
         $this->assertFalse($menu->urlOk(''));
     }
 
@@ -200,6 +205,46 @@ final class ContentMediaTest extends TestCase
         $tree = $menu->tree('primary');
         $this->assertSame('Contact', $tree[0]['label']);
         $this->assertSame('About', $tree[0]['children'][0]['label']);
+    }
+
+    public function testHiddenNavigationAndItsSubtreeStayOutOfThePublicTree(): void
+    {
+        $menu = new MenuService($this->db);
+        $menuId = $menu->ensureLocation('primary', 'Primary');
+        [$visible] = $menu->addItem($menuId, 'Home', '/', null, 0);
+        [$hidden] = $menu->addItem($menuId, 'Future services', '/future', null, 1, 'self', null, false);
+        [$child] = $menu->addItem($menuId, 'Future detail', '/future/detail', $hidden, 0);
+
+        $this->assertSame(['Home'], array_column($menu->tree('primary'), 'label'));
+        $adminTree = $menu->tree('primary', true);
+        $this->assertSame(['Home', 'Future services'], array_column($adminTree, 'label'));
+        $this->assertSame('Future detail', $adminTree[1]['children'][0]['label']);
+        $this->assertTrue($menu->itemBelongsToMenu($visible, $menuId));
+        $this->assertTrue($menu->itemBelongsToMenu($child, $menuId));
+    }
+
+    public function testDeletingNestedParentPromotesChildrenOneLevelInPlace(): void
+    {
+        $menu = new MenuService($this->db);
+        $menuId = $menu->ensureLocation('primary', 'Primary');
+        [$services] = $menu->addItem($menuId, 'Services', '/services', null, 0);
+        [$planning] = $menu->addItem($menuId, 'Planning', '/planning', $services, 0);
+        [$weddings] = $menu->addItem($menuId, 'Weddings', '/weddings', $planning, 0);
+        [$delivery] = $menu->addItem($menuId, 'Delivery', '/delivery', $services, 1);
+
+        $menu->deleteItem($planning);
+        $children = $menu->tree('primary')[0]['children'];
+        $this->assertSame(['Weddings', 'Delivery'], array_column($children, 'label'));
+        $this->assertSame([0, 1], array_map('intval', array_column($children, 'sort_order')));
+    }
+
+    public function testNavigationVisibilityMigrationIsInstalled(): void
+    {
+        $columns = array_column(
+            $this->db->fetchAll('PRAGMA table_info(`' . $this->db->table('menu_items') . '`)'),
+            'name'
+        );
+        $this->assertContains('is_enabled', $columns);
     }
 
     public function testPreviewTokens(): void

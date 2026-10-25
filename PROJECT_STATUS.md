@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.15` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.16` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -114,6 +114,13 @@ to referencing pages, and destructive confirmation reflects real page usage.
 Authorized administrators can preview private image variants without making
 them public or cacheable. File selection, bulk actions, URL copying, and focal
 point editing now expose clear visual state and guidance.
+
+Version 2.0.16 completes the Navigation workspace's functional polish pass.
+Drag-and-drop now places links before, after, or beneath another link; keyboard
+controls retain the same ordering and nesting capability. Administrators can
+stage hidden links, add directly beneath a parent, edit redirects, and use
+anchors or telephone links. Public rendering preserves link targets, active
+page state, and an intentionally empty or hidden custom menu.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

@@ -1,5 +1,5 @@
 <?php
-/** @var string $content @var string $siteName @var string $tagline @var string $basePath @var array $pages @var array|null $page @var array $footerNavigation @var string $copyrightNotice @var array $headerSocialLinks @var array $footerSocialLinks */
+/** @var string $content @var string $siteName @var string $tagline @var string $basePath @var string $currentPath @var array $pages @var array|null $page @var array $footerNavigation @var string $copyrightNotice @var array $headerSocialLinks @var array $footerSocialLinks */
 $brandLogoUrl = $brandLogoUrl ?? null;
 $faviconUrl = $faviconUrl ?? null;
 $socialImageUrl = $socialImageUrl ?? null;
@@ -52,16 +52,22 @@ if (!empty($brandLogoUrl)) $schema['logo'] = $brandLogoUrl;
 <?php if ($tagline !== ''): ?><span class="site-tagline"><?= e($tagline) ?></span><?php endif; ?>
 <nav class="site-nav" aria-label="Primary">
 <?php
-$renderMenu = function (array $items, bool $child = false) use (&$renderMenu, $basePath): void {
+$currentSlug = (string) ($page['slug'] ?? '');
+$renderMenu = function (array $items, bool $child = false) use (&$renderMenu, $basePath, $currentPath, $currentSlug): void {
     echo '<ul class="' . ($child ? 'nav-children' : 'nav-root') . '">';
     foreach ($items as $nav) {
         $url = (string) ($nav['url'] ?? '/' . ($nav['slug'] ?? ''));
         $href = str_starts_with($url, '/') ? $basePath . $url : $url;
         $label = (string) ($nav['label'] ?? $nav['title'] ?? '');
         $target = (string) ($nav['target'] ?? 'self');
+        $linkedSlug = (string) ($nav['page_slug'] ?? $nav['slug'] ?? '');
+        $active = str_starts_with($url, '/')
+            && ($currentPath === $url
+                || ($url !== '/' && str_starts_with($currentPath, rtrim($url, '/') . '/'))
+                || ($linkedSlug !== '' && $linkedSlug === $currentSlug));
         $attrs = $target === 'tab' ? ' target="_blank" rel="noopener noreferrer"'
             : ($target === 'window' ? ' target="wc-nav-window" rel="noopener noreferrer" data-open-window' : '');
-        echo '<li class="nav-item"><a href="' . e_url($href) . '"' . $attrs . '>' . e($label) . '</a>';
+        echo '<li class="nav-item"><a href="' . e_url($href) . '"' . ($active ? ' aria-current="page"' : '') . $attrs . '>' . e($label) . '</a>';
         if (!empty($nav['children'])) $renderMenu($nav['children'], true);
         echo '</li>';
     }

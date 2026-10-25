@@ -49,6 +49,9 @@ final class RedirectService
         if ($source === '' || $source === '//' || $target === '') {
             return [false, 'Source and target are required.'];
         }
+        if (mb_strlen($source) > 500 || mb_strlen($target) > 500) {
+            return [false, 'Source and target must each be 500 characters or fewer.'];
+        }
         if (preg_match('/[\x00-\x1F\x7F]/', $target)) {
             return [false, 'Target contains control characters.'];
         }
@@ -70,15 +73,20 @@ final class RedirectService
             'source' => $source, 'target' => $target,
             'status_code' => $code, 'created_by' => $userId,
         ];
-        if ($id) {
-            $this->db->update('redirects', $data, 'id = ?', [$id]);
-        } else {
-            $data['created_at'] = date('Y-m-d H:i:s');
-            try {
+        try {
+            if ($id) {
+                if (!(bool) $this->db->fetchColumn(
+                    'SELECT COUNT(*) FROM `' . $this->db->table('redirects') . '` WHERE id = ?', [$id]
+                )) {
+                    return [false, 'That redirect no longer exists.'];
+                }
+                $this->db->update('redirects', $data, 'id = ?', [$id]);
+            } else {
+                $data['created_at'] = date('Y-m-d H:i:s');
                 $this->db->insert('redirects', $data);
-            } catch (\Throwable) {
-                return [false, 'A redirect already exists for that source path.'];
             }
+        } catch (\Throwable) {
+            return [false, 'A redirect already exists for that source path.'];
         }
         return [true, null];
     }

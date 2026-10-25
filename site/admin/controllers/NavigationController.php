@@ -34,7 +34,8 @@ final class NavigationController extends Controller
                     $r->string('url'),
                     ($p = $r->string('parent_id')) !== '' ? (int) $p : null,
                     (int) $r->string('sort_order', '0'), $r->string('target', 'self'),
-                    ($pageId = $r->string('page_id')) !== '' ? (int) $pageId : null
+                    ($pageId = $r->string('page_id')) !== '' ? (int) $pageId : null,
+                    $r->string('is_enabled') === '1'
                 );
                 if (!$err) $this->c->get(\Core\Audit\AuditLog::class)->record('navigation.item_added', $u->id, ['menu' => $location, 'item' => $id]);
                 $this->flash($err ? 'error' : 'ok', $err ?? 'Menu item added.');
@@ -50,7 +51,8 @@ final class NavigationController extends Controller
                     $r->string('url'),
                     ($p = $r->string('parent_id')) !== '' ? (int) $p : null,
                     (int) $r->string('sort_order', '0'), $r->string('target', 'self'),
-                    ($pageId = $r->string('page_id')) !== '' ? (int) $pageId : null
+                    ($pageId = $r->string('page_id')) !== '' ? (int) $pageId : null,
+                    $r->string('is_enabled') === '1'
                 );
                 if ($ok) $this->c->get(\Core\Audit\AuditLog::class)->record('navigation.item_updated', $u->id, ['menu' => $location, 'item' => $itemId]);
                 $this->flash($ok ? 'ok' : 'error', $err ?? 'Menu item updated.');
@@ -72,16 +74,21 @@ final class NavigationController extends Controller
                 } else {
                     $this->flash('error', 'That link does not belong to the selected menu.');
                 }
-            } elseif ($action === 'redirect_add') {
+            } elseif (in_array($action, ['redirect_add', 'redirect_save'], true)) {
+                $redirectId = (int) $r->string('id');
                 [$ok, $err] = $redirects->save(
-                    null,
+                    $redirectId > 0 ? $redirectId : null,
                     $r->string('source'),
                     $r->string('target'),
                     (int) $r->string('status_code', '301'),
                     $u->id
                 );
-                if ($ok) $this->c->get(\Core\Audit\AuditLog::class)->record('redirect.created', $u->id, ['source' => $r->string('source')]);
-                $this->flash($err ? 'error' : 'ok', $err ?? 'Redirect added.');
+                if ($ok) $this->c->get(\Core\Audit\AuditLog::class)->record(
+                    $redirectId > 0 ? 'redirect.updated' : 'redirect.created',
+                    $u->id,
+                    ['redirect' => $redirectId ?: null, 'source' => $r->string('source')]
+                );
+                $this->flash($err ? 'error' : 'ok', $err ?? ($redirectId > 0 ? 'Redirect updated.' : 'Redirect added.'));
             } elseif ($action === 'redirect_delete') {
                 $redirectId = (int) $r->string('id');
                 $redirects->delete($redirectId);
@@ -91,7 +98,7 @@ final class NavigationController extends Controller
             return $this->redirect($r, '/admin/navigation?location=' . rawurlencode($location));
         }
 
-        $items = $menus->itemsFor($location);
+        $items = $menus->itemsFor($location, true);
         $depths = [];
         $byId = array_column($items, null, 'id');
         foreach ($items as $item) {
@@ -103,9 +110,18 @@ final class NavigationController extends Controller
             }
             $depths[(int) $item['id']] = $depth;
         }
+        foreach ($locationMeta as $key => &$meta) {
+            $locationItems = $key === $location ? $items : $menus->itemsFor($key, true);
+            $meta['count'] = count($locationItems);
+            $meta['hidden'] = count(array_filter(
+                $locationItems,
+                static fn (array $item): bool => (int) ($item['is_enabled'] ?? 1) !== 1
+            ));
+        }
+        unset($meta);
         return $this->page($r, 'navigation/index', [
             'items'     => $items,
-            'tree'      => $menus->tree($location),
+            'tree'      => $menus->tree($location, true),
             'depths'    => $depths,
             'menuId'    => $menuId,
             'location'  => $location,

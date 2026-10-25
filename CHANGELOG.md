@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.0.16 — 2026-10-24
+
+- Rebuilds Navigation as a focused responsive workspace with link-type and
+  visibility status, direct parent selection, guided targeting, and clearer
+  header/footer menu summaries.
+- Makes drag-and-drop place links before, after, or inside another item while
+  retaining keyboard ordering controls, depth protection, unsaved-state
+  guidance, and explicit save/discard actions.
+- Adds per-link visibility so administrators may stage or temporarily hide a
+  link and its submenu without deleting it; site export/import preserves that
+  visibility choice.
+- Preserves Same tab, New tab, and New window behavior in Core's public menu,
+  adds active-page indication, and respects intentionally hidden custom menus.
+- Accepts safe page anchors and telephone destinations in addition to internal,
+  web, and email links; enforces field lengths before database writes.
+- Lets existing redirects be edited safely and prevents duplicate-source or
+  missing-record updates from becoming administrator errors.
+- Promotes children one level in place when a parent link is removed instead
+  of unexpectedly sending every child to the top of the menu.
+
 ## 2.0.15 — 2026-10-24
 
 - Rebuilds the verified Landscaping Website 1.0.0 TEST-BUNDLE and directly

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.23 — 2026-10-24
+
+- Completes Modules with lifecycle summaries, package filtering, clearer
+  protected-Core/data-preservation presentation, and safer purge identifiers.
+- Makes recovery-mode filesystem changes truthful and actionable when shared-
+  host ownership prevents creating or removing the flag.
+- Adds duplicate-safe catalog registration plus disable, re-enable, and
+  disabled-only removal workflows for signed marketplace sources.
+- Retains dependency gates, verified staging, rollback journaling, separate
+  uninstall/purge semantics, and recovery boot isolation.
+- Adds focused marketplace and module commercial-contract coverage.
+
 ## 2.0.22 — 2026-10-24
 
 - Adds persistent visitor privacy-choice management and enforces explicit

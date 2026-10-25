@@ -54,7 +54,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 7 | Appearance and public theme | Branding, theme preview/activation, header/footer layouts, responsive output, attribution, status/error pages | code complete — 2.0.20; packaged-browser check pending |
 | 8 | Administrators, roles, profile, security | Account lifecycle, role safety, capability clarity, MFA, sessions, recovery, lockouts, audit evidence | code complete — 2.0.21; packaged-browser check pending |
 | 9 | Privacy and integrations | Consent behavior, privacy requests, API keys, webhooks, scopes, delivery failures, exports and secret rotation | code complete — 2.0.22; packaged-browser check pending |
-| 10 | Modules and marketplace | Install/upgrade/enable/disable/uninstall/purge, dependency errors, protected Core, recovery mode, catalog trust and rollback | code complete through 2.0.14; failed-migration file rollback and landscaping lifecycle CI covered; packaged-browser check pending |
+| 10 | Modules and marketplace | Install/upgrade/enable/disable/uninstall/purge, dependency errors, protected Core, recovery mode, catalog trust and rollback | code complete — 2.0.23; packaged-browser check pending |
 | 11 | Backups and operations | Create/delete/restore, remote replication, queue states, retries, schedules, interrupted operations, disaster recovery | code complete — 2.0.6; packaged-browser check pending |
 | 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | code complete through 2.0.15; packaged-browser check pending |
 | 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | code complete — 2.0.6; packaged-browser check pending |
@@ -272,6 +272,23 @@ run against packaged builds; code-complete does not mean externally verified.
       submissions, and other private data.
 - [ ] Packaged browser verification covers consent changes, request lifecycle,
       CSV, key/webhook rotation, tests, retries, site transfer, and mobile UI.
+
+## 2.0.23 — Modules and marketplace acceptance
+
+- [x] Core/base is always shown as enabled, built-in, required, and has no
+      install/disable/uninstall/purge controls.
+- [x] Optional packages expose staged/install/upgrade/enable/disable/uninstall
+      and separate typed-confirmation purge states with dependency feedback.
+- [x] Package staging validates archive paths, size, manifest, compatibility,
+      integrity and trust before code runs; failed upgrades restore old files.
+- [x] Recovery mode boots Core only and reports actual flag-write/removal
+      failures with shared-host File Manager recovery guidance.
+- [x] Marketplace sources require public HTTPS and signed catalogs, reject
+      duplicates, and support refresh, disable, re-enable, and safe removal.
+- [x] Package state, filesystem-version mismatch, issues, and recent operation
+      evidence remain visible and filterable.
+- [ ] Packaged browser verification covers lifecycle actions, dependency and
+      rollback errors, recovery mode, source lifecycle, and responsive UI.
 
 ## 2.0.14 — diagnostic and fatal-page recovery acceptance
 

@@ -1,5 +1,16 @@
 # Session Handoff
 
+## 2.0.23 Modules and Marketplace completion
+
+- Modules adds lifecycle summaries and filtering while keeping Core protected,
+  uninstall data-preserving, and purge separate/typed-confirmed.
+- Recovery-mode flag operations now report real shared-host filesystem
+  outcomes and give manual recovery guidance.
+- Signed catalog sources reject duplicates and support disable, re-enable, and
+  disabled-only removal.
+- Core advances to 2.0.23 without a schema migration. Continue with surface
+  11, Backups and Operations.
+
 ## 2.0.22 Privacy and integrations completion
 
 - Consent can be reopened/withdrawn and analytics configuration requires the

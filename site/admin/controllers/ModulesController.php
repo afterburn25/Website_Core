@@ -66,11 +66,19 @@ final class ModulesController extends Controller
             'SELECT * FROM `' . $this->db()->table('package_journal') . '` ORDER BY id DESC LIMIT 30'
         );
         $storage = (string) $this->c->get(\Core\Config::class)->get('paths.storage', WC_ROOT . '/storage');
+        $stats = ['enabled' => 0, 'attention' => 0, 'staged' => 0];
+        foreach ($packages as $package) {
+            $state = (string) ($package['state'] ?? '');
+            if ($state === 'enabled') $stats['enabled']++;
+            if ($state === 'staged') $stats['staged']++;
+            if (($package['errors'] ?? []) !== [] || !empty($package['filesystem_update']) || $state === 'failed') $stats['attention']++;
+        }
         return $this->page($r, 'modules/index', [
             'packages'   => $packages,
             'journal'    => $journal,
             'canInstall' => $this->auth()->has($u, 'modules.install'),
             'recovery'   => is_file($storage . '/recovery.flag'),
+            'stats'      => $stats,
         ], 'Modules');
     }
 
@@ -84,13 +92,20 @@ final class ModulesController extends Controller
         $storage = (string) $this->c->get(\Core\Config::class)->get('paths.storage', WC_ROOT . '/storage');
         $flag = $storage . '/recovery.flag';
         if ($r->string('mode') === 'on') {
-            if (!is_dir($storage)) {
-                @mkdir($storage, 0750, true);
+            if (!is_dir($storage) && !@mkdir($storage, 0750, true) && !is_dir($storage)) {
+                $this->flash('error', 'Recovery mode could not be enabled because private storage is not writable.');
+                return $this->redirect($r, '/admin/modules');
             }
-            file_put_contents($flag, date('c') . ' by ' . $u->id);
-            $this->flash('ok', 'Recovery mode ON — no package code will run until turned off.');
+            if (@file_put_contents($flag, date('c') . ' by ' . $u->id, LOCK_EX) === false) {
+                $this->flash('error', 'Recovery mode flag could not be written. Check storage permissions.');
+                return $this->redirect($r, '/admin/modules');
+            }
+            $this->flash('ok', 'Recovery mode ON — no optional package code will run until turned off.');
         } else {
-            @unlink($flag);
+            if (is_file($flag) && !@unlink($flag)) {
+                $this->flash('error', 'Recovery mode flag could not be removed. Delete storage/recovery.flag in File Manager.');
+                return $this->redirect($r, '/admin/modules');
+            }
             $this->flash('ok', 'Recovery mode off — enabled packages boot normally.');
         }
         $this->c->get(\Core\Audit\AuditLog::class)

@@ -596,7 +596,10 @@ final class PackageManager
         if ($this->registry->state($packageId) !== 'removed') {
             return [false, 'Purge requires the package to be uninstalled first.'];
         }
-        $prefix = explode('/', $packageId)[1] . '_';
+        if (!preg_match('#^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$#', $packageId)) {
+            return [false, 'Package id is invalid; no data was changed.'];
+        }
+        $prefix = explode('/', $packageId, 2)[1] . '_';
         foreach ($this->db->fetchAll(
             $this->db->driver() === 'sqlite'
                 ? "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE ?"

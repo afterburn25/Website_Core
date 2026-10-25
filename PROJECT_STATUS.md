@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.22` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.23` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -170,6 +170,13 @@ verification and resolution evidence. API keys rotate without leaving the old
 credential active; webhooks support editing, signed test delivery, secret
 rotation, activation, and retry. Site imports are bounded and remain private-
 data safe. Migration 0026 adds portable privacy workflow evidence columns.
+
+Version 2.0.23 completes Modules and Marketplace. The package workspace now
+surfaces lifecycle/attention state and filtering, recovery-mode writes report
+real filesystem outcomes, purge rejects malformed identifiers, and signed
+catalog sources have complete duplicate-safe enable/disable/remove lifecycle.
+The existing protected-Core, dependency, rollback, journal, and preserved-data
+contracts remain unchanged. No schema migration is required.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

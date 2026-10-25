@@ -1,7 +1,7 @@
 <?php /** @var array $packages @var array $journal @var \Core\Security\Csrf $csrf @var string $basePath
-  * @var bool $canInstall @var \Core\Auth\AdminUser $user */ ?>
+  * @var bool $canInstall @var array $stats @var \Core\Auth\AdminUser $user */ ?>
 
-<section class="status-strip"><div class="status-chip ok"><strong><?= count($packages) ?></strong><span>Discovered packages</span></div><div class="status-chip <?= !empty($recovery)?'warn':'ok' ?>"><strong><?= !empty($recovery)?'On':'Off' ?></strong><span>Recovery mode</span></div><a class="status-chip" href="<?= e_attr($basePath) ?>/admin/marketplace"><strong>Browse</strong><span>Marketplace</span></a></section>
+<section class="status-strip"><div class="status-chip"><strong><?= count($packages) ?></strong><span>Discovered packages</span></div><div class="status-chip ok"><strong><?= (int)$stats['enabled'] ?></strong><span>Enabled</span></div><div class="status-chip <?= $stats['attention']?'warn':'ok' ?>"><strong><?= (int)$stats['attention'] ?></strong><span>Need attention</span></div><div class="status-chip <?= !empty($recovery)?'warn':'ok' ?>"><strong><?= !empty($recovery)?'On':'Off' ?></strong><span>Recovery mode</span></div><a class="status-chip" href="<?= e_attr($basePath) ?>/admin/marketplace"><strong>Browse →</strong><span>Trusted marketplace</span></a></section>
 <?php if (!empty($recovery)): ?>
 <div class="card danger-zone">
 <strong>Recovery mode is ON.</strong> No package code is running. Turn it off
@@ -14,7 +14,8 @@ once the failing package is fixed or removed.
 <?php endif; ?>
 
 <?php if (!empty($canInstall)): ?>
-<div class="card">
+<div class="card" data-package-library>
+<div class="card-heading"><div><p class="section-kicker">Package lifecycle</p><h2>Installed and staged packages</h2><p class="card-subtitle">Core is protected. Optional package files and data are managed as separate, deliberate steps.</p></div><label class="package-filter">Show <select data-package-filter><option value="all">All packages</option><option value="industry">Industries</option><option value="addon">Add-ons</option><option value="theme">Themes</option><option value="attention">Needs attention</option></select></label></div>
 <div class="card-heading"><div><h2>Install package</h2><p class="card-subtitle">Upload an industry module, add-on, or theme package for inspection.</p></div></div>
 <form method="post" action="<?= e_attr($basePath) ?>/admin/modules/upload" enctype="multipart/form-data" data-busy-label="Inspecting package…">
 <?= $csrf->field() ?>
@@ -50,7 +51,7 @@ no package code runs — so you can log in and remove it. You can also create
     $protected = \Core\Modules\ModuleRegistry::isProtectedPackage((string) $id);
     $state = $protected ? 'built-in' : $info['state'];
 ?>
-<tr>
+<tr data-package-row data-package-type="<?= e_attr($protected ? 'core' : ($m['type'] ?? 'unknown')) ?>" data-package-attention="<?= (!empty($info['errors']) || !empty($info['filesystem_update']) || $state === 'failed') ? '1' : '0' ?>">
 <td><strong><?= e($id) ?></strong><br><span class="muted"><?= e($protected ? 'Website Core base theme' : ($m['name'] ?? '')) ?></span></td>
 <td><?= e($protected ? 'core' : ($m['type'] ?? '?')) ?></td>
 <td><?= e($protected && defined('WC_VERSION') ? WC_VERSION : ($m['version'] ?? '?')) ?></td>
@@ -87,13 +88,13 @@ if ($stateToggle) {
 <?php elseif ($state === 'removed'): ?>
 <form method="post" action="<?= e_attr($basePath . '/admin/modules/' . $id . '/purge') ?>">
 <?= $csrf->field() ?>
-<input name="confirm" placeholder="type <?= e_attr($id) ?> to purge" style="max-width:12rem" required>
+<input name="confirm" placeholder="type <?= e_attr($id) ?> to purge" class="purge-confirm" required>
 <button class="btn small danger">Purge data</button>
 </form>
 <?php else: ?>
 <?php if ($stateToggle): ?><form method="post" class="inline-toggle-form" action="<?= e_attr($basePath . '/admin/modules/' . $id . '/' . ($state === 'enabled' ? 'disable' : 'enable')) ?>" <?= $state === 'enabled' ? 'data-confirm="Disable this package? Its public and admin features will stop loading."' : '' ?>><?= $csrf->field() ?><label class="toggle-control compact"><span class="sr-only"><?= $state === 'enabled' ? 'Disable' : 'Enable' ?> <?= e($m['name'] ?? $id) ?></span><input type="checkbox" <?= $state === 'enabled' ? 'checked' : '' ?> data-auto-submit><span class="toggle-track" aria-hidden="true"></span></label></form><?php endif; ?>
 <?php foreach ($buttons as [$op, $label]): ?>
-<form method="post" action="<?= e_attr($basePath . '/admin/modules/' . $id . '/' . $op) ?>" style="display:inline">
+<form method="post" action="<?= e_attr($basePath . '/admin/modules/' . $id . '/' . $op) ?>" class="inline-form">
 <?= $csrf->field() ?>
 <button class="btn small <?= in_array($op, ['uninstall', 'purge'], true) ? 'danger' : '' ?>" <?= in_array($op,['disable','uninstall'],true)?'data-confirm="'.e_attr($op==='disable'?'Disable this package? Its public and admin features will stop loading.':'Uninstall this package? Its data will be preserved until explicitly purged.').'"':'' ?>><?= e($label) ?></button>
 </form>

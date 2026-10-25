@@ -62,4 +62,23 @@ final class AgencyMarketplaceTest extends TestCase
         $this->assertTrue($this->db->tableExists('agency_sites'));
         $this->assertTrue($this->db->tableExists('marketplace_sources'));
     }
+
+    public function testCatalogSourcesCanBeDisabledReenabledAndSafelyRemoved(): void
+    {
+        $market = new MarketplaceService($this->db, new SignatureVerifier([], false));
+        $id = $market->addSource('Publisher', 'https://93.184.216.34/catalog.json');
+        $market->disable($id);
+        $this->assertTrue($market->enable($id));
+        $this->expectException(\RuntimeException::class);
+        $market->remove($id);
+    }
+
+    public function testDisabledCatalogCanBeRemoved(): void
+    {
+        $market = new MarketplaceService($this->db, new SignatureVerifier([], false));
+        $id = $market->addSource('Publisher', 'https://93.184.216.34/catalog-two.json');
+        $market->disable($id);
+        $this->assertTrue($market->remove($id));
+        $this->assertSame(0, (int) $this->db->fetchColumn('SELECT COUNT(*) FROM `wc_marketplace_sources` WHERE id=?', [$id]));
+    }
 }

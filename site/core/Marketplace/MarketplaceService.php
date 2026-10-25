@@ -15,6 +15,9 @@ final class MarketplaceService
     {
         $label = trim(strip_tags($label)); $url = trim($url);
         if ($label === '' || !PublicHttpsUrl::valid($url)) throw new \InvalidArgumentException('Catalog sources require a label and public HTTPS URL.');
+        if ($this->db->fetchColumn('SELECT COUNT(*) FROM `' . $this->db->table('marketplace_sources') . '` WHERE catalog_url = ?', [$url])) {
+            throw new \InvalidArgumentException('That catalog source is already registered.');
+        }
         return (int) $this->db->insert('marketplace_sources', ['label' => mb_substr($label, 0, 120), 'catalog_url' => $url, 'active' => 1, 'created_at' => date('Y-m-d H:i:s')]);
     }
 
@@ -59,6 +62,14 @@ final class MarketplaceService
 
     public function sources(): array { return $this->db->fetchAll('SELECT * FROM `' . $this->db->table('marketplace_sources') . '` ORDER BY label'); }
     public function disable(int $id): void { $this->db->update('marketplace_sources', ['active' => 0], 'id = ?', [$id]); }
+    public function enable(int $id): bool { return $this->db->update('marketplace_sources', ['active' => 1], 'id = ?', [$id]) > 0; }
+    public function remove(int $id): bool
+    {
+        $source = $this->db->fetch('SELECT active FROM `' . $this->db->table('marketplace_sources') . '` WHERE id = ?', [$id]);
+        if (!$source) return false;
+        if ((bool) $source['active']) throw new \RuntimeException('Disable the catalog source before removing it.');
+        return $this->db->run('DELETE FROM `' . $this->db->table('marketplace_sources') . '` WHERE id = ?', [$id])->rowCount() > 0;
+    }
 
     public function packages(): array
     {

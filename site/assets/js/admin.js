@@ -946,6 +946,17 @@
     input.addEventListener('input', filter);
   });
 
+  document.querySelectorAll('[data-package-filter]').forEach((select) => {
+    const library = select.closest('[data-package-library]');
+    const rows = [...(library?.querySelectorAll('[data-package-row]') || [])];
+    const apply = () => rows.forEach((row) => {
+      row.hidden = select.value !== 'all'
+        && !(select.value === 'attention' ? row.dataset.packageAttention === '1' : row.dataset.packageType === select.value);
+    });
+    select.addEventListener('change', apply);
+    apply();
+  });
+
   document.querySelectorAll('.row-editor').forEach((details) => {
     details.addEventListener('toggle', () => {
       if (!details.open) return;

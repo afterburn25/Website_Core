@@ -213,13 +213,10 @@ final class ReferencePackagesTest extends TestCase
     public function testRestaurantAndSalonInstallAndBoot(): void
     {
         $this->installEnable('industry-restaurant', 'restaurant', 'wcref/restaurant');
-        $this->installEnable('industry-salon', 'salon', 'wcref/salon');
         $this->boot();
 
         $this->assertTrue($this->db->tableExists('restaurant_categories'));
         $this->assertTrue($this->db->tableExists('restaurant_items'));
-        $this->assertTrue($this->db->tableExists('salon_services'));
-        $this->assertTrue($this->db->tableExists('salon_staff'));
 
         // Seed via module-owned tables, then public pages render.
         $this->db->insert('restaurant_categories', ['name' => 'Mains', 'sort_order' => 1, 'created_at' => date('c')]);
@@ -248,6 +245,16 @@ final class ReferencePackagesTest extends TestCase
         $this->assertStringContainsString('12.75', $resp->body());
         $this->assertStringNotContainsString('Hidden Gumbo', $resp->body());
 
+        // Core permits exactly one enabled industry. Exercise the supported
+        // handoff instead of booting two competing industry route sets.
+        [$ok, $err] = $this->pm->disable('wcref/restaurant');
+        $this->assertTrue($ok, "disable wcref/restaurant: {$err}");
+        $this->installEnable('industry-salon', 'salon', 'wcref/salon');
+        $this->router = new Router();
+        $this->boot();
+
+        $this->assertTrue($this->db->tableExists('salon_services'));
+        $this->assertTrue($this->db->tableExists('salon_staff'));
         $this->db->insert('salon_services', [
             'name' => 'Cut', 'duration_minutes' => 45, 'price_cents' => 6000,
             'visible' => 1, 'created_at' => date('c'),

@@ -20,6 +20,8 @@
 - Defaults a previously unconfigured site to SMTP over implicit SSL on port
   465, deriving `mail.<domain>` and `admin@<domain>` from the installed public
   domain while preserving every explicitly saved mail value.
+- Displays the effective installed Base URL as a locked, muted Website Identity
+  field and rejects attempts to change installation identity through Settings.
 
 ## 2.0.31 — 2026-10-25
 

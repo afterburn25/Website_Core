@@ -4,7 +4,7 @@
 <div class="section-grid">
   <section class="card"><div class="card-heading"><div><h2>Website identity</h2><p class="card-subtitle">The business details Core shares with pages, themes, forms, and modules.</p></div></div>
     <?php foreach ($fields as $key => $meta): $name = str_replace('.', '_', $key); ?>
-      <label for="<?= e_attr($name) ?>"><?= e($meta['label']) ?></label><input id="<?= e_attr($name) ?>" name="<?= e_attr($name) ?>" type="<?= e_attr($meta['type']) ?>" value="<?= e_attr($values[$key]) ?>">
+      <label for="<?= e_attr($name) ?>"><?= e($meta['label']) ?></label><input id="<?= e_attr($name) ?>" name="<?= e_attr($name) ?>" type="<?= e_attr($meta['type']) ?>" value="<?= e_attr($values[$key]) ?>" <?= $key==='app.url'?'readonly aria-readonly="true" class="locked-field"':'' ?>>
     <?php endforeach; ?>
   </section>
   <section class="card"><div class="card-heading"><div><h2>Transactional email</h2><p class="card-subtitle">Used for account recovery, security alerts, and form notifications.</p></div></div>

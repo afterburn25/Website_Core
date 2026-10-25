@@ -9,7 +9,7 @@ use Core\Http\Response;
 final class SettingsController extends Controller
 {
     private const FIELDS = [
-        'app.url'            => ['label' => 'Base URL (https://…)', 'type' => 'text'],
+        'app.url'            => ['label' => 'Base URL', 'type' => 'url'],
         'site.name'          => ['label' => 'Site name', 'type' => 'text'],
         'site.tagline'       => ['label' => 'Tagline', 'type' => 'text'],
         'site.contact_email' => ['label' => 'Public contact email', 'type' => 'email'],
@@ -71,10 +71,8 @@ final class SettingsController extends Controller
                 $this->flash('ok', 'Scheduled-task token rotated. Update the URL in your hosting control panel.');
                 return $this->redirect($r, '/admin/settings');
             }
-            $baseUrl = trim($r->string('app_url'));
             $transport = $r->string('mail_transport');
             $errors = [];
-            if ($baseUrl !== '' && !preg_match('#^https://[^\s/]+(?:/.*)?$#i', $baseUrl)) $errors[] = 'Base URL must be a complete HTTPS URL.';
             if (trim($r->string('site_name')) === '') $errors[] = 'Site name is required.';
             $contact = trim($r->string('site_contact_email'));
             if ($contact !== '' && !filter_var($contact, FILTER_VALIDATE_EMAIL)) $errors[] = 'Public contact email is invalid.';
@@ -95,6 +93,7 @@ final class SettingsController extends Controller
                 return $this->redirect($r, '/admin/settings');
             }
             foreach (self::FIELDS as $key => $meta) {
+                if($key==='app.url')continue; // Installation identity is config-owned and read-only in admin.
                 $settings->set($key, $r->string(str_replace('.', '_', $key)));
             }
             $settings->set('mail.transport', $transport);
@@ -121,13 +120,11 @@ final class SettingsController extends Controller
 
         $values = [];
         $siteUrl=(string)($settings->get('app.url','')?:$this->c->get(\Core\Config::class)->get('app.url',''));
-        if($siteUrl==='')$siteUrl='https://'.$r->host();
+        if($siteUrl==='')$siteUrl='https://'.$r->host().$r->basePath;
         $mailDefaults=\Core\Mail\MailDefaults::fromUrl($siteUrl);
         $stored=$settings->all();
         $defaults=['mail.transport'=>$mailDefaults['transport'],'mail.from'=>$mailDefaults['from'],'smtp.host'=>$mailDefaults['host'],'smtp.port'=>$mailDefaults['port'],'smtp.secure'=>$mailDefaults['secure'],'smtp.user'=>''];
         $fields = self::FIELDS;
-        $fields['app.url']['label'] .= ' — leave blank to keep '
-            . ((string) $this->c->get(\Core\Config::class)->get('app.url', '') ?: 'the installed URL');
         foreach ($fields + self::MAIL_FIELDS as $key => $meta) {
             $values[$key] = (string) (array_key_exists($key,$stored)?$stored[$key]:($defaults[$key]??''));
         }
@@ -139,6 +136,7 @@ final class SettingsController extends Controller
                 if (array_key_exists($field, $submitted)) $values[$key] = (string) $submitted[$field];
             }
         }
+        $values['app.url']=$siteUrl;
         // License status
         $licenseStatus = null;
         try {

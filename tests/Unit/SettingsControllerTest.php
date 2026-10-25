@@ -89,5 +89,9 @@ final class SettingsControllerTest extends TestCase
         self::assertStringContainsString('value="admin@cajunwebpro.com"',$response->body());
         self::assertStringContainsString('<option value="ssl" selected>',$response->body());
         self::assertStringContainsString('value="465"',$response->body());
+        self::assertStringContainsString('id="app_url"',$response->body());
+        self::assertStringContainsString('value="https://demo.cajunwebpro.com/catering"',$response->body());
+        self::assertStringContainsString('readonly aria-readonly="true" class="locked-field"',$response->body());
+        self::assertStringNotContainsString('leave blank to keep',$response->body());
     }
 }

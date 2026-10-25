@@ -18,6 +18,9 @@
 - Unconfigured mail defaults derive `mail.<registrable-domain>` and
   `admin@<registrable-domain>` from the installation URL, with SMTP, SSL, and
   port 465. Installer seeding and runtime fallbacks use the same rule.
+- Settings shows the effective Base URL in a locked field; changing the
+  installation address remains a config/deployment operation, not an admin
+  form mutation.
 
 ## 2.0.31 Admin workflow completion
 

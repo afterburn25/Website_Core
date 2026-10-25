@@ -193,7 +193,7 @@ final class Application
         $this->container->instance(RateLimiter::class, new RateLimiter($db));
         $this->container->instance(Permissions::class, new Permissions($db));
         $this->container->instance(AdminRepository::class, new AdminRepository($db));
-        $systemMail = new \Core\Mail\SystemMail($db, $this->container->get(SettingsRepository::class));
+        $systemMail = new \Core\Mail\SystemMail($db, $this->container->get(SettingsRepository::class), $this->config);
         $this->container->instance(\Core\Mail\SystemMail::class, $systemMail);
         $this->container->instance(AuthService::class, new AuthService(
             $db,

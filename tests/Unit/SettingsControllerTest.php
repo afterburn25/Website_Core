@@ -76,7 +76,7 @@ final class SettingsControllerTest extends TestCase
             $container->instance($id, $service);
         }
 
-        $request = new Request('GET', '/admin/settings', '/catering', [], [], [], [], []);
+        $request = new Request('GET', '/admin/settings', '/catering', [], [], [], [], ['HTTP_HOST'=>'demo.cajunwebpro.com']);
         $response = (new SettingsController($container))->index($request);
 
         self::assertSame(200, $response->status());
@@ -85,5 +85,9 @@ final class SettingsControllerTest extends TestCase
             'action="/catering/index.php?p=/admin/settings"',
             $response->body()
         );
+        self::assertStringContainsString('value="mail.cajunwebpro.com"',$response->body());
+        self::assertStringContainsString('value="admin@cajunwebpro.com"',$response->body());
+        self::assertStringContainsString('<option value="ssl" selected>',$response->body());
+        self::assertStringContainsString('value="465"',$response->body());
     }
 }

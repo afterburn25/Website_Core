@@ -12,7 +12,6 @@ use Core\Settings\SettingsRepository;
 final class AnalyticsService
 {
     private const SESSION_IDLE = 1800;
-    private const LIVE_WINDOW = 60;
 
     public function __construct(
         private Connection $db,
@@ -77,12 +76,14 @@ final class AnalyticsService
         $visits = $this->db->table('analytics_visits');
         $views = $this->db->table('analytics_pageviews');
         $ids = array_map('intval', array_column($this->db->fetchAll("SELECT id FROM `{$visits}` WHERE started_at < ? LIMIT 5000", [$cutoff]), 'id'));
+        $this->db->run('DELETE FROM `'.$this->db->table('analytics_crawlers').'` WHERE hit_date < ?',[substr($cutoff,0,10)]);
         if ($ids === []) return 0;
         $marks = implode(',', array_fill(0, count($ids), '?'));
-        return $this->db->transaction(function (Connection $db) use ($visits, $views, $ids, $marks): int {
+        $deleted=$this->db->transaction(function (Connection $db) use ($visits, $views, $ids, $marks): int {
             $db->run("DELETE FROM `{$views}` WHERE visit_id IN ({$marks})", $ids);
             return $db->run("DELETE FROM `{$visits}` WHERE id IN ({$marks})", $ids)->rowCount();
         });
+        return $deleted;
     }
 
     private function recordPageview(Request $request, ?string $title): ?string
@@ -104,7 +105,7 @@ final class AnalyticsService
             [$browser, $os, $device] = $this->clientFamilies($request->userAgent());
             [$domain, $term, $channel] = $this->referral($request->header('Referer'), $request->host());
             [$countryCode, $country, $region, $city] = $this->geography($request);
-            $secret = (string) $this->config->get('app.key', 'website-core');
+            $secret = (string) $this->config->get('security.app_key', 'website-core');
             $data = [
                 'visit_key' => $visitKey,
                 'anonymous_hash' => hash_hmac('sha256', $key . '|' . $request->ip(), $secret),

@@ -44,13 +44,13 @@ return [
         'trusted_proxies'   => [],         // CIDRs whose X-Forwarded-* are honored
     ],
     'mail' => [
-        'transport'   => 'capture',        // capture | smtp
-        'smtp_host'   => '',
-        'smtp_port'   => 587,
+        'transport'   => 'smtp',           // smtp | mail | none (capture is tests only)
+        'smtp_host'   => 'mail.example.com',
+        'smtp_port'   => 465,
         'smtp_user'   => '',
         'smtp_pass'   => '',
-        'smtp_secure' => 'tls',
-        'from'        => 'no-reply@example.com',
+        'smtp_secure' => 'ssl',
+        'from'        => 'admin@example.com',
         'from_name'   => 'Website Core',
     ],
     'updates' => [

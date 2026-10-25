@@ -17,6 +17,9 @@
 - Moves both transactional-email tests beneath the SMTP settings and runs
   them in-page with bounded timeouts, live success/error feedback, and no
   navigation to a host-generated Bad Gateway screen.
+- Defaults a previously unconfigured site to SMTP over implicit SSL on port
+  465, deriving `mail.<domain>` and `admin@<domain>` from the installed public
+  domain while preserving every explicitly saved mail value.
 
 ## 2.0.31 — 2026-10-25
 

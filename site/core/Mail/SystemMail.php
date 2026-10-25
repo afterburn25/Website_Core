@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Core\Mail;
 
+use Core\Config;
 use Core\Database\Connection;
 use Core\Settings\SettingsRepository;
 use PHPMailer\PHPMailer\PHPMailer;
@@ -32,6 +33,7 @@ final class SystemMail
     public function __construct(
         private Connection $db,
         private SettingsRepository $settings,
+        private ?Config $config = null,
     ) {}
 
     /** Queue a message; dedupe_key prevents duplicates among unsent rows. */
@@ -154,7 +156,8 @@ final class SystemMail
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
             return [false, 'invalid recipient'];
         }
-        $transport = (string) $this->settings->get('mail.transport', 'smtp');
+        $stored=$this->settings->all();$defaults=$this->defaults();
+        $transport = (string) (array_key_exists('mail.transport',$stored)?$stored['mail.transport']:$defaults['transport']);
         if ($transport === 'capture') {
             // Test/QA capture transport — never a real send.
             (self::$capture ?? fn () => null)($to, $subject, $body);
@@ -166,7 +169,7 @@ final class SystemMail
 
         $mailer = new PHPMailer(true);
         try {
-            $from = (string) $this->settings->get('mail.from', 'no-reply@localhost');
+            $from = (string) (array_key_exists('mail.from',$stored)?$stored['mail.from']:$defaults['from']);
             $fromName = (string) $this->settings->get('site.name', 'Website Core');
             if ($transport === 'mail') {
                 $mailer->isMail();
@@ -191,13 +194,20 @@ final class SystemMail
     /** @return array{host:string,port:int,secure:string,username:string,password:string} */
     private function smtpConfiguration(array $overrides = []): array
     {
+        $stored=$this->settings->all();$defaults=$this->defaults();
         return [
-            'host' => trim((string) ($overrides['host'] ?? $this->settings->get('smtp.host', ''))),
-            'port' => (int) ($overrides['port'] ?? $this->settings->get('smtp.port', 587) ?: 587),
-            'secure' => (string) ($overrides['secure'] ?? $this->settings->get('smtp.secure', 'tls')),
+            'host' => trim((string) ($overrides['host'] ?? (array_key_exists('smtp.host',$stored)?$stored['smtp.host']:$defaults['host']))),
+            'port' => (int) ($overrides['port'] ?? (array_key_exists('smtp.port',$stored)?$stored['smtp.port']:$defaults['port'])),
+            'secure' => (string) ($overrides['secure'] ?? (array_key_exists('smtp.secure',$stored)?$stored['smtp.secure']:$defaults['secure'])),
             'username' => (string) ($overrides['username'] ?? $this->settings->get('smtp.user', '')),
             'password' => (string) ($overrides['password'] ?? $this->settings->get('smtp.password', '')),
         ];
+    }
+
+    private function defaults(): array
+    {
+        $url=(string)($this->settings->get('app.url','')?:$this->config?->get('app.url',''));
+        return MailDefaults::fromUrl($url);
     }
 
     /** @param array{host:string,port:int,secure:string,username:string,password:string} $config */

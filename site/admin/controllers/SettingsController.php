@@ -120,11 +120,16 @@ final class SettingsController extends Controller
         }
 
         $values = [];
+        $siteUrl=(string)($settings->get('app.url','')?:$this->c->get(\Core\Config::class)->get('app.url',''));
+        if($siteUrl==='')$siteUrl='https://'.$r->host();
+        $mailDefaults=\Core\Mail\MailDefaults::fromUrl($siteUrl);
+        $stored=$settings->all();
+        $defaults=['mail.transport'=>$mailDefaults['transport'],'mail.from'=>$mailDefaults['from'],'smtp.host'=>$mailDefaults['host'],'smtp.port'=>$mailDefaults['port'],'smtp.secure'=>$mailDefaults['secure'],'smtp.user'=>''];
         $fields = self::FIELDS;
         $fields['app.url']['label'] .= ' — leave blank to keep '
             . ((string) $this->c->get(\Core\Config::class)->get('app.url', '') ?: 'the installed URL');
         foreach ($fields + self::MAIL_FIELDS as $key => $meta) {
-            $values[$key] = (string) $settings->get($key, '');
+            $values[$key] = (string) (array_key_exists($key,$stored)?$stored[$key]:($defaults[$key]??''));
         }
         $submitted = $_SESSION['_wc_settings_input'] ?? null;
         unset($_SESSION['_wc_settings_input']);

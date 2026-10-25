@@ -621,6 +621,10 @@ final class Installer
             if ((string) $settings->get('system.cron_token', '') === '') {
                 $settings->set('system.cron_token', bin2hex(random_bytes(24)));
             }
+            $mailDefaults=\Core\Mail\MailDefaults::fromUrl($baseUrl);
+            foreach(['mail.transport'=>$mailDefaults['transport'],'mail.from'=>$mailDefaults['from'],'smtp.host'=>$mailDefaults['host'],'smtp.port'=>$mailDefaults['port'],'smtp.secure'=>$mailDefaults['secure']] as $key=>$value){
+                if($settings->get($key,null)===null)$settings->set($key,$value);
+            }
         } catch (\Throwable $e) {
             error_log('[website-core install] schema/owner creation failed: ' . $e->getMessage());
             $safe = $e instanceof \RuntimeException && str_starts_with($e->getMessage(), 'That owner email')
@@ -927,6 +931,7 @@ final class Installer
     {
         $s = fn (string $x) => var_export($x, true);
         $coreVersion = defined('WC_VERSION') ? WC_VERSION : '0.0.0-dev';
+        $mailDefaults=\Core\Mail\MailDefaults::fromUrl((string)$v['baseUrl']);
         return <<<PHP
         <?php
         declare(strict_types=1);
@@ -965,9 +970,9 @@ final class Installer
                 'trusted_proxies' => [],
             ],
             'mail' => [
-                'transport' => 'capture',
-                'smtp_host' => '', 'smtp_port' => 587, 'smtp_user' => '', 'smtp_pass' => '',
-                'smtp_secure' => 'tls', 'from' => 'no-reply@example.com', 'from_name' => {$s($v['siteName'])},
+                'transport' => 'smtp',
+                'smtp_host' => {$s($mailDefaults['host'])}, 'smtp_port' => 465, 'smtp_user' => '', 'smtp_pass' => '',
+                'smtp_secure' => 'ssl', 'from' => {$s($mailDefaults['from'])}, 'from_name' => {$s($v['siteName'])},
             ],
             'license' => [
                 'api_url' => {$s($v['licenseApiUrl'])},

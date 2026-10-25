@@ -15,6 +15,9 @@
 - Transactional email tests are co-located at the bottom of the mail panel and
   use JSON endpoints plus an in-page 12-second client deadline. They never
   navigate away from Settings on connection, authentication, or gateway errors.
+- Unconfigured mail defaults derive `mail.<registrable-domain>` and
+  `admin@<registrable-domain>` from the installation URL, with SMTP, SSL, and
+  port 465. Installer seeding and runtime fallbacks use the same rule.
 
 ## 2.0.31 Admin workflow completion
 

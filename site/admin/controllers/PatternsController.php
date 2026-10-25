@@ -24,8 +24,22 @@ final class PatternsController extends Controller
                 $error = $patterns->apply((int) $r->string('pattern_id'), (int) $r->string('page_id'), $u->id);
                 if (!$error) $this->audit('patterns.applied', ['pattern' => (int) $r->string('pattern_id'), 'page' => (int) $r->string('page_id')]);
                 $this->flash($error ? 'error' : 'ok', $error ?? 'Pattern applied as a draft; the prior layout is in revisions.');
+            } elseif ($action === 'rename') {
+                $patternId = (int) $r->string('id');
+                $error = $patterns->rename($patternId, $r->string('name'));
+                if (!$error) $this->audit('patterns.renamed', ['pattern' => $patternId]);
+                $this->flash($error ? 'error' : 'ok', $error ?? 'Pattern renamed.');
+            } elseif ($action === 'duplicate') {
+                [$copyId, $error] = $patterns->duplicate((int) $r->string('id'), $u->id);
+                if (!$error) $this->audit('patterns.duplicated', ['source' => (int) $r->string('id'), 'pattern' => $copyId]);
+                $this->flash($error ? 'error' : 'ok', $error ?? 'Pattern duplicated.');
             } elseif ($action === 'delete') {
-                $patterns->delete((int) $r->string('id')); $this->audit('patterns.deleted', ['pattern' => (int) $r->string('id')]); $this->flash('ok', 'Pattern removed.');
+                $patternId = (int) $r->string('id');
+                $deleted = $patterns->delete($patternId);
+                if ($deleted) $this->audit('patterns.deleted', ['pattern' => $patternId]);
+                $this->flash($deleted ? 'ok' : 'error', $deleted ? 'Pattern removed.' : 'That pattern was already removed.');
+            } else {
+                $this->flash('error', 'That pattern action is not available.');
             }
             return $this->redirect($r, '/admin/patterns');
         }

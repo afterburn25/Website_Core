@@ -869,6 +869,42 @@
     });
   });
 
+  document.querySelectorAll('[data-translation-editor]').forEach((form) => {
+    const title = form.querySelector('[name="title"]');
+    const slug = form.querySelector('[name="slug"]');
+    const metaTitle = form.querySelector('[name="meta_title"]');
+    const description = form.querySelector('[name="meta_description"]');
+    const locale = form.querySelector('[name="locale"]')?.value || '';
+    const titlePreview = form.querySelector('[data-translation-preview-title]');
+    const urlPreview = form.querySelector('[data-translation-preview-url]');
+    const descriptionPreview = form.querySelector('[data-translation-preview-description]');
+    const refresh = () => {
+      if (titlePreview) titlePreview.textContent = metaTitle?.value.trim() || title?.value.trim() || 'Translated page title';
+      if (urlPreview) urlPreview.textContent = `/l/${locale}/${slug?.value.trim() || 'translated-page'}`;
+      if (descriptionPreview) descriptionPreview.textContent = description?.value.trim() || 'Add a concise description for this language.';
+    };
+    [title, slug, metaTitle, description].forEach((field) => field?.addEventListener('input', refresh));
+    refresh();
+  });
+
+  document.querySelectorAll('[data-pattern-filter]').forEach((input) => {
+    const library = document.querySelector('[data-pattern-library]');
+    const empty = document.querySelector('[data-pattern-empty]');
+    if (!library) return;
+    const cards = [...library.querySelectorAll('[data-pattern-card]')];
+    const filter = () => {
+      const query = input.value.trim().toLocaleLowerCase();
+      let visible = 0;
+      cards.forEach((card) => {
+        const match = query === '' || (card.dataset.patternKeywords || '').includes(query);
+        card.hidden = !match;
+        if (match) visible += 1;
+      });
+      if (empty) empty.hidden = visible !== 0;
+    };
+    input.addEventListener('input', filter);
+  });
+
   document.querySelectorAll('.row-editor').forEach((details) => {
     details.addEventListener('toggle', () => {
       if (!details.open) return;

@@ -24,7 +24,8 @@ final class NavigationEditorTest extends TestCase
         $this->assertStringContainsString('data-root-drop', $view);
         $this->assertStringContainsString('Visible on website', $view);
         $this->assertStringContainsString('data-reset-tree', $view);
-        $this->assertStringContainsString('redirect_save', $view);
+        $this->assertStringContainsString('/admin/seo', $view);
+        $this->assertStringNotContainsString('name="action" value="redirect_save"', $view);
 
         $script = (string) file_get_contents(WC_ROOT . '/assets/js/admin.js');
         $this->assertStringContainsString("ratio < .28 ? 'before'", $script);

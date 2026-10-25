@@ -107,6 +107,8 @@ final class RedirectsSectionsTest extends TestCase
         [$ok, $error] = $service->save(99999, '/missing', '/target', 301, 1);
         $this->assertFalse($ok);
         $this->assertStringContainsString('no longer exists', (string) $error);
+        $this->assertTrue($service->delete($id));
+        $this->assertFalse($service->delete($id));
     }
 
     public function testSectionSaveRenderSanitized(): void

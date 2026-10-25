@@ -21,5 +21,13 @@ final class LayoutPatternsTest extends TestCase
         $page=$db->fetch('SELECT * FROM `'.$db->table('pages').'` WHERE id=?',[$target]);
         self::assertSame('draft',$page['status']); self::assertStringContainsString('hero',$page['blocks_json']);
         self::assertSame(1,(int)$db->fetchColumn('SELECT COUNT(*) FROM `'.$db->table('page_revisions').'` WHERE page_id=?',[$target]));
+
+        [$duplicateId, $duplicateError] = $patterns->duplicate((int) $id, 1);
+        self::assertNull($duplicateError);
+        self::assertNotNull($duplicateId);
+        self::assertNull($patterns->rename((int) $duplicateId, 'Landing alternate'));
+        self::assertStringContainsString('already exists', (string) $patterns->rename((int) $duplicateId, 'Landing'));
+        self::assertTrue($patterns->delete((int) $duplicateId));
+        self::assertFalse($patterns->delete((int) $duplicateId));
     }
 }

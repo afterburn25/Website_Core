@@ -137,7 +137,7 @@ final class AccessibilityTest extends TestCase
             'content' => '', 'nav' => [], 'currentPath' => '/admin/catering/settings',
             'basePath' => '/catering/index.php?p=', 'user' => null,
             'csrf' => new \Core\Security\Csrf(), 'pageTitle' => 'Catering Settings',
-            'siteName' => 'Catering Test', 'coreVersion' => '2.0.18',
+            'siteName' => 'Catering Test', 'coreVersion' => '2.0.19',
             'industryVersions' => [], 'flash' => null,
         ]);
 

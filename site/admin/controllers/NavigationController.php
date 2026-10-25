@@ -16,7 +16,6 @@ final class NavigationController extends Controller
             return $this->forbidden();
         }
         $menus = new MenuService($this->db());
-        $redirects = new \Core\Content\RedirectService($this->db());
         $location = in_array($r->string('location', 'primary'), ['primary', 'footer'], true)
             ? $r->string('location', 'primary') : 'primary';
         $locationMeta = [
@@ -74,26 +73,6 @@ final class NavigationController extends Controller
                 } else {
                     $this->flash('error', 'That link does not belong to the selected menu.');
                 }
-            } elseif (in_array($action, ['redirect_add', 'redirect_save'], true)) {
-                $redirectId = (int) $r->string('id');
-                [$ok, $err] = $redirects->save(
-                    $redirectId > 0 ? $redirectId : null,
-                    $r->string('source'),
-                    $r->string('target'),
-                    (int) $r->string('status_code', '301'),
-                    $u->id
-                );
-                if ($ok) $this->c->get(\Core\Audit\AuditLog::class)->record(
-                    $redirectId > 0 ? 'redirect.updated' : 'redirect.created',
-                    $u->id,
-                    ['redirect' => $redirectId ?: null, 'source' => $r->string('source')]
-                );
-                $this->flash($err ? 'error' : 'ok', $err ?? ($redirectId > 0 ? 'Redirect updated.' : 'Redirect added.'));
-            } elseif ($action === 'redirect_delete') {
-                $redirectId = (int) $r->string('id');
-                $redirects->delete($redirectId);
-                $this->c->get(\Core\Audit\AuditLog::class)->record('redirect.deleted', $u->id, ['redirect' => $redirectId]);
-                $this->flash('ok', 'Redirect removed.');
             }
             return $this->redirect($r, '/admin/navigation?location=' . rawurlencode($location));
         }
@@ -127,7 +106,6 @@ final class NavigationController extends Controller
             'location'  => $location,
             'locationMeta' => $locationMeta,
             'pages'     => $this->db()->fetchAll('SELECT id,title,slug,status FROM `' . $this->db()->table('pages') . '` WHERE deleted_at IS NULL ORDER BY title'),
-            'redirects' => $redirects->all(),
         ], 'Navigation Menu');
     }
 }

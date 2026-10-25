@@ -50,7 +50,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 3 | Media library | Upload failures, folders/tags, bulk operations, focal points/crops, usage, replacement, empty states, file limits | code complete — 2.0.15; packaged-browser check pending |
 | 4 | Navigation Menu | Existing-menu import, tree editing, targets, page/external links, nesting, keyboard alternatives, validation, public rendering | code complete — 2.0.16; packaged-browser check pending |
 | 5 | Forms and submissions | Field builder, validation, notifications, spam controls, consent evidence, inbox, filters, read state, archive/export | code complete — 2.0.17; packaged-browser check pending |
-| 6 | SEO, redirects, translations, patterns | Actionable audits, previews, redirect import/export, localized content, reusable layouts, errors and conflicts | code complete — 2.0.6; packaged-browser check pending |
+| 6 | SEO, redirects, translations, patterns | Actionable audits, previews, redirect import/export, localized content, reusable layouts, errors and conflicts | code complete — 2.0.19; packaged-browser check pending |
 | 7 | Appearance and public theme | Branding, theme preview/activation, header/footer layouts, responsive output, attribution, status/error pages | code complete — 2.0.6; packaged-browser check pending |
 | 8 | Administrators, roles, profile, security | Account lifecycle, role safety, capability clarity, MFA, sessions, recovery, lockouts, audit evidence | code complete — 2.0.6; packaged-browser check pending |
 | 9 | Privacy and integrations | Consent behavior, privacy requests, API keys, webhooks, scopes, delivery failures, exports and secret rotation | code complete — 2.0.6; packaged-browser check pending |
@@ -147,10 +147,11 @@ run against packaged builds; code-complete does not mean externally verified.
       identified, validated, and paired with persistent target behavior.
 - [x] Removing a parent promotes children one level in place and normalizes
       their sibling order.
-- [x] Redirects expose safe create, edit, and delete workflows with actionable
-      duplicate, missing-record, length, loop, and destination validation.
+- [x] Navigation hands redirect work to the authoritative SEO workspace; safe
+      create, edit, delete, duplicate, missing-record, length, loop, and
+      destination validation remain available there.
 - [ ] Packaged browser verification covers pointer ordering, keyboard ordering,
-      visibility, targets, mobile editing, redirects, and public active state.
+      visibility, targets, mobile editing, SEO handoff, and public active state.
 
 ## 2.0.17 — Forms and submissions workspace acceptance
 
@@ -179,6 +180,37 @@ run against packaged builds; code-complete does not mean externally verified.
       ordering, failed-save retention, pause/reactivate, public validation,
       inbox filters/details, bulk actions, deletion, notification state, CSV,
       and mobile layouts.
+
+## 2.0.19 — SEO, translations, and patterns acceptance
+
+- [x] SEO owns one complete redirect workspace with manual create/edit/delete,
+      traffic counts, missing-path recovery, loop/conflict validation, and CSV
+      import/export with bounded rows and actionable first-error reporting.
+- [x] Navigation links to the SEO Redirect Manager instead of exposing a
+      duplicate redirect editor with separate workflow state.
+- [x] Published-page review reports search title/description length, malformed
+      canonical URLs, noindex state, invalid schema or blocks, missing image
+      alternatives, and weak link labels with direct page-editor access.
+- [x] Sitemap and robots endpoints remain visible and exclude draft, deleted,
+      noindex, preview, and administration content as applicable.
+- [x] Translations show per-language completion and public state, retain
+      invalid submissions, validate block/schema JSON, and provide source and
+      localized content plus live search preview in one editor.
+- [x] Disabled languages preserve translations but stop public localized
+      resolution, translated navigation, and alternate-language metadata until
+      an administrator re-enables them.
+- [x] Individual translations can be removed without changing the source page
+      or another locale, with confirmation and audit evidence.
+- [x] Layout Patterns provide a searchable visual block-order preview plus
+      unique naming, rename, duplicate, guarded delete, and revision-backed
+      draft application.
+- [x] Focused unit/static contracts cover language lifecycle and JSON errors,
+      pattern lifecycle, redirect deletion, and the visible commercial
+      workspace controls.
+- [ ] Packaged subfolder browser verification covers missing-path resolution,
+      redirect conflict/import/export, language lifecycle, failed translation
+      save retention, public localized routing, pattern search/duplicate/apply,
+      revision recovery, and mobile layouts.
 
 ## 2.0.14 — diagnostic and fatal-page recovery acceptance
 

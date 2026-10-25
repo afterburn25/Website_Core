@@ -63,7 +63,7 @@ $formatSeen = static function (mixed $value): string {
                                 <select id="redirect-target-<?= e_attr($row['path_hash']) ?>" name="target" required>
                                     <option value="">Choose live page…</option>
                                     <?php foreach ($pages as $page): ?>
-                                        <option value="/<?= e_attr($page['slug']) ?>"><?= e($page['title']) ?> — /<?= e($page['slug']) ?></option>
+                                        <?php $pagePath = $page['slug'] === 'home' ? '/' : '/' . ltrim((string) $page['slug'], '/'); ?><option value="<?= e_attr($pagePath) ?>"><?= e($page['title']) ?> — <?= e($pagePath) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                                 <button class="btn small" type="submit">Create redirect</button>
@@ -146,20 +146,47 @@ $formatSeen = static function (mixed $value): string {
 <section class="card">
     <div class="card-heading">
         <div>
-            <p class="section-kicker">Migration tools</p>
-            <h2>Redirect portability</h2>
-            <p class="muted">Move redirect maps between sites with a three-column CSV: source, target, status_code.</p>
+            <p class="section-kicker">Traffic recovery</p>
+            <h2>Redirect manager</h2>
+            <p class="muted">Maintain old addresses in one place. Permanent redirects are best for moved pages; temporary codes preserve the original address.</p>
         </div>
+        <span class="badge"><?= number_format(array_sum(array_map(static fn (array $row): int => (int) $row['hits'], $redirects))) ?> forwarded visits</span>
+    </div>
+    <form method="post" class="redirect-create-form">
+        <?= $csrf->field() ?>
+        <input type="hidden" name="action" value="redirect_save">
+        <div><label for="new-redirect-source">Old path</label><input id="new-redirect-source" name="source" maxlength="500" placeholder="/old-page" required><span class="field-note">Site-relative and beginning with /.</span></div>
+        <div><label for="new-redirect-target">Destination</label><input id="new-redirect-target" name="target" maxlength="500" placeholder="/new-page or https://example.com" required><span class="field-note">A site path or external http(s) URL.</span></div>
+        <div><label for="new-redirect-code">Type</label><select id="new-redirect-code" name="status_code"><option value="301">301 · Permanent</option><option value="308">308 · Permanent, preserve method</option><option value="302">302 · Temporary</option><option value="307">307 · Temporary, preserve method</option></select></div>
+        <button class="btn" data-busy-label="Creating…">Create redirect</button>
+    </form>
+    <?php if ($redirects === []): ?>
+        <div class="empty-state seo-empty-state"><strong>No redirects configured</strong><span>Create one above or resolve a recorded missing path.</span></div>
+    <?php else: ?>
+        <div class="responsive-table redirect-manager-table"><table>
+            <thead><tr><th>Old path</th><th>Destination</th><th>Type</th><th>Traffic</th><th><span class="sr-only">Actions</span></th></tr></thead>
+            <tbody><?php foreach ($redirects as $redirect): ?><tr>
+                <td><code class="seo-path"><?= e($redirect['source']) ?></code></td>
+                <td><code class="seo-path"><?= e($redirect['target']) ?></code></td>
+                <td><span class="badge"><?= (int) $redirect['status_code'] ?></span></td>
+                <td><span class="metric-value"><?= number_format((int) $redirect['hits']) ?></span><span class="metric-label">visit<?= (int) $redirect['hits'] === 1 ? '' : 's' ?></span></td>
+                <td><div class="table-actions">
+                    <details class="row-editor"><summary class="btn small secondary">Edit</summary><form method="post" class="row-editor-panel"><?= $csrf->field() ?><input type="hidden" name="action" value="redirect_save"><input type="hidden" name="id" value="<?= (int) $redirect['id'] ?>"><label for="redirect-<?= (int) $redirect['id'] ?>-source">Old path</label><input id="redirect-<?= (int) $redirect['id'] ?>-source" name="source" maxlength="500" value="<?= e_attr($redirect['source']) ?>" required><label for="redirect-<?= (int) $redirect['id'] ?>-target">Destination</label><input id="redirect-<?= (int) $redirect['id'] ?>-target" name="target" maxlength="500" value="<?= e_attr($redirect['target']) ?>" required><label for="redirect-<?= (int) $redirect['id'] ?>-code">Status</label><select id="redirect-<?= (int) $redirect['id'] ?>-code" name="status_code"><?php foreach ([301, 308, 302, 307] as $code): ?><option value="<?= $code ?>" <?= (int) $redirect['status_code'] === $code ? 'selected' : '' ?>><?= $code ?></option><?php endforeach; ?></select><button class="btn small">Save redirect</button></form></details>
+                    <form method="post" data-confirm="Remove this redirect? Requests to the old path will stop forwarding."><?= $csrf->field() ?><input type="hidden" name="action" value="redirect_delete"><input type="hidden" name="id" value="<?= (int) $redirect['id'] ?>"><button class="btn small danger">Remove</button></form>
+                </div></td>
+            </tr><?php endforeach; ?></tbody>
+        </table></div>
+    <?php endif; ?>
+</section>
+
+<section class="card">
+    <div class="card-heading">
+        <div><p class="section-kicker">Migration tools</p><h2>Redirect portability</h2><p class="muted">Move redirect maps between sites with a three-column CSV: source, target, status_code.</p></div>
         <a class="btn small secondary" href="<?= e_attr($basePath) ?>/admin/seo/redirects.csv">Export <?= count($redirects) ?> redirects</a>
     </div>
     <form method="post" enctype="multipart/form-data" class="seo-import-form">
-        <?= $csrf->field() ?>
-        <input type="hidden" name="action" value="import">
-        <div>
-            <label for="redirect-csv">Redirect CSV</label>
-            <input id="redirect-csv" type="file" name="csv" accept=".csv,text/csv" required>
-            <span class="field-note">Up to 2 MB and 2,000 redirect rows per import.</span>
-        </div>
+        <?= $csrf->field() ?><input type="hidden" name="action" value="import">
+        <div><label for="redirect-csv">Redirect CSV</label><input id="redirect-csv" type="file" name="csv" accept=".csv,text/csv" required><span class="field-note">Up to 2 MB and 2,000 redirect rows. Invalid or duplicate rows are skipped with a useful first-error summary.</span></div>
         <button class="btn" type="submit">Import redirects</button>
     </form>
 </section>

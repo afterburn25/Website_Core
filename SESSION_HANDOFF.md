@@ -1,5 +1,27 @@
 # Session Handoff
 
+## 2.0.19 SEO, redirects, translations, and patterns completion
+
+- SEO is the authoritative Redirect Manager. Navigation contains a direct
+  handoff instead of maintaining a second set of redirect controls.
+- Missing-path resolution, manual create/edit/delete, hit counts, CSV
+  import/export, validation, audit evidence, sitemap, robots, and page-quality
+  review are now one coherent workflow.
+- The content audit additionally reports malformed canonical URLs, noindex on
+  a published page, missing search titles, invalid schema, and invalid block
+  documents.
+- Translations now show per-language completion and public state, support
+  enable/disable and translation removal, retain invalid submissions, validate
+  visual-block/schema JSON, and show source and localized content side by side.
+- Disabled languages retain their records but no longer resolve through
+  localized public routes or appear in navigation/alternate links.
+- Layout Patterns now show block-order previews and support search, apply,
+  rename, duplicate, unique-name validation, revision guidance, and confirmed
+  deletion.
+- Core version advances to 2.0.19 without a schema migration. The release must
+  pass PHP 8.4/8.5, MySQL 8.4, MariaDB 11.4, Core-only, package, and artifact
+  jobs before handoff; packaged browser verification remains external.
+
 ## 2.0.18 advisory installer cleanup
 
 - The document-root create/rename/delete probe is advisory and renders as a

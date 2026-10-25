@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.0.19 — 2026-10-25
+
+- Consolidates redirect ownership in SEO with complete create, edit, remove,
+  hit-count, 404-recovery, CSV import, CSV export, loop, and conflict handling;
+  Navigation now links to that single authoritative workspace.
+- Expands published-page audits to catch missing titles, malformed canonical
+  URLs, intentional noindex state, invalid structured data, corrupt visual
+  blocks, missing alternative text, weak link labels, and search-length gaps.
+- Rebuilds Translations as a side-by-side localized-content workspace with
+  language progress, public/hidden switches, live search previews, safe
+  removal, failed-save retention, and validated block/schema JSON.
+- Ensures hiding a language retains editor work while removing its public URL,
+  navigation records, and alternate-language metadata until re-enabled.
+- Rebuilds Layout Patterns as a searchable visual library with block-order
+  previews, safe draft application, revision guidance, renaming, duplication,
+  conflict validation, and confirmed deletion.
+- Adds focused service and workspace regression coverage and rebuilds the
+  directly usable catering and landscaping release artifacts as Core 2.0.19.
+
 ## 2.0.18 — 2026-10-25
 
 - Changes failed document-root create, rename, and delete checks from a red

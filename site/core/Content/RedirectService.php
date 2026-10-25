@@ -91,9 +91,9 @@ final class RedirectService
         return [true, null];
     }
 
-    public function delete(int $id): void
+    public function delete(int $id): bool
     {
-        $this->db->run('DELETE FROM `' . $this->db->table('redirects') . '` WHERE id = ?', [$id]);
+        return $this->db->run('DELETE FROM `' . $this->db->table('redirects') . '` WHERE id = ?', [$id])->rowCount() > 0;
     }
 
     /** @return list<array> */

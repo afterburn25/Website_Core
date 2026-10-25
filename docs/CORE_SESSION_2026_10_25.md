@@ -74,9 +74,12 @@ was not merged.
   source commit `861d1b3e3c8def4ed4bb0b9e29614ad4290663a5`.
   Packaged-host adoption by two industries remains pending.
 - Core 2.4.0 adds seed-once module content, Core Media fields with usage
-  tracking, and validated package Schema.org providers. Local PHP is not
-  available in the current continuation container, so CI remains the required
-  executable verification gate for this candidate.
+  tracking, and validated package Schema.org providers. Local PHP was not
+  available in the continuation container, so executable verification ran in
+  the repository's complete CI matrix.
+- GitHub Actions push run 552 (`40237182073`) passed all six jobs on source
+  commit `c162244a41dcc1c399bfa2545779478f82c225ac`. The duplicate PR run was
+  cancelled by concurrency after the complete push run succeeded.
 - The live `mail.cajunwebpro.com` AutoSSL attempt reached ACME success but the
   Privora control panel could not locate the issued files. `CORE-OPS-2` tracks
   the required external certificate install/bind/reload/handshake contract;

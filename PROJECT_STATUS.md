@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.4.0` shared module content, Media and structured-data candidate,
+**Current**: `2.4.0` CI-verified shared module content, Media and structured data,
 building on the 2.3 CI-verified reusable module-record operations,
 2.2.2 CI-verified inquiry-detail repair,
 2.2.1 SMTP provider-host diagnostics, and 2.2.0 shared business profile and

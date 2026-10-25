@@ -56,7 +56,9 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       `@context`, enforces type/property/depth/size limits, safely encodes one
       JSON-LD graph, and isolates provider failures.
 - [x] Generated content deletion verifies package/type ownership.
-- [ ] GitHub Actions PHP/MySQL/MariaDB/artifact matrix.
+- [x] GitHub Actions run 552 passed all six PHP 8.4/8.5, Core-only,
+      MySQL 8.4, MariaDB 11.4 and release-artifact jobs on source commit
+      `c162244a41dcc1c399bfa2545779478f82c225ac`.
 - [ ] Packaged-host browser acceptance and adoption by Catering plus a second
       industry module.
 

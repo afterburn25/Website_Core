@@ -133,11 +133,12 @@
   });
 
   document.querySelectorAll('form[method="post"]').forEach((form) => {
-    const editable = form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), select, textarea');
+    const editable = form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([data-no-dirty]), select:not([data-no-dirty]), textarea:not([data-no-dirty])');
     const protect = form.hasAttribute('data-protect-unsaved') || editable.length >= 3 || Boolean(form.querySelector('textarea'));
     if (protect && !form.hasAttribute('data-no-unsaved')) {
-      form.addEventListener('input', () => { form.dataset.dirty = 'true'; }, { once: true });
-      form.addEventListener('change', () => { form.dataset.dirty = 'true'; }, { once: true });
+      const markDirty = (event) => { if (!event.target?.matches?.('[data-no-dirty]')) form.dataset.dirty = 'true'; };
+      form.addEventListener('input', markDirty);
+      form.addEventListener('change', markDirty);
     }
     form.addEventListener('submit', (event) => {
       if (event.defaultPrevented || !form.checkValidity()) return;
@@ -213,6 +214,41 @@
     smtpSecure.addEventListener('change', syncSmtpPort);
     if (smtpPort.value.trim() === '') syncSmtpPort();
   }
+
+  const mailResult = document.querySelector('[data-mail-test-result]');
+  const mailSettingsForm = document.querySelector('[data-smtp-test]')?.closest('form');
+  const runMailTest = async (button) => {
+    if (!mailSettingsForm || !mailResult || button.disabled) return;
+    if (button.hasAttribute('data-mail-test')) {
+      const recipient = mailSettingsForm.querySelector('[name="test_recipient"]');
+      if (recipient && !recipient.reportValidity()) return;
+    }
+    const original = button.textContent;
+    const controls = mailSettingsForm.querySelectorAll('[data-smtp-test],[data-mail-test]');
+    controls.forEach((control) => { control.disabled = true; });
+    button.classList.add('is-busy'); button.setAttribute('aria-busy','true');
+    button.textContent = button.dataset.busyLabel || 'Testing…';
+    mailResult.hidden = false; mailResult.className = 'mail-test-result is-working'; mailResult.textContent = 'Contacting the mail server…';
+    const aborter = new AbortController();
+    const timeout = window.setTimeout(() => aborter.abort(), 12000);
+    try {
+      const response = await fetch(button.dataset.endpoint, { method:'POST', body:new FormData(mailSettingsForm), credentials:'same-origin', signal:aborter.signal, headers:{'X-Requested-With':'XMLHttpRequest'} });
+      const type = response.headers.get('content-type') || '';
+      if (!type.includes('application/json')) throw new Error(`Server returned ${response.status}${response.statusText ? ` ${response.statusText}` : ''}.`);
+      const result = await response.json();
+      mailResult.className = `mail-test-result ${result.ok ? 'is-ok' : 'is-error'}`;
+      mailResult.textContent = result.message || (result.ok ? 'Test succeeded.' : 'Test failed.');
+    } catch (error) {
+      mailResult.className = 'mail-test-result is-error';
+      mailResult.textContent = error?.name === 'AbortError'
+        ? 'The mail server did not respond within 12 seconds. Check the host, port, encryption mode, and whether your web host allows outbound SMTP.'
+        : `The test could not finish: ${error?.message || 'network error'}`;
+    } finally {
+      window.clearTimeout(timeout); controls.forEach((control) => { control.disabled = false; });
+      button.classList.remove('is-busy'); button.removeAttribute('aria-busy'); button.textContent = original;
+    }
+  };
+  document.querySelectorAll('[data-smtp-test],[data-mail-test]').forEach((button) => button.addEventListener('click', () => runMailTest(button)));
 
   document.querySelectorAll('[data-auto-submit]').forEach((control) => {
     control.addEventListener('change', () => {

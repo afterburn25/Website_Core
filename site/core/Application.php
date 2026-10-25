@@ -174,6 +174,10 @@ final class Application
 
         $this->container->instance(Csrf::class, new Csrf());
         $this->container->instance(SettingsRepository::class, new SettingsRepository($db));
+        $this->container->instance(\Core\Analytics\AnalyticsService::class, new \Core\Analytics\AnalyticsService(
+            $db, $this->container->get(SettingsRepository::class), $this->config
+        ));
+        $this->container->instance(\Core\Analytics\AnalyticsReport::class, new \Core\Analytics\AnalyticsReport($db));
         $this->container->instance(\Core\Privacy\ConsentManager::class,
             new \Core\Privacy\ConsentManager($this->container->get(SettingsRepository::class)));
         $this->container->instance(AuditLog::class, new AuditLog($db));
@@ -383,6 +387,15 @@ final class Application
                 $response->setBody((new \Core\Branding\Attribution())->apply($response->body()));
                 $response->setBody($this->container->get(\Core\Privacy\ConsentManager::class)
                     ->inject($response->body(), $request->routeBase()));
+                try {
+                    $before = $response->body();
+                    $response->setBody($this->container->get(\Core\Analytics\AnalyticsService::class)
+                        ->inject($before, $request, $response->status(), $this->container->get(AuthService::class)->user() !== null));
+                    if ($response->body() !== $before) $cacheable = false;
+                } catch (\Throwable $e) {
+                    // Analytics is never allowed to interrupt the website.
+                    error_log('[website-core] analytics collection: ' . $e->getMessage());
+                }
                 if ($cacheable && $request->method === 'GET' && $response->status() === 200) {
                     $etag = '"' . hash('sha256', $response->body()) . '"';
                     $response->header('ETag', $etag)
@@ -565,8 +578,16 @@ final class Application
             $r->get('/', fn (Request $req) => (new \Admin\Controllers\DashboardController($c))->index($req), [$auth]);
             $r->get('/search', fn (Request $req) => (new \Admin\Controllers\SearchController($c))->index($req), [$auth]);
             $r->get('/notices', fn (Request $req) => (new \Admin\Controllers\NoticesController($c))->index($req), [$auth]);
+            $r->any('/analytics', fn (Request $req) => (new \Admin\Controllers\AnalyticsController($c))->index($req), [$auth, $csrfCheck]);
+            $r->get('/analytics/visitors', fn (Request $req) => (new \Admin\Controllers\AnalyticsController($c))->visitors($req), [$auth]);
+            $r->get('/analytics/geography', fn (Request $req) => (new \Admin\Controllers\AnalyticsController($c))->geography($req), [$auth]);
+            $r->get('/analytics/live', fn (Request $req) => (new \Admin\Controllers\AnalyticsController($c))->live($req), [$auth]);
+            $r->get('/analytics/export', fn (Request $req) => (new \Admin\Controllers\AnalyticsController($c))->export($req), [$auth]);
+            $r->post('/analytics/search-console', fn (Request $req) => (new \Admin\Controllers\AnalyticsController($c))->searchConsole($req), [$auth, $csrfCheck]);
             $r->post('/notices/{id:\d+}/dismiss', fn (Request $req) => (new \Admin\Controllers\NoticesController($c))->dismiss($req), [$auth, $csrfCheck]);
             $r->any('/settings', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->index($req), [$auth, $csrfCheck]);
+            $r->post('/settings/test-smtp', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->testSmtp($req), [$auth, $csrfCheck]);
+            $r->post('/settings/test-mail', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->testMail($req), [$auth, $csrfCheck]);
             $r->any('/privacy', fn (Request $req) => (new \Admin\Controllers\PrivacyController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/integrations', fn (Request $req) => (new \Admin\Controllers\IntegrationsController($c))->index($req), [$auth, $csrfCheck]);
             $r->get('/integrations/export', fn (Request $req) => (new \Admin\Controllers\IntegrationsController($c))->export($req), [$auth]);
@@ -655,6 +676,7 @@ final class Application
         $this->router->get('/media/{id:\d+}/{name:.*}', fn (Request $r) => (new \Admin\Controllers\MediaController($c))->serve($r));
         $this->router->get('/preview/{token:[a-f0-9]{48}}', fn (Request $r) => (new \Admin\Controllers\PublicPageController($c))->preview($r));
         $this->router->post('/forms/{id:\d+}/submit', fn (Request $r) => (new \Admin\Controllers\FormsController($c))->submit($r));
+        $this->router->post('/analytics/heartbeat', fn (Request $r) => (new \Admin\Controllers\AnalyticsPublicController($c))->heartbeat($r));
         $this->router->any('/privacy/request', fn (Request $r) => (new \Admin\Controllers\PrivacyController($c))->request($r));
         $this->router->get('/api/v1/health', fn (Request $r) => (new \Admin\Controllers\ApiController($c))->health($r));
         $this->router->get('/api/v1/pages', fn (Request $r) => (new \Admin\Controllers\ApiController($c))->pages($r));
@@ -680,7 +702,7 @@ final class Application
      */
     public const RESERVED_SLUGS = [
         'admin', '_a', 'media', 'preview', 'sitemap.xml', 'robots.txt',
-        'install.php', 'cron.php', 'api', 'forms', 'privacy', 'l', 'storage', 'upload',
+        'install.php', 'cron.php', 'api', 'forms', 'privacy', 'analytics', 'l', 'storage', 'upload',
     ];
 
     private function registerPublicRoutes(): void

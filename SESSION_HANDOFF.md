@@ -1,5 +1,21 @@
 # Session Handoff
 
+## 2.0.32 Core analytics
+
+- Core now owns anonymous first-party analytics for all successful public HTML
+  responses, including module-owned routes. Modules do not add trackers.
+- Owner navigation includes Analytics Dashboard, Visitor Explorer, and
+  Geography. The main dashboard includes a seven-day audience snapshot.
+- Collection honors DNT/GPC and excludes staff, previews, prefetches, robots,
+  error pages, and sensitive endpoints. Raw IP addresses and full user-agent
+  strings are not stored.
+- Migration `2026_10_25_0028` creates analytics visits, pageviews, crawlers,
+  and Search Console import tables. Retention cleanup runs from `cron.php`.
+- Core version is 2.0.32; schema marker is `2026_10_25_0028`.
+- Transactional email tests are co-located at the bottom of the mail panel and
+  use JSON endpoints plus an in-page 12-second client deadline. They never
+  navigate away from Settings on connection, authentication, or gateway errors.
+
 ## 2.0.31 Admin workflow completion
 
 - The managed-site create form uses a dedicated aligned grid and no longer

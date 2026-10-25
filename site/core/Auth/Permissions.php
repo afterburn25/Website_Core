@@ -16,6 +16,7 @@ final class Permissions
         'content.manage' => ['Content', 'Manage content', 'Create and edit pages, translations, and reusable layouts.'],
         'content.publish' => ['Content', 'Publish content', 'Publish, schedule, and approve public pages.'],
         'forms.manage' => ['Website', 'Manage forms', 'Create forms and work with visitor submissions.'],
+        'analytics.view' => ['Analytics', 'View analytics', 'Review privacy-first traffic, visitor journeys, geography, and exports.'],
         'media.manage' => ['Website', 'Manage media', 'Upload, organize, replace, and remove media.'],
         'navigation.manage' => ['Website', 'Manage navigation', 'Change header/footer links and redirects.'],
         'appearance.manage' => ['Website', 'Manage appearance', 'Change brand assets, design tokens, and themes.'],

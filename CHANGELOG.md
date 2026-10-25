@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.32 — 2026-10-25
+
+- Adds Core-owned, first-party analytics across Core pages and every industry
+  module without requiring Google Analytics or module-specific tracking code.
+- Adds an owner-only Analytics workspace with traffic trends, live visitors,
+  visitor journeys, acquisition, device/browser/OS, engagement, geography,
+  entry/exit pages, crawler separation, and weekly activity reporting.
+- Adds Search Console CSV import, safe CSV export, configurable retention, and
+  automatic bounded cleanup through the existing shared-host cron runner.
+- Excludes administrator and preview traffic, DNT/GPC visitors, prefetches,
+  sensitive endpoints, and unsuccessful pages; raw IPs and full user-agent
+  strings are never stored.
+- Adds additive migration `2026_10_25_0028` and shared-host/no-rewrite-aware
+  analytics routes, assets, filters, and heartbeat collection.
+- Moves both transactional-email tests beneath the SMTP settings and runs
+  them in-page with bounded timeouts, live success/error feedback, and no
+  navigation to a host-generated Bad Gateway screen.
+
 ## 2.0.31 — 2026-10-25
 
 - Rebuilds 404 insights as responsive resolution cards so paths, traffic,

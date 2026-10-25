@@ -10,9 +10,9 @@ define('WC_CORE', WC_ROOT . '/core');
 define('WC_THEMES', WC_ROOT . '/themes');
 define('WC_MODULES', WC_ROOT . '/modules');
 define('WC_INSTALLED_LOCK', WC_CONFIG . '/installed.lock');
-define('WC_VERSION', '2.0.31');
+define('WC_VERSION', '2.0.32');
 define('WC_API_VERSION', 1);
-define('WC_SCHEMA_VERSION', '2026_10_25_0027');
+define('WC_SCHEMA_VERSION', '2026_10_25_0028');
 
 require WC_ROOT . '/includes/autoload.php';
 require WC_ROOT . '/includes/helpers.php';

@@ -213,7 +213,10 @@ final class SystemMail
             $mailer->Username = $config['username'];
             $mailer->Password = $config['password'];
         }
-        $mailer->Timeout = 15;
+        // Admin connection tests must finish before ordinary shared-host
+        // proxy timeouts turn the response into a generic Bad Gateway page.
+        $mailer->Timeout = 8;
+        $mailer->Timelimit = 10;
         $mailer->SMTPKeepAlive = false;
     }
 }

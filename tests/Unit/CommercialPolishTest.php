@@ -63,12 +63,17 @@ final class CommercialPolishTest extends TestCase
         $forms = (string) file_get_contents(WC_ROOT . '/admin/views/forms/index.php');
         $css = (string) file_get_contents(WC_ROOT . '/assets/css/admin.css');
         $js = (string) file_get_contents(WC_ROOT . '/assets/js/admin.js');
+        $app = (string) file_get_contents(WC_ROOT . '/core/Application.php');
 
         self::assertStringContainsString('agency-create-grid', $agency);
         self::assertStringContainsString('agency-create-grid', $css);
         self::assertStringContainsString('seo-missing-item', $seo);
         self::assertStringContainsString('seo-missing-item', $css);
         self::assertStringContainsString('Test SMTP connection', $settings);
+        self::assertStringContainsString('data-smtp-test', $settings);
+        self::assertStringContainsString('data-mail-test-result', $settings);
+        self::assertStringContainsString('/settings/test-smtp', $app);
+        self::assertStringContainsString('fetch(button.dataset.endpoint', $js);
         self::assertStringContainsString('data-smtp-secure', $settings);
         self::assertStringContainsString("smtpSecure.value === 'ssl' ? '465'", $js);
         self::assertStringContainsString('MFA not configured', $security);

@@ -50,28 +50,14 @@ final class SettingsController extends Controller
                 return $this->redirect($r, '/admin/settings');
             }
             if ($action === 'test_smtp') {
-                $host = trim($r->string('smtp_host'));
-                $secure = $r->string('smtp_secure');
-                $port = $this->smtpPort($r->string('smtp_port'), $secure);
-                $smtpErrors = [];
-                if ($r->string('mail_transport') !== 'smtp') $smtpErrors[] = 'Choose SMTP server as the mail transport.';
-                if ($host === '' || preg_match('/[\s\/]/', $host)) $smtpErrors[] = 'Enter a valid SMTP hostname.';
-                if ($port < 1 || $port > 65535) $smtpErrors[] = 'SMTP port must be between 1 and 65535.';
-                if (!in_array($secure, ['', 'tls', 'ssl'], true)) $smtpErrors[] = 'Choose a supported SMTP encryption mode.';
-                $username = $r->string('smtp_user');
-                $password = $r->string('smtp_password');
-                if ($username !== '' && $password === '') $password = (string) $settings->get('smtp.password', '');
-                if ($username !== '' && $password === '') $smtpErrors[] = 'Enter the SMTP password for this username.';
+                [$smtpConfig,$smtpErrors] = $this->smtpTestInput($r);
                 $_SESSION['_wc_settings_input'] = array_filter($r->post, static fn (string $key): bool => $key !== '_csrf' && $key !== 'smtp_password', ARRAY_FILTER_USE_KEY);
                 if ($smtpErrors !== []) {
                     $this->flash('error', implode(' ', $smtpErrors) . ' Your non-secret entries are still below.');
                 } else {
-                    [$connected, $error] = $this->c->get(\Core\Mail\SystemMail::class)->testSmtpConnection([
-                        'host' => $host, 'port' => $port, 'secure' => $secure,
-                        'username' => $username, 'password' => $password,
-                    ]);
+                    [$connected, $error] = $this->c->get(\Core\Mail\SystemMail::class)->testSmtpConnection($smtpConfig);
                     $this->audit('settings.smtp_connection_tested', [
-                        'host' => $host, 'port' => $port, 'secure' => $secure, 'connected' => $connected,
+                        'host' => $smtpConfig['host'], 'port' => $smtpConfig['port'], 'secure' => $smtpConfig['secure'], 'connected' => $connected,
                     ]);
                     $this->flash($connected ? 'ok' : 'error', $connected
                         ? 'SMTP connection and authentication succeeded. No message was sent and settings were not saved.'
@@ -164,6 +150,48 @@ final class SettingsController extends Controller
             'hasSmtpPassword' => $settings->get('smtp.password', '') !== '',
             'cronToken' => (string) $settings->get('system.cron_token', ''),
         ], 'Settings');
+    }
+
+    /** In-page SMTP handshake test. Always returns JSON so a failed host cannot replace the Settings screen. */
+    public function testSmtp(Request $r): Response
+    {
+        $user=$this->user();
+        if(!$user||!$this->auth()->has($user,'settings.manage'))return Response::json(['ok'=>false,'message'=>'Your account cannot test mail settings.'],403);
+        [$config,$errors]=$this->smtpTestInput($r);
+        if($errors!==[])return Response::json(['ok'=>false,'message'=>implode(' ',$errors)])->header('Cache-Control','private, no-store');
+        [$connected,$error]=$this->c->get(\Core\Mail\SystemMail::class)->testSmtpConnection($config);
+        $this->audit('settings.smtp_connection_tested',['host'=>$config['host'],'port'=>$config['port'],'secure'=>$config['secure'],'connected'=>$connected]);
+        return Response::json(['ok'=>$connected,'message'=>$connected
+            ? 'Connection and authentication succeeded. No message was sent and nothing was saved.'
+            : 'Connection failed: '.($error??'unknown connection error')])->header('Cache-Control','private, no-store');
+    }
+
+    /** In-page delivery test against the currently saved transport. */
+    public function testMail(Request $r): Response
+    {
+        $user=$this->user();
+        if(!$user||!$this->auth()->has($user,'settings.manage'))return Response::json(['ok'=>false,'message'=>'Your account cannot send a test message.'],403);
+        $recipient=strtolower($r->string('test_recipient'));
+        if(!filter_var($recipient,FILTER_VALIDATE_EMAIL))return Response::json(['ok'=>false,'message'=>'Enter a valid recipient email address.'])->header('Cache-Control','private, no-store');
+        [$sent,$error]=$this->c->get(\Core\Mail\SystemMail::class)->testDelivery($recipient);
+        $this->audit('settings.mail_tested',['recipient'=>$recipient,'sent'=>$sent]);
+        return Response::json(['ok'=>$sent,'message'=>$sent
+            ? 'Test message accepted by the saved mail transport.'
+            : 'Delivery test failed: '.($error??'unknown transport error')])->header('Cache-Control','private, no-store');
+    }
+
+    /** @return array{0:array{host:string,port:int,secure:string,username:string,password:string},1:list<string>} */
+    private function smtpTestInput(Request $r): array
+    {
+        $host=trim($r->string('smtp_host'));$secure=$r->string('smtp_secure');$port=$this->smtpPort($r->string('smtp_port'),$secure);$username=$r->string('smtp_user');$password=$r->string('smtp_password');
+        if($username!==''&&$password==='')$password=(string)$this->settings()->get('smtp.password','');
+        $errors=[];
+        if($r->string('mail_transport')!=='smtp')$errors[]='Choose SMTP server as the mail transport.';
+        if($host===''||preg_match('/[\s\/]/',$host))$errors[]='Enter a valid SMTP hostname.';
+        if($port<1||$port>65535)$errors[]='SMTP port must be between 1 and 65535.';
+        if(!in_array($secure,['','tls','ssl'],true))$errors[]='Choose a supported SMTP encryption mode.';
+        if($username!==''&&$password==='')$errors[]='Enter the SMTP password for this username.';
+        return [['host'=>$host,'port'=>$port,'secure'=>$secure,'username'=>$username,'password'=>$password],$errors];
     }
 
     private function smtpPort(string $value, string $secure): int

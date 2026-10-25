@@ -17,6 +17,8 @@ final class AccountSecurityCompletionTest extends TestCase
         $this->assertSame('Manage content', $catalog['content.manage']['label']);
         $this->assertSame('Access', $catalog['admins.view']['group']);
         $this->assertNotSame('', $catalog['settings.manage']['description']);
+        $this->assertTrue((new Permissions())->allows('owner','analytics.view'));
+        $this->assertFalse((new Permissions())->allows('admin','analytics.view'));
     }
 
     public function testAdministratorEmailLookupAndUniqueWorkflowContract(): void

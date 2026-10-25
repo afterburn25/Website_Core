@@ -26,10 +26,10 @@ installed through the Module Manager.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
-- **Status**: `2.0.31` admin workflow and shared-host recovery repair. Broad feature development is
+- **Status**: `2.0.32` privacy-first first-party analytics. Broad feature development is
   frozen while every existing workflow is completed, polished, and verified
   screen by screen. See `PROJECT_STATUS.md`, `docs/COMMERCIAL_HARDENING.md`,
-  `docs/2.0.30_RELEASE_NOTES.md`, and `docs/2.0.31_RELEASE_NOTES.md`.
+  `docs/2.0.31_RELEASE_NOTES.md`, and `docs/2.0.32_RELEASE_NOTES.md`.
 - **Bundled industries**: catering and landscaping are synchronized release
   snapshots. Landscaping 1.0 includes four selectable themes, with Bold
   Outdoors as its default presentation.
@@ -102,6 +102,7 @@ php tools/build-web-installer.php \
 | `docs/2.0.29_RELEASE_NOTES.md` | MariaDB backup repair and hosted acceptance findings |
 | `docs/2.0.30_RELEASE_NOTES.md` | Split-runtime backup/restore and recovery-point download repair |
 | `docs/2.0.31_RELEASE_NOTES.md` | Forms, 404, agency, MFA, and SMTP workflow completion |
+| `docs/2.0.32_RELEASE_NOTES.md` | Core-owned privacy-first analytics and visitor intelligence |
 | `docs/COMMERCIAL_HARDENING.md` | Ordered screen-by-screen audit and commercial completion gates |
 | `docs/MODULE_API.md` | Supported extension API surface |
 | `docs/MODULE_RULES.md` | Permanent cross-industry module ownership, UX, lifecycle, and release rules |

@@ -22,6 +22,7 @@ final class PrivacyController extends Controller
             'banner_enabled' => (bool) $this->settings()->get('privacy.banner_enabled', true),
             'provider' => (string) $this->settings()->get('analytics.provider', 'none'),
             'site_id' => (string) $this->settings()->get('analytics.site_id', ''),
+            'first_party_enabled' => (bool) $this->settings()->get('analytics.enabled', true),
         ];
         $submitted = $_SESSION['_wc_privacy_settings'] ?? null;
         unset($_SESSION['_wc_privacy_settings']);

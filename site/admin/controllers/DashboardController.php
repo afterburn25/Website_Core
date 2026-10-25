@@ -27,6 +27,15 @@ final class DashboardController extends Controller
         $published = (int) $db->fetchColumn(
             'SELECT COUNT(*) FROM `' . $db->table('pages') . '` WHERE status = ?', ['published']
         );
+        $analytics = null;
+        if ($this->user() && $this->auth()->has($this->user(), 'analytics.view')) {
+            try {
+                $analytics = $this->c->get(\Core\Analytics\AnalyticsReport::class)
+                    ->dashboard(date('Y-m-d', time() - 6 * 86400), date('Y-m-d'))['summary'];
+            } catch (\Throwable) {
+                // Analytics migration may still be converging during an update.
+            }
+        }
 
         return $this->page($r, 'dashboard/index', [
             'pageCount' => $pageCount,
@@ -36,6 +45,7 @@ final class DashboardController extends Controller
             'integrity' => $integrity,
             'notices'   => $notices,
             'moduleWidgets' => $moduleWidgets,
+            'analytics' => $analytics,
             'php'       => PHP_VERSION,
             'dbVersion' => $db->driver() === 'sqlite'
                 ? 'sqlite ' . $db->pdo()->query('SELECT sqlite_version()')->fetchColumn()

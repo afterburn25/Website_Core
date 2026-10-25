@@ -14,15 +14,18 @@
       <?php else: ?><label for="<?= e_attr($name) ?>"><?= e($meta['label']) ?></label><input id="<?= e_attr($name) ?>" name="<?= e_attr($name) ?>" type="<?= e_attr($meta['type']) ?>" value="<?= e_attr($values[$key]) ?>" <?= str_starts_with($key, 'smtp.') ? 'data-smtp-field' : '' ?><?= $key === 'smtp.port' ? ' data-smtp-port min="1" max="65535" inputmode="numeric"' : '' ?>><?php endif; ?></div>
     <?php endforeach; ?>
     <div data-dependent-group><label for="smtp_password">SMTP password <?= $hasSmtpPassword ? '<span class="muted">(stored — enter only to change)</span>' : '' ?></label><input id="smtp_password" name="smtp_password" type="password" autocomplete="new-password" data-smtp-field></div>
+    <div class="mail-test-panel">
+      <div><p class="section-kicker">Verify configuration</p><h3>Test transactional email</h3><p class="card-subtitle">Connection test uses the SMTP values shown above without saving or sending. Delivery test uses the currently saved transport.</p></div>
+      <label for="test-recipient">Test recipient<input id="test-recipient" name="test_recipient" type="email" placeholder="you@example.com" data-no-dirty></label>
+      <div class="button-row"><button class="btn secondary" type="button" data-smtp-test data-endpoint="<?= e_attr($basePath) ?>/admin/settings/test-smtp" data-busy-label="Testing connection…">Test SMTP connection</button><button class="btn secondary" type="button" data-mail-test data-endpoint="<?= e_attr($basePath) ?>/admin/settings/test-mail" data-busy-label="Sending test…">Send test email</button></div>
+      <div class="mail-test-result" data-mail-test-result role="status" aria-live="polite" hidden></div>
+    </div>
   </section>
 </div>
-<div class="action-bar"><span>Test verifies the displayed SMTP connection without saving or sending a message.</span><div class="button-row"><button class="btn secondary" type="submit" name="action" value="test_smtp" data-smtp-field data-busy-label="Testing connection…">Test SMTP connection</button><button class="btn" type="submit" name="action" value="save" data-busy-label="Saving settings…">Save settings</button></div></div>
+<div class="action-bar"><span>Save applies website identity and transactional email changes.</span><button class="btn" type="submit" name="action" value="save" data-busy-label="Saving settings…">Save settings</button></div>
 </form>
 
-<div class="section-grid">
-  <section class="card"><div class="card-heading"><div><h2>Test email delivery</h2><p class="card-subtitle">Send one immediate message using the currently saved transport settings.</p></div></div>
-    <form method="post" action="<?= e_attr($basePath) ?>/admin/settings" class="inline-fields" data-busy-label="Sending test…"><?= $csrf->field() ?><input type="hidden" name="action" value="test_mail"><div><label for="test-recipient">Recipient</label><input id="test-recipient" name="test_recipient" type="email" required placeholder="you@example.com"></div><button class="btn secondary" type="submit">Send test email</button></form>
-  </section>
+<div>
   <section class="card"><div class="card-heading"><div><h2>Scheduled tasks</h2><p class="card-subtitle">Use this private token with hosts that only support URL-based cron.</p></div></div><div class="copy-field"><input readonly value="<?= e_attr($cronToken !== '' ? $cronToken : '(generated on first save)') ?>" aria-label="Private cron token"><button type="button" class="btn secondary" data-copy-previous>Copy</button></div><p class="field-note">Run <code>cron.php?token=TOKEN</code> on your preferred schedule. Never publish this token.</p><form method="post" action="<?= e_attr($basePath) ?>/admin/settings"><?= $csrf->field() ?><input type="hidden" name="action" value="rotate_cron"><button class="btn small danger" data-confirm="Rotate the scheduled-task token? Existing cron URLs will stop working until updated.">Rotate token</button></form></section>
 </div>
 

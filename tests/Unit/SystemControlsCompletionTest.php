@@ -24,6 +24,6 @@ final class SystemControlsCompletionTest extends TestCase
         $this->assertStringContainsString('update_discarded', $updates);
         $this->assertStringContainsString('rotate_cron', $settings);
         $this->assertStringContainsString('_wc_settings_input', $settings);
-        $this->assertStringContainsString('complete HTTPS URL', $settings);
+        $this->assertStringContainsString("if(\$key==='app.url')continue", $settings);
     }
 }

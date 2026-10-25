@@ -5,6 +5,9 @@ namespace Tests\Unit;
 
 use Core\Events\Dispatcher;
 use Core\Auth\Permissions;
+use Core\Database\Connection;
+use Core\Database\Migrator;
+use Core\Forms\FormService;
 use Core\Modules\ModuleContext;
 use Core\Routing\Router;
 use PHPUnit\Framework\TestCase;
@@ -195,5 +198,32 @@ final class ModuleContextTest extends TestCase
         $context = new ModuleContext('acme/demo', new Router(), new Dispatcher());
         $this->expectException(\InvalidArgumentException::class);
         $context->coreFeature('commerce.imaginary');
+    }
+
+    public function testModuleCanDeclareAndLinkCoreOwnedStarterForm(): void
+    {
+        $db = Connection::sqlite();
+        (new Migrator($db, WC_ROOT . '/database/migrations'))->migrate();
+        $events = new Dispatcher();
+        $forms = new FormService($db, $events);
+        $context = new ModuleContext(
+            'acme/demo',
+            new Router(),
+            $events,
+            serviceResolver: static fn (string $id): object => match ($id) {
+                FormService::class => $forms,
+                default => throw new \RuntimeException('Unexpected service ' . $id),
+            },
+        );
+        $formId = $context->starterForm('contact_request', 'Contact request', [[
+            'name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true,
+        ]]);
+        self::assertIsInt($formId);
+        self::assertSame($formId, $context->starterForms()['contact_request']);
+
+        [$submissionId, $errors] = $forms->submit((int) $formId, ['email' => 'person@example.com'], 'hash');
+        self::assertSame([], $errors);
+        self::assertTrue($context->linkFormSubmission((int) $submissionId, 'lead', 'ABC-7'));
+        self::assertSame('ABC-7', $context->formSubmission((int) $submissionId)['links'][0]['record_id']);
     }
 }

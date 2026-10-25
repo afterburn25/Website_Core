@@ -28,6 +28,9 @@ breaking changes bump the major and ship with a migration guide.
 | `contentType($type, $label, $fields)` | Register a structured content type — validated storage in `content_items` plus generated admin CRUD under `/admin/content`. |
 | `seedContent($type, $items)` | Seed declared structured content once while its package partition is empty; administrator edits and intentional deletion remain final. |
 | `structuredData($key, $provider)` | Contribute bounded package-scoped Schema.org objects to public HTML. Core validates types/properties, supplies `@context`, safely encodes JSON-LD and isolates provider failures. |
+| `starterForm($key, $label, $fields, $options = [], $validator = null, $onSubmitted = null)` | Declare or deliberately adopt one Core-owned starter form while retaining package business validation and record creation. |
+| `formSubmission($submissionId)` | Read a protected submission, consent, notification status and record links only when it belongs to this package. |
+| `linkFormSubmission($submissionId, $recordType, $recordId)` | Idempotently connect a package record to its Core submission without copying the shared form/inbox. |
 | `dashboardWidget($key, $label, $provider, $capability = null, $url = null)` | Contribute a capability-filtered live metric to the Core dashboard. |
 | `adminSearchProvider($provider, $capability = null)` | Contribute capability-filtered results to Core global search. |
 | `healthCheck($key, $label, $provider)` | Contribute an isolated `ok`, `warn`, or `error` check to System Health. |
@@ -202,6 +205,7 @@ isolated — it never aborts the operation that fired the event.
 | `package.purged` | `package` | package-owned tables dropped |
 | `core.update` | audit entry | a core self-update applies |
 | `commerce.order.placed` | `id`, `order_number`, `payment_method`, `total_minor`, `currency` | an order transaction commits |
+| `form.submitted` | `id`, `form_id`, `owner_package`, `form_key` | a validated form submission is stored; field data remains limited to the package-bound `onSubmitted` callback and retry duplicates do not fire again |
 
 ## Content types
 
@@ -256,6 +260,76 @@ $ctx->structuredData('services', fn (\Core\Http\Request $request) => [[
     'name' => 'Wedding catering',
 ]]);
 ```
+
+## Shared forms and notifications (Core 2.5)
+
+Declare a starter form during package registration. The declaration seeds only
+when that package/key does not already exist; the administrator-owned live
+copy is never replaced during later boots or upgrades.
+
+```php
+$ctx->starterForm(
+    'event_request',
+    'Event request',
+    [
+        ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true],
+        ['name' => 'guests', 'label' => 'Guest count', 'type' => 'number', 'required' => true],
+        ['name' => 'dietary', 'label' => 'Dietary needs', 'type' => 'textarea'],
+    ],
+    [
+        'recipient' => 'events@example.com',
+        'subject' => 'Event request {{submission_id}}',
+        'notification_template' => "{{email}} requested service for {{guests}} guests.\n\n{{dietary}}",
+        'success_message' => 'Thank you. We will review your event request.',
+        'submit_label' => 'Request information',
+    ],
+    validator: function (array $data): array {
+        return (int) $data['guests'] < 1
+            ? ['guests' => 'Enter at least one guest.'] : [];
+    },
+    onSubmitted: function (array $event) use ($ctx, $inquiries): void {
+        [$inquiryId, $error] = $inquiries->submit(
+            $ctx->packageId(),
+            [
+                'email' => $event['data']['email'],
+                'subject' => 'Event request',
+                'message' => 'Guest count: ' . $event['data']['guests'],
+            ],
+            $event['id'],
+        );
+        if ($error === null) {
+            $ctx->linkFormSubmission($event['id'], 'inquiry', $inquiryId);
+        }
+    },
+);
+```
+
+Core validates and stores generic field types, CSRF, honeypot and rate-limit
+checks, consent evidence, inbox state, CSV safety, notification queuing and
+delivery status. A validator receives cleaned Core fields and the current form
+record. It returns `[]`, `null`, or `true` for success; a string/list for
+general errors; or `field_name => message` for labeled field errors. Exceptions
+fail closed and are logged without exposing internals.
+
+The optional submission handler runs only after a new durable submission is
+stored. It receives the same protected ID as `form.submitted`. Package failures
+are isolated so the customer response remains in Core for manual recovery.
+Browser retries with the same generated token return the original submission,
+do not call the handler/event again, and reuse the attached mail evidence.
+
+Use `adopt_id` only during a deliberate migration from an existing Core form:
+
+```php
+$ctx->starterForm('event_request', 'Event request', $fields, [
+    'adopt_id' => 12,
+]);
+```
+
+Core keeps that form's edited schema and reattributes its existing submissions;
+it never guesses by name. A package cannot adopt another package's form.
+Disable and uninstall preserve everything and make the public form unavailable
+while its package validation code is absent. Explicit purge removes only the
+package partition.
 
 ## Shared business, inquiries, and quotes (Core 2.2)
 

@@ -35,6 +35,10 @@ direction (packages → core API, never core → package internals).
 - Seed-once module content, Core Media selection/usage tracking, and bounded
   package Schema.org contributions. Core owns editing, replacement, focal
   metadata, safe JSON-LD encoding, and administrator changes after seeding.
+- Seed-once package form schemas, generic field validation, CSRF, anti-spam,
+  protected submissions, consent evidence, inbox workflows and transactional
+  notification templates/status. Modules own industry questions, additional
+  business validation and package records linked to Core submission IDs.
 
 ## Core MUST NOT contain
 

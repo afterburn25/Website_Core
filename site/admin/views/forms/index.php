@@ -79,6 +79,9 @@ $newCount = array_sum(array_map(static fn (array $form): int => (int) ($form['ne
         <p class="field-note">Leave blank to store responses without email alerts.</p>
         <label for="form-subject">Email subject</label>
         <input id="form-subject" maxlength="190" name="subject" value="<?= e_attr($editing['subject'] ?? 'New website form submission') ?>">
+        <label for="form-notification-template">Email message template</label>
+        <textarea id="form-notification-template" maxlength="10000" rows="5" name="notification_template" placeholder="Leave blank to include every response automatically."><?= e($editing['notification_template'] ?? '') ?></textarea>
+        <p class="field-note">Optional plain-text template. Use field tokens such as <code>{{email}}</code>, plus <code>{{form_name}}</code>, <code>{{submission_id}}</code>, or <code>{{submitted_at}}</code>.</p>
       </section>
 
       <section class="form-settings-panel" aria-labelledby="form-response-title">

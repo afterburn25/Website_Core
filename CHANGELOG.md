@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.5.0 — 2026-10-25
+
+- Adds `starterForm()` so an industry package can declare one Core-owned form
+  schema without overwriting later administrator edits, or explicitly adopt an
+  existing form and preserve its submission history.
+- Adds package-owned validation callbacks, fault-isolated `form.submitted`
+  events, protected submission lookup and idempotent industry-record links.
+- Makes package-owned forms unavailable whenever their package code is not
+  enabled, preventing submission without required industry validation.
+- Adds one-time browser submission tokens and database deduplication so retry
+  posts do not create duplicate submissions, events, or notification emails.
+- Adds editable plain-text notification templates with safe field tokens and
+  keeps queue/delivery evidence attached to the shared submission inbox.
+- Adds migration `2026_10_25_0031`, package-partitioned purge handling,
+  Module API documentation and regression coverage. Module API v1 remains
+  backward compatible; Catering and a second industry still need adoption.
+
 ## 2.4.0 — 2026-10-25
 
 - Adds durable `seedContent()` defaults for package-declared content types;

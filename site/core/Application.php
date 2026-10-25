@@ -195,6 +195,10 @@ final class Application
         $this->container->instance(AdminRepository::class, new AdminRepository($db));
         $systemMail = new \Core\Mail\SystemMail($db, $this->container->get(SettingsRepository::class), $this->config);
         $this->container->instance(\Core\Mail\SystemMail::class, $systemMail);
+        $this->container->instance(\Core\Forms\FormService::class, new \Core\Forms\FormService(
+            $db,
+            $this->container->get(Dispatcher::class),
+        ));
         $this->container->instance(AuthService::class, new AuthService(
             $db,
             $this->container->get(AdminRepository::class),

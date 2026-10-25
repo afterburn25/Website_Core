@@ -44,6 +44,27 @@ Every listed surface must satisfy all applicable gates:
 
 Status values: **queued**, **in progress**, **code complete**, **verified**.
 
+## 2.5.0 — Shared module forms and notifications
+
+- [x] Packages declare a stable starter form schema once without overwriting
+      later administrator changes.
+- [x] Deliberate adoption preserves an existing form and submission history;
+      Core never guesses a migration target from its name.
+- [x] Package validation runs after generic Core validation and fails closed
+      with safe field/general errors.
+- [x] New durable submissions emit fault-isolated protected IDs and allow
+      package-owned records to be linked without copying the shared inbox.
+- [x] Browser retries deduplicate storage, package handlers, events and queued
+      mail through generated request tokens and database uniqueness.
+- [x] Administrators can edit plain-text notification templates with bounded
+      field/system tokens; queue status and errors stay attached to the inbox.
+- [x] Disable/uninstall preserve package forms; explicit purge removes the
+      package partition and related notification evidence in dependency order.
+- [ ] Complete GitHub Actions PHP 8.4/8.5, Core-only, native MySQL/MariaDB and
+      release-artifact verification.
+- [ ] Complete Catering migration, second-industry proof and packaged-host
+      browser/accessibility acceptance without duplicate inquiries or email.
+
 ## 2.4.0 — Shared module content, Media and structured data
 
 - [x] Package content types can seed starter records once without replacing

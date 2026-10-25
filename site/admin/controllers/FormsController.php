@@ -9,7 +9,7 @@ use Core\Http\Response;
 
 final class FormsController extends Controller
 {
-    private function forms(): FormService { return new FormService($this->db()); }
+    private function forms(): FormService { return $this->c->get(FormService::class); }
     private function can(): bool
     {
         $u = $this->user();
@@ -39,7 +39,8 @@ final class FormsController extends Controller
             $editId,
             $r->string('name'), (string) ($r->post['fields_json'] ?? '[]'),
             $r->string('recipient'), $r->string('subject'), $r->string('success_message'),
-            $r->string('active') === '1', $this->user()->id, $r->string('submit_label', 'Submit')
+            $r->string('active') === '1', $this->user()->id, $r->string('submit_label', 'Submit'),
+            $r->string('notification_template')
         );
         if ($error !== null) {
             $this->flash('error', $error . ' Your entered settings and fields are still below.');
@@ -53,6 +54,7 @@ final class FormsController extends Controller
                     'subject' => $r->string('subject'),
                     'success_message' => $r->string('success_message'),
                     'submit_label' => $r->string('submit_label', 'Submit'),
+                    'notification_template' => $r->string('notification_template'),
                     'active' => $r->string('active') === '1' ? 1 : 0,
                 ],
             ], 'Forms');
@@ -210,17 +212,16 @@ final class FormsController extends Controller
         $limiter = $this->c->get(\Core\Security\RateLimiter::class);
         if (!$limiter->attempt('form:' . $id . ':' . $r->ip(), 8, 900)) return $this->publicResult($r, 'Too many submissions. Please wait and try again.', false);
         $key = (string) $this->c->get(\Core\Config::class)->get('security.app_key', 'website-core');
-        [$submissionId, $errors, $data] = $this->forms()->submit($id, $r->post, hash_hmac('sha256', $r->ip(), $key));
+        [$submissionId, $errors] = $this->forms()->submit(
+            $id,
+            $r->post,
+            hash_hmac('sha256', $r->ip(), $key),
+            $r->string('_form_token'),
+        );
         if ($errors !== []) return $this->publicResult($r, implode(' ', $errors), false);
         $form = $this->forms()->find($id);
-        if ($form && !empty($form['recipient'])) {
-            $lines = [];
-            foreach ($data as $name => $value) $lines[] = ucwords(str_replace('_',' ',$name)) . ': ' . $value;
-            $messageId = $this->c->get(\Core\Mail\SystemMail::class)->queue(
-                (string) $form['recipient'], (string) ($form['subject'] ?: 'New website form submission'),
-                implode("\n", $lines), 'form:' . $submissionId
-            );
-            $this->forms()->attachNotification((int) $submissionId, $messageId);
+        if ($submissionId !== null) {
+            $this->forms()->queueNotification((int) $submissionId, $this->c->get(\Core\Mail\SystemMail::class));
         }
         return $this->publicResult($r, (string) ($form['success_message'] ?? 'Thank you. Your message has been received.'), true);
     }

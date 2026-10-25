@@ -6,7 +6,10 @@ namespace Tests\Unit;
 use Core\Database\Connection;
 use Core\Database\Migrator;
 use Core\Forms\FormService;
+use Core\Events\Dispatcher;
+use Core\Mail\SystemMail;
 use Core\Security\Csrf;
+use Core\Settings\SettingsRepository;
 use PHPUnit\Framework\TestCase;
 
 final class FormServiceTest extends TestCase
@@ -20,6 +23,11 @@ final class FormServiceTest extends TestCase
         (new Migrator($this->db, WC_ROOT . '/database/migrations'))->migrate();
         $this->forms = new FormService($this->db);
         $_SESSION = [];
+    }
+
+    protected function tearDown(): void
+    {
+        SystemMail::captureWith(fn () => null);
     }
 
     public function testBuildsValidatesStoresAndExportsSubmissionData(): void
@@ -163,5 +171,113 @@ final class FormServiceTest extends TestCase
         $result = $this->forms->bulkSubmissionAction([(int) $first, 999999], 'delete');
         self::assertSame(['updated' => 1, 'missing' => 1], $result);
         self::assertSame(1, $this->forms->submissionCount($id));
+    }
+
+    public function testPackageStarterValidationEventsLinksDedupeAndNotificationTemplate(): void
+    {
+        $events = new Dispatcher();
+        $forms = new FormService($this->db, $events);
+        $eventPayloads = [];
+        $handlerPayloads = [];
+        $events->listen('form.submitted', function (array $payload) use (&$eventPayloads): void {
+            $eventPayloads[] = $payload;
+        });
+        $formId = $forms->registerStarter(
+            'acme/events',
+            'event_request',
+            'Event request',
+            [
+                ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true],
+                ['name' => 'guests', 'label' => 'Guests', 'type' => 'number', 'required' => true],
+            ],
+            [
+                'recipient' => 'owner@example.com',
+                'subject' => 'Event {{submission_id}}',
+                'notification_template' => "Submission {{submission_id}} from {{email}} for {{guests}} guests.",
+                'submit_label' => 'Request details',
+            ],
+            static fn (array $data): array => (int) $data['guests'] > 250
+                ? ['guests' => 'Requests above 250 need staff review.'] : [],
+            function (array $payload) use (&$handlerPayloads): void { $handlerPayloads[] = $payload; },
+        );
+
+        self::assertSame($formId, $forms->registerStarter(
+            'acme/events', 'event_request', 'Changed default is ignored',
+            [['name' => 'other', 'label' => 'Other', 'type' => 'text']],
+        ));
+        self::assertSame('Event request', $forms->find($formId)['name']);
+
+        [$rejected, $errors] = $forms->submit($formId, [
+            'email' => 'person@example.com', 'guests' => '300',
+        ], 'hash', 'request-one');
+        self::assertNull($rejected);
+        self::assertSame(['Guests: Requests above 250 need staff review.'], $errors);
+
+        [$submissionId, $errors, $data, $duplicate] = $forms->submit($formId, [
+            'email' => 'person@example.com', 'guests' => '120',
+        ], 'hash', 'request-two');
+        self::assertSame([], $errors);
+        self::assertFalse($duplicate);
+        self::assertSame('acme/events', $eventPayloads[0]['owner_package']);
+        self::assertArrayNotHasKey('data', $eventPayloads[0]);
+        self::assertSame('event_request', $handlerPayloads[0]['form_key']);
+        self::assertSame('person@example.com', $handlerPayloads[0]['data']['email']);
+
+        [$sameId, $errors, $sameData, $duplicate] = $forms->submit($formId, [
+            'email' => 'changed@example.com', 'guests' => '1',
+        ], 'hash', 'request-two');
+        self::assertSame($submissionId, $sameId);
+        self::assertTrue($duplicate);
+        self::assertSame($data, $sameData);
+        self::assertCount(1, $eventPayloads);
+        self::assertCount(1, $handlerPayloads);
+
+        $captured = [];
+        SystemMail::captureWith(function (string $to, string $subject, string $body) use (&$captured): void {
+            $captured = compact('to', 'subject', 'body');
+        });
+        $settings = new SettingsRepository($this->db);
+        $settings->set('mail.transport', 'capture');
+        $mail = new SystemMail($this->db, $settings);
+        $messageId = $forms->queueNotification((int) $submissionId, $mail);
+        self::assertNotNull($messageId);
+        self::assertSame($messageId, $forms->queueNotification((int) $submissionId, $mail));
+        $mail->flush(10);
+        self::assertStringContainsString('person@example.com for 120 guests', $captured['body']);
+        self::assertSame('Event ' . $submissionId, $captured['subject']);
+
+        self::assertTrue($forms->linkSubmission('acme/events', (int) $submissionId, 'inquiry', 44));
+        self::assertTrue($forms->linkSubmission('acme/events', (int) $submissionId, 'inquiry', 44));
+        self::assertFalse($forms->linkSubmission('acme/other', (int) $submissionId, 'inquiry', 44));
+        $owned = $forms->ownedSubmission('acme/events', (int) $submissionId);
+        self::assertNotNull($owned);
+        self::assertSame('sent', $owned['notification_status']);
+        self::assertSame('44', $owned['links'][0]['record_id']);
+        self::assertNull($forms->ownedSubmission('acme/other', (int) $submissionId));
+
+        [$inactiveSubmission, $inactiveErrors] = (new FormService($this->db))->submit(
+            $formId,
+            ['email' => 'bypass@example.com', 'guests' => '10'],
+            'hash',
+        );
+        self::assertNull($inactiveSubmission);
+        self::assertSame(['This form is unavailable.'], $inactiveErrors);
+    }
+
+    public function testPackageMayAdoptExistingFormWithoutLosingHistory(): void
+    {
+        [$formId] = $this->forms->save(null, 'Legacy request', json_encode([
+            ['name' => 'name', 'label' => 'Name', 'type' => 'text', 'required' => true],
+        ], JSON_THROW_ON_ERROR), '', '', '', true, 1);
+        [$submissionId] = $this->forms->submit($formId, ['name' => 'Preserved'], 'hash');
+
+        $adopted = $this->forms->registerStarter(
+            'acme/events', 'legacy_request', 'Unused default',
+            [['name' => 'other', 'label' => 'Other', 'type' => 'text']],
+            ['adopt_id' => $formId],
+        );
+        self::assertSame($formId, $adopted);
+        self::assertSame('Legacy request', $this->forms->find($formId)['name']);
+        self::assertNotNull($this->forms->ownedSubmission('acme/events', (int) $submissionId));
     }
 }

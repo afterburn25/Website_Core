@@ -84,3 +84,8 @@ was not merged.
   Privora control panel could not locate the issued files. `CORE-OPS-2` tracks
   the required external certificate install/bind/reload/handshake contract;
   Website Core retains strict TLS checks and cannot perform privileged repair.
+- Core 2.5.0 implements the `CORE-REUSE-4` foundation: package starter/adopted
+  forms, custom validation, protected submission events/lookup/record links,
+  retry deduplication and editable notification templates. Additive migration
+  `2026_10_25_0031` retains Module API v1. CI and Catering/second-industry
+  adoption remain pending; no module snapshot was modified in this Core pass.

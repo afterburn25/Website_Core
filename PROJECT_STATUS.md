@@ -1,7 +1,8 @@
 # Project Status
 
-**Current**: `2.4.0` CI-verified shared module content, Media and structured data,
-building on the 2.3 CI-verified reusable module-record operations,
+**Current**: `2.5.0` shared module forms and notifications implementation,
+pending CI verification and packaged-host acceptance, building on the 2.4
+CI-verified shared module content, Media and structured data and 2.3 reusable module-record operations,
 2.2.2 CI-verified inquiry-detail repair,
 2.2.1 SMTP provider-host diagnostics, and 2.2.0 shared business profile and
 opt-in inquiries/quotations. Continuation rules and the verified starting
@@ -10,6 +11,14 @@ are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
 produces checksummed installation and update artifacts.
+
+Version 2.5.0 adds edit-preserving package starter forms, package validators,
+protected submission events and lookup, durable industry-record links,
+submission/notification deduplication, and editable plain-text notification
+templates. Core continues to own CSRF, honeypots, rate limits, validation,
+submission storage, consent evidence, the inbox and delivery status. Modules
+retain industry questions, business validation and their own linked records.
+Migration `2026_10_25_0031` is additive and Module API v1 remains compatible.
 
 Version 2.4.0 adds edit-preserving starter content, reusable public Core Media
 selectors with usage tracking, and package-scoped Schema.org contributions.

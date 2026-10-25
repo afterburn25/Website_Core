@@ -4,6 +4,7 @@ site/config/setup.token
 site/config/claim.lock
 site/config/claim.session
 site/config/installed.lock
+site/config/.runtime-code/
 site/install.php.off
 
 # Runtime artifacts

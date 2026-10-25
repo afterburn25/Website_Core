@@ -649,6 +649,39 @@ final class PackageManager
                 }
             }
         }
+        // Package-owned starter forms remain intact through disable and
+        // uninstall. Explicit purge removes links, submissions, notification
+        // rows and definitions in dependency order while leaving ordinary
+        // administrator-created forms untouched.
+        if ($this->db->tableExists('forms') && $this->db->tableExists('form_submissions')) {
+            $messageIds = array_map('intval', array_column($this->db->fetchAll(
+                'SELECT notification_message_id FROM `' . $this->db->table('form_submissions')
+                . '` WHERE owner_package=? AND notification_message_id IS NOT NULL',
+                [$packageId]
+            ), 'notification_message_id'));
+            if ($this->db->tableExists('form_submission_links')) {
+                $n = $this->db->run(
+                    'DELETE FROM `' . $this->db->table('form_submission_links') . '` WHERE owner_package=?',
+                    [$packageId]
+                )->rowCount();
+                if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} form submission link row(s)");
+            }
+            $n = $this->db->run(
+                'DELETE FROM `' . $this->db->table('form_submissions') . '` WHERE owner_package=?',
+                [$packageId]
+            )->rowCount();
+            if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} form submission row(s)");
+            foreach ($messageIds as $messageId) {
+                if ($messageId > 0 && $this->db->tableExists('system_messages')) {
+                    $this->db->run('DELETE FROM `' . $this->db->table('system_messages') . '` WHERE id=?', [$messageId]);
+                }
+            }
+            $n = $this->db->run(
+                'DELETE FROM `' . $this->db->table('forms') . '` WHERE owner_package=?',
+                [$packageId]
+            )->rowCount();
+            if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} package form row(s)");
+        }
         // Optional Core feature records are package-keyed even though their
         // tables are Core-owned. Uninstall preserves them; explicit purge
         // removes the whole package partition in dependency-safe order.

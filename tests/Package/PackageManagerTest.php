@@ -386,6 +386,42 @@ final class PackageManagerTest extends TestCase
         $this->assertFalse($this->db->tableExists('widgets_data'));
     }
 
+    public function testPurgeRemovesOnlyPackageOwnedFormsAndSubmissionEvidence(): void
+    {
+        $zip = $this->zip(['widgets/addon.json' => $this->manifest()]);
+        $this->pm->stage($zip);
+        $this->pm->install('acme/widgets');
+        $forms = new \Core\Forms\FormService($this->db);
+        $packageForm = $forms->registerStarter('acme/widgets', 'contact', 'Widget contact', [[
+            'name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true,
+        ]]);
+        [$submission] = $forms->submit($packageForm, ['email' => 'person@example.com'], 'hash');
+        $forms->linkSubmission('acme/widgets', (int) $submission, 'lead', 9);
+        $messageId = (int) $this->db->insert('system_messages', [
+            'to' => 'owner@example.com', 'subject' => 'Request', 'body' => 'Body',
+            'status' => 'queued', 'dedupe_key' => null, 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        $forms->attachNotification((int) $submission, $messageId);
+        [$ordinaryForm] = $forms->save(null, 'Ordinary form', json_encode([[
+            'name' => 'name', 'label' => 'Name', 'type' => 'text',
+        ]], JSON_THROW_ON_ERROR), '', '', '', true, 1);
+
+        $this->pm->uninstall('acme/widgets');
+        [$ok, $error] = $this->pm->purgeData('acme/widgets');
+        self::assertTrue($ok, (string) $error);
+        self::assertNull($forms->find($packageForm));
+        self::assertNotNull($forms->find($ordinaryForm));
+        self::assertSame(0, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `wc_form_submissions` WHERE owner_package=?', ['acme/widgets']
+        ));
+        self::assertSame(0, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `wc_form_submission_links` WHERE owner_package=?', ['acme/widgets']
+        ));
+        self::assertSame(0, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `wc_system_messages` WHERE id=?', [$messageId]
+        ));
+    }
+
     public function testPackageMigrationsRunOnInstallAndPurgeDropsThem(): void
     {
         $migration = <<<'PHP'

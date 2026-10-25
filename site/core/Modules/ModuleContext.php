@@ -10,6 +10,7 @@ use Core\Content\ContentItems;
 use Core\Content\MenuService;
 use Core\Database\Connection;
 use Core\Events\Dispatcher;
+use Core\Forms\FormService;
 use Core\Http\Request;
 use Core\Routing\Router;
 use Core\Settings\SettingsRepository;
@@ -46,6 +47,8 @@ final class ModuleContext
     private array $adminResources = [];
     /** @var array<string,callable> package-scoped Schema.org providers */
     private array $structuredDataProviders = [];
+    /** @var array<string,int|null> package starter form ids */
+    private array $starterForms = [];
     private ?string $viewNamespace = null;
 
     /**
@@ -214,6 +217,64 @@ final class ModuleContext
             throw new \InvalidArgumentException('Structured-data key is already registered by this package.');
         }
         $this->structuredDataProviders[$key] = $provider;
+    }
+
+    /**
+     * Declare a Core-owned starter form once. Core retains the live schema,
+     * protected submissions, anti-spam and notification delivery; callbacks
+     * contain only package validation and package-record linking.
+     *
+     * @param list<array<string,mixed>> $fields
+     * @param array<string,mixed> $options
+     */
+    public function starterForm(
+        string $key,
+        string $label,
+        array $fields,
+        array $options = [],
+        ?callable $validator = null,
+        ?callable $onSubmitted = null,
+    ): ?int {
+        if (!preg_match('/^[a-z][a-z0-9_-]{1,79}$/', $key)) {
+            throw new \InvalidArgumentException('Starter form keys must be stable lowercase tokens.');
+        }
+        if (array_key_exists($key, $this->starterForms)) {
+            throw new \InvalidArgumentException('Starter form key is already registered by this package.');
+        }
+        if (trim($label) === '' || mb_strlen(trim($label)) > 190 || $fields === []) {
+            throw new \InvalidArgumentException('Starter forms require a label and at least one field.');
+        }
+        $id = null;
+        if ($this->serviceResolver !== null) {
+            $id = $this->service(FormService::class)->registerStarter(
+                $this->packageId,
+                $key,
+                trim($label),
+                $fields,
+                $options,
+                $validator,
+                $onSubmitted,
+            );
+        }
+        $this->starterForms[$key] = $id;
+        return $id;
+    }
+
+    /** Read only this package's protected submission and delivery evidence. */
+    public function formSubmission(int $submissionId): ?array
+    {
+        return $this->service(FormService::class)->ownedSubmission($this->packageId, $submissionId);
+    }
+
+    /** Link an industry record to a protected Core submission idempotently. */
+    public function linkFormSubmission(int $submissionId, string $recordType, string|int $recordId): bool
+    {
+        return $this->service(FormService::class)->linkSubmission(
+            $this->packageId,
+            $submissionId,
+            $recordType,
+            $recordId,
+        );
     }
 
     /** Add a small live metric to the core dashboard. Provider returns a scalar or {value,detail}. */
@@ -699,4 +760,5 @@ final class ModuleContext
     public function coreFeatures(): array { return $this->coreFeatures; }
     public function adminResources(): array { return $this->adminResources; }
     public function structuredDataProviders(): array { return $this->structuredDataProviders; }
+    public function starterForms(): array { return $this->starterForms; }
 }

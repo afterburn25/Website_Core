@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Core\Content;
 
 use Core\Database\Connection;
+use Core\Forms\FormService;
 
 final class SiteTransfer
 {
@@ -33,6 +34,9 @@ final class SiteTransfer
         }
         return ['format' => 'website-core-site', 'version' => 1, 'exported_at' => date('c'), 'core' => WC_VERSION,
             'settings' => $settings,
+            // Definitions are portable content; recipients and submissions
+            // remain private to the source installation.
+            'forms' => $this->db->fetchAll('SELECT id source_id,name,fields_json,subject,success_message,submit_label,active FROM `' . $this->db->table('forms') . '` ORDER BY id'),
             'pages' => $this->db->fetchAll('SELECT slug,title,body,blocks_json,status,meta_title,meta_description,noindex,canonical,schema_json FROM `' . $this->db->table('pages') . '` WHERE deleted_at IS NULL ORDER BY id'),
             'menus' => $this->db->fetchAll('SELECT location,label FROM `' . $this->db->table('menus') . '` ORDER BY id'),
             'menu_items' => $this->db->fetchAll('SELECT i.id source_id,m.location menu_location,i.parent_id source_parent_id,i.label,i.url,i.sort_order,i.target,i.is_enabled,p.slug linked_page_slug FROM `' . $this->db->table('menu_items') . '` i JOIN `' . $this->db->table('menus') . '` m ON m.id=i.menu_id LEFT JOIN `' . $this->db->table('pages') . '` p ON p.id=i.page_id ORDER BY m.id,i.sort_order,i.id'),
@@ -46,12 +50,38 @@ final class SiteTransfer
         if (($document['format'] ?? '') !== 'website-core-site' || (int) ($document['version'] ?? 0) !== 1) {
             throw new \InvalidArgumentException('Unsupported site export document.');
         }
-        $counts = ['pages' => 0, 'settings' => 0, 'menus' => 0, 'translations' => 0];
+        $counts = ['pages' => 0, 'settings' => 0, 'forms' => 0, 'menus' => 0, 'translations' => 0];
         $this->db->transaction(function () use ($document, &$counts): void {
             foreach ((array) ($document['settings'] ?? []) as $key => $value) {
                 if (!in_array($key, self::SETTINGS, true)) continue;
                 $this->upsert('settings', 'key', (string) $key, ['value' => json_encode($value, JSON_UNESCAPED_SLASHES), 'updated_at' => date('Y-m-d H:i:s')]);
                 $counts['settings']++;
+            }
+            $formIds = [];
+            $forms = new FormService($this->db);
+            foreach ((array) ($document['forms'] ?? []) as $form) {
+                if (!is_array($form)) continue;
+                $name = trim(strip_tags((string) ($form['name'] ?? '')));
+                if ($name === '') continue;
+                $existing = $this->db->fetch(
+                    'SELECT * FROM `' . $this->db->table('forms') . '` WHERE name=? ORDER BY id LIMIT 1',
+                    [$name]
+                );
+                [$newId, $error] = $forms->save(
+                    $existing ? (int) $existing['id'] : null,
+                    $name,
+                    $this->jsonArray($form['fields_json'] ?? '[]'),
+                    (string) ($existing['recipient'] ?? ''),
+                    (string) ($form['subject'] ?? ''),
+                    (string) ($form['success_message'] ?? ''),
+                    !empty($form['active']),
+                    0,
+                    (string) ($form['submit_label'] ?? 'Submit'),
+                );
+                if ($error !== null || $newId <= 0) continue;
+                $sourceId = (int) ($form['source_id'] ?? 0);
+                if ($sourceId > 0) $formIds[$sourceId] = $newId;
+                $counts['forms']++;
             }
             foreach ((array) ($document['pages'] ?? []) as $page) {
                 if (!is_array($page)) continue;
@@ -59,7 +89,7 @@ final class SiteTransfer
                 $title = trim((string) ($page['title'] ?? ''));
                 if (!preg_match('/^[a-z0-9][a-z0-9\-\/]*$/', $slug) || $title === '') continue;
                 $data = ['title' => mb_substr(strip_tags($title), 0, 190), 'body' => (new Sanitizer())->html((string) ($page['body'] ?? '')),
-                    'blocks_json' => $this->jsonArray($page['blocks_json'] ?? '[]'), 'status' => 'draft',
+                    'blocks_json' => $this->remapFormBlocks($page['blocks_json'] ?? '[]', $formIds), 'status' => 'draft',
                     'meta_title' => mb_substr(strip_tags((string) ($page['meta_title'] ?? '')), 0, 190),
                     'meta_description' => mb_substr(strip_tags((string) ($page['meta_description'] ?? '')), 0, 300),
                     'noindex' => !empty($page['noindex']) ? 1 : 0, 'canonical' => (string) ($page['canonical'] ?? ''),
@@ -103,7 +133,7 @@ final class SiteTransfer
                 $locale = (string) ($translation['locale'] ?? '');
                 if (!$pageId || !preg_match('/^[a-z]{2}(?:-[a-z]{2})?$/', $locale)) continue;
                 $data = ['slug' => (string) ($translation['slug'] ?? ''), 'title' => mb_substr(strip_tags((string) ($translation['title'] ?? '')), 0, 190),
-                    'body' => (new Sanitizer())->html((string) ($translation['body'] ?? '')), 'blocks_json' => $this->jsonArray($translation['blocks_json'] ?? '[]'),
+                    'body' => (new Sanitizer())->html((string) ($translation['body'] ?? '')), 'blocks_json' => $this->remapFormBlocks($translation['blocks_json'] ?? '[]', $formIds),
                     'meta_title' => mb_substr(strip_tags((string) ($translation['meta_title'] ?? '')), 0, 190),
                     'meta_description' => mb_substr(strip_tags((string) ($translation['meta_description'] ?? '')), 0, 500),
                     'schema_json' => $this->jsonObject($translation['schema_json'] ?? null), 'updated_at' => date('Y-m-d H:i:s')];
@@ -137,5 +167,22 @@ final class SiteTransfer
         if (!is_array($decoded) || array_is_list($decoded)) return null;
         unset($decoded['@context']);
         return json_encode(['@context' => 'https://schema.org'] + $decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
+    }
+
+    /** Remap portable Form blocks without ever importing response records. */
+    private function remapFormBlocks(mixed $value, array $formIds): string
+    {
+        $decoded = is_string($value) ? json_decode($value, true) : $value;
+        if (!is_array($decoded) || !array_is_list($decoded)) return '[]';
+        // Version-1 exports created before 2.0.17 did not carry definitions;
+        // retain their legacy IDs instead of erasing them during import.
+        if ($formIds === []) return json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        foreach ($decoded as &$block) {
+            if (!is_array($block) || ($block['type'] ?? '') !== 'form' || !is_array($block['data'] ?? null)) continue;
+            $sourceId = (int) ($block['data']['form_id'] ?? 0);
+            $block['data']['form_id'] = (string) ($formIds[$sourceId] ?? 0);
+        }
+        unset($block);
+        return json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 }

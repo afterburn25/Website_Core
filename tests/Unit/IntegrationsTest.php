@@ -42,7 +42,16 @@ final class IntegrationsTest extends TestCase
         $transfer = new SiteTransfer($this->db);
         $counts = $transfer->import(['format' => 'website-core-site', 'version' => 1,
             'settings' => ['site.name' => 'Imported Site', 'footer.copyright' => '© {year} Imported Site', 'social.instagram.url' => 'https://instagram.com/imported', 'social.placement' => 'both', 'security.app_key' => 'never'],
-            'pages' => [['slug' => 'about-us', 'title' => 'About', 'body' => '<p>Hello</p><script>bad()</script>', 'status' => 'published']],
+            'forms' => [[
+                'source_id' => 42, 'name' => 'Contact', 'recipient' => 'private@example.com',
+                'fields_json' => [['name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true]],
+                'subject' => 'New message', 'success_message' => 'Thanks', 'submit_label' => 'Send', 'active' => 1,
+            ]],
+            'pages' => [[
+                'slug' => 'about-us', 'title' => 'About',
+                'body' => '<p>Hello</p><script>bad()</script>', 'status' => 'published',
+                'blocks_json' => [['id' => 'block_form', 'type' => 'form', 'hidden' => false, 'data' => ['heading' => 'Contact', 'form_id' => '42']]],
+            ]],
             'menus' => [['location' => 'primary', 'label' => 'Header']],
             'menu_items' => [[
                 'source_id' => 10, 'menu_location' => 'primary', 'source_parent_id' => null,
@@ -51,9 +60,15 @@ final class IntegrationsTest extends TestCase
             ]],
         ]);
         $this->assertSame(1, $counts['pages']);
+        $this->assertSame(1, $counts['forms']);
         $page = $this->db->fetch('SELECT * FROM `wc_pages` WHERE slug = ?', ['about-us']);
         $this->assertSame('draft', $page['status']);
         $this->assertStringNotContainsString('<script', (string) $page['body']);
+        $importedForm = $this->db->fetch('SELECT * FROM `wc_forms` WHERE name=?', ['Contact']);
+        $this->assertNotNull($importedForm);
+        $this->assertNull($importedForm['recipient']);
+        $blocks = json_decode((string) $page['blocks_json'], true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame((string) $importedForm['id'], $blocks[0]['data']['form_id']);
         $document = $transfer->export();
         $this->assertSame('Imported Site', $document['settings']['site.name']);
         $this->assertSame('© {year} Imported Site', $document['settings']['footer.copyright']);
@@ -62,6 +77,8 @@ final class IntegrationsTest extends TestCase
         $this->assertArrayNotHasKey('security.app_key', $document['settings']);
         $this->assertSame(0, (int) $document['menu_items'][0]['is_enabled']);
         $this->assertSame('tab', $document['menu_items'][0]['target']);
+        $this->assertSame('Send', $document['forms'][0]['submit_label']);
+        $this->assertArrayNotHasKey('recipient', $document['forms'][0]);
     }
 
     public function testFailedWebhookDeliveryCanBeRequeuedAndDisabledHooksCannot(): void

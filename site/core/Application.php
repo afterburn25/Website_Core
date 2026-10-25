@@ -593,9 +593,12 @@ final class Application
             $r->get('/forms', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->index($req), [$auth]);
             $r->post('/forms/save', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->save($req), [$auth, $csrfCheck]);
             $r->post('/forms/{id:\d+}/archive', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->archive($req), [$auth, $csrfCheck]);
+            $r->post('/forms/{id:\d+}/{state:activate|archive}', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->lifecycle($req), [$auth, $csrfCheck]);
             $r->get('/forms/submissions', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->submissions($req), [$auth]);
             $r->post('/forms/submissions/{id:\d+}/read', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->markRead($req), [$auth, $csrfCheck]);
             $r->post('/forms/submissions/{id:\d+}/{status:new|read|archived}', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->submissionStatus($req), [$auth, $csrfCheck]);
+            $r->post('/forms/submissions/{id:\d+}/delete', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->deleteSubmission($req), [$auth, $csrfCheck]);
+            $r->post('/forms/submissions/bulk', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->bulkSubmissions($req), [$auth, $csrfCheck]);
             $r->get('/forms/export', fn (Request $req) => (new \Admin\Controllers\FormsController($c))->export($req), [$auth]);
             $r->post('/pages/{id:\d+}/publish', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->publish($req), [$auth, $csrfCheck]);
             $r->post('/pages/{id:\d+}/review', fn (Request $req) => (new \Admin\Controllers\PagesController($c))->requestReview($req), [$auth, $csrfCheck]);

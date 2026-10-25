@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.0.17 — 2026-10-24
+
+- Rebuilds Forms as a guided responsive workspace with live public preview,
+  pointer drag ordering, keyboard move controls, and reusable field help,
+  placeholder, autocomplete, required, and dropdown settings.
+- Preserves the complete entered form after validation errors and reports
+  duplicate names, invalid dropdowns, excessive lengths, and missing records
+  instead of silently discarding or creating data.
+- Lets administrators pause and reactivate forms without losing configuration
+  or submissions and provides clearer active/new/total response summaries.
+- Replaces the raw submission table with a filterable response inbox,
+  expandable details, consent evidence, mail-queue state, selection feedback,
+  bulk status actions, and confirmed permanent deletion.
+- Exports response values into useful CSV columns, includes consent and
+  notification evidence, and protects spreadsheet users from formula
+  injection.
+- Carries portable form definitions and remapped page Form blocks through site
+  transfer while excluding notification recipients and all submissions.
+- Validates submitted dates and dropdown choices server-side, records consent
+  timestamps, connects notification messages to their submission, and uses
+  the shared branded response page.
+
 ## 2.0.16 — 2026-10-24
 
 - Rebuilds Navigation as a focused responsive workspace with link-type and

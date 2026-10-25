@@ -49,7 +49,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 2 | Content list and page editor | Page lifecycle, visual blocks, preview, publish/review/schedule, revisions, duplication, trash/restore, validation, unsaved-state protection | code complete — 2.0.3; packaged-browser check pending |
 | 3 | Media library | Upload failures, folders/tags, bulk operations, focal points/crops, usage, replacement, empty states, file limits | code complete — 2.0.15; packaged-browser check pending |
 | 4 | Navigation Menu | Existing-menu import, tree editing, targets, page/external links, nesting, keyboard alternatives, validation, public rendering | code complete — 2.0.16; packaged-browser check pending |
-| 5 | Forms and submissions | Field builder, validation, notifications, spam controls, consent evidence, inbox, filters, read state, archive/export | code complete — 2.0.6; packaged-browser check pending |
+| 5 | Forms and submissions | Field builder, validation, notifications, spam controls, consent evidence, inbox, filters, read state, archive/export | code complete — 2.0.17; packaged-browser check pending |
 | 6 | SEO, redirects, translations, patterns | Actionable audits, previews, redirect import/export, localized content, reusable layouts, errors and conflicts | code complete — 2.0.6; packaged-browser check pending |
 | 7 | Appearance and public theme | Branding, theme preview/activation, header/footer layouts, responsive output, attribution, status/error pages | code complete — 2.0.6; packaged-browser check pending |
 | 8 | Administrators, roles, profile, security | Account lifecycle, role safety, capability clarity, MFA, sessions, recovery, lockouts, audit evidence | code complete — 2.0.6; packaged-browser check pending |
@@ -151,6 +151,34 @@ run against packaged builds; code-complete does not mean externally verified.
       duplicate, missing-record, length, loop, and destination validation.
 - [ ] Packaged browser verification covers pointer ordering, keyboard ordering,
       visibility, targets, mobile editing, redirects, and public active state.
+
+## 2.0.17 — Forms and submissions workspace acceptance
+
+- [x] Form fields support precise pointer ordering and labeled keyboard move
+      controls, with a representative live public preview and responsive
+      desktop/mobile workspace.
+- [x] Field definitions retain help, placeholder, autocomplete, required, and
+      dropdown choices while server validation rejects duplicate identifiers,
+      invalid selections, invalid dates, missing forms, and excessive lengths.
+- [x] Invalid form saves keep every entered setting and field visible for
+      correction instead of redirecting to a blank editor.
+- [x] Forms can be paused and reactivated without losing settings or response
+      history; library summaries distinguish active forms and new responses.
+- [x] The inbox supports search, form/status filtering, pagination, expandable
+      response details, consent timestamps, notification queue evidence,
+      individual status updates, selection, bulk processing, and confirmed
+      permanent deletion.
+- [x] Filtered CSV exports use response columns instead of raw JSON, include
+      consent and notification evidence, and neutralize spreadsheet formula
+      prefixes.
+- [x] Site transfer remaps portable form definitions and page Form blocks
+      without exporting recipients or visitor submissions.
+- [x] Public intake retains CSRF, honeypot, IP-scoped throttling, bounded
+      values, consent evidence, queued mail, and branded no-store outcomes.
+- [ ] Packaged browser verification covers builder dragging and keyboard
+      ordering, failed-save retention, pause/reactivate, public validation,
+      inbox filters/details, bulk actions, deletion, notification state, CSV,
+      and mobile layouts.
 
 ## 2.0.14 — diagnostic and fatal-page recovery acceptance
 

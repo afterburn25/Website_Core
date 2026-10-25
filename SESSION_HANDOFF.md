@@ -1,5 +1,26 @@
 # Session Handoff
 
+## 2.0.17 Forms and submissions workspace completion
+
+- Migration `2026_10_25_0025` adds form submit-button labels plus submission
+  notification-message and update metadata with upgrade-safe defaults.
+- The builder is now shared-asset driven, supports pointer dragging and
+  keyboard ordering, previews the public response, and stores help,
+  placeholder, autocomplete, required, and dropdown settings.
+- Failed saves render the complete entered form for correction. Forms may be
+  paused and reactivated without losing definitions or submissions.
+- Public validation checks stored dropdown choices and real calendar dates;
+  consent evidence receives a timestamp, queued notification state remains
+  connected to its source response, and outcomes use the branded status page.
+- The inbox provides response summaries, expandable details, consent and mail
+  evidence, selection, bulk status/delete actions, and formula-safe
+  column-based CSV exports.
+- Site transfer carries definitions and remaps page Form blocks without
+  exposing notification recipients or visitor responses.
+- Release as Core 2.0.17 after the PHP 8.4/8.5, MySQL, MariaDB, Core-only,
+  package, and artifact contracts pass. Packaged browser verification remains
+  the external acceptance gate.
+
 ## 2.0.16 Navigation workspace completion
 
 - Migration `2026_10_25_0024` adds `menu_items.is_enabled` with existing links

@@ -20,33 +20,68 @@ final class FormsController extends Controller
     {
         if (!$this->can()) return $this->forbidden();
         $editId = (int) $r->input('edit', 0);
+        $editing = $editId ? $this->forms()->find($editId) : null;
+        if ($editId > 0 && $editing === null) {
+            $this->flash('error', 'That form no longer exists.');
+        }
         return $this->page($r, 'forms/index', [
             'forms' => $this->forms()->all(),
-            'editing' => $editId ? $this->forms()->find($editId) : null,
+            'editing' => $editing,
         ], 'Forms');
     }
 
     public function save(Request $r): Response
     {
         if (!$this->can()) return $this->forbidden();
+        $editId = ($v = (int) $r->string('id')) > 0 ? $v : null;
+        $fieldsJson = (string) ($r->post['fields_json'] ?? '[]');
         [$id, $error] = $this->forms()->save(
-            ($v = (int) $r->string('id')) > 0 ? $v : null,
+            $editId,
             $r->string('name'), (string) ($r->post['fields_json'] ?? '[]'),
             $r->string('recipient'), $r->string('subject'), $r->string('success_message'),
-            $r->string('active') === '1', $this->user()->id
+            $r->string('active') === '1', $this->user()->id, $r->string('submit_label', 'Submit')
         );
-        if (!$error) $this->c->get(\Core\Audit\AuditLog::class)->record('forms.saved', $this->user()->id, ['form' => $id]);
-        $this->flash($error ? 'error' : 'ok', $error ?? 'Form saved. Use form ID ' . $id . ' in a page Form block.');
-        return $this->redirect($r, '/admin/forms' . ($error ? '' : '?edit=' . $id));
+        if ($error !== null) {
+            $this->flash('error', $error . ' Your entered settings and fields are still below.');
+            return $this->page($r, 'forms/index', [
+                'forms' => $this->forms()->all(),
+                'editing' => [
+                    'id' => $editId ?? 0,
+                    'name' => $r->string('name'),
+                    'fields_json' => $fieldsJson,
+                    'recipient' => $r->string('recipient'),
+                    'subject' => $r->string('subject'),
+                    'success_message' => $r->string('success_message'),
+                    'submit_label' => $r->string('submit_label', 'Submit'),
+                    'active' => $r->string('active') === '1' ? 1 : 0,
+                ],
+            ], 'Forms');
+        }
+        $this->audit('forms.saved', ['form' => $id]);
+        $this->flash('ok', 'Form saved. Add it to a page with a Form block.');
+        return $this->redirect($r, '/admin/forms?edit=' . $id);
     }
 
     public function archive(Request $r): Response
     {
+        $r->attributes['state'] = 'archive';
+        return $this->lifecycle($r);
+    }
+
+    public function lifecycle(Request $r): Response
+    {
         if (!$this->can()) return $this->forbidden();
-        $id = (int) $r->attributes['id'];
-        $this->forms()->archive($id);
-        $this->c->get(\Core\Audit\AuditLog::class)->record('forms.archived', $this->user()->id, ['form' => $id]);
-        $this->flash('ok', 'Form archived; existing submissions were preserved.');
+        $id = (int) ($r->attributes['id'] ?? 0);
+        $state = (string) ($r->attributes['state'] ?? '');
+        $active = $state === 'activate';
+        $ok = in_array($state, ['activate', 'archive'], true) && $this->forms()->setActive($id, $active);
+        if ($ok) $this->audit('forms.' . ($active ? 'activated' : 'archived'), ['form' => $id]);
+        $this->flash(
+            $ok ? 'ok' : 'error',
+            $ok
+                ? ($active ? 'Form activated and ready to accept submissions.' : 'Form archived; existing submissions were preserved.')
+                : 'The form could not be found.'
+        );
         return $this->redirect($r, '/admin/forms');
     }
 
@@ -85,15 +120,42 @@ final class FormsController extends Controller
         $id = (int) ($r->attributes['id'] ?? 0);
         $status = (string) ($r->attributes['status'] ?? '');
         $ok = $this->forms()->setSubmissionStatus($id, $status);
-        if ($ok) $this->c->get(\Core\Audit\AuditLog::class)->record('forms.submission_status', $this->user()->id, ['submission' => $id, 'status' => $status]);
+        if ($ok) $this->audit('forms.submission_status', ['submission' => $id, 'status' => $status]);
         $this->flash($ok ? 'ok' : 'error', $ok ? 'Submission status updated.' : 'Submission or status not found.');
-        $return = array_filter([
-            'form' => max(0, (int) $r->string('return_form', '0')) ?: null,
-            'status' => in_array($r->string('return_status'), ['new','read','archived'], true) ? $r->string('return_status') : null,
-            'q' => mb_substr($r->string('return_q'), 0, 190) ?: null,
-            'page' => max(1, (int) $r->string('return_page', '1')),
-        ], static fn ($value) => $value !== null && $value !== '');
-        return $this->redirect($r, '/admin/forms/submissions?' . http_build_query($return));
+        return $this->redirectToSubmissions($r);
+    }
+
+    public function deleteSubmission(Request $r): Response
+    {
+        if (!$this->can()) return $this->forbidden();
+        $id = (int) ($r->attributes['id'] ?? 0);
+        $ok = $this->forms()->deleteSubmission($id);
+        if ($ok) $this->audit('forms.submission_deleted', ['submission' => $id]);
+        $this->flash($ok ? 'ok' : 'error', $ok ? 'Submission permanently deleted.' : 'Submission not found.');
+        return $this->redirectToSubmissions($r);
+    }
+
+    public function bulkSubmissions(Request $r): Response
+    {
+        if (!$this->can()) return $this->forbidden();
+        $ids = is_array($r->post['submission_ids'] ?? null) ? $r->post['submission_ids'] : [];
+        $action = $r->string('bulk_action');
+        $result = $this->forms()->bulkSubmissionAction($ids, $action);
+        if ($result['updated'] > 0) {
+            $this->audit('forms.submissions_bulk', [
+                'action' => $action,
+                'count' => $result['updated'],
+            ]);
+        }
+        $validAction = in_array($action, ['new', 'read', 'archived', 'delete'], true);
+        $this->flash(
+            $validAction && $result['updated'] > 0 ? 'ok' : 'error',
+            !$validAction ? 'Choose a valid bulk action.'
+                : ($result['updated'] > 0
+                    ? $result['updated'] . ' submission' . ($result['updated'] === 1 ? '' : 's') . ' updated.'
+                    : 'Select at least one available submission.')
+        );
+        return $this->redirectToSubmissions($r);
     }
 
     public function export(Request $r): Response
@@ -103,11 +165,40 @@ final class FormsController extends Controller
         $status = in_array($r->string('status'), ['new', 'read', 'archived'], true) ? $r->string('status') : '';
         $search = mb_substr($r->string('q'), 0, 190);
         $rows = $this->forms()->submissions($id ?: null, 1000, $status, $search);
+        $keys = [];
+        foreach ($rows as $row) {
+            foreach (array_keys(json_decode((string) $row['data_json'], true) ?: []) as $key) {
+                $keys[(string) $key] = true;
+            }
+        }
+        $keys = array_keys($keys);
         $stream = fopen('php://temp', 'w+');
-        fputcsv($stream, ['id','form','status','submitted_at','data']);
-        foreach ($rows as $row) fputcsv($stream, [$row['id'],$row['form_name'],$row['status'],$row['created_at'],$row['data_json']]);
+        if ($stream === false) {
+            $this->flash('error', 'The CSV export could not be created on this server.');
+            return $this->redirect($r, '/admin/forms/submissions');
+        }
+        fputcsv($stream, ['id', 'form', 'status', 'submitted_at', ...$keys, 'consent_evidence', 'notification'], ',', '"', '');
+        foreach ($rows as $row) {
+            $data = json_decode((string) $row['data_json'], true) ?: [];
+            $consent = json_decode((string) ($row['consent_json'] ?? ''), true) ?: [];
+            $values = [];
+            foreach ($keys as $key) $values[] = $this->csvCell((string) ($data[$key] ?? ''));
+            $consentSummary = [];
+            foreach ($consent as $item) {
+                if (!is_array($item)) continue;
+                $consentSummary[] = (string) ($item['label'] ?? 'Consent') . ': '
+                    . (!empty($item['accepted']) ? 'accepted' : 'not accepted')
+                    . (!empty($item['recorded_at']) ? ' at ' . $item['recorded_at'] : '');
+            }
+            fputcsv($stream, [
+                $row['id'], $this->csvCell((string) $row['form_name']), $row['status'], $row['created_at'],
+                ...$values, $this->csvCell(implode('; ', $consentSummary)),
+                $row['notification_status'] ?: ($row['notification_message_id'] ? 'unknown' : 'not configured'),
+            ], ',', '"', '');
+        }
         rewind($stream); $csv = (string) stream_get_contents($stream); fclose($stream);
-        return Response::text($csv)->header('Content-Type', 'text/csv; charset=utf-8')
+        $this->audit('forms.submissions_exported', ['form' => $id ?: null, 'status' => $status, 'count' => count($rows)]);
+        return Response::text("\xEF\xBB\xBF" . $csv)->header('Content-Type', 'text/csv; charset=utf-8')
             ->header('Content-Disposition', 'attachment; filename="form-submissions-' . date('Ymd-His') . '.csv"');
     }
 
@@ -125,17 +216,45 @@ final class FormsController extends Controller
         if ($form && !empty($form['recipient'])) {
             $lines = [];
             foreach ($data as $name => $value) $lines[] = ucwords(str_replace('_',' ',$name)) . ': ' . $value;
-            $this->c->get(\Core\Mail\SystemMail::class)->queue(
+            $messageId = $this->c->get(\Core\Mail\SystemMail::class)->queue(
                 (string) $form['recipient'], (string) ($form['subject'] ?: 'New website form submission'),
                 implode("\n", $lines), 'form:' . $submissionId
             );
+            $this->forms()->attachNotification((int) $submissionId, $messageId);
         }
         return $this->publicResult($r, (string) ($form['success_message'] ?? 'Thank you. Your message has been received.'), true);
     }
 
     private function publicResult(Request $r, string $message, bool $ok): Response
     {
-        return Response::html('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Form response</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#07111d;color:#e5eef7;font-family:system-ui;padding:1rem}.card{max-width:36rem;padding:2rem;border-radius:1rem;background:#102235;border:1px solid #ffffff20}a{color:#7dd3fc}</style></head><body><main class="card"><h1>' . ($ok ? 'Thank you' : 'Please check the form') . '</h1><p>' . e($message) . '</p><p><a href="' . e_attr(rtrim($r->basePath, '/') . '/') . '">Return to the website</a></p></main></body></html>', $ok ? 200 : 422)
+        return Response::html(\Core\Branding\StatusPage::render(
+            $ok ? 200 : 422,
+            $ok ? 'Thank you' : 'Please check the form',
+            $message,
+            $r->routeBase(),
+            (string) $this->settings()->get('site.name', 'Website'),
+            null,
+            'Return to the website',
+            '/',
+            false,
+        ), $ok ? 200 : 422)
             ->header('Cache-Control', 'private, no-store');
+    }
+
+    private function redirectToSubmissions(Request $r): Response
+    {
+        $return = array_filter([
+            'form' => max(0, (int) $r->string('return_form', '0')) ?: null,
+            'status' => in_array($r->string('return_status'), ['new', 'read', 'archived'], true)
+                ? $r->string('return_status') : null,
+            'q' => mb_substr($r->string('return_q'), 0, 190) ?: null,
+            'page' => max(1, (int) $r->string('return_page', '1')),
+        ], static fn ($value) => $value !== null && $value !== '');
+        return $this->redirect($r, '/admin/forms/submissions?' . http_build_query($return));
+    }
+
+    private function csvCell(string $value): string
+    {
+        return preg_match('/^[=+\-@]/', ltrim($value)) ? "'" . $value : $value;
     }
 }

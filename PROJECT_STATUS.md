@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.16` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.17` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -121,6 +121,15 @@ controls retain the same ordering and nesting capability. Administrators can
 stage hidden links, add directly beneath a parent, edit redirects, and use
 anchors or telephone links. Public rendering preserves link targets, active
 page state, and an intentionally empty or hidden custom menu.
+
+Version 2.0.17 completes the Forms and Submissions workspace's focused polish
+pass. The field builder now supports pointer and keyboard ordering, live
+preview, explicit field guidance, stronger validation, and lossless error
+recovery. Forms can be paused and reactivated. The response inbox adds
+selection and bulk processing, expandable response and consent evidence,
+mail-queue status, confirmed deletion, and safe column-based CSV export.
+Public submissions validate dates and dropdown choices against the stored
+definition and use the shared branded response presentation.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

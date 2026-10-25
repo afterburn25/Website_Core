@@ -529,6 +529,346 @@
     });
   });
 
+  document.querySelectorAll('[data-form-builder]').forEach((builder) => {
+    const form = builder.querySelector('form');
+    const json = builder.querySelector('[data-form-fields-json]');
+    const list = builder.querySelector('[data-form-fields]');
+    const empty = builder.querySelector('[data-form-fields-empty]');
+    const count = builder.querySelector('[data-form-field-count]');
+    const status = builder.querySelector('[data-form-builder-status]');
+    const preview = builder.querySelector('[data-form-preview]');
+    const typePicker = builder.querySelector('[data-new-field-type]');
+    const add = builder.querySelector('[data-add-form-field]');
+    if (!form || !json || !list || !add) return;
+
+    const types = {
+      text: 'Short text', email: 'Email address', tel: 'Phone number', number: 'Number',
+      date: 'Date', textarea: 'Long message', select: 'Dropdown choice', checkbox: 'Checkbox / consent',
+    };
+    const autocomplete = {
+      '': 'No browser suggestion', name: 'Full name', 'given-name': 'First name',
+      'family-name': 'Last name', organization: 'Organization', email: 'Email',
+      tel: 'Phone', 'street-address': 'Street address', 'address-level2': 'City',
+      'address-level1': 'State / region', 'postal-code': 'Postal code', 'country-name': 'Country',
+    };
+    let fields = [];
+    let dragging = null;
+    let initialized = false;
+    try {
+      fields = JSON.parse(json.value || '[]');
+      if (!Array.isArray(fields)) fields = [];
+    } catch (_) { fields = []; }
+
+    const announce = (message) => { if (status) status.textContent = message; };
+    const machineName = (value) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80);
+    const uniqueName = (seed) => {
+      const root = machineName(seed) || 'field';
+      let candidate = root;
+      let number = 2;
+      while (fields.some((field) => field.name === candidate)) candidate = `${root}_${number++}`;
+      return candidate;
+    };
+    const serialized = () => fields.map((field) => ({
+      label: String(field.label || ''),
+      name: String(field.name || ''),
+      type: types[field.type] ? field.type : 'text',
+      required: Boolean(field.required),
+      options: Array.isArray(field.options) ? field.options : String(field.options || '').split(/\r?\n/).filter(Boolean),
+      placeholder: String(field.placeholder || ''),
+      help: String(field.help || ''),
+      autocomplete: String(field.autocomplete || ''),
+    }));
+    const sync = () => {
+      json.value = JSON.stringify(serialized());
+      if (initialized) json.dispatchEvent(new Event('input', { bubbles: true }));
+      if (empty) empty.hidden = fields.length > 0;
+      if (count) count.textContent = `${fields.length} field${fields.length === 1 ? '' : 's'}`;
+    };
+    const previewField = (field) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'preview-form-field';
+      const label = document.createElement('span');
+      label.textContent = (field.label || 'Untitled field') + (field.required ? ' *' : '');
+      let control;
+      if (field.type === 'textarea') control = document.createElement('textarea');
+      else if (field.type === 'select') {
+        control = document.createElement('select');
+        const option = document.createElement('option');
+        option.textContent = (field.options || [])[0] || 'Choose…';
+        control.appendChild(option);
+      } else {
+        control = document.createElement('input');
+        control.type = field.type === 'checkbox' ? 'checkbox' : field.type;
+      }
+      control.disabled = true;
+      if (field.placeholder && field.type !== 'checkbox') control.placeholder = field.placeholder;
+      if (field.type === 'checkbox') {
+        wrap.classList.add('is-checkbox');
+        wrap.append(control, label);
+      } else {
+        wrap.append(label, control);
+      }
+      if (field.help) {
+        const help = document.createElement('small');
+        help.textContent = field.help;
+        wrap.appendChild(help);
+      }
+      return wrap;
+    };
+    const renderPreview = () => {
+      if (!preview) return;
+      preview.innerHTML = '';
+      fields.forEach((field) => preview.appendChild(previewField(field)));
+      if (fields.length) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.disabled = true;
+        button.textContent = form.querySelector('[name="submit_label"]')?.value || 'Submit';
+        preview.appendChild(button);
+      } else {
+        const message = document.createElement('p');
+        message.className = 'muted';
+        message.textContent = 'Add a field to see the public form preview.';
+        preview.appendChild(message);
+      }
+    };
+    const makeSelect = (values, selected, className) => {
+      const select = document.createElement('select');
+      select.className = className;
+      Object.entries(values).forEach(([value, label]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        option.selected = value === selected;
+        select.appendChild(option);
+      });
+      return select;
+    };
+    const labeled = (text, control, wide = false) => {
+      const label = document.createElement('label');
+      if (wide) label.className = 'field-wide';
+      const title = document.createElement('span');
+      title.textContent = text;
+      label.append(title, control);
+      return label;
+    };
+    const move = (from, to) => {
+      if (from === to || from < 0 || to < 0 || from >= fields.length || to >= fields.length) return;
+      const [field] = fields.splice(from, 1);
+      fields.splice(to, 0, field);
+      announce(`${field.label || 'Field'} moved to position ${to + 1}.`);
+      render();
+    };
+    const render = () => {
+      list.innerHTML = '';
+      fields.forEach((field, index) => {
+        field.type = types[field.type] ? field.type : 'text';
+        field.options = Array.isArray(field.options) ? field.options : String(field.options || '').split(/\r?\n/).filter(Boolean);
+        const block = document.createElement('article');
+        block.className = 'builder-block form-field-card';
+        block.dataset.fieldIndex = String(index);
+
+        const head = document.createElement('div');
+        head.className = 'builder-block-head';
+        const handle = document.createElement('button');
+        handle.type = 'button';
+        handle.className = 'drag-handle';
+        handle.draggable = true;
+        handle.setAttribute('aria-label', `Drag field ${index + 1}`);
+        handle.title = 'Drag to reorder';
+        handle.textContent = '⋮⋮';
+        const identity = document.createElement('div');
+        identity.className = 'field-card-identity';
+        const position = document.createElement('span');
+        position.textContent = `Field ${index + 1}`;
+        const title = document.createElement('strong');
+        title.textContent = field.label || 'Untitled field';
+        identity.append(position, title);
+        const controls = document.createElement('div');
+        controls.className = 'button-row compact';
+        const up = document.createElement('button');
+        up.type = 'button'; up.className = 'btn small secondary'; up.textContent = '↑'; up.title = 'Move up';
+        up.setAttribute('aria-label', `Move field ${index + 1} up`); up.disabled = index === 0;
+        const down = document.createElement('button');
+        down.type = 'button'; down.className = 'btn small secondary'; down.textContent = '↓'; down.title = 'Move down';
+        down.setAttribute('aria-label', `Move field ${index + 1} down`); down.disabled = index === fields.length - 1;
+        const remove = document.createElement('button');
+        remove.type = 'button'; remove.className = 'btn small danger'; remove.textContent = 'Remove';
+        controls.append(up, down, remove);
+        head.append(handle, identity, controls);
+
+        const body = document.createElement('div');
+        body.className = 'builder-fields form-field-settings';
+        const labelInput = document.createElement('input');
+        labelInput.value = field.label || ''; labelInput.maxLength = 190; labelInput.required = true;
+        const nameInput = document.createElement('input');
+        nameInput.value = field.name || ''; nameInput.maxLength = 80; nameInput.pattern = '[a-z0-9_]+';
+        nameInput.required = true;
+        const typeInput = makeSelect(types, field.type, 'field-type');
+        const placeholderInput = document.createElement('input');
+        placeholderInput.value = field.placeholder || ''; placeholderInput.maxLength = 190;
+        const helpInput = document.createElement('input');
+        helpInput.value = field.help || ''; helpInput.maxLength = 300;
+        const autocompleteInput = makeSelect(autocomplete, field.autocomplete || '', 'field-autocomplete');
+        const optionsInput = document.createElement('textarea');
+        optionsInput.rows = 4;
+        optionsInput.value = field.options.join('\n');
+        optionsInput.placeholder = 'One choice per line';
+        const optionsLabel = labeled('Dropdown options', optionsInput, true);
+        optionsLabel.classList.add('form-field-options');
+        optionsLabel.hidden = field.type !== 'select';
+        const requiredLabel = document.createElement('label');
+        requiredLabel.className = 'toggle-control compact field-wide';
+        const requiredCopy = document.createElement('span');
+        requiredCopy.innerHTML = '<strong>Required field</strong><small>Visitors must answer before submitting.</small>';
+        const requiredInput = document.createElement('input');
+        requiredInput.type = 'checkbox'; requiredInput.checked = Boolean(field.required);
+        const track = document.createElement('span');
+        track.className = 'toggle-track'; track.setAttribute('aria-hidden', 'true');
+        requiredLabel.append(requiredCopy, requiredInput, track);
+        body.append(
+          labeled('Visitor label', labelInput),
+          labeled('Field name', nameInput),
+          labeled('Input type', typeInput),
+          labeled('Browser autocomplete', autocompleteInput),
+          labeled('Placeholder', placeholderInput),
+          labeled('Help text', helpInput),
+          optionsLabel,
+          requiredLabel,
+        );
+        block.append(head, body);
+        list.appendChild(block);
+
+        const update = (key, value) => { field[key] = value; sync(); renderPreview(); };
+        labelInput.addEventListener('input', () => {
+          const priorGenerated = !field.name || /^field(_\d+)?$/.test(field.name) || field.name === machineName(field.label || '');
+          field.label = labelInput.value;
+          title.textContent = field.label || 'Untitled field';
+          if (priorGenerated) { field.name = uniqueName(field.label); nameInput.value = field.name; }
+          sync(); renderPreview();
+        });
+        nameInput.addEventListener('input', () => update('name', machineName(nameInput.value)));
+        nameInput.addEventListener('blur', () => { nameInput.value = field.name || ''; });
+        typeInput.addEventListener('change', () => {
+          field.type = typeInput.value;
+          optionsLabel.hidden = field.type !== 'select';
+          sync(); renderPreview();
+        });
+        placeholderInput.addEventListener('input', () => update('placeholder', placeholderInput.value));
+        helpInput.addEventListener('input', () => update('help', helpInput.value));
+        autocompleteInput.addEventListener('change', () => update('autocomplete', autocompleteInput.value));
+        optionsInput.addEventListener('input', () => update('options', optionsInput.value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean)));
+        requiredInput.addEventListener('change', () => update('required', requiredInput.checked));
+        up.addEventListener('click', () => move(index, index - 1));
+        down.addEventListener('click', () => move(index, index + 1));
+        remove.addEventListener('click', () => {
+          if (remove.dataset.armed !== 'true') {
+            remove.dataset.armed = 'true';
+            remove.textContent = 'Confirm remove';
+            announce(`Press Confirm remove to delete ${field.label || 'this field'}.`);
+            window.setTimeout(() => {
+              if (!remove.isConnected) return;
+              delete remove.dataset.armed;
+              remove.textContent = 'Remove';
+            }, 4000);
+            return;
+          }
+          fields.splice(index, 1);
+          announce(`${field.label || 'Field'} removed.`);
+          render();
+        });
+        handle.addEventListener('dragstart', (event) => {
+          dragging = index;
+          block.classList.add('is-dragging');
+          event.dataTransfer.effectAllowed = 'move';
+        });
+        handle.addEventListener('dragend', () => {
+          dragging = null;
+          block.classList.remove('is-dragging');
+          list.querySelectorAll('.is-drop-before,.is-drop-after').forEach((node) => node.classList.remove('is-drop-before', 'is-drop-after'));
+        });
+        block.addEventListener('dragover', (event) => {
+          if (dragging === null || dragging === index) return;
+          event.preventDefault();
+          const before = event.clientY < block.getBoundingClientRect().top + block.offsetHeight / 2;
+          block.classList.toggle('is-drop-before', before);
+          block.classList.toggle('is-drop-after', !before);
+        });
+        block.addEventListener('dragleave', () => block.classList.remove('is-drop-before', 'is-drop-after'));
+        block.addEventListener('drop', (event) => {
+          if (dragging === null) return;
+          event.preventDefault();
+          const before = event.clientY < block.getBoundingClientRect().top + block.offsetHeight / 2;
+          let destination = before ? index : index + 1;
+          if (dragging < destination) destination -= 1;
+          move(dragging, Math.min(fields.length - 1, destination));
+        });
+      });
+      sync();
+      renderPreview();
+    };
+
+    add.addEventListener('click', () => {
+      const type = types[typePicker?.value] ? typePicker.value : 'text';
+      const label = types[type];
+      fields.push({
+        label, name: uniqueName(label), type, required: false,
+        options: type === 'select' ? ['First choice', 'Second choice'] : [],
+        placeholder: '', help: '', autocomplete: type === 'email' ? 'email' : (type === 'tel' ? 'tel' : ''),
+      });
+      render();
+      list.lastElementChild?.querySelector('input')?.focus();
+      announce(`${label} added as field ${fields.length}.`);
+    });
+    form.querySelector('[name="submit_label"]')?.addEventListener('input', renderPreview);
+    form.addEventListener('submit', (event) => {
+      if (fields.length) return;
+      event.preventDefault();
+      announce('Add at least one form field before saving.');
+      add.focus();
+    });
+    render();
+    initialized = true;
+  });
+
+  document.querySelectorAll('[data-submission-bulk]').forEach((form) => {
+    const checks = Array.from(form.querySelectorAll('[data-submission-check]'));
+    const all = form.querySelector('[data-select-all-submissions]');
+    const action = form.querySelector('[data-submission-bulk-action]');
+    const submit = form.querySelector('[data-submission-bulk-submit]');
+    const count = form.querySelector('[data-submission-selection]');
+    const sync = () => {
+      const selected = checks.filter((check) => check.checked).length;
+      if (count) count.textContent = `${selected} selected`;
+      if (all) {
+        all.checked = checks.length > 0 && selected === checks.length;
+        all.indeterminate = selected > 0 && selected < checks.length;
+      }
+      if (submit) {
+        submit.disabled = selected === 0 || !action?.value;
+        if (action?.value === 'delete') {
+          submit.dataset.confirm = `Permanently delete ${selected} selected submission${selected === 1 ? '' : 's'}? Responses and consent evidence cannot be recovered.`;
+        } else {
+          delete submit.dataset.confirm;
+        }
+      }
+      checks.forEach((check) => check.closest('.submission-card')?.classList.toggle('is-selected', check.checked));
+    };
+    all?.addEventListener('change', () => { checks.forEach((check) => { check.checked = all.checked; }); sync(); });
+    checks.forEach((check) => check.addEventListener('change', sync));
+    action?.addEventListener('change', sync);
+    sync();
+  });
+
+  document.querySelectorAll('.submission-details').forEach((details) => {
+    details.addEventListener('toggle', () => {
+      if (!details.open) return;
+      document.querySelectorAll('.submission-details[open]').forEach((other) => {
+        if (other !== details) other.removeAttribute('open');
+      });
+    });
+  });
+
   document.querySelectorAll('.row-editor').forEach((details) => {
     details.addEventListener('toggle', () => {
       if (!details.open) return;

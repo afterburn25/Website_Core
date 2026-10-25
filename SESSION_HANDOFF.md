@@ -21,6 +21,9 @@
 - Settings shows the effective Base URL in a locked field; changing the
   installation address remains a config/deployment operation, not an admin
   form mutation.
+- CI run 518 (`40205089720`) passed all six jobs on source commit
+  `c2d677abb724772857d510d0e006fd2f5e298403`. Verified Catering repair archive
+  SHA-256: `a4f4485f49446439fc5c7a862688c95e2725b4008116ce1585618376937b36ef`.
 
 ## 2.0.31 Admin workflow completion
 

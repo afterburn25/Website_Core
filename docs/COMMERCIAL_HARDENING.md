@@ -43,6 +43,21 @@ Every listed surface must satisfy all applicable gates:
 
 Status values: **queued**, **in progress**, **code complete**, **verified**.
 
+## 2.0.32 — Core analytics and transactional-mail acceptance
+
+- [x] Core-owned first-party analytics covers Core and module public pages.
+- [x] Dashboard snapshot, reports, visitor journeys, geography, live traffic,
+      crawler separation, CSV export, Search Console import, and retention are wired.
+- [x] Analytics excludes staff, previews, DNT/GPC, sensitive routes, prefetch,
+      and unsuccessful responses; no raw IP or full user-agent is stored.
+- [x] Transactional mail defaults derive from the installed domain with SMTP,
+      implicit SSL, and port 465; explicit saved values remain authoritative.
+- [x] SMTP connection and delivery tests run in-page and surface timeout,
+      connection, authentication, CSRF, and gateway failures without navigation.
+- [x] Installed Base URL is visible, read-only, and server-side immutable.
+- [x] CI run 518 passed PHP 8.4/8.5, package, Core-only, MySQL, MariaDB,
+      installer, licensed, keyless, and artifact-contract gates.
+
 | Order | Surface | Commercial completion focus | Status |
 | --- | --- | --- | --- |
 | 1 | Shared admin shell and dashboard | Unified visual system, mobile navigation, persistent categories, search/account actions, alerts, versions, useful dashboard links | code complete through 2.0.15; packaged-browser check pending |

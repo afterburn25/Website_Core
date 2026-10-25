@@ -1,5 +1,17 @@
 # Session Handoff
 
+## 2.0.30 Split-runtime recovery repair
+
+- The deployed 2.0.29 build created and verified a live 1.63 MB MariaDB
+  recovery point with 41 tables and 57 protected files.
+- Restore created its safety snapshot but then failed on panel-owned
+  `config/.htaccess`; Health remained clean with zero integrity issues.
+- Backup/restore now uses WC_CONFIG plus configured private upload/media roots,
+  preflights destinations before SQL import, and skips identical read-only
+  deployment files. Verified archives gain an audited owner-only Download.
+- Core advances to 2.0.30 without a migration or API change. Deploy it and
+  repeat live recovery before update rollback or destructive module lifecycle.
+
 ## 2.0.29 Hosted acceptance repair
 
 - Packaged 2.0.28 was exercised on the `/catering/` shared-host installation:

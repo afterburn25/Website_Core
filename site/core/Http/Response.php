@@ -7,6 +7,7 @@ final class Response
 {
     /** @var array<string, string> */
     private array $headers = [];
+    private ?string $filePath = null;
 
     public function __construct(
         private string $body = '',
@@ -32,6 +33,16 @@ final class Response
     public static function redirect(string $to, int $status = 302): self
     {
         return (new self('', $status))->header('Location', $to);
+    }
+
+    public static function file(string $path, int $status = 200): self
+    {
+        if (!is_file($path) || !is_readable($path)) {
+            throw new \InvalidArgumentException('Response file is not readable.');
+        }
+        $response = new self('', $status);
+        $response->filePath = $path;
+        return $response;
     }
 
     public static function notFound(string $body = 'Not Found'): self
@@ -74,6 +85,9 @@ final class Response
 
     public function body(): string
     {
+        if ($this->filePath !== null) {
+            return (string) file_get_contents($this->filePath);
+        }
         return $this->body;
     }
 
@@ -88,6 +102,10 @@ final class Response
         http_response_code($this->status);
         foreach ($this->headers as $name => $value) {
             header($name . ': ' . $value);
+        }
+        if ($this->filePath !== null) {
+            readfile($this->filePath);
+            return;
         }
         echo $this->body;
     }

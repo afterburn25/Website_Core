@@ -73,7 +73,13 @@ final class Runner
                 $config = $c->get(\Core\Config::class);
                 $storage = (string) $config->get('paths.storage', WC_ROOT . '/storage');
                 [$path, $error] = (new \Core\Backup\BackupService(
-                    $c->get(Connection::class), $storage . '/backups', $storage . '/staging', WC_ROOT, $storage
+                    $c->get(Connection::class),
+                    $storage . '/backups',
+                    $storage . '/staging',
+                    WC_ROOT,
+                    $storage,
+                    WC_CONFIG,
+                    (string) $config->get('paths.upload', WC_ROOT . '/upload')
                 ))->create();
                 if ($error !== null) throw new \RuntimeException($error);
                 $remoteError = (new \Core\Backup\RemoteBackup($config))->upload((string) $path);

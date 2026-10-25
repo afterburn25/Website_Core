@@ -3,7 +3,7 @@
     "id": "core/base",
     "type": "theme",
     "name": "Base",
-    "version": "2.0.29",
+    "version": "2.0.30",
     "license": "UNLICENSED-INTERNAL",
     "requires": { "core": ">=0.1.0", "api": 1 },
     "tokens": {

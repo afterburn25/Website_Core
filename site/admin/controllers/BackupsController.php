@@ -11,9 +11,16 @@ final class BackupsController extends Controller
 {
     private function svc(): BackupService
     {
-        $storage = (string) $this->c->get(\Core\Config::class)->get('paths.storage', WC_ROOT . '/storage');
+        $config = $this->c->get(\Core\Config::class);
+        $storage = (string) $config->get('paths.storage', WC_ROOT . '/storage');
         return new BackupService(
-            $this->db(), $storage . '/backups', $storage . '/staging', WC_ROOT, $storage
+            $this->db(),
+            $storage . '/backups',
+            $storage . '/staging',
+            WC_ROOT,
+            $storage,
+            WC_CONFIG,
+            (string) $config->get('paths.upload', WC_ROOT . '/upload')
         );
     }
 
@@ -105,6 +112,33 @@ final class BackupsController extends Controller
             ? 'Backup restored. Pre-restore safety snapshot: ' . basename((string) $safety)
             : (string) $err . ' Safety snapshot: ' . basename((string) $safety));
         return $this->redirect($r, '/admin/backups');
+    }
+
+    public function download(Request $r): Response
+    {
+        $u = $this->user();
+        if (!$u || !$u->isOwner()) {
+            // Archives contain configuration secrets; only the owner may
+            // export them from protected storage.
+            return $this->forbidden();
+        }
+        $name = basename($r->string('name'));
+        $storage = (string) $this->c->get(\Core\Config::class)->get('paths.storage', WC_ROOT . '/storage');
+        $path = $storage . '/backups/' . $name;
+        if (!is_file($path)) {
+            return Response::notFound('Backup not found.');
+        }
+        [$meta] = $this->svc()->inspect($path);
+        if ($meta === null) {
+            return Response::text('Backup integrity verification failed.', 409);
+        }
+        $this->audit('backup.downloaded', ['file' => $name]);
+        return Response::file($path)
+            ->header('Content-Type', 'application/zip')
+            ->header('Content-Length', (string) filesize($path))
+            ->header('Content-Disposition', 'attachment; filename="' . preg_replace('/[^A-Za-z0-9._-]/', '_', $name) . '"')
+            ->header('Cache-Control', 'private, no-store')
+            ->header('X-Content-Type-Options', 'nosniff');
     }
 
     public function delete(Request $r): Response

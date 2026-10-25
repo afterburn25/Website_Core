@@ -628,6 +628,7 @@ final class Application
             $r->post('/modules/recovery', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->recovery($req), [$auth, $csrfCheck]);
             $r->post('/modules/{id:.+}/{op:[a-z]+}', fn (Request $req) => (new \Admin\Controllers\ModulesController($c))->action($req), [$auth, $csrfCheck]);
             $r->get('/backups', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->index($req), [$auth]);
+            $r->get('/backups/download', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->download($req), [$auth]);
             $r->post('/backups/create', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->create($req), [$auth, $csrfCheck]);
             $r->post('/backups/restore', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->restore($req), [$auth, $csrfCheck]);
             $r->post('/backups/delete', fn (Request $req) => (new \Admin\Controllers\BackupsController($c))->delete($req), [$auth, $csrfCheck]);

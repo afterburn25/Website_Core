@@ -60,7 +60,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | code complete — 2.0.26; packaged-browser check pending |
 | 14 | Installer and reinstall/upgrade | Single-page polish, database test, HTTPS, safe writable-path provisioning, existing DB handling, cleanup and manual recheck | code complete — 2.0.27; packaged-host check pending |
 | 15 | Industry-module contract | Module admin category, default navigation takeover, shared services, uninstall/reinstall, compatibility and isolated failure | code complete — 2.0.28; packaged-module check pending |
-| 16 | Final cross-browser release gate | Chrome/Edge/Firefox/Safari where available, mobile breakpoints, accessibility review, performance/load, clean-host install and oldest-supported upgrade | in progress — hosted 2.0.28 pass found backup repair shipped in 2.0.29 |
+| 16 | Final cross-browser release gate | Chrome/Edge/Firefox/Safari where available, mobile breakpoints, accessibility review, performance/load, clean-host install and oldest-supported upgrade | in progress — hosted recovery repairs shipped in 2.0.29–2.0.30 |
 
 ## 2.0.29 — Hosted acceptance repair
 
@@ -72,11 +72,24 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 - [x] Hosted 2.0.28 smoke testing covered major Core/Catering admin screens,
       public pages, no-rewrite 404, contact handling, quote review, keyboard
       entry, and persistent admin navigation state.
-- [ ] Deploy 2.0.29 to the shared-host target and verify create, inspect,
-      download, restore, and update rollback against the repaired package.
+- [x] Deployed 2.0.29 and verified live MariaDB backup creation/inspection.
+- [ ] Deploy 2.0.30 and verify download/restore/update rollback after the live
+      restore exposed a panel-owned document-root file.
 - [ ] Complete root-domain, Landscaping, non-Chrome browser, mobile assistive-
       technology, installer/reinstall, performance, and destructive lifecycle
       gates on suitable disposable targets before tagging the commercial build.
+
+## 2.0.30 — Split-runtime recovery acceptance
+
+- [x] Backup sources resolve configured private config, upload, and media roots.
+- [x] Restore destinations use those same configured roots.
+- [x] Every changed destination is preflighted before database import; identical
+      read-only deployment files are skipped instead of copied needlessly.
+- [x] Owners can download verified recovery points from protected storage.
+- [x] External-runtime roots, read-only identical files, and streamed file
+      responses have focused regression coverage.
+- [ ] Deploy to the shared-host target and repeat create, download, restore,
+      integrity, and update-rollback acceptance before module lifecycle tests.
 
 ## 2.0.27 — Installer and reinstall/upgrade acceptance
 

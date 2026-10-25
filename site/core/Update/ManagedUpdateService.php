@@ -50,7 +50,15 @@ final class ManagedUpdateService
             $this->record((int) $release['source_id'], $release['version'], 'stage', 'ok', 'Verified update staged for owner review.');
             return ['status' => 'staged', 'release' => $release];
         }
-        [$snapshot, $backupError] = (new BackupService($this->db, $storage . '/backups', $storage . '/staging', WC_ROOT, $storage))->create();
+        [$snapshot, $backupError] = (new BackupService(
+            $this->db,
+            $storage . '/backups',
+            $storage . '/staging',
+            WC_ROOT,
+            $storage,
+            WC_CONFIG,
+            (string) $this->config->get('paths.upload', WC_ROOT . '/upload')
+        ))->create();
         if ($backupError !== null) {
             $message = 'Automatic apply stopped: safety backup failed. ' . $backupError;
             $this->record((int) $release['source_id'], $release['version'], 'apply', 'failed', $message);

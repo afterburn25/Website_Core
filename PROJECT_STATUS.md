@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.29` hosted-acceptance repair. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.30` shared-host recovery repair. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -222,6 +222,15 @@ prepared `information_schema.tables` query instead of the unsupported native-
 prepared `SHOW TABLES LIKE ?` form. Native MySQL and MariaDB CI now creates
 and inspects a real backup so this shared-host path cannot regress silently.
 No migration or API major change is required.
+
+Version 2.0.30 completes the split-runtime half of hosted recovery. Backups now
+read and restore the configured private configuration, upload, and media roots
+instead of assuming those paths remain below the public document root. Restore
+preflights all destinations before importing SQL, skips identical read-only
+deployment files, and exposes verified owner-only archive downloads. This
+prevents panel-owned `.htaccess`, module, and theme files from causing a late
+partial restore on ordinary shared hosting. No migration or API change is
+required.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

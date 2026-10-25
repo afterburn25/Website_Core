@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.30 — 2026-10-25
+
+- Backs up and restores configured private configuration, upload, and media
+  roots on split-ownership shared hosts.
+- Preflights changed file destinations before importing SQL and skips
+  byte-identical read-only deployment files that require no replacement.
+- Adds an owner-only verified recovery-point download with streamed delivery,
+  private/no-store headers, and audit evidence.
+- Adds external-runtime, read-only-file, and file-response regression coverage
+  after live restore exposed a panel-owned `config/.htaccess` failure.
+
 ## 2.0.29 — 2026-10-25
 
 - Repairs MariaDB/MySQL backup table discovery by replacing the unsupported

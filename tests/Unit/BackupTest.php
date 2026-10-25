@@ -126,6 +126,57 @@ final class BackupTest extends TestCase
         $this->assertSame('image-bytes', file_get_contents($external . '/media/public/logo.png'));
     }
 
+    public function testConfiguredExternalRuntimeRootsRoundtrip(): void
+    {
+        $runtime = $this->tmp . '/private-runtime-all';
+        foreach (['config', 'upload/docs', 'storage/media/public'] as $dir) {
+            mkdir($runtime . '/' . $dir, 0777, true);
+        }
+        file_put_contents($runtime . '/config/config.php', '<?php return ["private"=>true];');
+        file_put_contents($runtime . '/upload/docs/private.txt', 'private-upload');
+        file_put_contents($runtime . '/storage/media/public/logo.png', 'private-media');
+        $service = new BackupService(
+            $this->db,
+            $this->tmp . '/backups',
+            $this->tmp . '/staging',
+            $this->siteRoot,
+            $runtime . '/storage',
+            $runtime . '/config',
+            $runtime . '/upload'
+        );
+
+        [$path, $error] = $service->create();
+        $this->assertNull($error);
+        [$meta, $error] = $service->inspect((string) $path);
+        $this->assertNull($error);
+        $this->assertArrayHasKey('config/config.php', $meta['files']);
+        $this->assertArrayHasKey('upload/docs/private.txt', $meta['files']);
+        $this->assertArrayHasKey('storage/media/public/logo.png', $meta['files']);
+
+        unlink($runtime . '/config/config.php');
+        unlink($runtime . '/upload/docs/private.txt');
+        unlink($runtime . '/storage/media/public/logo.png');
+        [$ok, $error] = $service->restore((string) $path);
+        $this->assertTrue($ok, (string) $error);
+        $this->assertSame('<?php return ["private"=>true];', file_get_contents($runtime . '/config/config.php'));
+        $this->assertSame('private-upload', file_get_contents($runtime . '/upload/docs/private.txt'));
+        $this->assertSame('private-media', file_get_contents($runtime . '/storage/media/public/logo.png'));
+    }
+
+    public function testRestoreSkipsIdenticalReadOnlyFiles(): void
+    {
+        [$path, $error] = $this->svc()->create();
+        $this->assertNull($error);
+        $config = $this->siteRoot . '/config/config.php';
+        chmod($config, 0444);
+        try {
+            [$ok, $error] = $this->svc()->restore((string) $path);
+            $this->assertTrue($ok, (string) $error);
+        } finally {
+            chmod($config, 0644);
+        }
+    }
+
     public function testMissingMembersRejected(): void
     {
         $bad = $this->tmp . '/empty.zip';

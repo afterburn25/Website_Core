@@ -29,8 +29,12 @@ final class BackupService
         private string $stagingDir,
         private string $siteRoot,
         private ?string $storageRoot = null,
+        private ?string $configRoot = null,
+        private ?string $uploadRoot = null,
     ) {
         $this->storageRoot ??= $this->siteRoot . '/storage';
+        $this->configRoot ??= $this->siteRoot . '/config';
+        $this->uploadRoot ??= $this->siteRoot . '/upload';
     }
 
     /**
@@ -68,9 +72,12 @@ final class BackupService
             $filesBase = $tmp . '/files';
             @mkdir($filesBase, 0750, true);
             foreach ($includeDirs as $rel) {
-                $src = $rel === 'storage/media'
-                    ? rtrim((string) $this->storageRoot, '/\\') . '/media'
-                    : $this->siteRoot . '/' . trim($rel, '/');
+                $src = match ($rel) {
+                    'config' => rtrim((string) $this->configRoot, '/\\'),
+                    'upload' => rtrim((string) $this->uploadRoot, '/\\'),
+                    'storage/media' => rtrim((string) $this->storageRoot, '/\\') . '/media',
+                    default => $this->siteRoot . '/' . trim($rel, '/'),
+                };
                 if (!is_dir($src)) {
                     continue;
                 }
@@ -235,6 +242,35 @@ final class BackupService
                 }
             }
 
+            // Preflight every destination before changing the database. On
+            // split-ownership hosts deployment files may be readable but not
+            // writable by PHP. Identical files need no replacement; a changed
+            // protected file stops the restore before any SQL is imported.
+            if ($restoreFiles) {
+                foreach (($meta['files'] ?? []) as $rel => $hash) {
+                    $dest = $this->restoreDestination((string) $rel);
+                    if ($dest === null) {
+                        continue;
+                    }
+                    if (is_file($dest) && hash_equals((string) $hash, hash_file('sha256', $dest))) {
+                        continue;
+                    }
+                    if (is_link($dest) || (file_exists($dest) && !is_file($dest))) {
+                        return [false, "Restore destination is not a regular file: {$rel}"];
+                    }
+                    if (is_file($dest) && !is_writable($dest)) {
+                        return [false, "Restore cannot replace protected file: {$rel}"];
+                    }
+                    $parent = dirname($dest);
+                    while (!file_exists($parent) && dirname($parent) !== $parent) {
+                        $parent = dirname($parent);
+                    }
+                    if (!is_dir($parent) || !is_writable($parent)) {
+                        return [false, "Restore cannot create protected file: {$rel}"];
+                    }
+                }
+            }
+
             // Import statement-by-statement. The dump format separates
             // statements with an explicit delimiter line, and every string
             // value is hex-encoded — user data can never forge a delimiter.
@@ -249,16 +285,11 @@ final class BackupService
 
             if ($restoreFiles) {
                 foreach (($meta['files'] ?? []) as $rel => $hash) {
-                    $dest = str_starts_with($rel, 'storage/media/')
-                        ? rtrim((string) $this->storageRoot, '/\\') . substr($rel, strlen('storage'))
-                        : $this->siteRoot . '/' . $rel;
-                    // Only restore into the declared include roots — a
-                    // tampered manifest cannot write outside them. '..' or
-                    // backslash segments would defeat the prefix check, so
-                    // they are rejected outright rather than normalized.
-                    if (!preg_match('#^(' . implode('|', self::RESTORABLE_ROOTS) . ')/#', $rel)
-                        || str_contains($rel, '..')
-                        || str_contains($rel, '\\')) {
+                    $dest = $this->restoreDestination((string) $rel);
+                    if ($dest === null) {
+                        continue;
+                    }
+                    if (is_file($dest) && hash_equals((string) $hash, hash_file('sha256', $dest))) {
                         continue;
                     }
                     @mkdir(dirname($dest), 0750, true);
@@ -376,5 +407,27 @@ final class BackupService
             $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
         }
         @rmdir($dir);
+    }
+
+    private function restoreDestination(string $rel): ?string
+    {
+        // Only restore into the declared include roots — a tampered manifest
+        // cannot write outside them. '..' or backslash segments would defeat
+        // the prefix check, so they are rejected rather than normalized.
+        if (!preg_match('#^(config|upload|modules|themes|storage/media)/#', $rel)
+            || str_contains($rel, '..')
+            || str_contains($rel, '\\')) {
+            return null;
+        }
+        if (str_starts_with($rel, 'config/')) {
+            return rtrim((string) $this->configRoot, '/\\') . substr($rel, strlen('config'));
+        }
+        if (str_starts_with($rel, 'upload/')) {
+            return rtrim((string) $this->uploadRoot, '/\\') . substr($rel, strlen('upload'));
+        }
+        if (str_starts_with($rel, 'storage/media/')) {
+            return rtrim((string) $this->storageRoot, '/\\') . substr($rel, strlen('storage'));
+        }
+        return $this->siteRoot . '/' . $rel;
     }
 }

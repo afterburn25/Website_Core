@@ -27,4 +27,17 @@ final class ResponsePolicyTest extends TestCase
         $this->assertStringContainsString("header('Cache-Control', 'private, no-store')", $application);
         $this->assertStringContainsString("header('X-WC-Cacheable', 'public')", $pageController);
     }
+
+    public function testFileResponseKeepsPayloadOutOfMemoryUntilRead(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'wc-response-');
+        file_put_contents($path, 'archive-bytes');
+        try {
+            $response = Response::file($path)->header('Content-Type', 'application/zip');
+            $this->assertSame('archive-bytes', $response->body());
+            $this->assertSame('application/zip', $response->headers()['Content-Type']);
+        } finally {
+            @unlink($path);
+        }
+    }
 }

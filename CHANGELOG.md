@@ -9,6 +9,8 @@
   table ordering in backup manifests.
 - Adds native MySQL and MariaDB regression coverage that creates and inspects
   an actual Core backup during CI.
+- Makes repair-artifact staging and upload names resolve the current Core
+  version instead of retaining a previous release number.
 - Records the first packaged shared-host acceptance findings and keeps final
   commercial tagging gated on the repaired live backup/restore pass.
 

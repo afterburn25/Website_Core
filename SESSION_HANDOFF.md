@@ -11,6 +11,8 @@
   `information_schema.tables` with bound prefix parameters instead.
 - Native MySQL/MariaDB CI now creates and inspects a real backup. Core advances
   to 2.0.29 without a migration or API change.
+- The first 2.0.29 run exposed hard-coded 2.0.28 repair-artifact staging paths;
+  staging now uses the built archive and upload names derive from WC_VERSION.
 - Do not tag the final commercial release until 2.0.29 is deployed and live
   backup/restore succeeds. Root-domain, Landscaping, non-Chrome, mobile
   assistive-technology, installer/reinstall, rollback, and destructive module

@@ -11,6 +11,9 @@
   deployment files. Verified archives gain an audited owner-only Download.
 - Core advances to 2.0.30 without a migration or API change. Deploy it and
   repeat live recovery before update rollback or destructive module lifecycle.
+- All six jobs passed in GitHub Actions run 508 (`40201647500`) on source
+  commit `5fbf20dfc7bb8e47ef73618c61466229b1a69e89`. The Catering repair artifact
+  digest is `444b1c6e8e0f60f909d4a4068674f0ca512f54e62f75fccfe0b4215be690cfef`.
 
 ## 2.0.29 Hosted acceptance repair
 

@@ -17,6 +17,10 @@
   save-and-place handoff.
 - Core advances to 2.0.31 without a database migration or API change. The
   2.0.30 hosted recovery verification remains required after deployment.
+- All six jobs passed in GitHub Actions run 510 (`40202719221`) on source
+  commit `73a00faaf2826b6b6d0ede8ddc20003749a13caf`. The directly usable Catering
+  repair archive digest is
+  `20f68919d683b322c809b28dd849203c71d9fb2bdd7ba6aa88c7df851c267b20`.
 
 ## 2.0.30 Split-runtime recovery repair
 

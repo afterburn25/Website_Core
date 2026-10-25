@@ -59,7 +59,8 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       single-use secure customer accept/decline links.
 - [x] Disable/uninstall preserve shared records; explicit package purge removes
       inquiries, notes, quotes, and items in dependency-safe order.
-- [ ] Full PHP 8.4/8.5, MySQL/MariaDB, package, Core-only, and artifact CI.
+- [x] CI run 529 passed PHP 8.4/8.5, MySQL 8.4, MariaDB 11.4,
+      package, Core-only boot, installer, and artifact-contract checks.
 - [ ] Packaged shared-host browser acceptance and adoption by two industries.
 
 ## 2.1.0 — Opt-in commerce and public customer accounts

@@ -1319,5 +1319,12 @@ integrity.
 - SMTP connection tests now separate DNS, TCP port, TLS/certificate, and
   authentication failures and explain that the derived mail host is only a
   default. The exact provider hostname may be required on shared hosting.
-- Local PHP remains unavailable. CI and exact-artifact evidence must be added
-  before distributing 2.2.0.
+- CI run 529 (`40209933885`) passed all six PHP 8.4/8.5, Core-only,
+  MySQL 8.4, MariaDB 11.4, and artifact jobs on commit
+  `a30cdc42de15af22869f447d6217431bf693335c`.
+- The direct Catering package contains 863 entries, all required installer
+  paths, migration 0030, Core lead services, and the bundled Catering
+  manifest, with no nested ZIP. SHA-256:
+  `5020b30453074d7a46c458813461b59ee405793b3879e7501cd23e14397410b7`.
+- Packaged shared-host browser acceptance and adoption by two industry
+  modules remain pending.

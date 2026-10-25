@@ -59,7 +59,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       single-use secure customer accept/decline links.
 - [x] Disable/uninstall preserve shared records; explicit package purge removes
       inquiries, notes, quotes, and items in dependency-safe order.
-- [x] CI run 529 passed PHP 8.4/8.5, MySQL 8.4, MariaDB 11.4,
+- [x] CI run 531 passed PHP 8.4/8.5, MySQL 8.4, MariaDB 11.4,
       package, Core-only boot, installer, and artifact-contract checks.
 - [ ] Packaged shared-host browser acceptance and adoption by two industries.
 

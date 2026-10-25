@@ -106,9 +106,8 @@ jobs:
           [ -n "$INSTALL_COOKIE" ] || INSTALL_COOKIE=$(awk '$6=="WCINSTALL"{print $7}' /tmp/wcjar | tail -1)
           test -n "$INSTALL_CSRF"
           test -n "$INSTALL_COOKIE"
-          code=$(curl -s -b /tmp/wcjar -c /tmp/wcjar -o /tmp/install-resp.html -w '%{http_code}' \
+          code=$(curl -s --cookie "WCINSTALL=$INSTALL_COOKIE" -c /tmp/wcjar -o /tmp/install-resp.html -w '%{http_code}' \
             -H 'X-Forwarded-Proto: https' \
-            -H "Cookie: WCINSTALL=$INSTALL_COOKIE" \
             -X POST http://127.0.0.1:8099/ \
             --data-urlencode "installer_csrf=$INSTALL_CSRF" \
             --data-urlencode "site_name=Install Accept" \
@@ -184,9 +183,8 @@ jobs:
           [ -n "$INSTALL_COOKIE" ] || INSTALL_COOKIE=$(awk '$6=="WCINSTALL"{print $7}' /tmp/wcjar2 | tail -1)
           test -n "$INSTALL_CSRF"
           test -n "$INSTALL_COOKIE"
-          code=$(curl -s -b /tmp/wcjar2 -c /tmp/wcjar2 -o /tmp/lic-resp.html -w '%{http_code}' \
+          code=$(curl -s --cookie "WCINSTALL=$INSTALL_COOKIE" -c /tmp/wcjar2 -o /tmp/lic-resp.html -w '%{http_code}' \
             -H 'X-Forwarded-Proto: https' \
-            -H "Cookie: WCINSTALL=$INSTALL_COOKIE" \
             -X POST http://127.0.0.1:8100/ \
             --data-urlencode "installer_csrf=$INSTALL_CSRF" \
             --data-urlencode "site_name=Licensed Accept" \
@@ -290,8 +288,7 @@ jobs:
           test -n "$INSTALL_CSRF"
           test -n "$INSTALL_COOKIE"
 
-          db_test=$(curl -s -H 'X-Forwarded-Proto: https' -b /tmp/wcjar3 -c /tmp/wcjar3 \
-            -H "Cookie: WCINSTALL=$INSTALL_COOKIE" \
+          db_test=$(curl -s -H 'X-Forwarded-Proto: https' --cookie "WCINSTALL=$INSTALL_COOKIE" -c /tmp/wcjar3 \
             -X POST http://127.0.0.1:8101/ \
             --data-urlencode "installer_csrf=$INSTALL_CSRF" \
             --data-urlencode "action=test_database" \
@@ -303,9 +300,8 @@ jobs:
             --data-urlencode "db_prefix=wc_")
           echo "$db_test" | grep -q '"ok":true' || { echo "database test failed: $db_test"; exit 1; }
 
-          code=$(curl -s -b /tmp/wcjar3 -c /tmp/wcjar3 -o /tmp/keyless-resp.html -w '%{http_code}' \
+          code=$(curl -s --cookie "WCINSTALL=$INSTALL_COOKIE" -c /tmp/wcjar3 -o /tmp/keyless-resp.html -w '%{http_code}' \
             -H 'X-Forwarded-Proto: https' \
-            -H "Cookie: WCINSTALL=$INSTALL_COOKIE" \
             -X POST http://127.0.0.1:8101/ \
             --data-urlencode "installer_csrf=$INSTALL_CSRF" \
             --data-urlencode "site_name=Keyless Test" \

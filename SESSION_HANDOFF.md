@@ -13,6 +13,10 @@
   to 2.0.29 without a migration or API change.
 - The first 2.0.29 run exposed hard-coded 2.0.28 repair-artifact staging paths;
   staging now uses the built archive and upload names derive from WC_VERSION.
+- All six jobs passed in GitHub Actions run 506 (`40167123920`) on source
+  commit `93fd732111a35647962de43f6eafd085f5b99bc4`. The directly usable Catering
+  repair artifact digest is
+  `006eccb4f92f364f71d96ea55ade05f52cc359b751a3d138831a4e443f8b160c`.
 - Do not tag the final commercial release until 2.0.29 is deployed and live
   backup/restore succeeds. Root-domain, Landscaping, non-Chrome, mobile
   assistive-technology, installer/reinstall, rollback, and destructive module

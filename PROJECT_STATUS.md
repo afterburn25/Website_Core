@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.2.1` SMTP provider-host diagnostic candidate, building on
+**Current**: `2.2.1` CI-verified SMTP provider-host diagnostics, building on
 2.2.0 shared business profile, reusable module administration,
 and opt-in inquiries/quotations. Continuation rules and the verified starting
 state are in `docs/CORE_SESSION_2026_10_25.md`. The planned 0.1.15 through 2.0 core milestones
@@ -388,7 +388,19 @@ Website Core now supports a DRM licensing model for bundled products:
 - **LICENSING_API.md**: documents the Cajunwebpro.com API contract,
   `license.api_url` config, and `WC_LICENSE_API_URL` test override.
 
-## Test status
+## Current validation — 2.2.1
+
+CI run 535 (`40213595773`) passed all six jobs on source commit
+`db2e4cc14749b407eecd197a06209777b9cde2d9`: PHP 8.4/8.5 lint/unit/package,
+Core-only boot, native MySQL 8.4, MariaDB 11.4, installer acceptance, and
+release-artifact contracts.
+
+The focused local SMTP/settings suite passed 11 tests / 71 assertions. The
+complete local unit/package suite passed 365 tests / 1,907 assertions with
+existing template-fixture warnings. Actual provider mail delivery and packaged
+shared-host browser acceptance remain unverified.
+
+## Earlier baseline test status (CI run 503)
 
 - `unit`+`package`: 337 tests / 1,720 assertions green in CI run 503 on
   PHP 8.4 and PHP 8.5;

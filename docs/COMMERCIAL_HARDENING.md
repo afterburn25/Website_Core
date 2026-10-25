@@ -54,7 +54,8 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       responses have fixed messages and bounded reply parsing.
 - [x] Adds DNS/deadline tests and real loopback implicit-TLS/STARTTLS tests,
       including hostname mismatch, plain-server rejection and silent sockets.
-- [ ] PHP 8.4/8.5 and native MySQL/MariaDB CI and artifact verification.
+- [x] CI run 535 passed PHP 8.4/8.5, native MySQL/MariaDB, Core-only boot,
+      installer acceptance and release-artifact verification.
 - [ ] Packaged shared-host browser acceptance and actual provider correction.
 
 ## 2.2.0 — Shared business and sales foundation

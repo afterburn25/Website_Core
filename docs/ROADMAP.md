@@ -120,10 +120,11 @@ preservation of existing content, inquiry history, IDs, and customizations.
 | --- | --- | --- |
 | CORE-OPS-1 | Actionable SMTP provider-host discovery | When DNS and TCP succeed but the encrypted SMTP handshake fails, safely inspect the resolved server's reverse/provider hostname. Suggest it only when forward DNS maps it back to the same server address; never weaken certificate checks or save the suggestion automatically. Also test and report the standard SSL/465 and STARTTLS/587 pair separately so the owner receives a concrete hostname/encryption correction instead of a generic connection error. Add unit coverage for unverified PTR results, timeouts, and secret-free diagnostics, then verify on shared hosting. |
 
-CORE-OPS-1 implementation: **2.2.1 candidate** adds a separate credential-free
+CORE-OPS-1 implementation: **2.2.1 implemented; CI verified** adds a separate credential-free
 diagnostic action with forward-confirmed provider discovery, pinned-address
 sockets, strict TLS checks, separate SSL/465 and STARTTLS/587 results, and
-bounded network probes. CI and real shared-host verification remain pending.
+bounded network probes. CI run 535 passed all six jobs; real shared-host
+verification remains pending.
 No provider correction or successful email delivery has been claimed.
 
 ### Delivered common product services

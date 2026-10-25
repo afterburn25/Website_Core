@@ -34,7 +34,7 @@ development handoff, not a verbatim transcript of the old conversation.
 
 ## This continuation
 
-2.2.1 implements the Core-only SMTP diagnostic candidate. It performs
+2.2.1 implements the Core-only SMTP diagnostic follow-up. It performs
 credential-free, certificate-verified host/port checks and forward-confirmed
 provider discovery. It does not synchronize or edit any industry snapshot.
 See `2.2.1_RELEASE_NOTES.md` for behavior, tests and timeout limitations.
@@ -42,10 +42,20 @@ The continuation workspace now has a temporary PHP 8.4.13 CLI runtime, so local
 checks are possible here; old handoff claims about PHP being unavailable do
 not describe this workspace. Native MySQL/MariaDB acceptance remains in CI.
 
+## Verified continuation outcome
+
+CI run 535 (`40213595773`) passed all six jobs on source commit
+`db2e4cc14749b407eecd197a06209777b9cde2d9`: PHP 8.4/8.5 lint/unit/package,
+Core-only boot, native MySQL 8.4, MariaDB 11.4, installer acceptance, and
+release-artifact contracts.
+The source and this handoff are saved on the existing development branch.
+No industry snapshot was synchronized, no release was published, and PR #7
+was not merged.
+
 ## Next work
 
-1. Verify the new candidate through the complete CI matrix and packaged-host
-   workflow; record the actual CI evidence without claiming live mail success.
+1. Exercise the packaged SMTP diagnostics on the target shared host and
+   record the provider correction without claiming unobserved mail success.
 2. Continue remaining CORE-REUSE items in `ROADMAP.md`, starting with module
    content/media integration and record-editor ordering/bulk actions.
 3. Keep packaged browser acceptance and cross-industry adoption visibly open.

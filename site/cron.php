@@ -65,6 +65,7 @@ $runner = new \Core\Jobs\Runner($app->container());
 $processed = $runner->run(10, 25);
 // Drain the transactional queue every pass — no separate cron entry needed.
 $mailed = $app->container()->get(\Core\Mail\SystemMail::class)->flush(10);
+$settings->set('system.cron_last_run', date('Y-m-d H:i:s'));
 if (!$cli) {
     header('Content-Type: text/plain');
 }

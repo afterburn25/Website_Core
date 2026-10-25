@@ -55,13 +55,13 @@ final class BackupService
         $name = 'backup-' . date('Ymd-His') . '-' . bin2hex(random_bytes(3)) . '.zip';
         $path = $this->backupDir . '/' . $name;
         $tmp = $this->stagingDir . '/bk-' . bin2hex(random_bytes(4));
-        @mkdir($tmp, 0750, true);
+        if (!is_dir($tmp) && !@mkdir($tmp, 0750, true)) return [null, 'Backup staging directory is not writable.'];
 
         try {
             // 1. Database dump — consistent-enough snapshot: schema first,
             //    then bounded SELECTs per table.
             $sql = $this->dumpDatabase();
-            file_put_contents($tmp . '/db.sql', $sql);
+            if (@file_put_contents($tmp . '/db.sql', $sql, LOCK_EX) === false) return [null, 'Database snapshot could not be written to staging.'];
 
             // 2. Files.
             $manifest = ['files' => [], 'tables' => $this->tables()];
@@ -86,9 +86,7 @@ final class BackupService
                     $sub = str_replace('\\', '/', trim($rel, '/') . '/' . substr($f->getPathname(), strlen($src) + 1));
                     $dest = $filesBase . '/' . $sub;
                     @mkdir(dirname($dest), 0750, true);
-                    if (!@copy($f->getPathname(), $dest)) {
-                        continue; // unreadable file — recorded as skipped below
-                    }
+                    if (!@copy($f->getPathname(), $dest)) return [null, 'Backup stopped because a required file could not be read: ' . $sub];
                     $manifest['files'][$sub] = hash_file('sha256', $f->getPathname());
                 }
             }
@@ -103,7 +101,7 @@ final class BackupService
                 'files'    => $manifest['files'],
                 'db_sha256' => hash_file('sha256', $tmp . '/db.sql'),
             ];
-            file_put_contents($tmp . '/meta.json', json_encode($meta, JSON_PRETTY_PRINT));
+            if (@file_put_contents($tmp . '/meta.json', json_encode($meta, JSON_PRETTY_PRINT), LOCK_EX) === false) return [null, 'Backup manifest could not be written.'];
 
             // 3. Zip it.
             $zip = new \ZipArchive();
@@ -264,7 +262,7 @@ final class BackupService
                         continue;
                     }
                     @mkdir(dirname($dest), 0750, true);
-                    copy($tmp . '/files/' . $rel, $dest);
+                    if (!@copy($tmp . '/files/' . $rel, $dest)) return [false, "Restore could not write required file: {$rel}"];
                 }
             }
             return [true, null];

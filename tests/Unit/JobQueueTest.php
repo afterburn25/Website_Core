@@ -49,6 +49,15 @@ final class JobQueueTest extends TestCase
         $this->assertCount(1, $rows);
     }
 
+    public function testExpiredLeaseCanBeRecoveredForOperatorReview(): void
+    {
+        $this->q->dispatch('demo.work');
+        $this->q->claim('worker-A', 10, 120);
+        $this->db->run('UPDATE `' . $this->db->table('jobs') . '` SET leased_until = ?', [time() - 1]);
+        $this->assertSame(1, $this->q->recoverExpiredLeases());
+        $this->assertSame('uncertain', $this->db->fetchColumn('SELECT status FROM `wc_jobs` LIMIT 1'));
+    }
+
     public function testCompleteRemovesFromClaimableSet(): void
     {
         $id = $this->q->dispatch('demo.work');

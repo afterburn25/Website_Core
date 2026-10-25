@@ -1,5 +1,16 @@
 # Session Handoff
 
+## 2.0.24 Backups and Operations completion
+
+- Recovery points are inspected and presented with verification evidence;
+  incomplete required-file copies now fail creation/restoration.
+- Local and remote backup outcomes are distinct, while restore retains owner,
+  safety snapshot, maintenance, checksum, driver/prefix, and lock gates.
+- Operations prevents duplicate backups, records cron heartbeat, and can move
+  expired running leases to uncertain for deliberate retry.
+- Core advances to 2.0.24 without a schema migration. Continue with surface
+  12, Health, Updates, Audit, and Settings.
+
 ## 2.0.23 Modules and Marketplace completion
 
 - Modules adds lifecycle summaries and filtering while keeping Core protected,

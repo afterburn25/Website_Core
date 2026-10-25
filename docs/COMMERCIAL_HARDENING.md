@@ -55,7 +55,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 8 | Administrators, roles, profile, security | Account lifecycle, role safety, capability clarity, MFA, sessions, recovery, lockouts, audit evidence | code complete — 2.0.21; packaged-browser check pending |
 | 9 | Privacy and integrations | Consent behavior, privacy requests, API keys, webhooks, scopes, delivery failures, exports and secret rotation | code complete — 2.0.22; packaged-browser check pending |
 | 10 | Modules and marketplace | Install/upgrade/enable/disable/uninstall/purge, dependency errors, protected Core, recovery mode, catalog trust and rollback | code complete — 2.0.23; packaged-browser check pending |
-| 11 | Backups and operations | Create/delete/restore, remote replication, queue states, retries, schedules, interrupted operations, disaster recovery | code complete — 2.0.6; packaged-browser check pending |
+| 11 | Backups and operations | Create/delete/restore, remote replication, queue states, retries, schedules, interrupted operations, disaster recovery | code complete — 2.0.24; packaged-browser check pending |
 | 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | code complete through 2.0.15; packaged-browser check pending |
 | 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | code complete — 2.0.6; packaged-browser check pending |
 | 14 | Installer and reinstall/upgrade | Single-page polish, database test, HTTPS, safe writable-path provisioning, existing DB handling, cleanup and manual recheck | code complete — 2.0.6; packaged-host check pending |
@@ -289,6 +289,23 @@ run against packaged builds; code-complete does not mean externally verified.
       evidence remain visible and filterable.
 - [ ] Packaged browser verification covers lifecycle actions, dependency and
       rollback errors, recovery mode, source lifecycle, and responsive UI.
+
+## 2.0.24 — Backups and operations acceptance
+
+- [x] Every backup is integrity-inspected and displays verification, Core
+      version, table/file counts, size, and a useful invalid-archive error.
+- [x] Required staging/read/copy failures stop backup or restore instead of
+      silently producing or accepting incomplete recovery data.
+- [x] Restore is owner-only and requires a safety snapshot, maintenance flag,
+      exclusive lock, safe archive members, checksums, prefix and driver match.
+- [x] Local creation evidence remains accurate when optional remote
+      replication fails, and deletion reports real filesystem outcomes.
+- [x] Operations prevents duplicate queued backups, records cron heartbeat,
+      recovers expired leases to uncertain, and retries only safe states.
+- [x] Maintenance mode preserves admin access and reports shared-host flag
+      write/removal failures with actionable manual guidance.
+- [ ] Packaged browser verification covers create/inspect/delete/restore,
+      remote failure, queue retry/recovery, schedules, cron and responsive UI.
 
 ## 2.0.14 — diagnostic and fatal-page recovery acceptance
 

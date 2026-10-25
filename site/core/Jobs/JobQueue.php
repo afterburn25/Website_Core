@@ -37,12 +37,7 @@ final class JobQueue
         // Reap dead leases first: a worker that crashed mid-job leaves the
         // row 'running' forever without this — invisible, never retried.
         // It returns to 'uncertain' (retryable under at-least-once).
-        $this->db->run(
-            "UPDATE `{$table}` SET status = 'uncertain', leased_by = NULL
-             WHERE status = 'running' AND leased_until IS NOT NULL AND leased_until < ?",
-            [$now]
-        );
-
+        $this->recoverExpiredLeases();
         $candidates = $this->db->fetchAll(
             "SELECT * FROM `{$table}`
              WHERE status IN ('pending','uncertain')
@@ -69,6 +64,14 @@ final class JobQueue
             }
         }
         return $rows;
+    }
+
+    public function recoverExpiredLeases(): int
+    {
+        return $this->db->run(
+            'UPDATE `' . $this->db->table('jobs') . "` SET status = 'uncertain', leased_by = NULL, leased_until = NULL WHERE status = 'running' AND leased_until IS NOT NULL AND leased_until < ?",
+            [time()]
+        )->rowCount();
     }
 
     public function complete(int $id): void

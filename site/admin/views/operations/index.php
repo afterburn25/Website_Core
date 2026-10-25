@@ -1,8 +1,9 @@
-<?php /** @var array $jobs @var array $counts @var bool $maintenance @var bool $canOperate @var int $autoDays */ ?>
+<?php /** @var array $jobs @var array $counts @var bool $maintenance @var bool $canOperate @var int $autoDays @var string $cronLastRun */ ?>
 <div class="metric-grid">
 <div class="metric"><span>Public site</span><strong class="<?= $maintenance ? 'text-bad' : 'text-ok' ?>"><?= $maintenance ? 'Maintenance' : 'Live' ?></strong><small>administrator access remains available</small></div>
 <div class="metric"><span>Pending jobs</span><strong><?= (int) $counts['pending'] + (int) $counts['uncertain'] ?></strong><small><?= (int) $counts['failed'] ?> failed</small></div>
 <div class="metric"><span>Automatic backup</span><strong><?= $autoDays ? 'Every ' . $autoDays . 'd' : 'Off' ?></strong><small>runs through cron</small></div>
+<div class="metric"><span>Last cron run</span><strong><?= $cronLastRun!==''?e(date('M j, g:i a',strtotime($cronLastRun))):'Never' ?></strong><small>queue and mail worker heartbeat</small></div>
 </div>
 <?php if ($canOperate): ?>
 <div class="card"><div class="card-heading"><div><h2>Operations</h2><p class="card-subtitle">Control public availability, caches, queued work, and automatic recovery points.</p></div></div>
@@ -12,7 +13,8 @@
 <form method="post"><?= $csrf->field() ?><input type="hidden" name="action" value="flush_mail"><button class="btn secondary" type="submit">Process mail queue</button></form>
 <form method="post"><?= $csrf->field() ?><input type="hidden" name="action" value="queue_backup"><button class="btn secondary" type="submit">Queue backup</button></form>
 <form method="post"><?= $csrf->field() ?><input type="hidden" name="action" value="prune"><button class="btn secondary" type="submit">Prune old completed jobs</button></form>
-</div></div><form method="post" class="inline-fields schedule-control"><?= $csrf->field() ?><input type="hidden" name="action" value="backup_schedule"><div><label>Automatic backup interval</label><select name="days"><option value="0" <?= $autoDays === 0 ? 'selected' : '' ?>>Off</option><option value="1" <?= $autoDays === 1 ? 'selected' : '' ?>>Daily</option><option value="7" <?= $autoDays === 7 ? 'selected' : '' ?>>Weekly</option><option value="30" <?= $autoDays === 30 ? 'selected' : '' ?>>Every 30 days</option></select><p class="field-note">Cron processes this schedule. Manual backups remain available at any time.</p></div><button class="btn" type="submit" style="align-self:end">Save schedule</button></form></div>
+<form method="post"><?= $csrf->field() ?><input type="hidden" name="action" value="recover_leases"><button class="btn secondary" type="submit">Recover interrupted jobs</button></form>
+</div></div><form method="post" class="inline-fields schedule-control"><?= $csrf->field() ?><input type="hidden" name="action" value="backup_schedule"><div><label>Automatic backup interval</label><select name="days"><option value="0" <?= $autoDays === 0 ? 'selected' : '' ?>>Off</option><option value="1" <?= $autoDays === 1 ? 'selected' : '' ?>>Daily</option><option value="7" <?= $autoDays === 7 ? 'selected' : '' ?>>Weekly</option><option value="30" <?= $autoDays === 30 ? 'selected' : '' ?>>Every 30 days</option></select><p class="field-note">Cron processes this schedule. Manual backups remain available at any time.</p></div><button class="btn schedule-save" type="submit">Save schedule</button></form></div>
 <?php endif; ?>
 <div class="card"><div class="card-heading"><h2>Recent jobs</h2><span class="muted">At-least-once queue; uncertain jobs are safe to retry.</span></div>
 <?php if(!$jobs): ?><div class="empty-state"><strong>No background jobs yet</strong><span>Scheduled backups, webhook deliveries, and other queued work will appear here.</span></div><?php else: ?><table><tr><th>ID</th><th>Type</th><th>Status</th><th>Attempts</th><th>Run after</th><th>Error</th><th></th></tr>

@@ -24,11 +24,17 @@ final class OperationsController extends Controller
             if ($action === 'maintenance') {
                 $flag = $storage . '/maintenance.flag';
                 if ($r->string('mode') === 'on') {
-                    if (!is_dir($storage)) @mkdir($storage, 0750, true);
-                    file_put_contents($flag, date('c') . ' by admin ' . $u->id);
+                    if ((!is_dir($storage) && !@mkdir($storage, 0750, true))
+                        || @file_put_contents($flag, date('c') . ' by admin ' . $u->id, LOCK_EX) === false) {
+                        $this->flash('error', 'Maintenance mode could not be enabled. Check private storage permissions.');
+                        return $this->redirect($r, '/admin/operations');
+                    }
                     $message = 'Maintenance mode enabled. Signed-in administrators remain available.';
                 } else {
-                    @unlink($flag);
+                    if (is_file($flag) && !@unlink($flag)) {
+                        $this->flash('error', 'Maintenance mode could not be disabled. Delete storage/maintenance.flag in File Manager.');
+                        return $this->redirect($r, '/admin/operations');
+                    }
                     $message = 'Maintenance mode disabled; the public site is live.';
                 }
                 $this->c->get(\Core\Audit\AuditLog::class)->record('operations.maintenance', $u->id, ['mode' => $r->string('mode')]);
@@ -47,13 +53,19 @@ final class OperationsController extends Controller
                 $sent = $this->c->get(\Core\Mail\SystemMail::class)->flush(25);
                 $this->flash('ok', "Mail queue processed; {$sent} message(s) accepted by the configured transport.");
             } elseif ($action === 'queue_backup') {
-                $queue->dispatch('core.backup', ['requested_by' => $u->id]);
-                $this->flash('ok', 'Backup queued. Run cron to process it.');
+                $pending = (int) $this->db()->fetchColumn(
+                    'SELECT COUNT(*) FROM `' . $this->db()->table('jobs') . "` WHERE type = 'core.backup' AND status IN ('pending','running','uncertain')"
+                );
+                if ($pending) $this->flash('error', 'A backup job is already pending or running.');
+                else { $queue->dispatch('core.backup', ['requested_by' => $u->id]); $this->flash('ok', 'Backup queued. Run cron to process it.'); }
             } elseif ($action === 'backup_schedule') {
                 $days = (int) $r->string('days', '0');
                 if (!in_array($days, [0, 1, 7, 30], true)) $days = 0;
                 $this->settings()->set('backup.auto_days', $days);
                 $this->flash('ok', $days ? "Automatic backup interval set to {$days} day(s)." : 'Automatic backups disabled.');
+            } elseif ($action === 'recover_leases') {
+                $count = $queue->recoverExpiredLeases();
+                $this->flash('ok', "Recovered {$count} interrupted job(s) for deliberate retry.");
             }
             if ($action !== '') $this->audit('operations.' . preg_replace('/[^a-z0-9_]+/', '_', strtolower($action)), ['job' => (int) $r->string('id', '0')]);
             return $this->redirect($r, '/admin/operations');
@@ -64,6 +76,7 @@ final class OperationsController extends Controller
             'maintenance' => is_file($storage . '/maintenance.flag'),
             'canOperate' => $canOperate,
             'autoDays' => (int) $this->settings()->get('backup.auto_days', 0),
+            'cronLastRun' => (string) $this->settings()->get('system.cron_last_run', ''),
         ], 'Operations');
     }
 

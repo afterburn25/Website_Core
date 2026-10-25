@@ -23,8 +23,21 @@ final class BackupsController extends Controller
         if (!$u || !$this->auth()->has($u, 'backups.manage')) {
             return $this->forbidden();
         }
+        $service = $this->svc();
+        $backups = $service->list();
+        $storage = (string) $this->c->get(\Core\Config::class)->get('paths.storage', WC_ROOT . '/storage');
+        foreach ($backups as &$backup) {
+            [$meta, $error] = $service->inspect($storage . '/backups/' . $backup['name']);
+            $backup['verified'] = $meta !== null;
+            $backup['error'] = $error;
+            $backup['core'] = $meta['core'] ?? null;
+            $backup['tables'] = count((array) ($meta['tables'] ?? []));
+            $backup['files'] = count((array) ($meta['files'] ?? []));
+        }
+        unset($backup);
         return $this->page($r, 'backups/index', [
-            'backups' => $this->svc()->list(),
+            'backups' => $backups,
+            'remoteConfigured' => (new \Core\Backup\RemoteBackup($this->c->get(\Core\Config::class)))->configured(),
         ], 'Backups');
     }
 
@@ -35,16 +48,16 @@ final class BackupsController extends Controller
             return $this->forbidden();
         }
         [$path, $err] = $this->svc()->create();
+        $remoteError = null;
         if ($err === null) {
             $remoteError = (new \Core\Backup\RemoteBackup($this->c->get(\Core\Config::class)))->upload((string) $path);
-            if ($remoteError !== null) $err = 'Local backup created, but remote replication failed: ' . $remoteError;
-        }
-        if (!$err) {
             $this->audit('backup.created', ['file' => basename((string) $path)]);
             $this->c->get(\Core\Events\Dispatcher::class)->dispatch(
                 'backup.created', ['file' => basename((string) $path), 'by' => $u->id]);
+            if ($remoteError !== null) $this->audit('backup.remote_failed', ['file' => basename((string) $path), 'error' => $remoteError]);
         }
-        $this->flash($err ? 'error' : 'ok', $err ?? 'Backup created: ' . basename((string) $path));
+        $message = $err ?? ($remoteError ? 'Local backup created, but remote replication failed: ' . $remoteError : 'Backup created and verified: ' . basename((string) $path));
+        $this->flash($err || $remoteError ? 'error' : 'ok', $message);
         return $this->redirect($r, '/admin/backups');
     }
 
@@ -71,7 +84,10 @@ final class BackupsController extends Controller
         }
         $flag = $storage . '/maintenance.flag';
         $alreadyMaintenance = is_file($flag);
-        if (!$alreadyMaintenance) file_put_contents($flag, date('c') . ' pre-restore');
+        if (!$alreadyMaintenance && @file_put_contents($flag, date('c') . ' pre-restore', LOCK_EX) === false) {
+            $this->flash('error', 'Restore stopped because maintenance mode could not be enabled. Safety snapshot: ' . basename((string) $safety));
+            return $this->redirect($r, '/admin/backups');
+        }
         $ok = false;
         $err = 'Restore did not complete.';
         try {
@@ -98,7 +114,10 @@ final class BackupsController extends Controller
             return $this->forbidden();
         }
         $name = basename($r->string('name'));
-        $this->svc()->delete($name);
+        if (!$this->svc()->delete($name)) {
+            $this->flash('error', 'Backup could not be deleted. It may already be missing or protected by hosting ownership.');
+            return $this->redirect($r, '/admin/backups');
+        }
         $this->audit('backup.deleted', ['file' => $name]);
         $this->flash('ok', 'Backup deleted.');
         return $this->redirect($r, '/admin/backups');

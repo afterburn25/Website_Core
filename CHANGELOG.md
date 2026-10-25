@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.24 — 2026-10-24
+
+- Adds automatic integrity inspection and detailed verification evidence to
+  every visible recovery point.
+- Stops backup creation or file restore on required read/write failure instead
+  of silently shipping or accepting incomplete recovery data.
+- Preserves/audits local backup success separately from optional remote-copy
+  failure and makes delete/maintenance filesystem outcomes truthful.
+- Prevents duplicate queued backups, records cron heartbeat, and exposes
+  deliberate recovery of interrupted leases before retry.
+- Rebuilds backup presentation as responsive verified recovery cards and adds
+  focused operational regression coverage.
+
 ## 2.0.23 — 2026-10-24
 
 - Completes Modules with lifecycle summaries, package filtering, clearer

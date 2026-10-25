@@ -1292,6 +1292,12 @@ integrity.
 - Migration 0029 owns package-keyed products, order snapshots, customer
   accounts, and one-time password recovery. Disable/uninstall preserve these;
   explicit package purge removes them.
-- Local PHP is unavailable in this workspace. Do not mark release verification
-  complete until the full GitHub matrix passes and the packaged artifact is
-  exercised on shared hosting.
+- GitHub Actions CI run 527 (`40208367921`) passed all six PHP 8.4/8.5,
+  Core-only, MySQL 8.4, MariaDB 11.4, and artifact jobs on corrective commit
+  `a119e4281c85449471a124f14e5b10f674410023`.
+- The verified direct Catering package has 848 entries, includes all four
+  required installer paths and the bundled Catering manifest, and contains no
+  nested ZIP. SHA-256:
+  `dc01196bb1328f32a46ec0ba7efc6e5cf58ef78e136b400b17d4518526cb7451`.
+- Local PHP is unavailable in this workspace. Packaged shared-host browser
+  acceptance remains pending and must not be marked complete until exercised.

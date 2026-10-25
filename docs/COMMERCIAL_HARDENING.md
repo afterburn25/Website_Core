@@ -56,7 +56,8 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       disable/restore, permissions, CSRF, and auditing are wired.
 - [x] Disable/uninstall preserve Core feature records; explicit module purge
       removes the package partition in dependency-safe order.
-- [ ] Full PHP 8.4/8.5, MySQL/MariaDB, package, and artifact CI matrix.
+- [x] CI run 527 passed PHP 8.4/8.5, Core-only boot, MySQL 8.4,
+      MariaDB 11.4, package, installer, and artifact-contract checks.
 - [ ] Packaged browser acceptance on shared hosting.
 
 ## 2.0.32 — Core analytics and transactional-mail acceptance

@@ -207,6 +207,9 @@ run against packaged builds; code-complete does not mean externally verified.
 - [x] Focused unit/static contracts cover language lifecycle and JSON errors,
       pattern lifecycle, redirect deletion, and the visible commercial
       workspace controls.
+- [x] PHP 8.4/8.5, Core-only boot, MySQL 8.4, MariaDB 11.4, package, and
+      directly usable artifact contracts pass in GitHub Actions run 493
+      (run ID `40153106399`).
 - [ ] Packaged subfolder browser verification covers missing-path resolution,
       redirect conflict/import/export, language lifecycle, failed translation
       save retention, public localized routing, pattern search/duplicate/apply,

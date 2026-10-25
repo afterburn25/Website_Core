@@ -18,9 +18,10 @@
 - Layout Patterns now show block-order previews and support search, apply,
   rename, duplicate, unique-name validation, revision guidance, and confirmed
   deletion.
-- Core version advances to 2.0.19 without a schema migration. The release must
-  pass PHP 8.4/8.5, MySQL 8.4, MariaDB 11.4, Core-only, package, and artifact
-  jobs before handoff; packaged browser verification remains external.
+- Core version advances to 2.0.19 without a schema migration. PHP 8.4/8.5,
+  MySQL 8.4, MariaDB 11.4, Core-only, package, and artifact jobs all passed in
+  GitHub Actions run 493 (run ID `40153106399`). Packaged browser verification
+  remains external.
 
 ## 2.0.18 advisory installer cleanup
 

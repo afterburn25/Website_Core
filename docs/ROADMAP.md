@@ -76,3 +76,58 @@ Every public HTML response receives both required links to
 - Target-host provider list (LiteSpeed/shared panels) — needs evidence
   runs on real hosts before compatibility claims.
 - Commercial licensing terms/legal entity — open owner decision.
+
+## Shared services for industry modules — planning backlog (2026-10-25)
+
+Owner direction: shared behavior should be implemented once in Core and used
+by industry modules. Catering is developed independently in
+`Core_Mods:module/catering`. Record missing Core capabilities here; do not
+implement Core changes or synchronize catering snapshots from the catering
+session. This section records requirements and proposals, not delivered
+features or a scheduled version. Existing commercial-hardening gates remain.
+
+The current implementation is on `devin/website-core`; `main` still contains
+the initial scaffold. Avoid maintaining a second implementation backlog on
+the old branch.
+
+### Reuse existing Core services first
+
+Core already supplies page composition/revisions, forms/submissions,
+Media, navigation/branding, administrator identities/permissions, queued
+mail, audit, backups, search/dashboard contributions, SEO infrastructure,
+privacy, and analytics. Modules should use those services through documented
+APIs rather than build parallel systems. Catering still contains its own
+contact/quote handlers, image whitelist, hard-coded service/FAQ content,
+business phone setting, and shared-view setup. Migrate incrementally with
+preservation of existing content, inquiry history, IDs, and customizations.
+
+| ID | Shared requirement | Acceptance criteria / catering dependency |
+| --- | --- | --- |
+| CORE-REUSE-1 | Stable module-facing service API and shared public/admin rendering helpers | Document supported service interfaces; supply standard admin context, capability checks, CSRF, navigation, flash/errors, branding and route URLs without repeated controller setup. Caterer supplies its template/data and domain validation. Prove use by two industries. |
+| CORE-REUSE-2 | Reusable record editor and list components | Modules declare fields, columns, filters, pagination, ordering, bulk actions and permission/persistence callbacks. Shared controls provide validation/error recovery, confirmations and accessible UI. Module tables and business rules remain module-owned; arbitrary client-supplied table names are never accepted. |
+| CORE-REUSE-3 | Module integration with existing content and media | Provide documented seeding/editing/preview/revision hooks and reusable image/file picker, alt text, focal crop and usage tracking. Replace catering's fixed image whitelist and hard-coded editable service/FAQ copy without overwriting administrator edits; do not duplicate the existing composer or Media library. |
+| CORE-REUSE-4 | Module integration with existing forms and notifications | Modules declare starter form schemas and custom validation, receive protected submission events/IDs, and link industry records to shared submissions. Generic contact handling, anti-spam, validation errors, notification templates and delivery status use Core. Preserve catering-specific event/headcount/dietary rules and existing inquiries; avoid duplicate submissions/emails during migration. |
+| CORE-REUSE-5 | Shared business profile and reusable presentation blocks | Expose one business identity/contact/location/hours/service-area record with module overrides only where needed. Reuse Core blocks/patterns for FAQ, gallery, testimonials, service cards, team, calls to action and contact display; seed industry-specific text once and preserve later edits. Existing blocks/services are reused before new ones are added. |
+| CORE-REUSE-6 | Optional feature declarations and dependency enforcement | Modules declare supported shared features and required service/API versions. Core validates dependencies and controls navigation, settings, dashboard widgets, public routes and backend actions consistently. Unsupported features remain unavailable server-side, existing data is preserved, and Core-only boot remains valid. |
+| CORE-REUSE-7 | Common enquiry and quotation services (design proposal) | Evaluate a shared enquiry inbox/contact record with assignment, notes, attachments, follow-up and history; generic quote items/totals, expiry, acceptance and documents use module extensions. Catering event rules and per-guest pricing remain in catering. Keep this distinct from ordinary form submissions; migrate/deduplicate existing records explicitly. |
+| CORE-REUSE-8 | Shared SDK scaffold and contract test kit | Generate the manifest/provider, admin contributions, migrations, docs and module-only package once; validate compatibility, install/upgrade preservation, access controls and rendering with two different industries. Integration waits for explicit owner instruction; the module ZIP remains directly installable. |
+
+### Previously requested common product services
+
+The owner has also requested optional shared catalog/products, cart,
+checkout/orders, customer accounts and manual Venmo/PayPal/Cash App payment
+methods, with no cash option. These are requirements, not evidence of
+implementation. Check current work before duplicating tasks. Customer accounts
+and commerce are enabled only when the selected module supports them.
+A manual payment selection records an unpaid/pending-verification order; it
+does not imply payment-provider confirmation. Industry-specific choices and
+pricing extend shared services rather than copying a cart or account system.
+
+### Contract alignment before implementation
+
+`CORE_BOUNDARIES.md` still excludes several now-requested shared product
+services and even some existing Core features. Align that document, supported
+Module API, module rules and contract tests with the owner's optional-service
+direction before delivering these extensions. Core remains industry-neutral;
+shared optional services do not move catering menus, recipes, guest rules,
+dietary logic or event operations into Core.

@@ -39,6 +39,7 @@ final class Nav
             $this->core('/admin/seo',        'SEO',            'navigation.manage',     'Website',        'core-website', 'seo'),
             $this->core('/admin/media',      'Media',          'media.manage',          'Website',        'core-website', 'media'),
             $this->core('/admin/appearance', 'Appearance',     'appearance.manage',     'Website',        'core-website', 'appearance'),
+            $this->core('/admin/business',   'Business profile','settings.manage',      'Website',        'core-website', 'sites'),
             $this->core('/admin/privacy',    'Privacy',        'settings.manage',       'Administration', 'core-administration', 'privacy'),
             $this->core('/admin/integrations','Integrations',  'settings.manage',       'Administration', 'core-administration', 'integrations'),
             $this->core('/admin/users',      'Administrators', 'admins.view',           'Administration', 'core-administration', 'users'),
@@ -66,7 +67,13 @@ final class Nav
         if ($this->registry?->supportsFeature('accounts.customers')) {
             $featureNav[] = $this->core('/admin/customers', 'Customers', 'customers.manage', 'Customers', 'core-customers', 'users');
         }
-        if ($featureNav !== []) array_splice($nav, 15, 0, $featureNav);
+        if ($this->registry?->supportsFeature('crm.inquiries')) {
+            $featureNav[] = $this->core('/admin/inquiries', 'Inquiries', 'inquiries.manage', 'Sales', 'core-sales', 'forms');
+        }
+        if ($this->registry?->supportsFeature('crm.quotes')) {
+            $featureNav[] = $this->core('/admin/quotes', 'Quotes', 'quotes.manage', 'Sales', 'core-sales', 'content');
+        }
+        if ($featureNav !== []) array_splice($nav, 16, 0, $featureNav);
         if ($this->registry !== null) {
             foreach ($this->registry->adminNavItems() as $item) {
                 $package = (string) $item['package'];

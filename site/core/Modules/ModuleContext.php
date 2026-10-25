@@ -5,6 +5,7 @@ namespace Core\Modules;
 
 use Core\Auth\Permissions;
 use Core\Branding\BrandAssets;
+use Core\Business\BusinessProfile;
 use Core\Content\MenuService;
 use Core\Database\Connection;
 use Core\Events\Dispatcher;
@@ -40,6 +41,9 @@ final class ModuleContext
     private array $brandAssets = [];
     /** @var array<string,array> opt-in Core surfaces supplied by this package */
     private array $coreFeatures = [];
+    /** @var array<string,array> declarative admin resources keyed by route owner/resource */
+    private array $adminResources = [];
+    private ?string $viewNamespace = null;
 
     /**
      * @param callable|null $adminMiddleware combined auth+CSRF pipeline for
@@ -328,6 +332,7 @@ final class ModuleContext
     {
         $allowed = [
             'commerce.catalog', 'commerce.cart', 'commerce.checkout', 'commerce.orders', 'accounts.customers',
+            'business.profile', 'crm.inquiries', 'crm.quotes',
         ];
         if (!in_array($feature, $allowed, true)) {
             throw new \InvalidArgumentException('Unknown Core feature: ' . $feature);
@@ -340,6 +345,8 @@ final class ModuleContext
             'commerce.catalog', 'commerce.cart', 'commerce.checkout' => 'commerce.manage',
             'commerce.orders' => 'orders.manage',
             'accounts.customers' => 'customers.manage',
+            'crm.inquiries' => 'inquiries.manage',
+            'crm.quotes' => 'quotes.manage',
             default => null,
         };
         if ($capability !== null) $this->permissions?->activateOptional($capability);
@@ -370,9 +377,27 @@ final class ModuleContext
         $this->coreFeature('accounts.customers', $options);
     }
 
+    /** Seed and expose the single Core-owned business identity. */
+    public function businessProfile(array $defaults = []): void
+    {
+        $this->coreFeature('business.profile');
+        if ($defaults !== [] && $this->serviceResolver !== null) {
+            $this->service(BusinessProfile::class)->seed($this->packageId, $defaults);
+        }
+    }
+
+    /** Enable the shared inquiry workspace and, optionally, quotations. */
+    public function leadManagement(array $options = []): void
+    {
+        $quotes = !array_key_exists('quotes', $options) || (bool) $options['quotes'];
+        unset($options['quotes']);
+        $this->coreFeature('crm.inquiries', $options);
+        if ($quotes) $this->coreFeature('crm.quotes', $options);
+    }
+
     private function normalizeFeatureOptions(array $options): array
     {
-        $allowed = ['store_name', 'currency', 'fulfillment', 'terms_url', 'registration', 'account_label'];
+        $allowed = ['store_name', 'currency', 'fulfillment', 'terms_url', 'registration', 'account_label', 'label'];
         $normalized = [];
         foreach ($options as $key => $value) {
             if (!in_array((string) $key, $allowed, true)) {
@@ -453,6 +478,7 @@ final class ModuleContext
     public function views(string $dir): string
     {
         $ns = 'mod-' . str_replace(['/', '_'], '-', $this->packageId);
+        $this->viewNamespace = $ns;
         $theme = $this->activeTheme;
         $this->view?->addResolver($ns, function (string $v) use ($dir, $theme): ?string {
             $active = $theme instanceof \Closure ? $theme() : (is_string($theme) ? $theme : '');
@@ -466,6 +492,63 @@ final class ModuleContext
             return is_file($path) ? $path : null;
         });
         return $ns;
+    }
+
+    /** Render a package view in Core's complete admin shell with capability enforcement. */
+    public function adminView(Request $request, string $view, array $data, string $title, string $capability): \Core\Http\Response
+    {
+        if ($this->viewNamespace === null || !str_starts_with($view, $this->viewNamespace . ':')) {
+            throw new \InvalidArgumentException('Call views() and use its returned namespace before rendering an admin view.');
+        }
+        return $this->service(ModuleAdminRenderer::class)->render($request, $this->packageId, $view, $data, $title, $capability);
+    }
+
+    /**
+     * Register a standard list/editor resource while the package retains its
+     * persistence callbacks and business rules.
+     *
+     * @param list<array{name:string,label:string,type?:string,required?:bool,options?:array}> $fields
+     * @param list<array{name:string,label:string}> $columns
+     */
+    public function adminResource(
+        string $key,
+        string $label,
+        string $capability,
+        array $fields,
+        array $columns,
+        callable $list,
+        callable $find,
+        callable $save,
+        ?callable $delete = null,
+        string $category = 'Industry',
+    ): void {
+        if (!preg_match('/^[a-z][a-z0-9_-]{1,79}$/', $key)) throw new \InvalidArgumentException('Resource keys must be stable lowercase tokens.');
+        if (trim($label) === '' || mb_strlen(trim($label)) > 120) throw new \InvalidArgumentException('Resource labels must be 1–120 characters.');
+        if (!preg_match('/^[a-z0-9_.:-]+$/', $capability)) throw new \InvalidArgumentException('Resources require a valid capability.');
+        if ($fields === [] || $columns === []) throw new \InvalidArgumentException('Resources require fields and columns.');
+        $allowedTypes = ['text', 'textarea', 'email', 'url', 'number', 'date', 'select', 'checkbox'];
+        $normalize = static function (array $items, bool $field) use ($allowedTypes): array {
+            $out = [];
+            foreach ($items as $item) {
+                if (!is_array($item) || !preg_match('/^[a-z][a-z0-9_]{0,79}$/', (string)($item['name']??'')) || trim((string)($item['label']??'')) === '') {
+                    throw new \InvalidArgumentException('Resource fields and columns require safe names and labels.');
+                }
+                if ($field && !in_array((string)($item['type']??'text'), $allowedTypes, true)) throw new \InvalidArgumentException('Unsupported resource field type.');
+                $out[] = $item;
+            }
+            return $out;
+        };
+        $routeOwner = $this->packageSlug() . '-' . substr(hash('sha256', $this->packageId), 0, 8);
+        $route = '/admin/resources/' . $routeOwner . '/' . $key;
+        $resourceKey = $routeOwner . '/' . $key;
+        if (isset($this->adminResources[$resourceKey])) throw new \InvalidArgumentException('Admin resource is already registered.');
+        $this->adminResources[$resourceKey] = [
+            'key'=>$key,'label'=>trim($label),'capability'=>$capability,
+            'fields'=>$normalize($fields,true),'columns'=>$normalize($columns,false),
+            'list'=>$list,'find'=>$find,'save'=>$save,'delete'=>$delete,
+            'route'=>$route,'package'=>$this->packageId,
+        ];
+        $this->adminPage(trim($label), $route, $capability, $category);
     }
 
     /**
@@ -541,4 +624,5 @@ final class ModuleContext
     public function navigationMenus(): array { return $this->navigationMenus; }
     public function declaredBrandAssets(): array { return $this->brandAssets; }
     public function coreFeatures(): array { return $this->coreFeatures; }
+    public function adminResources(): array { return $this->adminResources; }
 }

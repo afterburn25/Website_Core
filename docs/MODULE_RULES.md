@@ -9,9 +9,10 @@ is the detailed authority; module work must read both before implementation.
 
 ## Ownership boundaries
 
-- Core owns authentication, administrator and opt-in customer accounts, permissions, settings,
-  pages, Media, forms, navigation storage, branding selections, themes,
-  backups, updates, health, audit history, privacy, and integrations.
+- Core owns authentication, administrator and opt-in customer accounts,
+  permissions, settings, shared business identity, generic inquiries and
+  quotes, pages, Media, forms, navigation storage, branding selections,
+  themes, backups, updates, health, audit history, privacy, and integrations.
 - Core owns generic commerce storage and workflows only when the enabled
   industry module declares the corresponding features. A module owns product
   meaning, merchandising defaults, and industry fulfillment rules.
@@ -22,8 +23,9 @@ is the detailed authority; module work must read both before implementation.
 - A module must not create a second dashboard. It contributes overview widgets
   to the Core Dashboard and industry pages to its own admin category.
 - Optional Core features must be declared through `commerce()`,
-  `customerAccounts()`, or an allowlisted `coreFeature()`. Modules must never
-  duplicate these records or show links to features they did not declare.
+  `customerAccounts()`, `businessProfile()`, `leadManagement()`, or an
+  allowlisted `coreFeature()`. Modules must never duplicate these records or
+  show links to features they did not declare.
 
 ## Administrator experience
 
@@ -32,7 +34,7 @@ is the detailed authority; module work must read both before implementation.
 - Visible controls must call real actions. Mutations require capability checks,
   CSRF protection, validation, an audit record, and an explicit confirmation
   when data or availability can be lost.
-- Module admin routes use Core's shared layout and navigation registration;
+- Module admin routes use `adminView()` or `adminResource()` where applicable;
   direct unstyled administration pages are not allowed.
 - Labels use business language. Internal IDs, raw JSON, stack traces, and
   secrets are not ordinary administrator UI.

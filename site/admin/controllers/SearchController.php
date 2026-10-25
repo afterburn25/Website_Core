@@ -75,6 +75,18 @@ final class SearchController extends Controller
                     $results[]=['type'=>'Customer','title'=>$row['name'],'detail'=>$row['email'].' · '.$row['status'],'url'=>'/admin/customers'];
                 }
             }
+            if ($registry->supportsFeature('crm.inquiries') && $this->auth()->has($u, 'inquiries.manage')) {
+                $owner = (string) ($registry->feature('crm.inquiries')['package'] ?? '');
+                foreach ($this->db()->fetchAll('SELECT id,customer_name,subject,status FROM `' . $this->db()->table('crm_inquiries') . '` WHERE owner_package=? AND (customer_name LIKE ? OR customer_email LIKE ? OR subject LIKE ?) ORDER BY created_at DESC LIMIT 20', [$owner,$like,$like,$like]) as $row) {
+                    $results[]=['type'=>'Inquiry','title'=>$row['subject'],'detail'=>$row['customer_name'].' · '.$row['status'],'url'=>'/admin/inquiries/view&id='.$row['id']];
+                }
+            }
+            if ($registry->supportsFeature('crm.quotes') && $this->auth()->has($u, 'quotes.manage')) {
+                $owner = (string) ($registry->feature('crm.quotes')['package'] ?? '');
+                foreach ($this->db()->fetchAll('SELECT id,quote_number,customer_name,status FROM `' . $this->db()->table('crm_quotes') . '` WHERE owner_package=? AND (quote_number LIKE ? OR customer_name LIKE ? OR customer_email LIKE ?) ORDER BY created_at DESC LIMIT 20', [$owner,$like,$like,$like]) as $row) {
+                    $results[]=['type'=>'Quote','title'=>$row['quote_number'],'detail'=>$row['customer_name'].' · '.$row['status'],'url'=>'/admin/quotes/edit&id='.$row['id']];
+                }
+            }
             foreach ($registry->search($query) as $result) {
                 if (empty($result['capability']) || $this->auth()->has($u, (string) $result['capability'])) {
                     $results[] = [

@@ -166,7 +166,7 @@ final class SettingsController extends Controller
         $this->audit('settings.smtp_connection_tested',['host'=>$config['host'],'port'=>$config['port'],'secure'=>$config['secure'],'connected'=>$connected]);
         return Response::json(['ok'=>$connected,'message'=>$connected
             ? 'Connection and authentication succeeded. No message was sent and nothing was saved.'
-            : 'Connection failed: '.($error??'unknown connection error')])->header('Cache-Control','private, no-store');
+            : ($error??'The SMTP connection failed for an unknown reason.')])->header('Cache-Control','private, no-store');
     }
 
     /** In-page delivery test against the currently saved transport. */

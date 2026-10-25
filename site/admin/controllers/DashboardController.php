@@ -29,6 +29,7 @@ final class DashboardController extends Controller
         );
         $analytics = null;
         $commerce = null;
+        $sales = null;
         if ($this->user() && $this->auth()->has($this->user(), 'analytics.view')) {
             try {
                 $analytics = $this->c->get(\Core\Analytics\AnalyticsReport::class)
@@ -48,6 +49,16 @@ final class DashboardController extends Controller
                 ];
             } catch (\Throwable) { $commerce=null; }
         }
+        if ($registry->supportsFeature('crm.inquiries') && $this->user() && $this->auth()->has($this->user(), 'inquiries.manage')) {
+            $owner=(string)($registry->feature('crm.inquiries')['package']??'');
+            try {
+                $sales=[
+                    'new'=>(int)$db->fetchColumn('SELECT COUNT(*) FROM `'.$db->table('crm_inquiries').'` WHERE owner_package=? AND status=?',[$owner,'new']),
+                    'urgent'=>(int)$db->fetchColumn('SELECT COUNT(*) FROM `'.$db->table('crm_inquiries').'` WHERE owner_package=? AND priority=? AND status NOT IN (\'won\',\'lost\',\'archived\')',[$owner,'urgent']),
+                    'sent'=>$registry->supportsFeature('crm.quotes')?(int)$db->fetchColumn('SELECT COUNT(*) FROM `'.$db->table('crm_quotes').'` WHERE owner_package=? AND status=?',[$owner,'sent']):0,
+                ];
+            } catch (\Throwable) { $sales=null; }
+        }
 
         return $this->page($r, 'dashboard/index', [
             'pageCount' => $pageCount,
@@ -59,6 +70,7 @@ final class DashboardController extends Controller
             'moduleWidgets' => $moduleWidgets,
             'analytics' => $analytics,
             'commerce' => $commerce,
+            'sales' => $sales,
             'php'       => PHP_VERSION,
             'dbVersion' => $db->driver() === 'sqlite'
                 ? 'sqlite ' . $db->pdo()->query('SELECT sqlite_version()')->fetchColumn()

@@ -1,6 +1,7 @@
 # Project Status
 
-**Current**: `2.1.0` opt-in commerce and customer accounts. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.2.0` shared business profile, reusable module administration,
+and opt-in inquiries/quotations. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and

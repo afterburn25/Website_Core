@@ -373,6 +373,19 @@ final class ModuleRegistry
         return $this->coreFeatures()[$feature] ?? null;
     }
 
+    /** @return array<string,array> resources registered by enabled packages */
+    public function adminResources(): array
+    {
+        $out = [];
+        foreach ($this->contexts as $ctx) {
+            foreach ($ctx->adminResources() as $key => $resource) {
+                if (isset($out[$key])) throw new \RuntimeException('Duplicate module admin resource route: ' . $key);
+                $out[$key] = $resource;
+            }
+        }
+        return $out;
+    }
+
     /** Deterministic load order: dependencies before dependents. */
     public function dependencyOrder(): array
     {

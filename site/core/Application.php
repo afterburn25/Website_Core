@@ -330,6 +330,12 @@ final class Application
             $db, $this->container->get(Dispatcher::class)
         ));
         $this->container->instance(\Core\Accounts\CustomerAuth::class, new \Core\Accounts\CustomerAuth($db, $systemMail));
+        $this->container->instance(\Core\Business\BusinessProfile::class, new \Core\Business\BusinessProfile(
+            $this->container->get(SettingsRepository::class)
+        ));
+        $this->container->instance(\Core\Leads\InquiryService::class, new \Core\Leads\InquiryService($db));
+        $this->container->instance(\Core\Leads\QuoteService::class, new \Core\Leads\QuoteService($db));
+        $this->container->instance(\Core\Modules\ModuleAdminRenderer::class, new \Core\Modules\ModuleAdminRenderer($this->container));
     }
 
     /**
@@ -597,6 +603,8 @@ final class Application
             $r->post('/analytics/search-console', fn (Request $req) => (new \Admin\Controllers\AnalyticsController($c))->searchConsole($req), [$auth, $csrfCheck]);
             $r->post('/notices/{id:\d+}/dismiss', fn (Request $req) => (new \Admin\Controllers\NoticesController($c))->dismiss($req), [$auth, $csrfCheck]);
             $r->any('/settings', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->index($req), [$auth, $csrfCheck]);
+            $r->any('/business', fn (Request $req) => (new \Admin\Controllers\BusinessController($c))->index($req), [$auth, $csrfCheck]);
+            $r->any('/resources/{owner:[a-z0-9_-]+}/{resource:[a-z0-9_-]+}', fn (Request $req) => (new \Admin\Controllers\ResourceController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/store/products', fn (Request $req) => (new \Admin\Controllers\CommerceController($c))->products($req), [$auth, $csrfCheck]);
             $r->any('/store/products/edit', fn (Request $req) => (new \Admin\Controllers\CommerceController($c))->productEdit($req), [$auth, $csrfCheck]);
             $r->get('/store/orders', fn (Request $req) => (new \Admin\Controllers\CommerceController($c))->orders($req), [$auth]);
@@ -604,6 +612,10 @@ final class Application
             $r->any('/store/orders/view', fn (Request $req) => (new \Admin\Controllers\CommerceController($c))->orderView($req), [$auth, $csrfCheck]);
             $r->any('/store/settings', fn (Request $req) => (new \Admin\Controllers\CommerceController($c))->settings($req), [$auth, $csrfCheck]);
             $r->any('/customers', fn (Request $req) => (new \Admin\Controllers\CustomersController($c))->index($req), [$auth, $csrfCheck]);
+            $r->get('/inquiries', fn (Request $req) => (new \Admin\Controllers\LeadsController($c))->inquiries($req), [$auth]);
+            $r->any('/inquiries/view', fn (Request $req) => (new \Admin\Controllers\LeadsController($c))->inquiry($req), [$auth, $csrfCheck]);
+            $r->get('/quotes', fn (Request $req) => (new \Admin\Controllers\LeadsController($c))->quotes($req), [$auth]);
+            $r->any('/quotes/edit', fn (Request $req) => (new \Admin\Controllers\LeadsController($c))->quote($req), [$auth, $csrfCheck]);
             $r->post('/settings/test-smtp', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->testSmtp($req), [$auth, $csrfCheck]);
             $r->post('/settings/test-mail', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->testMail($req), [$auth, $csrfCheck]);
             $r->any('/privacy', fn (Request $req) => (new \Admin\Controllers\PrivacyController($c))->index($req), [$auth, $csrfCheck]);
@@ -709,6 +721,8 @@ final class Application
         $this->router->any('/account/forgot', fn (Request $r) => (new \Admin\Controllers\AccountController($c))->forgot($r), [$csrfCheck]);
         $this->router->any('/account/reset', fn (Request $r) => (new \Admin\Controllers\AccountController($c))->reset($r), [$csrfCheck]);
         $this->router->any('/account', fn (Request $r) => (new \Admin\Controllers\AccountController($c))->profile($r), [$csrfCheck]);
+        $this->router->get('/quote/{token:[a-f0-9]{48}}', fn (Request $r) => (new \Admin\Controllers\LeadsController($c))->publicQuote($r));
+        $this->router->post('/quote/{token:[a-f0-9]{48}}', fn (Request $r) => (new \Admin\Controllers\LeadsController($c))->publicQuote($r), [$csrfCheck]);
         $this->router->any('/privacy/request', fn (Request $r) => (new \Admin\Controllers\PrivacyController($c))->request($r));
         $this->router->get('/api/v1/health', fn (Request $r) => (new \Admin\Controllers\ApiController($c))->health($r));
         $this->router->get('/api/v1/pages', fn (Request $r) => (new \Admin\Controllers\ApiController($c))->pages($r));

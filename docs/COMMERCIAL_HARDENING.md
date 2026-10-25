@@ -44,6 +44,24 @@ Every listed surface must satisfy all applicable gates:
 
 Status values: **queued**, **in progress**, **code complete**, **verified**.
 
+## 2.2.0 — Shared business and sales foundation
+
+- [x] One Core-owned business profile provides identity, contact, location,
+      service-area, and hours data with edit-preserving module defaults.
+- [x] Module `adminView()` renders the complete Core shell with server-side
+      capability enforcement and standard navigation, branding, CSRF, alerts,
+      versions, and notices.
+- [x] Module `adminResource()` provides declarative, validated list/editor
+      workflows while package callbacks retain persistence and business rules.
+- [x] Optional package-scoped inquiries provide deduplicated intake,
+      assignment, priority, lifecycle state, and private notes.
+- [x] Optional quotations provide server-calculated item totals, expiry, and
+      single-use secure customer accept/decline links.
+- [x] Disable/uninstall preserve shared records; explicit package purge removes
+      inquiries, notes, quotes, and items in dependency-safe order.
+- [ ] Full PHP 8.4/8.5, MySQL/MariaDB, package, Core-only, and artifact CI.
+- [ ] Packaged shared-host browser acceptance and adoption by two industries.
+
 ## 2.1.0 — Opt-in commerce and public customer accounts
 
 - [x] Enabled modules explicitly declare catalog, cart, checkout, orders, and

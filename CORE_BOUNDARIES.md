@@ -25,11 +25,18 @@ direction (packages → core API, never core → package internals).
 - Opt-in public customer identity, recovery, profiles, and order history,
   activated only by an enabled module. Administrator identity remains a
   separate security realm.
+- One shared business profile and opt-in, package-scoped inquiry/quotation
+  records. Core owns the generic pipeline, assignment, notes, item totals,
+  expiry, and acceptance audit; modules own industry questions, estimation
+  formulas, pricing rules, scheduling, and fulfillment.
+- Reusable module admin-shell and record-editor contracts. Modules retain
+  persistence callbacks and business validation; Core supplies consistent
+  permissions, CSRF, filtering, pagination, errors, and accessible controls.
 
 ## Core MUST NOT contain
 
-processor SDKs, gateway-specific payment logic, invoices, tax calculation,
-subscriptions, booking, CRM, client
+processor SDKs, gateway-specific payment logic, invoices, automatic tax calculation,
+subscriptions, booking, full sales CRM/automation, client
 portals, memberships, blogs, advanced forms/galleries, newsletters,
 third-party surveillance analytics, webmail, hosting resale, 20i, domains, VPS, SSH, agency fleet
 tools, or industry-specific tables and workflows.
@@ -56,3 +63,6 @@ tools, or industry-specific tables and workflows.
   surface with `commerce()` or `coreFeature()`; undeclared features remain
   unreachable and absent from navigation. Gateway integrations, product
   meaning, tax rules, and industry fulfillment logic remain packages.
+- Generic inquiry intake and itemized quotes: core. Lead scoring, campaigns,
+  industry estimators, proposal templates, contracts, e-signature, and sales
+  automation remain packages or external integrations.

@@ -131,13 +131,34 @@ final class ModuleContextTest extends TestCase
 
         $context->commerce(['currency'=>'USD','fulfillment'=>['pickup','delivery']]);
         $context->customerAccounts(['registration'=>true,'account_label'=>'My account']);
+        $context->businessProfile(['name'=>'Demo Company']);
+        $context->leadManagement(['quotes'=>true,'label'=>'Sales']);
 
         $this->assertArrayHasKey('commerce.catalog', $context->coreFeatures());
         $this->assertArrayHasKey('commerce.orders', $context->coreFeatures());
         $this->assertArrayHasKey('accounts.customers', $context->coreFeatures());
+        $this->assertArrayHasKey('business.profile', $context->coreFeatures());
+        $this->assertArrayHasKey('crm.inquiries', $context->coreFeatures());
+        $this->assertArrayHasKey('crm.quotes', $context->coreFeatures());
         $this->assertTrue($permissions->allows('admin', 'commerce.manage'));
         $this->assertTrue($permissions->allows('admin', 'orders.manage'));
         $this->assertTrue($permissions->allows('admin', 'customers.manage'));
+        $this->assertTrue($permissions->allows('admin', 'inquiries.manage'));
+        $this->assertTrue($permissions->allows('admin', 'quotes.manage'));
+    }
+
+    public function testModuleCanRegisterAReusableAdminResource(): void
+    {
+        $context = new ModuleContext('acme/demo', new Router(), new Dispatcher());
+        $context->adminResource('services','Services','demo.manage',
+            [['name'=>'name','label'=>'Name','required'=>true]],
+            [['name'=>'name','label'=>'Name']],
+            fn()=>[],fn(int $id)=>['id'=>$id,'name'=>'Example'],fn(?int $id,array $data)=>[$id??1,null]
+        );
+        $resources=$context->adminResources();
+        self::assertCount(1,$resources);
+        self::assertSame('Services',array_values($resources)[0]['label']);
+        self::assertSame('Services',$context->adminNavItems()[0]['label']);
     }
 
     public function testUnknownCoreFeatureIsRejected(): void

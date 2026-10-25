@@ -656,10 +656,27 @@ final class PackageManager
             $n=$this->db->run('DELETE FROM `'.$this->db->table('customer_accounts').'` WHERE owner_package = ?',[$packageId])->rowCount();
             if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} customer account row(s)");
         }
+        if ($this->db->tableExists('crm_quotes') && $this->db->tableExists('crm_quote_items')) {
+            $n=$this->db->run('DELETE FROM `'.$this->db->table('crm_quote_items').'` WHERE quote_id IN (SELECT id FROM `'
+                .$this->db->table('crm_quotes').'` WHERE owner_package = ?)',[$packageId])->rowCount();
+            if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} CRM quote item row(s)");
+        }
+        if ($this->db->tableExists('crm_inquiries') && $this->db->tableExists('crm_inquiry_notes')) {
+            $n=$this->db->run('DELETE FROM `'.$this->db->table('crm_inquiry_notes').'` WHERE inquiry_id IN (SELECT id FROM `'
+                .$this->db->table('crm_inquiries').'` WHERE owner_package = ?)',[$packageId])->rowCount();
+            if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} CRM inquiry note row(s)");
+        }
+        foreach ([['crm_quotes','owner_package'],['crm_inquiries','owner_package']] as [$shared,$column]) {
+            if (!$this->db->tableExists($shared)) continue;
+            $n=$this->db->run('DELETE FROM `'.$this->db->table($shared).'` WHERE `'.$column.'` = ?',[$packageId])->rowCount();
+            if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} {$shared} row(s)");
+        }
         if ($this->db->tableExists('settings')) {
-            $this->db->run('DELETE FROM `'.$this->db->table('settings').'` WHERE `key` = ?',[
-                'commerce.products_seeded.'.str_replace('/','.',$packageId),
-            ]);
+            foreach (['commerce.products_seeded.','business.seeded.'] as $prefix) {
+                $this->db->run('DELETE FROM `'.$this->db->table('settings').'` WHERE `key` = ?',[
+                    $prefix.str_replace('/','.',$packageId),
+                ]);
+            }
         }
         $this->journal($packageId, 'purge', 'ok', 'data purge complete');
         $this->fire('package.purged', ['package' => $packageId]);

@@ -19,6 +19,7 @@
       <label for="test-recipient">Test recipient<input id="test-recipient" name="test_recipient" type="email" placeholder="you@example.com" data-no-dirty></label>
       <div class="button-row"><button class="btn secondary" type="button" data-smtp-test data-endpoint="<?= e_attr($basePath) ?>/admin/settings/test-smtp" data-busy-label="Testing connection…">Test SMTP connection</button><button class="btn secondary" type="button" data-mail-test data-endpoint="<?= e_attr($basePath) ?>/admin/settings/test-mail" data-busy-label="Sending test…">Send test email</button></div>
       <div class="mail-test-result" data-mail-test-result role="status" aria-live="polite" hidden></div>
+      <p class="field-note">The suggested <code>mail.yourdomain.com</code> host is not guaranteed. If the test says DNS or TCP failed, use the exact outgoing-mail hostname from your hosting panel. Common pairs are SSL/465 and STARTTLS/587.</p>
     </div>
   </section>
 </div>

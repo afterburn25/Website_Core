@@ -29,11 +29,13 @@ adapt to real dependencies; scope is preserved, not deferred silently.
 | 1.9 | API keys, webhooks, site transfer and remote backups | complete | commit “Build the 1.9 integration platform” |
 | 2.0 | agency site registry, marketplace catalog, managed update feeds and visual navigation tree | complete | commit “Release the 2.0 agency and managed platform” |
 | 2.0.1 | module-owned navigation defaults imported into Core's editable tree | complete | commit “Let modules define editable site navigation” |
-| 2.0.2+ | feature-frozen screen-by-screen commercial hardening | in progress — 2.0.6 workflow and administration UX completion | `docs/COMMERCIAL_HARDENING.md` |
+| 2.0.2–2.0.32 | screen-by-screen hardening, hosted repairs, analytics and mail acceptance | code complete; remaining browser matrix tracked separately | `docs/COMMERCIAL_HARDENING.md` |
+| 2.1 | opt-in commerce, manual payments and customer accounts | complete; CI verified | `docs/2.1.0_RELEASE_NOTES.md` |
+| 2.2 | shared business profile, module admin helpers, inquiries and quotations | implementation complete; CI and packaged-host acceptance pending | `docs/2.2.0_RELEASE_NOTES.md` |
 
-No new broad feature milestone follows 2.0 while commercial hardening is in
-progress. The ordered audit in `docs/COMMERCIAL_HARDENING.md` is the active
-roadmap and must be updated as each existing surface is verified.
+New shared features remain dormant unless an enabled module declares them.
+The ordered audit in `docs/COMMERCIAL_HARDENING.md` remains the acceptance
+roadmap and must be updated as each packaged surface is verified.
 
 The immutable footer is core code, not an editable setting or theme field.
 Every public HTML response receives both required links to
@@ -83,8 +85,8 @@ Owner direction: shared behavior should be implemented once in Core and used
 by industry modules. Catering is developed independently in
 `Core_Mods:module/catering`. Record missing Core capabilities here; do not
 implement Core changes or synchronize catering snapshots from the catering
-session. This section records requirements and proposals, not delivered
-features or a scheduled version. Existing commercial-hardening gates remain.
+session. This section records delivered contracts and remaining reuse work.
+Existing commercial-hardening gates remain.
 
 The current implementation is on `devin/website-core`; `main` still contains
 the initial scaffold. Avoid maintaining a second implementation backlog on
@@ -103,31 +105,29 @@ preservation of existing content, inquiry history, IDs, and customizations.
 
 | ID | Shared requirement | Acceptance criteria / catering dependency |
 | --- | --- | --- |
-| CORE-REUSE-1 | Stable module-facing service API and shared public/admin rendering helpers | Document supported service interfaces; supply standard admin context, capability checks, CSRF, navigation, flash/errors, branding and route URLs without repeated controller setup. Caterer supplies its template/data and domain validation. Prove use by two industries. |
-| CORE-REUSE-2 | Reusable record editor and list components | Modules declare fields, columns, filters, pagination, ordering, bulk actions and permission/persistence callbacks. Shared controls provide validation/error recovery, confirmations and accessible UI. Module tables and business rules remain module-owned; arbitrary client-supplied table names are never accepted. |
+| CORE-REUSE-1 | Stable module-facing service API and shared public/admin rendering helpers | **2.2 foundation delivered:** `adminView()` supplies the complete shared shell and enforces capabilities. Adoption by two industries remains. |
+| CORE-REUSE-2 | Reusable record editor and list components | **2.2 foundation delivered:** `adminResource()` supplies fields/columns, validation, filtering, pagination, confirmation, CSRF, permissions and audit while callbacks retain module persistence. Ordering and bulk actions remain. |
 | CORE-REUSE-3 | Module integration with existing content and media | Provide documented seeding/editing/preview/revision hooks and reusable image/file picker, alt text, focal crop and usage tracking. Replace catering's fixed image whitelist and hard-coded editable service/FAQ copy without overwriting administrator edits; do not duplicate the existing composer or Media library. |
 | CORE-REUSE-4 | Module integration with existing forms and notifications | Modules declare starter form schemas and custom validation, receive protected submission events/IDs, and link industry records to shared submissions. Generic contact handling, anti-spam, validation errors, notification templates and delivery status use Core. Preserve catering-specific event/headcount/dietary rules and existing inquiries; avoid duplicate submissions/emails during migration. |
-| CORE-REUSE-5 | Shared business profile and reusable presentation blocks | Expose one business identity/contact/location/hours/service-area record with module overrides only where needed. Reuse Core blocks/patterns for FAQ, gallery, testimonials, service cards, team, calls to action and contact display; seed industry-specific text once and preserve later edits. Existing blocks/services are reused before new ones are added. |
-| CORE-REUSE-6 | Optional feature declarations and dependency enforcement | Modules declare supported shared features and required service/API versions. Core validates dependencies and controls navigation, settings, dashboard widgets, public routes and backend actions consistently. Unsupported features remain unavailable server-side, existing data is preserved, and Core-only boot remains valid. |
-| CORE-REUSE-7 | Common enquiry and quotation services (design proposal) | Evaluate a shared enquiry inbox/contact record with assignment, notes, attachments, follow-up and history; generic quote items/totals, expiry, acceptance and documents use module extensions. Catering event rules and per-guest pricing remain in catering. Keep this distinct from ordinary form submissions; migrate/deduplicate existing records explicitly. |
+| CORE-REUSE-5 | Shared business profile and reusable presentation blocks | **Profile delivered in 2.2:** one editable identity/contact/location/hours/service-area record plus seed-once module defaults. Reusable FAQ/gallery/testimonial/service/team/CTA blocks remain. |
+| CORE-REUSE-6 | Optional feature declarations and dependency enforcement | **Delivered through 2.1–2.2:** declarations control navigation, permissions, routes and data partitions for commerce, accounts, inquiries and quotes. Broader service-version constraints remain. |
+| CORE-REUSE-7 | Common enquiry and quotation services | **2.2 foundation delivered:** package-scoped inbox, assignment, priorities, notes, submission deduplication, itemized totals, expiry and secure acceptance. Attachments, reminders and generated documents remain. |
 | CORE-REUSE-8 | Shared SDK scaffold and contract test kit | Generate the manifest/provider, admin contributions, migrations, docs and module-only package once; validate compatibility, install/upgrade preservation, access controls and rendering with two different industries. Integration waits for explicit owner instruction; the module ZIP remains directly installable. |
 
-### Previously requested common product services
+### Delivered common product services
 
-The owner has also requested optional shared catalog/products, cart,
-checkout/orders, customer accounts and manual Venmo/PayPal/Cash App payment
-methods, with no cash option. These are requirements, not evidence of
-implementation. Check current work before duplicating tasks. Customer accounts
-and commerce are enabled only when the selected module supports them.
+Core 2.1 delivers optional shared catalog/products, cart, checkout/orders,
+customer accounts and manual Venmo/PayPal/Cash App payment methods, with no
+cash option. Customer accounts and commerce are enabled only when the selected
+module supports them.
 A manual payment selection records an unpaid/pending-verification order; it
 does not imply payment-provider confirmation. Industry-specific choices and
 pricing extend shared services rather than copying a cart or account system.
 
-### Contract alignment before implementation
+### Contract alignment
 
-`CORE_BOUNDARIES.md` still excludes several now-requested shared product
-services and even some existing Core features. Align that document, supported
-Module API, module rules and contract tests with the owner's optional-service
-direction before delivering these extensions. Core remains industry-neutral;
+`CORE_BOUNDARIES.md`, the Module API, rules, and contract tests now recognize
+the opt-in commerce, account, inquiry, quote, and shared-profile services.
+Core remains industry-neutral;
 shared optional services do not move catering menus, recipes, guest rules,
 dietary logic or event operations into Core.

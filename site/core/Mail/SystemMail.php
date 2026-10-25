@@ -92,20 +92,54 @@ final class SystemMail
         if ($config['port'] < 1 || $config['port'] > 65535) return [false, 'invalid SMTP port'];
         if (!in_array($config['secure'], ['', 'tls', 'ssl'], true)) return [false, 'invalid SMTP encryption mode'];
 
+        $resolved = @gethostbynamel($config['host']);
+        if ($resolved === false || $resolved === []) {
+            return [false, 'DNS lookup failed for ' . $config['host'] . '. Confirm the SMTP hostname in your hosting email settings; mail.domain.com is only a suggested default.'];
+        }
+        $errno = 0; $errstr = '';
+        $probe = @stream_socket_client(
+            'tcp://' . $config['host'] . ':' . $config['port'],
+            $errno, $errstr, 4, STREAM_CLIENT_CONNECT
+        );
+        if (!is_resource($probe)) {
+            $detail = trim($errstr) !== '' ? trim($errstr) : 'connection refused or timed out';
+            return [false, 'The hostname resolved, but TCP port ' . $config['port'] . ' could not be reached (' . $detail
+                . '). Confirm the port/encryption pair with the mail provider. Shared hosts may require their exact server hostname or localhost and may block outbound SMTP ports.'];
+        }
+        fclose($probe);
+
         $mailer = new PHPMailer(true);
         try {
             $this->configureSmtp($mailer, $config);
             if (!$mailer->smtpConnect()) {
                 $error = $mailer->ErrorInfo !== '' ? $mailer->ErrorInfo : 'SMTP handshake was rejected';
                 $mailer->smtpClose();
-                return [false, $error];
+                return [false, $this->friendlySmtpError($error, $config)];
             }
             $mailer->smtpClose();
             return [true, null];
         } catch (\Throwable $e) {
             if ($mailer->getSMTPInstance()->connected()) $mailer->smtpClose();
-            return [false, $e->getMessage()];
+            return [false, $this->friendlySmtpError($e->getMessage(), $config)];
         }
+    }
+
+    /** Turn transport-library messages into actionable, non-secret diagnostics. */
+    private function friendlySmtpError(string $error, array $config): string
+    {
+        $lower = strtolower($error);
+        if (str_contains($lower, 'authenticate') || str_contains($lower, '535')) {
+            return 'The SMTP server was reached, but authentication failed. Confirm the complete mailbox username and password. Server detail: ' . $error;
+        }
+        if (str_contains($lower, 'certificate') || str_contains($lower, 'crypto') || str_contains($lower, 'tls')) {
+            return 'The SMTP server was reached, but the encrypted handshake failed. Confirm that '
+                . $config['secure'] . ' encryption matches port ' . $config['port'] . ' and that the hostname matches the mail certificate. Server detail: ' . $error;
+        }
+        if (str_contains($lower, 'connect')) {
+            return 'TCP port ' . $config['port'] . ' answered, but the SMTP greeting or encrypted handshake did not complete. '
+                . 'Confirm the host, port, and encryption with the hosting provider. Server detail: ' . $error;
+        }
+        return 'The SMTP server was reached but rejected the connection. Server detail: ' . $error;
     }
 
     /** Drain up to $limit queued messages through the configured transport. */

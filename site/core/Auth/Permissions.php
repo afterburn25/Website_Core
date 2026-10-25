@@ -23,6 +23,8 @@ final class Permissions
         'commerce.manage' => ['Store', 'Manage products', 'Create products, pricing, inventory, and store settings.'],
         'orders.manage' => ['Store', 'Manage orders', 'Review orders and update fulfillment and payment status.'],
         'customers.manage' => ['Customers', 'Manage customers', 'Review and disable public customer accounts.'],
+        'inquiries.manage' => ['Sales', 'Manage inquiries', 'Review, assign, qualify, and document customer inquiries.'],
+        'quotes.manage' => ['Sales', 'Manage quotes', 'Create itemized quotes and review customer responses.'],
         'settings.manage' => ['System', 'Manage settings', 'Change site-wide configuration and security policy.'],
         'modules.view' => ['Extensions', 'View modules', 'Review installed modules, add-ons, and themes.'],
         'modules.install' => ['Extensions', 'Manage modules', 'Install, update, enable, disable, and remove packages.'],
@@ -37,7 +39,7 @@ final class Permissions
         'owner'  => ['*'],
         'admin'  => [
             'content.manage', 'content.publish', 'forms.manage', 'media.manage', 'navigation.manage',
-            'appearance.manage', 'commerce.manage', 'orders.manage', 'customers.manage', 'settings.manage', 'modules.view', 'modules.install',
+            'appearance.manage', 'commerce.manage', 'orders.manage', 'customers.manage', 'inquiries.manage', 'quotes.manage', 'settings.manage', 'modules.view', 'modules.install',
             'system.view', 'audit.view', 'backups.manage',
             'admins.view', 'admins.manage_nonowner',
         ],
@@ -50,7 +52,7 @@ final class Permissions
     private array $extensions = [];
     /** @var array<string,true> Core capabilities made relevant by enabled modules. */
     private array $optionalActive = [];
-    private const OPTIONAL = ['commerce.manage', 'orders.manage', 'customers.manage'];
+    private const OPTIONAL = ['commerce.manage', 'orders.manage', 'customers.manage', 'inquiries.manage', 'quotes.manage'];
 
     public function __construct(private ?Connection $db = null) {}
 

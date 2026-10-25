@@ -1347,3 +1347,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 @media(max-width:900px){.commerce-editor-layout,.commerce-order-layout,.payment-method-grid{grid-template-columns:1fr}.commerce-guidance,.commerce-order-layout>aside{position:static}}
 @media(max-width:560px){.commerce-product-card{grid-template-columns:1fr}.commerce-product-art{width:100%;height:auto;aspect-ratio:16/8}}
 
+/* Core 2.2 shared business, module-resource, and sales workspaces. */
+.resource-workspace{grid-template-columns:minmax(0,1.45fr) minmax(300px,.8fr);align-items:start}
+.prose-panel{padding:1rem 1.1rem;border:1px solid var(--admin-border);border-radius:14px;background:var(--admin-surface-soft);white-space:normal}
+.timeline-list{display:grid;gap:.8rem;margin-top:1rem}.timeline-list article{padding:1rem;border:1px solid var(--admin-border);border-radius:14px;background:var(--admin-surface-soft)}
+.timeline-list article time{display:block;color:var(--admin-muted);font-size:.8rem;margin:.15rem 0 .5rem}.timeline-list article p{margin:0}
+.quote-items input{min-width:110px}.quote-items td:first-child input{min-width:260px}.success-panel{border-color:var(--admin-success);background:var(--admin-surface-soft)}
+@media(max-width:900px){.resource-workspace{grid-template-columns:1fr}}
+

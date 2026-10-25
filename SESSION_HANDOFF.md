@@ -1301,3 +1301,23 @@ integrity.
   `dc01196bb1328f32a46ec0ba7efc6e5cf58ef78e136b400b17d4518526cb7451`.
 - Local PHP is unavailable in this workspace. Packaged shared-host browser
   acceptance remains pending and must not be marked complete until exercised.
+
+## 2026-10-25 — Core 2.2.0 shared business and sales foundation
+
+- Roadmap corrections now record commerce/customer accounts as delivered in
+  2.1 instead of leaving them in the proposal backlog.
+- Core 2.2.0 adds `BusinessProfile`, seed-once `businessProfile()` defaults,
+  shared-shell `adminView()`, and declarative `adminResource()` list/editor
+  workflows for module records.
+- Opt-in `leadManagement()` supplies package-scoped inquiry assignment,
+  priority, status, internal notes, form-submission deduplication, itemized
+  quotes, explicit discount/tax amounts, expiry, and hashed single-use public
+  response links. Industry estimation and scheduling remain module-owned.
+- Migration 0030 adds four CRM tables. Disable/uninstall preserve rows;
+  explicit package purge removes quote items, quotes, notes, and inquiries in
+  dependency-safe order.
+- SMTP connection tests now separate DNS, TCP port, TLS/certificate, and
+  authentication failures and explain that the derived mail host is only a
+  default. The exact provider hostname may be required on shared hosting.
+- Local PHP remains unavailable. CI and exact-artifact evidence must be added
+  before distributing 2.2.0.

@@ -26,11 +26,11 @@ installed through the Module Manager.
 - **Layout**: `site/` is the deployable web root (extract COMPLETE-UPLOAD
   there). `docs/`, `tests/`, `tools/`, `sdk/`, `examples/` are development
   material and never ship in production uploads.
-- **Status**: `2.1.0` adds module-activated commerce and customer accounts.
-  Products, carts, checkout, manual Venmo/PayPal/Cash App payments, orders,
-  inventory, customer identity, recovery, and history stay completely hidden
-  unless an enabled industry module declares them. See `PROJECT_STATUS.md`,
-  `docs/COMMERCIAL_HARDENING.md`, and `docs/2.1.0_RELEASE_NOTES.md`.
+- **Status**: `2.2.0` adds a shared business profile, module admin helpers,
+  and optional package-scoped inquiries and quotations. Commerce, customer
+  accounts, sales workspaces, and their permissions remain hidden unless an
+  enabled industry module declares them. See `PROJECT_STATUS.md`,
+  `docs/COMMERCIAL_HARDENING.md`, and `docs/2.2.0_RELEASE_NOTES.md`.
 - **Bundled industries**: catering and landscaping are synchronized release
   snapshots. Landscaping 1.0 includes four selectable themes, with Bold
   Outdoors as its default presentation.
@@ -105,6 +105,7 @@ php tools/build-web-installer.php \
 | `docs/2.0.31_RELEASE_NOTES.md` | Forms, 404, agency, MFA, and SMTP workflow completion |
 | `docs/2.0.32_RELEASE_NOTES.md` | Core-owned privacy-first analytics and visitor intelligence |
 | `docs/2.1.0_RELEASE_NOTES.md` | Module-activated commerce, manual payments, orders, and customer accounts |
+| `docs/2.2.0_RELEASE_NOTES.md` | Shared business profile, module admin helpers, inquiries, and quotations |
 | `docs/COMMERCIAL_HARDENING.md` | Ordered screen-by-screen audit and commercial completion gates |
 | `docs/MODULE_API.md` | Supported extension API surface |
 | `docs/MODULE_RULES.md` | Permanent cross-industry module ownership, UX, lifecycle, and release rules |

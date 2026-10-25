@@ -22,8 +22,12 @@ industry; a module may add industry behavior but may not replace Core.
    layout. Every mutation also checks its declared capability, validates
    input, uses CSRF, records an audit event, and confirms destructive effects.
 6. A module activates only the optional Core surfaces it can support through
-   `commerce()` and/or `customerAccounts()`. Undeclared features remain absent.
-   Core owns generic records; the module owns industry meaning and rules.
+   `commerce()`, `customerAccounts()`, `businessProfile()`, and/or
+   `leadManagement()`. Undeclared features remain absent. Core owns generic
+   records; the module owns industry meaning, validation, formulas, and rules.
+7. Prefer `adminView()` and `adminResource()` for module administration.
+   Custom screens are allowed only when the workflow cannot fit the shared
+   contracts and must still use the authenticated Core shell.
 
 ## Required manifest and lifecycle
 

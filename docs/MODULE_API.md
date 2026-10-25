@@ -222,6 +222,65 @@ an explicit `title`), `status` (`draft`/`published`), `sort`, and a decoded
 `fields` map. The restaurant reference package uses this for `special`
 (daily specials) end-to-end.
 
+## Shared business, inquiries, and quotes (Core 2.2)
+
+`businessProfile()` opts a module into the shared business identity and may
+seed blank values once. Later module boots never overwrite administrator
+edits. Read the current record through `BusinessProfile`:
+
+```php
+$ctx->businessProfile([
+    'name' => 'Example Company',
+    'service_area' => 'Lafayette and surrounding communities',
+]);
+$profile = $ctx->service(\Core\Business\BusinessProfile::class)->get();
+```
+
+`leadManagement()` enables package-scoped inquiries and, by default, quotes.
+The module decides when its validated industry form becomes an inquiry:
+
+```php
+$ctx->leadManagement(['quotes' => true, 'label' => 'Event sales']);
+[$id, $error] = $ctx->service(\Core\Leads\InquiryService::class)->submit(
+    $ctx->packageId(),
+    ['name' => $name, 'email' => $email, 'subject' => $subject, 'message' => $summary],
+    $coreSubmissionId,
+);
+```
+
+The optional source-submission id deduplicates retries. Core owns assignment,
+priority, internal notes, itemized quote arithmetic, expiry, and secure
+customer acceptance. Industry questionnaires, eligibility, estimation,
+per-guest/per-acre formulas, contracts, and scheduling stay module-owned.
+Disable/uninstall hides these surfaces and preserves rows; explicit package
+purge removes the package partition.
+
+## Reusable module administration (Core 2.2)
+
+After registering a view namespace with `views()`, `adminView()` renders the
+package view inside the complete Core shell and enforces its capability.
+For ordinary module records, `adminResource()` generates a consistent
+list/editor workflow while persistence stays in callbacks:
+
+```php
+$ctx->adminResource(
+    'services', 'Services', 'catering.manage',
+    [['name' => 'name', 'label' => 'Name', 'required' => true]],
+    [['name' => 'name', 'label' => 'Name']],
+    fn (string $search, int $page, int $perPage) => $repo->page($search, $page, $perPage),
+    fn (int $id) => $repo->find($id),
+    fn (?int $id, array $data) => $repo->save($id, $data),
+    fn (int $id) => $repo->delete($id),
+    'Catering',
+);
+```
+
+Supported generated field types are `text`, `textarea`, `email`, `url`,
+`number`, `date`, `select`, and `checkbox`. Core supplies allowlisted input,
+validation, search, pagination, permission checks, CSRF, confirmation, audit,
+empty/error states, and responsive presentation. Callbacks must still enforce
+package ownership and domain-specific rules.
+
 ## Contracts
 
 - **Persistence** — a module owns its tables (created by its own

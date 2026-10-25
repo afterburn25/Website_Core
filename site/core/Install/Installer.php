@@ -61,9 +61,9 @@ final class Installer
             $response = $this->handle(Request::capture());
         } catch (\Throwable $e) {
             error_log('[website-core install] ' . $e->getMessage());
-            $response = Response::html(
-                '<h1>Installer error</h1><p>' . e($e->getMessage()) . '</p>', 500
-            );
+            $response = $this->page($this->checks(), [
+                'site_name' => 'Setup could not continue. No credentials were displayed. Check the server error log and try again.',
+            ]);
         }
         $response->send();
     }
@@ -85,6 +85,14 @@ final class Installer
 
         $checks = $this->checks();
         if ($request->isPost()) {
+            $givenCsrf = (string) ($request->post['installer_csrf'] ?? '');
+            $expectedCsrf = (string) ($_SESSION['wc_install_csrf'] ?? '');
+            if ($expectedCsrf === '' || $givenCsrf === '' || !hash_equals($expectedCsrf, $givenCsrf)) {
+                if ($request->string('action') === 'test_database') {
+                    return Response::json(['ok' => false, 'message' => 'Setup session expired. Reload the installer and try again.'], 419);
+                }
+                return $this->page($checks, ['site_name' => 'Setup session expired. Reload the installer and try again.'], $request);
+            }
             if ($request->string('action') === 'test_database') {
                 return $this->testDatabase($request);
             }
@@ -99,8 +107,13 @@ final class Installer
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_name('WCINSTALL');
+            session_set_cookie_params([
+                'lifetime' => 0, 'path' => '/', 'secure' => $this->requestSecure(),
+                'httponly' => true, 'samesite' => 'Strict',
+            ]);
             session_start();
         }
+        $_SESSION['wc_install_csrf'] ??= bin2hex(random_bytes(32));
 
         // Seeded-token mode: a deployment-provided token is required.
         if (is_file($this->tokenFile)) {
@@ -108,6 +121,9 @@ final class Installer
             if ($request->isPost()) {
                 $given = (string) ($request->post['setup_token'] ?? '');
                 if ($expected === '' || !hash_equals($expected, $given)) {
+                    if ($request->string('action') === 'test_database') {
+                        return Response::json(['ok' => false, 'message' => 'Enter the valid setup security token before testing credentials.'], 403);
+                    }
                     return $this->page($this->checks(), [
                         'setup_token' => 'Invalid setup token.',
                     ]);
@@ -346,17 +362,18 @@ final class Installer
             }
             $existingInstall = $db->tableExists('migrations');
         } catch (\Throwable $e) {
-            $message = preg_replace('/[\r\n\t]+/', ' ', $e->getMessage()) ?: 'Connection failed.';
+            error_log('[website-core install] database test failed: ' . $e->getMessage());
             return Response::json([
                 'ok' => false,
-                'message' => 'Connection failed: ' . substr($message, 0, 300),
+                'message' => $this->databaseErrorMessage($e),
             ], 422);
         }
 
         return Response::json([
             'ok' => true,
+            'existing_install' => $existingInstall,
             'message' => $existingInstall
-                ? 'Connection successful. Existing Website Core tables will be reused and migrated safely.'
+                ? 'Connection successful. Existing Website Core tables were detected — confirm the protected reinstall below.'
                 : 'Connection successful. The database is ready for installation.',
         ]);
     }
@@ -385,6 +402,12 @@ final class Installer
     {
         $errors = [];
 
+        $operationLock = @fopen($this->configDir . '/install.operation.lock', 'c');
+        if ($operationLock === false || !@flock($operationLock, LOCK_EX | LOCK_NB)) {
+            if (is_resource($operationLock)) fclose($operationLock);
+            return $this->page($checks, ['site_name' => 'Another installation request is running. Wait a moment, then reload this page.'], $request);
+        }
+
         foreach ($checks as $c) {
             if ($c['required'] && !$c['ok']) {
                 $errors[$c['name']] = $c['detail'] . ' — required check failed';
@@ -406,22 +429,24 @@ final class Installer
         $pass2 = (string) ($request->post['owner_password2'] ?? '');
         $storagePath = $request->string('storage_path', $this->defaultStoragePath());
 
-        if ($siteName === '') $errors['site_name'] = 'Site name is required.';
-        if ($baseUrl === '' || !preg_match('#^https://#i', $baseUrl)) {
-            $errors['base_url'] = 'Base URL must start with https:// — SSL is required.';
+        if ($siteName === '' || mb_strlen($siteName) > 150) $errors['site_name'] = 'Site name is required and must be 150 characters or fewer.';
+        if (!$this->validBaseUrl($baseUrl)) {
+            $errors['base_url'] = 'Enter a complete HTTPS website URL without credentials, a query, or a fragment.';
         }
         if (!in_array($timezone, \DateTimeZone::listIdentifiers(), true)) {
             $errors['timezone'] = 'Unknown timezone.';
         }
-        if ($dbName === '') $errors['db_name'] = 'Database name is required.';
-        if ($dbUser === '') $errors['db_user'] = 'Database user is required.';
+        if ($dbHost === '' || mb_strlen($dbHost) > 190) $errors['db_host'] = 'Database host is required and must be 190 characters or fewer.';
+        if ($dbPort < 1 || $dbPort > 65535) $errors['db_port'] = 'Database port must be between 1 and 65535.';
+        if ($dbName === '' || mb_strlen($dbName) > 190) $errors['db_name'] = 'Database name is required and must be 190 characters or fewer.';
+        if ($dbUser === '' || mb_strlen($dbUser) > 190) $errors['db_user'] = 'Database user is required and must be 190 characters or fewer.';
         if (!preg_match('/^[a-zA-Z0-9_]{0,16}$/', $dbPrefix)) {
             $errors['db_prefix'] = 'Prefix: letters, digits, underscore, max 16.';
         }
         if (!preg_match('/^[a-zA-Z0-9_.-]{3,60}$/', $owner)) {
             $errors['owner_username'] = 'Username: 3-60 chars, letters/digits/._-';
         }
-        if (!filter_var($ownerEmail, FILTER_VALIDATE_EMAIL)) {
+        if (mb_strlen($ownerEmail) > 190 || !filter_var($ownerEmail, FILTER_VALIDATE_EMAIL)) {
             $errors['owner_email'] = 'Valid email required.';
         }
         if (strlen($pass1) < 12) {
@@ -450,14 +475,18 @@ final class Installer
             $errors['storage_path'] = 'No safe persistent storage and upload workspace is available.';
         }
 
-        // DB connectivity is checked with the provided credentials — errors
-        // surface verbatim minus credentials.
+        // DB connectivity is checked with the provided credentials. Detailed
+        // driver errors stay in the server log; setup receives safe guidance.
         $db = null;
         if ($errors === []) {
             try {
                 $db = Connection::mysql($dbHost, $dbPort, $dbName, $dbUser, $dbPass, 'utf8mb4', $dbPrefix);
+                if ($db->tableExists('migrations') && $request->string('confirm_existing_database') !== '1') {
+                    $errors['existing_database'] = 'Existing Website Core tables were detected. Confirm the protected reinstall to preserve and upgrade them.';
+                }
             } catch (\Throwable $e) {
-                $errors['db_name'] = 'Could not connect: ' . $e->getMessage();
+                error_log('[website-core install] database connection failed: ' . $e->getMessage());
+                $errors['db_name'] = $this->databaseErrorMessage($e);
             }
         }
 
@@ -508,6 +537,14 @@ final class Installer
         try {
             $migrator = new Migrator($db, WC_ROOT . '/database/migrations');
             $migrator->migrate();
+
+            $emailOwner = $db->fetch(
+                'SELECT id,username FROM `' . $db->table('admins') . '` WHERE LOWER(email) = LOWER(?) AND username <> ?',
+                [$ownerEmail, $owner]
+            );
+            if ($emailOwner !== null) {
+                throw new \RuntimeException('That owner email already belongs to another administrator. Use that account username or a different email.');
+            }
 
             $ownerData = [
                 'email'         => $ownerEmail,
@@ -573,7 +610,10 @@ final class Installer
                 $settings->set('system.cron_token', bin2hex(random_bytes(24)));
             }
         } catch (\Throwable $e) {
-            return $this->page($checks, ['db_name' => 'Schema/owner creation failed: ' . $e->getMessage()], $request);
+            error_log('[website-core install] schema/owner creation failed: ' . $e->getMessage());
+            $safe = $e instanceof \RuntimeException && str_starts_with($e->getMessage(), 'That owner email')
+                ? $e->getMessage() : 'Database setup could not be completed. Verify this user can create and alter tables, then check the server log.';
+            return $this->page($checks, ['db_name' => $safe], $request);
         }
 
         // --- bundled module installation --------------------------------------
@@ -638,12 +678,13 @@ final class Installer
                     'created_at' => date('Y-m-d H:i:s'),
                 ]);
             } catch (\Throwable $e) {
-                return $this->page($checks, ['license' => 'Failed to install bundled module: ' . $e->getMessage()], $request);
+                error_log('[website-core install] bundled module installation failed: ' . $e->getMessage());
+                return $this->page($checks, ['license' => 'The bundled industry module could not be installed. Existing data was retained; check the server log before retrying.'], $request);
             }
         }
 
         // --- write config -----------------------------------------------------
-        $appKey = bin2hex(random_bytes(32));
+        $appKey = $this->existingAppKey() ?? bin2hex(random_bytes(32));
         $configPhp = $this->renderConfig([
             'siteName' => $siteName, 'baseUrl' => $baseUrl, 'timezone' => $timezone,
             'dbHost' => $dbHost, 'dbPort' => $dbPort, 'dbName' => $dbName,
@@ -653,26 +694,19 @@ final class Installer
             'licenseApiUrl' => rtrim((string) (getenv('WC_LICENSE_API_URL') ?: 'https://cajunwebpro.com/api'), '/'),
         ]);
         try {
-            if (@file_put_contents($this->configDir . '/config.php', $configPhp, LOCK_EX) === false) {
-                throw new \RuntimeException('Configuration write failed.');
-            }
-            @chmod($this->configDir . '/config.php', $this->usingPrivateConfig ? 0600 : 0640);
-            clearstatcache(true, $this->configDir . '/config.php');
-            $savedConfig = @include $this->configDir . '/config.php';
-            if (!is_array($savedConfig)
-                || ($savedConfig['security']['app_key'] ?? null) !== $appKey
-                || ($savedConfig['database']['name'] ?? null) !== $dbName
-            ) {
-                throw new \RuntimeException('The saved configuration could not be read back and verified.');
-            }
+            $this->writeConfigAtomically($configPhp, $appKey, $dbName);
         } catch (\Throwable $e) {
+            error_log('[website-core install] configuration write failed: ' . $e->getMessage());
             return $this->page($checks, [
-                'site_name' => 'Could not provision config/config.php: ' . $e->getMessage(),
+                'site_name' => 'The verified configuration could not be committed. Existing configuration was not replaced; check directory permissions and the server log.',
             ], $request);
         }
 
         $installedContents = date('c') . ' install complete' . "\n";
-        if (@file_put_contents($this->installedLock, $installedContents, LOCK_EX) === false) {
+        $markerTmp = $this->installedLock . '.new-' . bin2hex(random_bytes(5));
+        if (@file_put_contents($markerTmp, $installedContents, LOCK_EX) === false
+            || !@rename($markerTmp, $this->installedLock)) {
+            @unlink($markerTmp);
             return $this->page($checks, [
                 'site_name' => 'Could not create the permanent installation lock.',
             ], $request);
@@ -694,7 +728,8 @@ final class Installer
             $cleanupItems = implode(' and ', array_map('e', $remaining));
             $cleanupNote = '<div class="cleanup-warning" role="status"><strong>Manual cleanup recommended.</strong> '
                 . 'PHP could not remove ' . $cleanupItems . '. The installer is permanently disabled, so your site can launch safely. '
-                . 'Use your hosting File Manager to delete the root <code>install.php</code> file and <code>install</code> folder.</div>';
+                . 'Use your hosting File Manager to delete the root <code>install.php</code> file and <code>install</code> folder. '
+                . '<a href="' . e_attr(rtrim($baseUrl, '/') . '/?installer_cleanup_recheck=1') . '">Recheck cleanup and open the website</a>.</div>';
         } else {
             @unlink($this->configDir . '/cleanup-required.lock');
         }
@@ -800,6 +835,80 @@ final class Installer
         }
 
         return [true, null, false];
+    }
+
+    private function validBaseUrl(string $url): bool
+    {
+        if ($url === '' || mb_strlen($url) > 500 || preg_match('/[\x00-\x20]/', $url)) return false;
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) return false;
+        return strtolower((string) parse_url($url, PHP_URL_SCHEME)) === 'https'
+            && (string) parse_url($url, PHP_URL_HOST) !== ''
+            && parse_url($url, PHP_URL_USER) === null
+            && parse_url($url, PHP_URL_PASS) === null
+            && parse_url($url, PHP_URL_QUERY) === null
+            && parse_url($url, PHP_URL_FRAGMENT) === null;
+    }
+
+    private function databaseErrorMessage(\Throwable $error): string
+    {
+        $message = strtolower($error->getMessage());
+        if (str_contains($message, 'access denied') || str_contains($message, 'authentication')) {
+            return 'Database authentication failed. Verify the username and password in your hosting panel.';
+        }
+        if (str_contains($message, 'unknown database')) {
+            return 'The database does not exist. Create it in your hosting panel or correct the database name.';
+        }
+        if (str_contains($message, 'connection refused') || str_contains($message, 'server has gone away')
+            || str_contains($message, 'getaddrinfo') || str_contains($message, 'no such host')) {
+            return 'The database server could not be reached. Verify the host and port with your hosting provider.';
+        }
+        return 'The database connection could not be verified. Recheck the host, database, username, password, and port.';
+    }
+
+    private function existingAppKey(): ?string
+    {
+        $path = $this->configDir . '/config.php';
+        if (!is_file($path) || is_link($path)) return null;
+        try {
+            $existing = (static fn(string $file): mixed => @include $file)($path);
+        } catch (\Throwable) {
+            return null;
+        }
+        $key = is_array($existing) ? ($existing['security']['app_key'] ?? null) : null;
+        return is_string($key) && preg_match('/^[a-f0-9]{64}$/i', $key) ? $key : null;
+    }
+
+    private function writeConfigAtomically(string $contents, string $appKey, string $databaseName): void
+    {
+        $final = $this->configDir . '/config.php';
+        $temporary = $this->configDir . '/config.php.new-' . bin2hex(random_bytes(6));
+        try {
+            if (@file_put_contents($temporary, $contents, LOCK_EX) === false) {
+                throw new \RuntimeException('Temporary configuration write failed.');
+            }
+            @chmod($temporary, $this->usingPrivateConfig ? 0600 : 0640);
+            clearstatcache(true, $temporary);
+            $candidate = (static fn(string $file): mixed => @include $file)($temporary);
+            if (!is_array($candidate)
+                || ($candidate['security']['app_key'] ?? null) !== $appKey
+                || ($candidate['database']['name'] ?? null) !== $databaseName
+            ) {
+                throw new \RuntimeException('Temporary configuration verification failed.');
+            }
+            if (!@rename($temporary, $final)) {
+                throw new \RuntimeException('Atomic configuration replacement failed.');
+            }
+            clearstatcache(true, $final);
+            $saved = (static fn(string $file): mixed => @include $file)($final);
+            if (!is_array($saved)
+                || ($saved['security']['app_key'] ?? null) !== $appKey
+                || ($saved['database']['name'] ?? null) !== $databaseName
+            ) {
+                throw new \RuntimeException('Committed configuration verification failed.');
+            }
+        } finally {
+            @unlink($temporary);
+        }
     }
 
     private function renderConfig(array $v): string

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.27 — 2026-10-24
+
+- Adds installer CSRF/session hardening and a non-blocking operation lock for
+  concurrent or duplicate submissions.
+- Detects existing Website Core schemas during connection tests and requires
+  explicit protected-reinstall confirmation before reuse.
+- Preserves recoverable app keys, validates canonical HTTPS/field boundaries,
+  and converts database driver failures into safe operator guidance.
+- Verifies and atomically commits configuration and the permanent install
+  marker instead of writing final files in place.
+- Adds a completion-screen cleanup recheck action and focused installer
+  lifecycle/URL contract coverage without a schema migration.
+
 ## 2.0.26 — 2026-10-24
 
 - Completes agency credential editing, encrypted key rotation, pause/re-enable,

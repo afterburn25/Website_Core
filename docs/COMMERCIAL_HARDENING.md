@@ -58,9 +58,26 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 11 | Backups and operations | Create/delete/restore, remote replication, queue states, retries, schedules, interrupted operations, disaster recovery | code complete — 2.0.24; packaged-browser check pending |
 | 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | code complete — 2.0.25; packaged-browser check pending |
 | 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | code complete — 2.0.26; packaged-browser check pending |
-| 14 | Installer and reinstall/upgrade | Single-page polish, database test, HTTPS, safe writable-path provisioning, existing DB handling, cleanup and manual recheck | code complete — 2.0.6; packaged-host check pending |
+| 14 | Installer and reinstall/upgrade | Single-page polish, database test, HTTPS, safe writable-path provisioning, existing DB handling, cleanup and manual recheck | code complete — 2.0.27; packaged-host check pending |
 | 15 | Industry-module contract | Module admin category, default navigation takeover, shared services, uninstall/reinstall, compatibility and isolated failure | code complete — 2.0.6; packaged-module check pending |
 | 16 | Final cross-browser release gate | Chrome/Edge/Firefox/Safari where available, mobile breakpoints, accessibility review, performance/load, clean-host install and oldest-supported upgrade | queued |
+
+## 2.0.27 — Installer and reinstall/upgrade acceptance
+
+- [x] Setup is bound to the claimed browser with a dedicated CSRF token and
+      secure, HTTP-only, SameSite session cookie.
+- [x] A non-blocking operation lock rejects simultaneous install submissions
+      without corrupting files or running duplicate initialization.
+- [x] Database testing identifies an existing Core schema and requires an
+      explicit preservation/upgrade confirmation before install can continue.
+- [x] Repair/reinstall preserves a valid application key, existing content,
+      settings, cron token, module data, and the submitted owner lifecycle.
+- [x] Canonical HTTPS, length, prefix, port, owner, and email boundaries are
+      validated; driver errors are logged privately and safely summarized.
+- [x] Config and completion-marker writes are temporary, verified, and atomic;
+      installer artifacts are precisely removed/retired with manual recheck.
+- [ ] Packaged-host verification covers fresh install, existing-schema cancel
+      and confirm, invalid credentials, duplicate submit, cleanup, and launch.
 
 ## 2.0.2 — shared shell acceptance
 

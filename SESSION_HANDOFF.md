@@ -1,5 +1,16 @@
 # Session Handoff
 
+## 2.0.27 Installer and reinstall completion
+
+- Installer test/submit requests now require a claim-session CSRF token and
+  concurrent install submissions are serialized by a non-blocking lock.
+- Database testing exposes existing-Core detection; reuse requires explicit
+  confirmation and preserves a valid existing app key plus stored site data.
+- Field/database failures are safely summarized, config/marker commits are
+  atomic, and completion warnings contain a direct cleanup recheck action.
+- Core advances to 2.0.27. Continue with surface 15, the industry-module
+  contract.
+
 ## 2.0.26 Agency management completion
 
 - Agency connections now support edit, encrypted key rotation, pause/re-enable,

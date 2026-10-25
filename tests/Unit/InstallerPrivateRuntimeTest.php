@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use Core\Install\Installer;
 use PHPUnit\Framework\TestCase;
 
 final class InstallerPrivateRuntimeTest extends TestCase
@@ -60,5 +61,29 @@ final class InstallerPrivateRuntimeTest extends TestCase
         self::assertStringContainsString('overview-step-1', $view);
         self::assertStringContainsString('is-ready', $view);
         self::assertStringContainsString("note.textContent = ready ? 'Ready'", $view);
+    }
+
+    public function testInstallerHasCsrfConcurrencyAtomicConfigAndReinstallGates(): void
+    {
+        $installer = (string) file_get_contents(WC_ROOT . '/core/Install/Installer.php');
+        $view = (string) file_get_contents(WC_ROOT . '/core/Install/views/installer.php');
+        self::assertStringContainsString('wc_install_csrf', $installer);
+        self::assertStringContainsString('LOCK_EX | LOCK_NB', $installer);
+        self::assertStringContainsString('writeConfigAtomically', $installer);
+        self::assertStringContainsString('existingAppKey', $installer);
+        self::assertStringContainsString('confirm_existing_database', $installer . $view);
+        self::assertStringContainsString('existing_install', $installer);
+        self::assertStringContainsString('Recheck cleanup and open the website', $installer);
+    }
+
+    public function testInstallerAcceptsOnlyCanonicalHttpsBaseUrls(): void
+    {
+        $installer = (new \ReflectionClass(Installer::class))->newInstanceWithoutConstructor();
+        $method = new \ReflectionMethod(Installer::class, 'validBaseUrl');
+        self::assertTrue($method->invoke($installer, 'https://example.com/catering'));
+        self::assertFalse($method->invoke($installer, 'http://example.com'));
+        self::assertFalse($method->invoke($installer, 'https://user:pass@example.com'));
+        self::assertFalse($method->invoke($installer, 'https://example.com/?redirect=other'));
+        self::assertFalse($method->invoke($installer, 'https://example.com/#setup'));
     }
 }

@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.26` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.27` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -199,6 +199,14 @@ and uses bounded TLS-only transport. The dashboard retains last known healthy
 inventory through failures and adds latency, consecutive-failure, key-age, and
 relative Core-version evidence. Migration 0027 adds lifecycle telemetry while
 preserving and enabling existing agency records.
+
+Version 2.0.27 completes the installer and reinstall/upgrade surface. The
+claimed setup session now carries a dedicated CSRF token and serializes install
+submissions. Database testing detects existing Core schemas and requires an
+explicit preservation/upgrade confirmation. Repair installs retain a valid
+existing application key, driver failures are safely summarized, and verified
+configuration plus the completion marker are committed atomically. Cleanup
+warnings now include a direct recheck action. No migration is required.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

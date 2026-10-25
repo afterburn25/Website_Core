@@ -1,5 +1,6 @@
 <?php
 /** @var array $checks @var array $errors @var array $defaults @var bool $needsToken @var bool $unclaimed @var array $tzList @var string $packageName @var string $logoUrl */
+$installerCsrf = (string) ($_SESSION['wc_install_csrf'] ?? '');
 $err = fn (string $key): string => isset($errors[$key])
     ? '<p class="field-error">' . e((string) $errors[$key]) . '</p>'
     : '';
@@ -60,6 +61,7 @@ a{color:var(--gold-2)}
 .check{min-width:0;display:grid;grid-template-columns:28px minmax(0,1fr);gap:11px;padding:13px;border:1px solid rgba(86,121,154,.26);border-radius:12px;background:rgba(3,13,24,.25)}
 .check-icon{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;font-weight:900}.check.ok .check-icon{background:rgba(61,213,152,.14);color:var(--green)}.check.bad .check-icon{background:rgba(255,122,134,.13);color:var(--red)}.check.warn .check-icon{background:rgba(255,203,112,.12);color:var(--amber)}
 .check-copy{min-width:0}.check-name{display:block;margin:1px 0 7px;color:#e8f0f8;font-size:.86rem;font-weight:800;line-height:1.25}.check-detail{display:block;min-width:0;padding-top:7px;border-top:1px solid rgba(116,148,178,.18);color:#91a7bd;font-size:.75rem;line-height:1.5;overflow-wrap:anywhere;word-break:break-word}.check-detail.is-path{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#acc6df}
+.existing-database{margin-top:16px;padding:15px 17px;border:1px solid rgba(255,203,112,.46);border-radius:13px;background:rgba(102,70,17,.25)}.existing-database label{display:flex;gap:11px;align-items:flex-start;color:#ffe6af;font-weight:760}.existing-database input{width:18px;height:18px;margin-top:3px;accent-color:var(--gold)}.existing-database p{margin:7px 0 0 29px;color:#c7b78f;font-size:.78rem;line-height:1.55}
 .section-body{padding:22px}
 .field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.field-grid.three{grid-template-columns:1.2fr .65fr .8fr}.field.full{grid-column:1/-1}.field{min-width:0}
 label{display:flex;justify-content:space-between;gap:10px;margin:0 0 8px;color:#dce7f2;font-size:.83rem;font-weight:750}.optional{color:#7089a2;font-weight:550}
@@ -133,11 +135,12 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
         </section>
 
         <form id="setup-form" method="post">
+            <input type="hidden" id="installer_csrf" name="installer_csrf" value="<?= e_attr($installerCsrf) ?>">
             <section class="form-section" aria-labelledby="site-title">
                 <div class="section-head"><div class="section-title"><span class="section-index">01</span><h3 id="site-title">Website details</h3></div><span class="section-note">Public identity and location</span></div>
                 <div class="section-body field-grid">
-                    <div class="field full"><label for="site_name">Site name</label><input id="site_name" name="site_name" class="<?= e(trim($cls('site_name'))) ?>" value="<?= $val('site_name') ?>" placeholder="Your catering company" autocomplete="organization" required><?= $err('site_name') ?></div>
-                    <div class="field full"><label for="base_url">Secure website URL</label><input id="base_url" name="base_url" type="url" pattern="https://.*" class="<?= e(trim($cls('base_url'))) ?>" value="<?= $val('base_url') ?>" placeholder="https://example.com" inputmode="url" required><?= $err('base_url') ?><p class="hint">SSL is required. The address must begin with <strong>https://</strong>.</p></div>
+                    <div class="field full"><label for="site_name">Site name</label><input id="site_name" name="site_name" class="<?= e(trim($cls('site_name'))) ?>" value="<?= $val('site_name') ?>" placeholder="Your catering company" autocomplete="organization" maxlength="150" required><?= $err('site_name') ?></div>
+                    <div class="field full"><label for="base_url">Secure website URL</label><input id="base_url" name="base_url" type="url" pattern="https://.*" class="<?= e(trim($cls('base_url'))) ?>" value="<?= $val('base_url') ?>" placeholder="https://example.com" inputmode="url" maxlength="500" required><?= $err('base_url') ?><p class="hint">SSL is required. Enter the canonical address without a query or fragment.</p></div>
                     <div class="field"><label for="timezone">Time zone</label><select id="timezone" name="timezone"><?php foreach ($tzList as $timezone): ?><option value="<?= e_attr($timezone) ?>" <?= ($defaults['timezone'] ?? 'UTC') === $timezone ? 'selected' : '' ?>><?= e($timezone) ?></option><?php endforeach; ?></select></div>
                     <div class="field"><label for="storage_path">Private storage path</label><input id="storage_path" name="storage_path" class="<?= e(trim($cls('storage_path'))) ?>" value="<?= $val('storage_path') ?>" required><?= $err('storage_path') ?><p class="hint">The installer will create or repair this directory without using unsafe 0777 permissions.</p></div>
                 </div>
@@ -147,16 +150,21 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
                 <div class="section-head"><div class="section-title"><span class="section-index">02</span><h3 id="database-title">Database connection</h3></div><span class="section-note">MySQL or MariaDB</span></div>
                 <div class="section-body">
                     <div class="field-grid three">
-                        <div class="field"><label for="db_host">Database host</label><input id="db_host" name="db_host" data-db-field value="<?= $val('db_host') ?>" placeholder="localhost" required></div>
-                        <div class="field"><label for="db_port">Port</label><input id="db_port" name="db_port" data-db-field type="number" min="1" max="65535" value="<?= $val('db_port') ?>" required></div>
+                        <div class="field"><label for="db_host">Database host</label><input id="db_host" name="db_host" data-db-field class="<?= e(trim($cls('db_host'))) ?>" value="<?= $val('db_host') ?>" placeholder="localhost" maxlength="190" required><?= $err('db_host') ?></div>
+                        <div class="field"><label for="db_port">Port</label><input id="db_port" name="db_port" data-db-field class="<?= e(trim($cls('db_port'))) ?>" type="number" min="1" max="65535" value="<?= $val('db_port') ?>" required><?= $err('db_port') ?></div>
                         <div class="field"><label for="db_prefix">Table prefix</label><input id="db_prefix" name="db_prefix" data-db-field value="<?= $val('db_prefix') ?>" maxlength="16" pattern="[A-Za-z0-9_]*"><?= $err('db_prefix') ?></div>
                         <div class="field full"><label for="db_name">Database name</label><input id="db_name" name="db_name" data-db-field class="<?= e(trim($cls('db_name'))) ?>" value="<?= $val('db_name') ?>" autocomplete="off" required><?= $err('db_name') ?></div>
-                        <div class="field"><label for="db_user">Database username</label><input id="db_user" name="db_user" data-db-field value="<?= $val('db_user') ?>" autocomplete="username" required></div>
+                        <div class="field"><label for="db_user">Database username</label><input id="db_user" name="db_user" data-db-field class="<?= e(trim($cls('db_user'))) ?>" value="<?= $val('db_user') ?>" autocomplete="username" maxlength="190" required><?= $err('db_user') ?></div>
                         <div class="field"><label for="db_pass">Database password</label><input id="db_pass" name="db_pass" data-db-field type="password" autocomplete="current-password"></div>
                     </div>
                     <div class="db-actions">
                         <button class="test-button" id="db-test-button" type="button"><span class="test-icon" aria-hidden="true">↗</span><span class="spinner" aria-hidden="true"></span><span>Test connection</span></button>
                         <span class="db-status" id="db-test-status" role="status" aria-live="polite">Not tested yet</span>
+                    </div>
+                    <div class="existing-database" id="existing-database" <?= isset($errors['existing_database']) ? '' : 'hidden' ?>>
+                        <label><input type="checkbox" id="confirm_existing_database" name="confirm_existing_database" value="1"><span>Reuse and upgrade the existing Website Core database</span></label>
+                        <p>Existing pages, submissions, settings, and module data will be preserved. The named owner account will receive the password entered below and its active sessions will be revoked.</p>
+                        <?= $err('existing_database') ?>
                     </div>
                 </div>
             </section>
@@ -165,7 +173,7 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
                 <div class="section-head"><div class="section-title"><span class="section-index">03</span><h3 id="owner-title">Owner account</h3></div><span class="section-note">Primary administrator</span></div>
                 <div class="section-body field-grid">
                     <div class="field"><label for="owner_username">Username</label><input id="owner_username" name="owner_username" class="<?= e(trim($cls('owner_username'))) ?>" value="<?= $val('owner_username') ?>" autocomplete="username" minlength="3" maxlength="60" required><?= $err('owner_username') ?></div>
-                    <div class="field"><label for="owner_email">Email address</label><input id="owner_email" name="owner_email" type="email" class="<?= e(trim($cls('owner_email'))) ?>" value="<?= $val('owner_email') ?>" autocomplete="email" required><?= $err('owner_email') ?></div>
+                    <div class="field"><label for="owner_email">Email address</label><input id="owner_email" name="owner_email" type="email" class="<?= e(trim($cls('owner_email'))) ?>" value="<?= $val('owner_email') ?>" autocomplete="email" maxlength="190" required><?= $err('owner_email') ?></div>
                     <div class="field"><label for="owner_password">Password</label><input id="owner_password" name="owner_password" type="password" class="<?= e(trim($cls('owner_password'))) ?>" autocomplete="new-password" minlength="12" required><?= $err('owner_password') ?><p class="hint">Use at least 12 characters.</p></div>
                     <div class="field"><label for="owner_password2">Confirm password</label><input id="owner_password2" name="owner_password2" type="password" class="<?= e(trim($cls('owner_password2'))) ?>" autocomplete="new-password" minlength="12" required><?= $err('owner_password2') ?></div>
                     <?php if ($needsToken): ?><div class="field full"><label for="setup_token">Setup security token</label><input id="setup_token" name="setup_token" class="<?= e(trim($cls('setup_token'))) ?>" autocomplete="off" required><?= $err('setup_token') ?></div><?php endif; ?>
@@ -190,9 +198,13 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
     const installTitle = document.querySelector('.install-copy strong');
     const installNote = document.querySelector('.install-copy span');
     const steps = [1, 2, 3].map(number => document.getElementById('overview-step-' + number));
+    const existingPanel = document.getElementById('existing-database');
+    const existingConfirmation = document.getElementById('confirm_existing_database');
+    const csrf = document.getElementById('installer_csrf');
     const serverReady = <?= $requiredFailures === [] ? 'true' : 'false' ?>;
     let controller = null;
     let databaseVerified = false;
+    let existingDatabase = <?= isset($errors['existing_database']) ? 'true' : 'false' ?>;
 
     const field = id => document.getElementById(id);
     const hasValue = id => Boolean(field(id)?.value.trim());
@@ -208,7 +220,8 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
             && hasValue('db_name')
             && hasValue('db_user')
             && /^[A-Za-z0-9_]{0,16}$/.test(prefix)
-            && databaseVerified;
+            && databaseVerified
+            && (!existingDatabase || existingConfirmation.checked);
     };
     const ownerReady = () => {
         const username = field('owner_username')?.value || '';
@@ -250,6 +263,9 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
 
     fields.forEach(input => input.addEventListener('input', () => {
         databaseVerified = false;
+        existingDatabase = false;
+        existingPanel.hidden = true;
+        existingConfirmation.checked = false;
         setStatus('', 'Connection details changed — test again');
         refreshProgress();
     }));
@@ -268,8 +284,9 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
 
         if (controller) controller.abort();
         controller = new AbortController();
-        const payload = new URLSearchParams({action: 'test_database'});
+        const payload = new URLSearchParams({action: 'test_database', installer_csrf: csrf.value});
         fields.forEach(field => payload.set(field.name, field.value));
+        if (field('setup_token')) payload.set('setup_token', field('setup_token').value);
         button.disabled = true;
         button.classList.add('is-loading');
         setStatus('', 'Testing secure database connection…');
@@ -283,6 +300,9 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
             });
             const result = await response.json();
             databaseVerified = Boolean(result.ok);
+            existingDatabase = Boolean(result.ok && result.existing_install);
+            existingPanel.hidden = !existingDatabase;
+            if (!existingDatabase) existingConfirmation.checked = false;
             setStatus(result.ok ? 'success' : 'error', result.message || (result.ok ? 'Connection successful.' : 'Connection failed.'));
         } catch (error) {
             databaseVerified = false;
@@ -295,6 +315,14 @@ button{font:inherit}.test-button{display:inline-flex;align-items:center;gap:9px;
     });
 
     refreshProgress();
+
+    existingConfirmation.addEventListener('change', refreshProgress);
+    form.addEventListener('submit', () => {
+        installButton.disabled = true;
+        installButton.querySelector('span:first-child').textContent = 'Installing securely…';
+        installTitle.textContent = 'Installation in progress';
+        installNote.textContent = 'Keep this page open while Core verifies and writes the site.';
+    });
 
     const errors = document.getElementById('setup-errors');
     if (errors) requestAnimationFrame(() => errors.scrollIntoView({behavior: 'smooth', block: 'center'}));

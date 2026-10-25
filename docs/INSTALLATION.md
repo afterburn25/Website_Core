@@ -19,7 +19,9 @@ php tools/build-web-installer.php \
 2. Browse to `/install.php` (or `/`) → the protected-core installer opens.
 3. The branded one-page setup checks PHP/extensions, writable paths, and
    required SSL/HTTPS. Enter MySQL/MariaDB credentials and use **Test
-   connection** before installing. If the extracted files have foreign
+   connection** before installing. The connection test reports whether an
+   existing Website Core schema was found; reusing it requires a separate,
+   explicit confirmation. If the extracted files have foreign
    ownership, the installer automatically provisions a protected private
    runtime directory without asking the customer for hosting credentials.
 4. The installer verifies checks, connects to MySQL, runs migrations,
@@ -28,9 +30,10 @@ php tools/build-web-installer.php \
    `install/` directory. When shared-host ownership blocks direct deletion,
    the installer atomically retires those exact public paths into protected
    storage and keeps retrying physical erasure. If even safe retirement is
-   blocked, the site remains locked behind the styled cleanup/recheck screen.
-   The completion screen provides separate **Visit website** and **Open
-   admin** actions.
+   blocked, the completion screen gives exact File Manager instructions and a
+   **Recheck cleanup and open the website** action while the validated config
+   and permanent marker keep the installer disabled. The completion screen
+   also provides separate **Visit website** and **Open admin** actions.
 5. Sign in through `/index.php?p=/admin`, enable MFA in **Profile**.
 
 The friendly `/admin/` directory entry redirects to that rewrite-independent
@@ -107,8 +110,9 @@ Two supported modes:
   The page warns clearly that an unclaimed public upload is claimable by
   the first visitor — the remedy is host protection or a seeded token.
 
-Concurrency: atomic file creation, unique owner constraint, and the lock
-prevent duplicate initialization under simultaneous submissions.
+Concurrency: atomic file creation, a non-blocking installation operation lock,
+the unique owner constraint, and a setup-specific CSRF token prevent duplicate
+or cross-site initialization under simultaneous submissions.
 
 ## Requirements (verified by the installer)
 
@@ -143,7 +147,9 @@ website remains available. Do not work around ownership problems with mode
 An existing Website Core database is supported for reinstall/recovery. The
 installer applies only pending migrations, creates or refreshes the submitted
 owner login, preserves an existing home page and cron token, and idempotently
-updates bundled package/license state. Existing database tables alone never
+updates bundled package/license state. The protected reinstall must be
+explicitly confirmed after the database test, and a recoverable existing app
+key is retained so encrypted integration credentials remain readable. Existing database tables alone never
 mark the files as installed; completion requires both a structurally valid
 generated `config.php` and `installed.lock`.
 
@@ -160,7 +166,8 @@ generated `config.php` and `installed.lock`.
 
 - Failed setup is resumable: re-open the page, fix inputs, resubmit. No
   destructive reinstall; `installed.lock` + config are only written on
-  success.
+  success. Configuration is verified in a temporary file and atomically
+  committed; a failed write does not truncate the previous config.
 - Deployment packages contain a thin public `install.php` entry and protected
   `install/` marker directory; the implementation and view remain under
   `core/Install/`. Successful setup deletes both public artifacts directly
@@ -168,7 +175,8 @@ generated `config.php` and `installed.lock`.
 - Every later request repeats exact cleanup when a valid generated config plus
   `installed.lock` prove installation completed and sweeps any protected
   retirement residue. If the host blocks both deletion and safe retirement,
-  the site remains fail-closed and displays the recheck instructions.
+  the site remains installed, setup remains permanently disabled, and the
+  advisory instructions direct the operator to the hosting File Manager.
 - A retired entry is moved out of the canonical installer URL, randomized,
   denied by web-server rules, and repeatedly targeted for physical deletion.
 - Cleanup never scans or deletes unrelated files, never uses FTP or 0777, and

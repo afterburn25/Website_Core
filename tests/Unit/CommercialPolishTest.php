@@ -34,7 +34,7 @@ final class CommercialPolishTest extends TestCase
             'operations/index.php' => 'Maintenance mode',
             'security/index.php' => 'Require multi-factor authentication',
             'forms/index.php' => 'Accept submissions',
-            'privacy/index.php' => 'Show cookie choice banner',
+            'privacy/index.php' => 'Show privacy choices',
             'integrations/index.php' => 'inline-toggle-form',
             'users/index.php' => 'inline-toggle-form',
             'modules/index.php' => 'stateToggle',

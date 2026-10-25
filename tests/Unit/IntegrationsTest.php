@@ -118,8 +118,8 @@ final class IntegrationsTest extends TestCase
         $configPath = tempnam(sys_get_temp_dir(), 'wc-config-');
         file_put_contents($configPath, '<?php return ["security"=>["app_key"=>"' . str_repeat('ab', 32) . '"]];');
         $hooks = new WebhookService($this->db, new JobQueue($this->db), new Config($configPath));
-        $hook = $hooks->create('CRM', 'https://hooks.example.test/one', ['page.saved']);
-        $this->assertTrue($hooks->update($hook['id'], 'CRM two', 'https://hooks.example.test/two', ['page.published']));
+        $hook = $hooks->create('CRM', 'https://1.1.1.1/hooks/one', ['page.saved']);
+        $this->assertTrue($hooks->update($hook['id'], 'CRM two', 'https://1.1.1.1/hooks/two', ['page.published']));
         $rotated = $hooks->rotateSecret($hook['id']);
         $this->assertNotSame($hook['secret'], $rotated['secret']);
         $delivery = $hooks->test($hook['id']);

@@ -22,7 +22,7 @@ final class ManifestTest extends TestCase
             'entry'   => 'src/Provider.php',
             'provider' => 'Acme\\ContactForm\\Provider',
             'psr4'    => ['Acme\\ContactForm\\' => 'src/'],
-            'capabilities' => ['forms.view', 'forms.manage'],
+            'capabilities' => ['contact_form.forms.view', 'contact_form.forms.manage'],
         ];
     }
 
@@ -39,6 +39,7 @@ final class ManifestTest extends TestCase
         $m['id'] = 'UPPER/case';
         $this->assertNotEmpty(Manifest::validate($m));
         $m['id'] = 'a/b';
+        $m['capabilities'] = ['b.forms.view', 'b.forms.manage'];
         $this->assertSame([], Manifest::validate($m));
     }
 

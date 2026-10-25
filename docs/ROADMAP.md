@@ -144,3 +144,22 @@ the opt-in commerce, account, inquiry, quote, and shared-profile services.
 Core remains industry-neutral;
 shared optional services do not move catering menus, recipes, guest rules,
 dietary logic or event operations into Core.
+
+### CORE-REUSE-7A — Inquiry detail schema regression (2026-10-25)
+
+Catering module acceptance against Core 2.2.0 and source inspection of 2.2.1
+found that `Core\\Leads\\InquiryService::find()` joins `admins` using
+`a.name AS admin_name`, but the canonical administrator schema uses
+`username`. SQLite raises `no such column: a.name`, preventing the shared
+inquiry detail and notes screen from opening after successful submissions.
+
+- Repair the display-name lookup using supported administrator fields on
+  SQLite, MySQL and MariaDB; preserve existing inquiry and note records.
+- Add regression coverage that submits an inquiry, opens its detail with zero
+  notes, adds a note, then reopens it with the author's display name.
+- Verify package ownership isolation and the rendered admin detail screen.
+- Catering keeps its module questionnaire/menu snapshot and links it through
+  the existing service; it must not add a duplicate inbox or patch Core here.
+
+State: open Core implementation dependency. Recorded from module-only
+acceptance; no Core implementation or combined installer changed.

@@ -347,9 +347,9 @@ final class PackageManager
 
             // Package migrations run against its installed files; they own
             // only module-prefixed tables (enforced by convention + purge).
-            $migDir = trim((string) ($manifest['migrations'] ?? ''), '/');
-            if ($migDir !== '' && is_dir($dest . '/' . $migDir)) {
+            foreach (Manifest::migrationDirectories($manifest) as $migDir) {
                 try {
+                    if (!is_dir($dest . '/' . $migDir)) throw new \RuntimeException('Declared migration directory is missing: ' . $migDir);
                     $applied = (new \Core\Database\Migrator($this->db, $dest . '/' . $migDir))->migrate();
                     if ($applied !== []) {
                         $this->journal($packageId, 'migrate', 'ok', implode(', ', $applied));
@@ -447,8 +447,11 @@ final class PackageManager
                 return [false, $licenseError ?? 'License check failed'];
             }
 
-            $migDir = trim((string) ($manifest['migrations'] ?? ''), '/');
-            if ($migDir !== '' && is_dir($info['dir'] . '/' . $migDir)) {
+            foreach (Manifest::migrationDirectories($manifest) as $migDir) {
+                if (!is_dir($info['dir'] . '/' . $migDir)) {
+                    $this->journal($packageId, 'filesystem-update', 'failed', 'declared migration directory is missing: ' . $migDir);
+                    return [false, 'Declared migration directory is missing: ' . $migDir];
+                }
                 try {
                     $applied = (new \Core\Database\Migrator(
                         $this->db,
@@ -501,6 +504,14 @@ final class PackageManager
         if ($info['errors'] !== []) {
             $this->journal($packageId, 'enable', 'failed', implode(' ', $info['errors']));
             return [false, implode(' ', $info['errors'])];
+        }
+        if (($info['manifest']['type'] ?? null) === 'industry') {
+            foreach ($this->registry->all() as $otherId => $otherInfo) {
+                if ($otherId !== $packageId && ($otherInfo['manifest']['type'] ?? null) === 'industry'
+                    && $this->registry->state($otherId) === 'enabled') {
+                    return [false, "Disable the active industry package {$otherId} before enabling another industry."];
+                }
+            }
         }
 
         // License check

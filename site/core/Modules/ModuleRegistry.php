@@ -28,6 +28,8 @@ final class ModuleRegistry
     private array $states = [];
     /** @var list<ModuleContext> one context per booted package */
     private array $contexts = [];
+    /** @var array<string,list<string>> discovery errors that DB state cannot hide */
+    private array $discoveryErrors = [];
 
     public function __construct(
         private Connection $db,
@@ -40,6 +42,7 @@ final class ModuleRegistry
     {
         $this->manifests = [];
         $this->dirs = [];
+        $this->discoveryErrors = [];
         foreach ([
             'industry' => $this->industriesDir,
             'addon'    => $this->addonsDir,
@@ -58,15 +61,18 @@ final class ModuleRegistry
                 if (!is_array($decoded)) {
                     continue;
                 }
-                $id = $decoded['id'] ?? basename($packageDir);
+                $id = is_string($decoded['id'] ?? null) ? $decoded['id'] : basename($packageDir);
                 // Duplicate package IDs across any destination are rejected.
                 if (isset($this->manifests[$id])) {
-                    $this->states[$id] = 'failed';
+                    $this->discoveryErrors[$id][] = 'duplicate package id found in more than one installed directory';
                     continue;
                 }
                 $decoded['__dir'] = $packageDir;
                 $this->manifests[$id] = $decoded;
                 $this->dirs[$id] = $packageDir;
+                if (($decoded['type'] ?? null) !== $type) {
+                    $this->discoveryErrors[$id][] = "manifest type must be {$type} in this package directory";
+                }
             }
         }
 
@@ -101,6 +107,7 @@ final class ModuleRegistry
         $out = [];
         foreach ($this->manifests as $id => $manifest) {
             $errors = Manifest::validate($manifest);
+            $errors = array_merge($errors, $this->discoveryErrors[$id] ?? []);
             if ($errors === []) {
                 $errors = Manifest::compatible(
                     $manifest,
@@ -154,41 +161,64 @@ final class ModuleRegistry
     public function bootEnabled(callable $registerPsr4, callable $contextFactory): array
     {
         $booted = [];
+        $this->contexts = [];
         $ordered = $this->dependencyOrder();
+        $all = $this->all();
         foreach ($ordered as $id) {
             if ($this->state($id) !== 'enabled') {
                 continue;
             }
-            $info = $this->all()[$id] ?? null;
-            if ($info === null || $info['errors'] !== []) {
+            $info = $all[$id] ?? null;
+            if ($info === null) {
+                continue;
+            }
+            if ($info['errors'] !== []) {
+                $this->setState($id, 'failed');
+                $this->db->insert('package_journal', [
+                    'package_id' => $id, 'operation' => 'boot', 'result' => 'failed',
+                    'detail' => substr(implode(' ', $info['errors']), 0, 2000),
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
                 continue;
             }
             $manifest = $info['manifest'];
             try {
-                foreach (($manifest['psr4'] ?? []) as $prefix => $dir) {
-                    $registerPsr4($prefix, $info['dir'] . '/' . trim($dir, '/'));
-                }
-                if (!empty($manifest['entry'])) {
-                    $entry = $info['dir'] . '/' . ltrim((string) $manifest['entry'], '/');
-                    if (is_file($entry)) {
-                        require_once $entry;
+                foreach (array_keys($manifest['dependencies'] ?? []) as $dependency) {
+                    if (!in_array($dependency, $booted, true)) {
+                        throw new \RuntimeException("Required dependency {$dependency} did not boot.");
                     }
                 }
+                foreach (($manifest['psr4'] ?? []) as $prefix => $dir) {
+                    $path = $this->packagePath($info['dir'], (string) $dir, true);
+                    $registerPsr4($prefix, $path);
+                }
+                if (!empty($manifest['entry'])) {
+                    $entry = $this->packagePath($info['dir'], (string) $manifest['entry']);
+                    if (!is_file($entry)) throw new \RuntimeException('Declared package entry file is missing.');
+                    require_once $entry;
+                }
                 $provider = $manifest['provider'] ?? null;
-                if (is_string($provider) && class_exists($provider)) {
+                if (is_string($provider)) {
+                    if (!class_exists($provider)) throw new \RuntimeException('Declared package provider class could not be loaded.');
                     $context = $contextFactory($id);
-                    (new $provider())->register($context);
+                    $instance = new $provider();
+                    if (!is_callable([$instance, 'register'])) throw new \RuntimeException('Declared package provider has no register method.');
+                    $instance->register($context);
                     $this->contexts[] = $context;
                 }
                 $booted[] = $id;
             } catch (\Throwable $e) {
                 // Quarantine: never let one package take the whole site down.
+                error_log('[website-core] package boot failed: ' . $id . ': ' . $e->getMessage());
                 $this->setState($id, 'failed');
+                $safeDetail = preg_match('/^(Required dependency|Declared package|Package manifest)/', $e->getMessage())
+                    ? $e->getMessage()
+                    : 'Package provider failed during registration. Review the application log.';
                 $this->db->insert('package_journal', [
                     'package_id' => $id,
                     'operation'  => 'boot',
                     'result'     => 'failed',
-                    'detail'     => substr($e->getMessage(), 0, 2000),
+                    'detail'     => substr($safeDetail, 0, 2000),
                     'created_at' => date('Y-m-d H:i:s'),
                 ]);
             }
@@ -308,7 +338,8 @@ final class ModuleRegistry
                     $value = ($check['provider'])();
                     $data = is_array($value) ? $value : ['status' => (string) $value, 'detail' => ''];
                 } catch (\Throwable $e) {
-                    $data = ['status' => 'error', 'detail' => $e->getMessage()];
+                    error_log('[website-core] health check failed: ' . $ctx->packageId() . '/' . $check['key'] . ': ' . $e->getMessage());
+                    $data = ['status' => 'error', 'detail' => 'Check failed. Review the application log and package status.'];
                 }
                 $status = in_array($data['status'] ?? '', ['ok', 'warn', 'error'], true) ? $data['status'] : 'warn';
                 $out[] = [
@@ -358,10 +389,52 @@ final class ModuleRegistry
         }
         foreach (($manifest['conflicts'] ?? []) as $dep => $constraint) {
             $depManifest = $this->manifests[$dep] ?? null;
-            if ($depManifest !== null && Semver::satisfies((string) ($depManifest['version'] ?? '0.0.0'), (string) $constraint)) {
+            $state = $this->state((string) $dep);
+            if ($depManifest !== null && !in_array($state, ['staged', 'removed'], true)
+                && Semver::satisfies((string) ($depManifest['version'] ?? '0.0.0'), (string) $constraint)) {
                 $errors[] = "conflicts with installed {$dep} {$depManifest['version']}";
             }
         }
+        $id = is_string($manifest['id'] ?? null) ? $manifest['id'] : '';
+        $cycle = $id !== '' ? $this->dependencyCycle($id) : [];
+        if ($cycle !== []) $errors[] = 'dependency cycle: ' . implode(' -> ', $cycle);
         return $errors;
+    }
+
+    /** @return list<string> */
+    private function dependencyCycle(string $start): array
+    {
+        $visiting = [];
+        $visited = [];
+        $walk = function (string $id, array $path) use (&$walk, &$visiting, &$visited): array {
+            if (isset($visiting[$id])) {
+                $position = array_search($id, $path, true);
+                return [...array_slice($path, $position === false ? 0 : $position), $id];
+            }
+            if (isset($visited[$id]) || !isset($this->manifests[$id])) return [];
+            $visiting[$id] = true;
+            $path[] = $id;
+            foreach (array_keys($this->manifests[$id]['dependencies'] ?? []) as $dependency) {
+                $cycle = $walk((string) $dependency, $path);
+                if ($cycle !== []) return $cycle;
+            }
+            unset($visiting[$id]);
+            $visited[$id] = true;
+            return [];
+        };
+        return $walk($start, []);
+    }
+
+    private function packagePath(string $root, string $relative, bool $directory = false): string
+    {
+        if (!Manifest::relativePathOk($relative)) throw new \RuntimeException('Package manifest contains an unsafe path.');
+        $rootReal = realpath($root);
+        $pathReal = realpath($root . '/' . trim(str_replace('\\', '/', $relative), '/'));
+        if ($rootReal === false || $pathReal === false
+            || ($pathReal !== $rootReal && !str_starts_with($pathReal, $rootReal . DIRECTORY_SEPARATOR))
+            || ($directory && !is_dir($pathReal))) {
+            throw new \RuntimeException('Declared package path is missing or outside its package directory.');
+        }
+        return $pathReal;
     }
 }

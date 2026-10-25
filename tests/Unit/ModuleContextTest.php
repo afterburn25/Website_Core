@@ -91,4 +91,33 @@ final class ModuleContextTest extends TestCase
             'favicon' => 'assets/images/favicon.ico',
         ], $context->declaredBrandAssets());
     }
+
+    public function testModuleRegistrationsRejectUnsafeOrDuplicateContributions(): void
+    {
+        $context = new ModuleContext('acme/demo', new Router(), new Dispatcher());
+        $context->dashboardWidget('open-items', 'Open items', fn () => 2, 'demo.view', '/admin/demo');
+        try {
+            $context->dashboardWidget('open-items', 'Duplicate', fn () => 3);
+            $this->fail('Duplicate dashboard key was accepted.');
+        } catch (\InvalidArgumentException) {
+            $this->addToAssertionCount(1);
+        }
+
+        $this->expectException(\InvalidArgumentException::class);
+        $context->navigationMenu([['label' => 'Unsafe', 'url' => 'javascript:alert(1)']]);
+    }
+
+    public function testBrandDefaultsMustRemainInsidePackage(): void
+    {
+        $context = new ModuleContext('acme/demo', new Router(), new Dispatcher());
+        $this->expectException(\InvalidArgumentException::class);
+        $context->brandAssets(['logo' => '../outside.png']);
+    }
+
+    public function testPackageCannotClaimAnotherCapabilityNamespace(): void
+    {
+        $context = new ModuleContext('acme/demo', new Router(), new Dispatcher());
+        $this->expectException(\InvalidArgumentException::class);
+        $context->permission('settings.manage', 'Attempt to claim a Core capability');
+    }
 }

@@ -160,6 +160,43 @@ final class ModuleRegistryTest extends TestCase
         );
     }
 
+    public function testDependencyCyclesAreReportedInsteadOfRecursing(): void
+    {
+        $this->makePackage('addons', 'one', $this->manifest(['id' => 'acme/one', 'dependencies' => ['acme/two' => '>=1.0.0']]));
+        $this->makePackage('addons', 'two', $this->manifest(['id' => 'acme/two', 'dependencies' => ['acme/one' => '>=1.0.0']]));
+        $registry = $this->registry();
+        $registry->discover();
+        $this->assertStringContainsString('dependency cycle:', implode(' ', $registry->all()['acme/one']['errors']));
+    }
+
+    public function testDuplicateIdsAndDirectoryTypeMismatchRemainVisible(): void
+    {
+        $this->makePackage('addons', 'first', $this->manifest(['id' => 'acme/duplicate']));
+        $this->makePackage('addons', 'second', $this->manifest(['id' => 'acme/duplicate']));
+        $this->makePackage('industries', 'wrong-type', $this->manifest(['id' => 'acme/wrong-type', 'type' => 'addon']));
+        $this->db->insert('packages', ['package_id' => 'acme/duplicate', 'state' => 'enabled', 'version' => '1.0.0', 'manifest' => null, 'updated_at' => date('Y-m-d H:i:s')]);
+        $registry = $this->registry();
+        $registry->discover();
+        $this->assertStringContainsString('duplicate package id', implode(' ', $registry->all()['acme/duplicate']['errors']));
+        $this->assertStringContainsString('manifest type must be industry', implode(' ', $registry->all()['acme/wrong-type']['errors']));
+    }
+
+    public function testMissingDeclaredProviderIsQuarantined(): void
+    {
+        $this->makePackage('addons', 'missing-provider', $this->manifest([
+            'id' => 'acme/missing-provider', 'provider' => 'AcmeMissing\\Provider',
+        ]));
+        $registry = $this->registry();
+        $registry->discover();
+        $registry->setState('acme/missing-provider', 'enabled');
+        $booted = $registry->bootEnabled(
+            fn (string $prefix, string $dir) => \CoreAutoload::register($prefix, $dir),
+            fn (string $id) => new \Core\Modules\ModuleContext($id, new \Core\Routing\Router(), new \Core\Events\Dispatcher())
+        );
+        $this->assertSame([], $booted);
+        $this->assertSame('failed', $registry->state('acme/missing-provider'));
+    }
+
     public function testBootQuarantinesThrowingProvider(): void
     {
         $dir = $this->makePackage('addons', 'boom', $this->manifest([

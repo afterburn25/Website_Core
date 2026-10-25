@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.27` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.28` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -207,6 +207,14 @@ explicit preservation/upgrade confirmation. Repair installs retain a valid
 existing application key, driver failures are safely summarized, and verified
 configuration plus the completion marker are committed atomically. Cleanup
 warnings now include a direct recheck action. No migration is required.
+
+Version 2.0.28 completes the industry-module contract. Core now enforces the
+documented package/directory type, unique ID, confined path, non-executable
+theme, dependency-cycle, successful-dependency-boot, provider, contribution,
+and single-active-industry rules. Migration-directory lists work consistently
+across uploaded, finalized, and bundled installs. The root `MOD_RULES.md`
+provides the permanent checklist for every future module. No migration or API
+major change is required.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

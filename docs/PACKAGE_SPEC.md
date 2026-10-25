@@ -28,7 +28,7 @@ lives at `sdk/schema/addon.schema.json`.
 | `provider` | class | FQCN with `register(ModuleContext $ctx)` |
 | `psr4` | object | prefix → dir, registered at boot |
 | `capabilities` | list | declared capability tokens (`area.action`) — documentation/policy, not sandboxing |
-| `migrations` | path/list | module-owned migration source |
+| `migrations` | path/list | one or more safe package-relative module-owned migration directories |
 | `assets` | object | `css`/`js`/`images` lists served via `/_a/modules/<id>/...`; module-supplied brand defaults must be listed here and declared through Module API |
 | `integrity.files` | object | path → sha256 for post-extract verification |
 | `templates` | list | theme: named template inventory |
@@ -80,6 +80,10 @@ See `docs/LICENSING_API.md` for the full API contract.
 5. A provider that throws during boot is quarantined (`state=failed`,
    journal row written); the rest of the site keeps running.
 6. Themes never specify `provider`/`entry` executable hooks.
+7. Manifest type must match its destination directory; all executable,
+   migration, asset, and integrity paths remain inside the package.
+8. Exactly one industry can be enabled at a time; reusable behavior belongs
+   in add-ons and presentation variants belong in themes.
 
 ## Lifecycle states
 

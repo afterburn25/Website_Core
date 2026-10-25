@@ -59,7 +59,7 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 12 | Health, updates, audit, settings | Actionable diagnostics, core upgrade staging/application, rollback, log clarity, mail testing, license state and cron setup | code complete — 2.0.25; packaged-browser check pending |
 | 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | code complete — 2.0.26; packaged-browser check pending |
 | 14 | Installer and reinstall/upgrade | Single-page polish, database test, HTTPS, safe writable-path provisioning, existing DB handling, cleanup and manual recheck | code complete — 2.0.27; packaged-host check pending |
-| 15 | Industry-module contract | Module admin category, default navigation takeover, shared services, uninstall/reinstall, compatibility and isolated failure | code complete — 2.0.6; packaged-module check pending |
+| 15 | Industry-module contract | Module admin category, default navigation takeover, shared services, uninstall/reinstall, compatibility and isolated failure | code complete — 2.0.28; packaged-module check pending |
 | 16 | Final cross-browser release gate | Chrome/Edge/Firefox/Safari where available, mobile breakpoints, accessibility review, performance/load, clean-host install and oldest-supported upgrade | queued |
 
 ## 2.0.27 — Installer and reinstall/upgrade acceptance
@@ -78,6 +78,25 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       installer artifacts are precisely removed/retired with manual recheck.
 - [ ] Packaged-host verification covers fresh install, existing-schema cancel
       and confirm, invalid credentials, duplicate submit, cleanup, and launch.
+
+## 2.0.28 — Industry-module contract acceptance
+
+- [x] Root and detailed permanent rule files define Core/module ownership,
+      administration, lifecycle, repository, and release evidence.
+- [x] Duplicate IDs, wrong destination type, unsafe paths, executable theme
+      hooks, malformed providers/PSR-4 roots, and unsafe assets fail validation.
+- [x] Dependency cycles fail before recursive enablement; dependents whose
+      required package does not boot are quarantined with journal evidence.
+- [x] Declared entries, directories, and provider classes must exist within the
+      package; one failure does not take down login, Core admin, or other mods.
+- [x] Module routes/contributions/default navigation/default brands validate
+      their namespace, labels, capability, destination, uniqueness, and paths.
+- [x] Migration-directory lists run consistently in normal install, direct
+      filesystem finalization, and bundled setup; missing declarations fail.
+- [x] Only one industry may be enabled, while add-ons/themes stay independent;
+      Core retains editable navigation, branding, dashboard, and shared tools.
+- [ ] Packaged-module verification covers catering/landscaping fresh install,
+      upgrade, disable/enable, uninstall/reinstall, purge, and quarantine.
 
 ## 2.0.2 — shared shell acceptance
 

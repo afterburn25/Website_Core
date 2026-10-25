@@ -21,6 +21,10 @@ folder: modules/<module-id>/
 The Catering Website module therefore lives on `module/catering` in
 `modules/industry-catering/`. No second module is developed on that branch.
 
+Core's root `MOD_RULES.md` is the runtime/release-side mirror of that permanent
+contract. A Core or Core_Mods change that alters the boundary must update both
+authorities in the same coordinated release; a module branch cannot weaken it.
+
 ## Version ownership
 
 Every module owns its semantic version in its `addon.json`. A Core version

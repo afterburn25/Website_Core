@@ -80,34 +80,84 @@ final class Manifest
         }
 
         if ($type !== 'theme') {
-            if (isset($m['entry']) && !is_string($m['entry'])) {
-                $errors[] = 'entry must be a PHP file path relative to package root';
+            if (isset($m['entry']) && (!is_string($m['entry']) || !self::relativePathOk($m['entry']) || !str_ends_with(strtolower($m['entry']), '.php'))) {
+                $errors[] = 'entry must be a safe PHP file path relative to package root';
             }
-            if (isset($m['provider']) && !is_string($m['provider'])) {
+            if (isset($m['provider']) && (!is_string($m['provider']) || !preg_match('/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)+[A-Za-z_][A-Za-z0-9_]*$/', $m['provider']))) {
                 $errors[] = 'provider must be a fully-qualified class name';
             }
             if (isset($m['psr4']) && !is_array($m['psr4'])) {
                 $errors[] = 'psr4 must be an object of prefix => directory';
+            } elseif (isset($m['psr4'])) {
+                foreach ($m['psr4'] as $prefix => $directory) {
+                    if (!is_string($prefix) || !preg_match('/^(?:[A-Za-z_][A-Za-z0-9_]*\\\\)+$/', $prefix)
+                        || !is_string($directory) || !self::relativePathOk($directory)) {
+                        $errors[] = 'psr4 entries require a namespace prefix and safe package-relative directory';
+                    }
+                }
             }
+        } elseif (isset($m['entry']) || isset($m['provider']) || isset($m['psr4']) || isset($m['migrations'])) {
+            $errors[] = 'theme packages cannot declare executable PHP hooks or migrations';
         }
 
         if (isset($m['capabilities']) && !is_array($m['capabilities'])) {
             $errors[] = 'capabilities must be a list of strings';
         } elseif (isset($m['capabilities'])) {
+            $packageParts = is_string($m['id'] ?? null) ? explode('/', $m['id'], 2) : [];
+            $capabilityPrefix = isset($packageParts[1]) ? str_replace('-', '_', $packageParts[1]) . '.' : '';
             foreach ($m['capabilities'] as $cap) {
                 if (!is_string($cap) || !preg_match('/^[a-z0-9_.:-]+$/', $cap)) {
                     $errors[] = "invalid capability token";
+                } elseif ($capabilityPrefix !== '' && !str_starts_with($cap, $capabilityPrefix)) {
+                    $errors[] = "capability {$cap} must be prefixed with {$capabilityPrefix}";
                 }
             }
         }
 
-        if (isset($m['migrations']) && !is_string($m['migrations']) && !is_array($m['migrations'])) {
-            $errors[] = 'migrations must be a directory path or list';
+        if (isset($m['migrations'])) {
+            if (!is_string($m['migrations']) && !is_array($m['migrations'])) {
+                $errors[] = 'migrations must be a safe directory path or list';
+            } else {
+                $directories = is_array($m['migrations']) ? $m['migrations'] : [$m['migrations']];
+                if ($directories === [] || count($directories) > 20) $errors[] = 'migrations must contain between 1 and 20 directories';
+                foreach ($directories as $directory) {
+                    if (!is_string($directory) || !self::relativePathOk($directory)) {
+                        $errors[] = 'migration directories must be safe package-relative paths';
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (isset($m['assets'])) {
+            if (!is_array($m['assets'])) {
+                $errors[] = 'assets must be an object of css, js, and images lists';
+            } else {
+                foreach ($m['assets'] as $kind => $paths) {
+                    if (!in_array($kind, ['css', 'js', 'images'], true) || !is_array($paths)) {
+                        $errors[] = 'assets supports only css, js, and images lists';
+                        continue;
+                    }
+                    foreach ($paths as $path) {
+                        if (!is_string($path) || !self::relativePathOk($path)) {
+                            $errors[] = "assets.{$kind} contains an unsafe package-relative path";
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         if (isset($m['integrity'])) {
             if (!is_array($m['integrity']) || !isset($m['integrity']['files']) || !is_array($m['integrity']['files'])) {
                 $errors[] = 'integrity.files must be an object of path => sha256';
+            } else {
+                foreach ($m['integrity']['files'] as $path => $hash) {
+                    if (!is_string($path) || !self::relativePathOk($path) || !is_string($hash) || !preg_match('/^[a-f0-9]{64}$/i', $hash)) {
+                        $errors[] = 'integrity.files requires safe relative paths and SHA-256 hashes';
+                        break;
+                    }
+                }
             }
         }
 
@@ -117,6 +167,28 @@ final class Manifest
     public static function idOk(mixed $id): bool
     {
         return is_string($id) && (bool) preg_match('#^[a-z0-9][a-z0-9_-]*/[a-z0-9][a-z0-9_-]*$#', $id);
+    }
+
+    public static function relativePathOk(string $path): bool
+    {
+        $path = str_replace('\\', '/', trim($path));
+        if (str_starts_with($path, '/') || preg_match('/^[A-Za-z]:\//', $path)) return false;
+        $path = trim($path, '/');
+        if ($path === '' || strlen($path) > 500 || str_contains($path, "\0")) return false;
+        if (preg_match('#(^|/)\.\.?(/|$)#', $path)) return false;
+        return true;
+    }
+
+    /** @return list<string> */
+    public static function migrationDirectories(array $manifest): array
+    {
+        $value = $manifest['migrations'] ?? [];
+        if (is_string($value)) $value = [$value];
+        if (!is_array($value)) return [];
+        return array_values(array_filter(array_map(
+            static fn(mixed $path): string => is_string($path) ? trim($path, '/\\') : '',
+            $value
+        ), static fn(string $path): bool => self::relativePathOk($path)));
     }
 
     /** Does this manifest's requires block accept the given core/api/php? */

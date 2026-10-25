@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.28 — 2026-10-24
+
+- Adds the permanent root module-rules checklist and aligns executable API,
+  package-schema, lifecycle, repository, and release guidance.
+- Enforces directory type, duplicate-ID, safe-path, theme-hook, provider,
+  PSR-4, contribution, and exactly-one-industry boundaries.
+- Detects dependency cycles and quarantines dependents whose required package
+  did not boot, while keeping Core and other packages available.
+- Supports validated migration-directory lists in uploaded, finalized, and
+  bundled installs and rejects missing declared directories truthfully.
+- Expands module contract tests and updates native installer/artifact CI for
+  the setup CSRF contract and final 2.0.28 packages.
+
 ## 2.0.27 — 2026-10-24
 
 - Adds installer CSRF/session hardening and a non-blocking operation lock for

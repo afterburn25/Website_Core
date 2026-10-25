@@ -82,6 +82,7 @@ $ok($schemaVersion !== '' && $schemaVersion === ($sortedMigrationNames[array_key
 
 foreach ([
     'README.md', 'CHANGELOG.md', 'PROJECT_STATUS.md', 'SESSION_HANDOFF.md',
+    'MOD_RULES.md',
     'docs/ROADMAP.md', 'docs/RELEASE_CHECKLIST.md', 'docs/COMPATIBILITY.md',
     'docs/UPGRADES.md', 'docs/BRANDING.md', 'docs/SECURITY.md',
     'docs/COMMERCIAL_HARDENING.md',
@@ -110,6 +111,9 @@ $ok(str_contains($adminLayout, '/_a/core/css/admin.css')
     && is_file($root . '/site/assets/js/admin.js'),
     'Versioned Core admin design assets are missing or not wired.');
 $moduleContext = $read($root . '/site/core/Modules/ModuleContext.php');
+$moduleRegistry = $read($root . '/site/core/Modules/ModuleRegistry.php');
+$moduleManifest = $read($root . '/site/core/Modules/Manifest.php');
+$moduleRules = $read($root . '/MOD_RULES.md');
 $brandAssets = $read($root . '/site/core/Branding/BrandAssets.php');
 $cateringManifest = json_decode($read($root . '/examples/industry-catering/addon.json'), true);
 $ok(str_contains($moduleContext, 'function brandAssets(')
@@ -118,6 +122,12 @@ $ok(str_contains($moduleContext, 'function brandAssets(')
     && is_file($root . '/examples/industry-catering/assets/images/catering-co-logo.png')
     && in_array('assets/images/catering-co-logo.png', (array) ($cateringManifest['assets']['images'] ?? []), true),
     'Core-owned module branding contract or catering starter logo is missing.');
+$ok(str_contains($moduleRules, 'Exactly one industry package may be enabled')
+    && str_contains($moduleRegistry, 'dependencyCycle(')
+    && str_contains($moduleRegistry, 'duplicate package id')
+    && str_contains($moduleManifest, 'relativePathOk(')
+    && str_contains($moduleContext, 'navigationUrlOk('),
+    'Permanent module rules or their runtime enforcement are missing.');
 $landscapingManifest = json_decode($read($root . '/examples/industry-landscaping/addon.json'), true);
 $ok(($landscapingManifest['id'] ?? null) === 'cajunwebpro/landscaping'
     && ($landscapingManifest['version'] ?? null) === '1.0.0'

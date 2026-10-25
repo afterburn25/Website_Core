@@ -1,7 +1,8 @@
 # Module API (extension API v1)
 
 All packages must also follow the permanent ownership, administration,
-lifecycle, and release rules in `MODULE_RULES.md`.
+lifecycle, and release rules in the root `MOD_RULES.md` and detailed
+`MODULE_RULES.md`.
 
 Packages interact with core exclusively through `Core\Modules\ModuleContext`,
 passed to the package provider's `register()` at boot. Anything not on this
@@ -46,6 +47,11 @@ rebased onto the rewrite-independent asset route by the core asset server.
 Each enabled package receives its **own** `ModuleContext` stamped with its
 packageId — registrations are attributed to the package and aggregated by
 the `ModuleRegistry` (`adminNavItems()`, `jobHandlers()`, `contexts()`).
+Registration values are validated. Admin pages/routes must stay under
+`/admin/`, contribution keys are unique within the package, navigation links
+must use safe supported destinations, and brand defaults remain package
+relative. Invalid registration quarantines that package rather than taking
+down Core.
 
 ### Module-owned navigation defaults
 

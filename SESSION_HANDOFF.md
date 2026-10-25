@@ -1,5 +1,17 @@
 # Session Handoff
 
+## 2.0.28 Industry-module contract completion
+
+- The root `MOD_RULES.md` now carries the permanent module creation/release
+  checklist and the detailed API/package/repository documents are aligned.
+- Registry/manifest runtime enforcement now covers duplicate IDs, destination
+  type, confined paths, themes, cycles, dependency boot, provider existence,
+  contribution validation, and one active industry.
+- Migration-directory lists work through uploaded, direct-file, and bundled
+  installs; invalid packages quarantine without breaking Core.
+- Core advances to 2.0.28. Next gate is final packaged/browser/host validation
+  and release evidence, not another broad feature phase.
+
 ## 2.0.27 Installer and reinstall completion
 
 - Installer test/submit requests now require a claim-session CSRF token and

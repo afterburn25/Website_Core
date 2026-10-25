@@ -499,14 +499,26 @@ final class Installer
         $licenseOk = true;
         $licenseError = null;
         $domain = null;
+        $bundledManifest = null;
         $bundledModules = glob(WC_ROOT . '/modules/industries/*/addon.json') ?: [];
+        if (count($bundledModules) > 1) {
+            $errors['license'] = 'This bundle contains more than one industry module. Upload a product bundle with exactly one industry.';
+        }
         foreach ($bundledModules as $manifestFile) {
             $manifest = json_decode((string) file_get_contents($manifestFile), true);
             if (is_array($manifest)) {
+                $manifestErrors = \Core\Modules\Manifest::validate($manifest);
+                if (($manifest['type'] ?? null) !== 'industry') $manifestErrors[] = 'bundled module type must be industry';
+                if ($manifestErrors !== []) {
+                    $errors['license'] = 'Bundled industry manifest is invalid: ' . implode(' ', $manifestErrors);
+                }
                 $bundledModuleDir = dirname($manifestFile);
+                $bundledManifest = $manifest;
                 $candidateKey = trim((string) ($manifest['license_key'] ?? ''));
                 $licenseKey = $candidateKey !== '' ? $candidateKey : null;
                 break;
+            } else {
+                $errors['license'] = 'Bundled industry manifest is not valid JSON.';
             }
         }
 
@@ -649,7 +661,7 @@ final class Installer
                     }
                 }
 
-                $manifest = json_decode((string) file_get_contents($bundledModuleDir . '/addon.json'), true);
+                $manifest = $bundledManifest;
                 $packageId = (string) ($manifest['id'] ?? basename($bundledModuleDir));
                 $packagesTable = $db->table('packages');
                 $db->run(
@@ -661,8 +673,8 @@ final class Installer
                     [$packageId, (string) ($manifest['version'] ?? ''), json_encode($manifest), date('Y-m-d H:i:s')]
                 );
 
-                $migDir = trim((string) ($manifest['migrations'] ?? ''), '/');
-                if ($migDir !== '' && is_dir($bundledModuleDir . '/' . $migDir)) {
+                foreach (\Core\Modules\Manifest::migrationDirectories($manifest) as $migDir) {
+                    if (!is_dir($bundledModuleDir . '/' . $migDir)) throw new \RuntimeException('Declared migration directory is missing: ' . $migDir);
                     (new Migrator($db, $bundledModuleDir . '/' . $migDir))->migrate();
                 }
 

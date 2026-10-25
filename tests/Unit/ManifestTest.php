@@ -76,4 +76,35 @@ final class ManifestTest extends TestCase
         $m['requires']['php'] = '>=9.0';
         $this->assertNotEmpty(Manifest::compatible($m, '0.1.0-dev', 1, '8.4.25'));
     }
+
+    public function testRejectsEscapingPathsAndExecutableThemeHooks(): void
+    {
+        $m = $this->valid();
+        $m['entry'] = '../outside.php';
+        $m['psr4'] = ['Acme\\Unsafe\\' => '/srv/outside'];
+        $m['migrations'] = ['migrations', '../other'];
+        $m['assets'] = ['images' => ['assets/logo.png', '../../secret']];
+        $this->assertNotEmpty(Manifest::validate($m));
+
+        $theme = $this->valid();
+        $theme['type'] = 'theme';
+        $this->assertContains('theme packages cannot declare executable PHP hooks or migrations', Manifest::validate($theme));
+    }
+
+    public function testMigrationDirectoryListIsNormalized(): void
+    {
+        $manifest = $this->valid();
+        $manifest['migrations'] = ['migrations/core', 'migrations/seed/'];
+        $this->assertSame([], Manifest::validate($manifest));
+        $this->assertSame(['migrations/core', 'migrations/seed'], Manifest::migrationDirectories($manifest));
+        $this->assertFalse(Manifest::relativePathOk('/etc/passwd'));
+        $this->assertFalse(Manifest::relativePathOk('src/../secret'));
+    }
+
+    public function testCapabilitiesStayInPackageNamespace(): void
+    {
+        $manifest = $this->valid();
+        $manifest['capabilities'][] = 'settings.manage';
+        $this->assertStringContainsString('must be prefixed', implode(' ', Manifest::validate($manifest)));
+    }
 }

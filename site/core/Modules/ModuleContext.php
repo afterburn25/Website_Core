@@ -105,6 +105,7 @@ final class ModuleContext
     /** Register a public route. Module routes register before the slug catch-all. */
     public function route(string $methods, string $pattern, callable $handler, array $middleware = []): void
     {
+        if (!str_starts_with($pattern, '/')) throw new \InvalidArgumentException('Module routes must begin with /.');
         $this->router->add($methods, $pattern, $handler, $middleware);
     }
 
@@ -115,6 +116,7 @@ final class ModuleContext
      */
     public function adminRoute(string $methods, string $pattern, callable $handler): void
     {
+        if (!str_starts_with($pattern, '/admin/')) throw new \InvalidArgumentException('Module admin routes must begin with /admin/.');
         $mw = $this->adminMiddleware ? [$this->adminMiddleware] : [];
         $this->router->add($methods, $pattern, $handler, $mw);
     }
@@ -131,6 +133,13 @@ final class ModuleContext
         ?string $category = null
     ): void
     {
+        $label = trim($label);
+        $route = trim($route);
+        $capability = trim($capability);
+        if ($label === '' || mb_strlen($label) > 120) throw new \InvalidArgumentException('Admin page labels must be 1–120 characters.');
+        if (!str_starts_with($route, '/admin/') || mb_strlen($route) > 500) throw new \InvalidArgumentException('Admin page routes must be internal /admin/ paths.');
+        if (!preg_match('/^[a-z0-9_.:-]+$/', $capability)) throw new \InvalidArgumentException('Admin pages require a valid package capability.');
+        if ($category !== null && mb_strlen(trim($category)) > 80) throw new \InvalidArgumentException('Admin categories must be 80 characters or fewer.');
         $this->adminNav[] = [
             'label' => $label, 'route' => $route,
             'capability' => $capability, 'package' => $this->packageId,
@@ -140,11 +149,17 @@ final class ModuleContext
 
     public function scheduledJob(string $type, callable $handler): void
     {
+        if (!preg_match('/^[a-z][a-z0-9_.:-]{1,119}$/', $type)) throw new \InvalidArgumentException('Scheduled-job types must be stable lowercase tokens.');
+        if (!str_starts_with($type, $this->packageSlug() . '.')) throw new \InvalidArgumentException('Scheduled-job types must be prefixed with the package slug.');
+        if (isset($this->jobHandlers[$type])) throw new \InvalidArgumentException('Scheduled-job type is already registered by this package.');
         $this->jobHandlers[$type] = $handler;
     }
 
     public function contentType(string $type, string $label, array $fields): void
     {
+        if (!preg_match('/^[a-z][a-z0-9_]{1,79}$/', $type)) throw new \InvalidArgumentException('Content types must use lowercase letters, numbers, and underscores.');
+        if (trim($label) === '' || mb_strlen(trim($label)) > 120) throw new \InvalidArgumentException('Content type labels must be 1–120 characters.');
+        if (isset($this->contentTypes[$type])) throw new \InvalidArgumentException('Content type is already registered by this package.');
         $this->contentTypes[$type] = ['label' => $label, 'fields' => $fields];
     }
 
@@ -156,6 +171,10 @@ final class ModuleContext
         ?string $capability = null,
         ?string $url = null,
     ): void {
+        $this->assertContribution($key, $label, $capability, $url);
+        foreach ($this->dashboardWidgets as $widget) {
+            if ($widget['key'] === $key) throw new \InvalidArgumentException('Dashboard widget key is already registered by this package.');
+        }
         $this->dashboardWidgets[] = compact('key', 'label', 'provider', 'capability', 'url');
     }
 
@@ -168,6 +187,10 @@ final class ModuleContext
     /** Provider returns ok|warn|error or {status,detail}. */
     public function healthCheck(string $key, string $label, callable $provider): void
     {
+        $this->assertContribution($key, $label);
+        foreach ($this->healthChecks as $check) {
+            if ($check['key'] === $key) throw new \InvalidArgumentException('Health-check key is already registered by this package.');
+        }
         $this->healthChecks[] = compact('key', 'label', 'provider');
     }
 
@@ -177,6 +200,7 @@ final class ModuleContext
         if (!preg_match('/^[a-z][a-z0-9_]{1,79}$/', $type)) {
             throw new \InvalidArgumentException('Block type must use lowercase letters, numbers and underscores.');
         }
+        if (isset($this->pageBlocks[$type])) throw new \InvalidArgumentException('Page block type is already registered by this package.');
         $this->pageBlocks[$type] = compact('label', 'fields', 'renderer') + ['package' => $this->packageId];
     }
 
@@ -258,7 +282,7 @@ final class ModuleContext
     {
         $allowed = ['logo' => true, 'favicon' => true, 'social' => true];
         foreach ($assets as $role => $path) {
-            if (!isset($allowed[$role]) || !is_string($path) || trim($path) === '') {
+            if (!isset($allowed[$role]) || !is_string($path) || !Manifest::relativePathOk($path)) {
                 throw new \InvalidArgumentException('Brand assets support logo, favicon, and social image paths.');
             }
             $this->brandAssets[$role] = trim($path);
@@ -305,6 +329,9 @@ final class ModuleContext
             if (!is_array($item) || trim((string) ($item['label'] ?? '')) === '' || trim((string) ($item['url'] ?? '')) === '') {
                 throw new \InvalidArgumentException('Every navigation item requires a label and URL.');
             }
+            if (mb_strlen(trim((string) $item['label'])) > 190 || !$this->navigationUrlOk(trim((string) $item['url']))) {
+                throw new \InvalidArgumentException('Navigation defaults require labels up to 190 characters and safe internal, web, email, telephone, or anchor URLs.');
+            }
             $target = (string) ($item['target'] ?? 'self');
             if (!in_array($target, ['self', 'tab', 'window'], true)) {
                 throw new \InvalidArgumentException('Navigation targets must be self, tab, or window.');
@@ -327,6 +354,11 @@ final class ModuleContext
      * admin does by default — a package can never grant itself core caps. */
     public function permission(string $capability, string $description = ''): void
     {
+        if (!preg_match('/^[a-z0-9_.:-]+$/', $capability)
+            || !str_starts_with($capability, $this->packageSlug() . '.')) {
+            throw new \InvalidArgumentException('Package capabilities must be prefixed with the package slug.');
+        }
+        if (mb_strlen($description) > 300) throw new \InvalidArgumentException('Capability descriptions must be 300 characters or fewer.');
         $this->permissions?->register($capability, $description);
     }
 
@@ -366,6 +398,34 @@ final class ModuleContext
             throw new \RuntimeException('No service resolver bound to this context.');
         }
         return ($this->serviceResolver)($id);
+    }
+
+    private function assertContribution(string $key, string $label, ?string $capability = null, ?string $url = null): void
+    {
+        if (!preg_match('/^[a-z][a-z0-9_-]{1,79}$/', $key)) throw new \InvalidArgumentException('Contribution keys must be stable lowercase tokens.');
+        if (trim($label) === '' || mb_strlen(trim($label)) > 120) throw new \InvalidArgumentException('Contribution labels must be 1–120 characters.');
+        if ($capability !== null && !preg_match('/^[a-z0-9_.:-]+$/', $capability)) throw new \InvalidArgumentException('Contribution capability is invalid.');
+        if ($url !== null && (($url !== '/admin' && !str_starts_with($url, '/admin/'))
+            || str_starts_with($url, '//') || mb_strlen($url) > 500)) {
+            throw new \InvalidArgumentException('Contribution links must use an internal admin path.');
+        }
+    }
+
+    private function packageSlug(): string
+    {
+        $parts = explode('/', $this->packageId, 2);
+        return str_replace('-', '_', strtolower($parts[1] ?? $parts[0]));
+    }
+
+    private function navigationUrlOk(string $url): bool
+    {
+        if ($url === '' || mb_strlen($url) > 500 || preg_match('/[\x00-\x1F\x7F]/', $url)) return false;
+        if (str_starts_with($url, '#')) return preg_match('/^#[A-Za-z][A-Za-z0-9_-]*$/', $url) === 1;
+        if (str_starts_with($url, '/')) return !str_starts_with($url, '//');
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        if (in_array($scheme, ['http', 'https'], true)) return filter_var($url, FILTER_VALIDATE_URL) !== false;
+        if ($scheme === 'mailto') return filter_var(explode('?', substr($url, 7), 2)[0], FILTER_VALIDATE_EMAIL) !== false;
+        return $scheme === 'tel' && preg_match('/^tel:\+?[0-9().,; x-]{3,40}$/i', $url) === 1;
     }
 
     // ---- read-only aggregations used by the core shell --------------------

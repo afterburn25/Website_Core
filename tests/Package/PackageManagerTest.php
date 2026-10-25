@@ -306,6 +306,26 @@ final class PackageManagerTest extends TestCase
         $this->assertStringContainsString('depends', (string) $err);
     }
 
+    public function testOnlyOneIndustryCanBeEnabled(): void
+    {
+        foreach (['restaurant', 'salon'] as $industry) {
+            $zip = $this->zip([
+                $industry . '/addon.json' => $this->manifest([
+                    'id' => 'acme/' . $industry, 'type' => 'industry', 'name' => ucfirst($industry),
+                ]),
+            ], $industry . '.zip');
+            $this->pm->stage($zip);
+            [$ok, $error] = $this->pm->install('acme/' . $industry);
+            $this->assertTrue($ok, (string) $error);
+        }
+        [$ok, $error] = $this->pm->enable('acme/restaurant');
+        $this->assertTrue($ok, (string) $error);
+        [$ok, $error] = $this->pm->enable('acme/salon');
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('Disable the active industry package', (string) $error);
+        $this->assertSame('installed', $this->state('acme/salon'));
+    }
+
     public function testDisableAllowedWithInvalidLicenseForRecovery(): void
     {
         $licenseTable = $this->db->table('license');
@@ -393,6 +413,32 @@ PHP;
         [$ok, $err] = $this->pm->purgeData('acme/widgets');
         $this->assertTrue($ok, (string) $err);
         $this->assertFalse($this->db->tableExists('widgets_items'));
+    }
+
+    public function testPackageMigrationDirectoryListRunsInOrder(): void
+    {
+        $migration = static fn(string $id, string $table): string => str_replace(
+            ['MIGRATION_ID', 'TABLE_NAME'], [$id, $table], <<<'PHP'
+<?php
+return new class extends \Core\Database\Migration {
+    public function id(): string { return 'MIGRATION_ID'; }
+    public function description(): string { return 'list migration'; }
+    public function up(\Core\Database\Connection $db): void {
+        $db->pdo()->exec('CREATE TABLE IF NOT EXISTS `' . $db->table('TABLE_NAME') . '` (id INTEGER PRIMARY KEY)');
+    }
+};
+PHP
+        );
+        $zip = $this->zip([
+            'widgets/addon.json' => $this->manifest(['migrations' => ['schema', 'seed']]),
+            'widgets/schema/0001.php' => $migration('widgets_list_0001', 'widgets_schema'),
+            'widgets/seed/0002.php' => $migration('widgets_list_0002', 'widgets_seed'),
+        ], 'migration-list.zip');
+        $this->pm->stage($zip);
+        [$ok, $error] = $this->pm->install('acme/widgets');
+        $this->assertTrue($ok, (string) $error);
+        $this->assertTrue($this->db->tableExists('widgets_schema'));
+        $this->assertTrue($this->db->tableExists('widgets_seed'));
     }
 
     public function testUpgradePreservesEnabledState(): void

@@ -1349,6 +1349,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 /* Core 2.2 shared business, module-resource, and sales workspaces. */
 .resource-workspace{grid-template-columns:minmax(0,1.45fr) minmax(300px,.8fr);align-items:start}
+.resource-actions,.resource-order-save{display:flex;align-items:flex-end;gap:.65rem;flex-wrap:wrap;margin:1rem 0}
+.resource-actions label{margin:0;min-width:190px}.resource-select{width:2.75rem;text-align:center}.resource-order{width:6.75rem;white-space:nowrap}
+.resource-order-buttons{display:inline-flex;gap:.3rem}.resource-order-save{align-items:center}.resource-order-save span{color:var(--admin-muted);font-size:.84rem}
 .prose-panel{padding:1rem 1.1rem;border:1px solid var(--admin-border);border-radius:14px;background:var(--admin-surface-soft);white-space:normal}
 .timeline-list{display:grid;gap:.8rem;margin-top:1rem}.timeline-list article{padding:1rem;border:1px solid var(--admin-border);border-radius:14px;background:var(--admin-surface-soft)}
 .timeline-list article time{display:block;color:var(--admin-muted);font-size:.8rem;margin:.15rem 0 .5rem}.timeline-list article p{margin:0}

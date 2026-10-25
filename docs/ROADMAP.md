@@ -32,6 +32,7 @@ adapt to real dependencies; scope is preserved, not deferred silently.
 | 2.0.2–2.0.32 | screen-by-screen hardening, hosted repairs, analytics and mail acceptance | code complete; remaining browser matrix tracked separately | `docs/COMMERCIAL_HARDENING.md` |
 | 2.1 | opt-in commerce, manual payments and customer accounts | complete; CI verified | `docs/2.1.0_RELEASE_NOTES.md` |
 | 2.2 | shared business profile, module admin helpers, inquiries and quotations | implementation complete; CI verified; packaged-host acceptance pending | `docs/2.2.0_RELEASE_NOTES.md` |
+| 2.3 | reusable module-record ordering and bulk actions | implementation complete; CI and packaged-host acceptance pending | `docs/2.3.0_RELEASE_NOTES.md` |
 
 New shared features remain dormant unless an enabled module declares them.
 The ordered audit in `docs/COMMERCIAL_HARDENING.md` remains the acceptance
@@ -106,7 +107,7 @@ preservation of existing content, inquiry history, IDs, and customizations.
 | ID | Shared requirement | Acceptance criteria / catering dependency |
 | --- | --- | --- |
 | CORE-REUSE-1 | Stable module-facing service API and shared public/admin rendering helpers | **2.2 foundation delivered:** `adminView()` supplies the complete shared shell and enforces capabilities. Adoption by two industries remains. |
-| CORE-REUSE-2 | Reusable record editor and list components | **2.2 foundation delivered:** `adminResource()` supplies fields/columns, validation, filtering, pagination, confirmation, CSRF, permissions and audit while callbacks retain module persistence. Ordering and bulk actions remain. |
+| CORE-REUSE-2 | Reusable record editor and list components | **Delivered through 2.3:** `adminResource()` supplies fields/columns, validation, filtering, pagination, confirmation, CSRF, permissions, audit, visible-row ordering and allowlisted bulk actions while callbacks retain module persistence and ownership rules. Cross-industry adoption remains. |
 | CORE-REUSE-3 | Module integration with existing content and media | Provide documented seeding/editing/preview/revision hooks and reusable image/file picker, alt text, focal crop and usage tracking. Replace catering's fixed image whitelist and hard-coded editable service/FAQ copy without overwriting administrator edits; do not duplicate the existing composer or Media library. |
 | CORE-REUSE-4 | Module integration with existing forms and notifications | Modules declare starter form schemas and custom validation, receive protected submission events/IDs, and link industry records to shared submissions. Generic contact handling, anti-spam, validation errors, notification templates and delivery status use Core. Preserve catering-specific event/headcount/dietary rules and existing inquiries; avoid duplicate submissions/emails during migration. |
 | CORE-REUSE-5 | Shared business profile and reusable presentation blocks | **Profile delivered in 2.2:** one editable identity/contact/location/hours/service-area record plus seed-once module defaults. Reusable FAQ/gallery/testimonial/service/team/CTA blocks remain. |

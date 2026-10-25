@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.3.0 — 2026-10-25
+
+- Completes the reusable module record workspace with accessible visible-row
+  ordering and allowlisted bulk actions while modules retain transactional
+  persistence and package-ownership rules.
+- Rejects malformed, non-positive, excessive, or undeclared record actions
+  before module callbacks run; successful changes receive standard feedback
+  and package-attributed audit evidence.
+- Adds select-all, keyboard-reachable move controls, responsive action layouts,
+  callback-contract documentation, and controller/API regression coverage.
+- Keeps Module API v1 backward compatible by adding one optional final
+  `adminResource()` options argument. No schema migration or industry-module
+  synchronization is required.
+
 ## 2.2.2 — 2026-10-25
 
 - Repairs the shared inquiry detail and internal-notes workflow against the

@@ -1,14 +1,22 @@
 # Project Status
 
-**Current**: `2.2.2` inquiry-detail schema repair candidate, building on the
-2.2.1 CI-verified SMTP provider-host diagnostics and
-2.2.0 shared business profile, reusable module administration,
-and opt-in inquiries/quotations. Continuation rules and the verified starting
+**Current**: `2.3.0` reusable module-record operations candidate, completing
+ordering and bulk actions on the 2.2 shared administration foundation and
+building on the 2.2.2 CI-verified inquiry-detail repair,
+2.2.1 SMTP provider-host diagnostics, and 2.2.0 shared business profile and
+opt-in inquiries/quotations. Continuation rules and the verified starting
 state are in `docs/CORE_SESSION_2026_10_25.md`. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
 produces checksummed installation and update artifacts.
+
+Version 2.3.0 adds optional visible-row ordering and allowlisted bulk actions
+to `adminResource()`. Core owns selection, bounded input validation,
+confirmation, permission/CSRF enforcement, feedback and audit evidence;
+modules continue to own transactions, package-scoped persistence and business
+rules. The final optional argument preserves existing Module API v1 callers,
+and no database migration or industry snapshot change is required.
 
 Version 2.0.2 begins the feature-frozen commercial-hardening program recorded
 in `docs/COMMERCIAL_HARDENING.md`. Existing surfaces are now completed one at a

@@ -509,6 +509,7 @@ final class ModuleContext
      *
      * @param list<array{name:string,label:string,type?:string,required?:bool,options?:array}> $fields
      * @param list<array{name:string,label:string}> $columns
+     * @param array{reorder?:callable,bulk?:callable,bulk_actions?:array<string,string>} $options
      */
     public function adminResource(
         string $key,
@@ -521,11 +522,35 @@ final class ModuleContext
         callable $save,
         ?callable $delete = null,
         string $category = 'Industry',
+        array $options = [],
     ): void {
         if (!preg_match('/^[a-z][a-z0-9_-]{1,79}$/', $key)) throw new \InvalidArgumentException('Resource keys must be stable lowercase tokens.');
         if (trim($label) === '' || mb_strlen(trim($label)) > 120) throw new \InvalidArgumentException('Resource labels must be 1–120 characters.');
         if (!preg_match('/^[a-z0-9_.:-]+$/', $capability)) throw new \InvalidArgumentException('Resources require a valid capability.');
         if ($fields === [] || $columns === []) throw new \InvalidArgumentException('Resources require fields and columns.');
+        foreach (array_keys($options) as $option) {
+            if (!in_array((string) $option, ['reorder', 'bulk', 'bulk_actions'], true)) {
+                throw new \InvalidArgumentException('Unsupported admin resource option: ' . $option);
+            }
+        }
+        $reorder = $options['reorder'] ?? null;
+        $bulk = $options['bulk'] ?? null;
+        $bulkActions = $options['bulk_actions'] ?? [];
+        if ($reorder !== null && !is_callable($reorder)) throw new \InvalidArgumentException('Resource reorder must be callable.');
+        if ($bulk !== null && !is_callable($bulk)) throw new \InvalidArgumentException('Resource bulk handler must be callable.');
+        if (!is_array($bulkActions)) throw new \InvalidArgumentException('Resource bulk actions must be a map.');
+        if (($bulk === null) !== ($bulkActions === [])) {
+            throw new \InvalidArgumentException('Resource bulk handler and actions must be declared together.');
+        }
+        $normalizedBulkActions = [];
+        foreach ($bulkActions as $action => $actionLabel) {
+            $action = (string) $action;
+            $actionLabel = trim((string) $actionLabel);
+            if (!preg_match('/^[a-z][a-z0-9_-]{0,79}$/', $action) || $actionLabel === '' || mb_strlen($actionLabel) > 120) {
+                throw new \InvalidArgumentException('Resource bulk actions require safe tokens and labels.');
+            }
+            $normalizedBulkActions[$action] = $actionLabel;
+        }
         $allowedTypes = ['text', 'textarea', 'email', 'url', 'number', 'date', 'select', 'checkbox'];
         $normalize = static function (array $items, bool $field) use ($allowedTypes): array {
             $out = [];
@@ -546,6 +571,7 @@ final class ModuleContext
             'key'=>$key,'label'=>trim($label),'capability'=>$capability,
             'fields'=>$normalize($fields,true),'columns'=>$normalize($columns,false),
             'list'=>$list,'find'=>$find,'save'=>$save,'delete'=>$delete,
+            'reorder'=>$reorder,'bulk'=>$bulk,'bulk_actions'=>$normalizedBulkActions,
             'route'=>$route,'package'=>$this->packageId,
         ];
         $this->adminPage(trim($label), $route, $capability, $category);

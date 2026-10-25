@@ -57,7 +57,7 @@ return [
     'app' => [
         'name' => 'Artifact Verification Site', 'env' => 'development',
         'url' => '__BASEURL__', 'timezone' => 'UTC', 'locale' => 'en',
-        'debug' => true, 'version' => '2.2.2', 'api_version' => 1,
+        'debug' => true, 'version' => '2.3.0', 'api_version' => 1,
     ],
     'database' => [
         'driver' => 'sqlite',

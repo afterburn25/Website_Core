@@ -44,6 +44,20 @@ Every listed surface must satisfy all applicable gates:
 
 Status values: **queued**, **in progress**, **code complete**, **verified**.
 
+## 2.3.0 — Reusable module record operations
+
+- [x] `adminResource()` accepts backward-compatible optional reorder and bulk
+      callbacks plus an allowlisted action-label map.
+- [x] Core rejects malformed, non-positive, excessive and undeclared inputs
+      before module code runs; IDs are unique and bounded to 100 submissions.
+- [x] Successful actions receive standard feedback, redirects and
+      package/resource-attributed audit evidence.
+- [x] Shared controls provide select-all, keyboard-reachable row movement,
+      confirmation, responsive layout and current-page ordering guidance.
+- [x] Focused API/controller tests cover rendering, callback arguments,
+      deduplication, audit events and rejection paths.
+- [ ] Full CI, packaged-artifact verification and adoption by two industries.
+
 ## 2.2.1 — SMTP provider-host diagnostics
 
 - [x] Separate credential-free discovery checks SSL/465 and STARTTLS/587.

@@ -150,15 +150,44 @@ final class ModuleContextTest extends TestCase
     public function testModuleCanRegisterAReusableAdminResource(): void
     {
         $context = new ModuleContext('acme/demo', new Router(), new Dispatcher());
+        $reorder = fn(array $ids) => null;
+        $bulk = fn(array $ids, string $action) => true;
         $context->adminResource('services','Services','demo.manage',
             [['name'=>'name','label'=>'Name','required'=>true]],
             [['name'=>'name','label'=>'Name']],
-            fn()=>[],fn(int $id)=>['id'=>$id,'name'=>'Example'],fn(?int $id,array $data)=>[$id??1,null]
+            fn()=>[],fn(int $id)=>['id'=>$id,'name'=>'Example'],fn(?int $id,array $data)=>[$id??1,null],
+            options: ['reorder'=>$reorder,'bulk'=>$bulk,'bulk_actions'=>['archive'=>'Archive']]
         );
         $resources=$context->adminResources();
         self::assertCount(1,$resources);
-        self::assertSame('Services',array_values($resources)[0]['label']);
+        $resource=array_values($resources)[0];
+        self::assertSame('Services',$resource['label']);
+        self::assertSame($reorder,$resource['reorder']);
+        self::assertSame($bulk,$resource['bulk']);
+        self::assertSame(['archive'=>'Archive'],$resource['bulk_actions']);
         self::assertSame('Services',$context->adminNavItems()[0]['label']);
+    }
+
+    public function testAdminResourceRejectsIncompleteBulkConfiguration(): void
+    {
+        $context = new ModuleContext('acme/demo', new Router(), new Dispatcher());
+        $this->expectException(\InvalidArgumentException::class);
+        $context->adminResource('services','Services','demo.manage',
+            [['name'=>'name','label'=>'Name']], [['name'=>'name','label'=>'Name']],
+            fn()=>[], fn(int $id)=>['id'=>$id], fn(?int $id,array $data)=>[$id??1,null],
+            options: ['bulk_actions'=>['archive'=>'Archive']]
+        );
+    }
+
+    public function testAdminResourceRejectsUnsafeBulkActionTokens(): void
+    {
+        $context = new ModuleContext('acme/demo', new Router(), new Dispatcher());
+        $this->expectException(\InvalidArgumentException::class);
+        $context->adminResource('services','Services','demo.manage',
+            [['name'=>'name','label'=>'Name']], [['name'=>'name','label'=>'Name']],
+            fn()=>[], fn(int $id)=>['id'=>$id], fn(?int $id,array $data)=>[$id??1,null],
+            options: ['bulk'=>fn()=>true,'bulk_actions'=>['delete everything'=>'Delete']]
+        );
     }
 
     public function testUnknownCoreFeatureIsRejected(): void

@@ -22,6 +22,8 @@ breaking changes bump the major and ship with a migration guide.
 | `adminRoute($methods, $pattern, $handler)` | Register a route inside the same authenticated-session + CSRF pipeline as every core admin screen. The handler must still check its own declared capability. |
 | `on($event, $listener)` | Subscribe to core lifecycle events (fault-isolated). |
 | `adminPage($label, $route, $capability, $category = null)` | Add an admin nav item inside the package's own collapsible category; authorization is still checked server-side per route. |
+| `adminView($request, $view, $data, $title, $capability)` | Render a registered module view inside the authenticated Core admin shell with a server-side capability check. |
+| `adminResource(..., $delete = null, $category = 'Industry', $options = [])` | Register a validated list/editor workspace with optional visible-row ordering and allowlisted bulk actions. |
 | `scheduledJob($type, $handler)` | Register an idempotent job handler executed by the queue runner. |
 | `contentType($type, $label, $fields)` | Register a structured content type — validated storage in `content_items` plus generated admin CRUD under `/admin/content`. |
 | `dashboardWidget($key, $label, $provider, $capability = null, $url = null)` | Contribute a capability-filtered live metric to the Core dashboard. |
@@ -255,7 +257,7 @@ per-guest/per-acre formulas, contracts, and scheduling stay module-owned.
 Disable/uninstall hides these surfaces and preserves rows; explicit package
 purge removes the package partition.
 
-## Reusable module administration (Core 2.2)
+## Reusable module administration (Core 2.2–2.3)
 
 After registering a view namespace with `views()`, `adminView()` renders the
 package view inside the complete Core shell and enforces its capability.
@@ -272,6 +274,11 @@ $ctx->adminResource(
     fn (?int $id, array $data) => $repo->save($id, $data),
     fn (int $id) => $repo->delete($id),
     'Catering',
+    [
+        'reorder' => fn (array $visibleIds) => $repo->reorderVisible($visibleIds),
+        'bulk' => fn (array $ids, string $action) => $repo->bulk($ids, $action),
+        'bulk_actions' => ['publish' => 'Publish', 'archive' => 'Archive'],
+    ],
 );
 ```
 
@@ -280,6 +287,18 @@ Supported generated field types are `text`, `textarea`, `email`, `url`,
 validation, search, pagination, permission checks, CSRF, confirmation, audit,
 empty/error states, and responsive presentation. Callbacks must still enforce
 package ownership and domain-specific rules.
+
+The optional `reorder` callback receives the unique positive IDs visible on
+the current page, in their submitted order. It must update only records owned
+by the registering package; search and pagination mean the list is not a
+promise of every package record. The optional `bulk` callback receives up to
+100 unique positive IDs plus one action token declared in `bulk_actions`.
+Core rejects undeclared actions and malformed IDs before invoking either
+callback. Return `true` or `null` for success, or a safe administrator-facing
+error string. Core supplies selection/order controls, confirmation, permission
+and CSRF enforcement, bounded input, success feedback, redirects and audit
+events; the module remains responsible for transactional persistence and
+record ownership.
 
 ## Contracts
 

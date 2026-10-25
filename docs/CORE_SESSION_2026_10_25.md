@@ -57,5 +57,18 @@ was not merged.
 1. Exercise the packaged SMTP diagnostics on the target shared host and
    record the provider correction without claiming unobserved mail success.
 2. Continue remaining CORE-REUSE items in `ROADMAP.md`, starting with module
-   content/media integration and record-editor ordering/bulk actions.
+   content/media integration and cross-industry adoption of the completed
+   record editor.
 3. Keep packaged browser acceptance and cross-industry adoption visibly open.
+
+## Later continuation state
+
+- Core 2.2.2 repaired inquiry-detail administrator attribution and passed all
+  six CI jobs in run 539 (`40214953921`) on source commit
+  `c1fe92f2df6769ea0963ffa6d45f602622cc6142`.
+- Core 2.3.0 completes `adminResource()` with optional visible-row ordering
+  and allowlisted bulk actions. It adds bounded positive-ID validation,
+  standard controls/feedback/audit evidence, API documentation, and focused
+  regression coverage without a migration or industry snapshot change.
+- Full 2.3.0 CI and packaged-host adoption evidence remain pending until the
+  source candidate is pushed and exercised.

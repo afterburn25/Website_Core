@@ -1063,6 +1063,47 @@
     });
   });
 
+  document.querySelectorAll('[data-resource-list]').forEach((form) => {
+    const table = form.querySelector('[data-resource-table]');
+    const selectAll = form.querySelector('[data-resource-select-all]');
+    const selected = () => [...form.querySelectorAll('[data-resource-select]')];
+    const syncSelection = () => {
+      const boxes = selected();
+      if (!selectAll) return;
+      selectAll.checked = boxes.length > 0 && boxes.every((box) => box.checked);
+      selectAll.indeterminate = boxes.some((box) => box.checked) && !selectAll.checked;
+    };
+    selectAll?.addEventListener('change', () => {
+      selected().forEach((box) => { box.checked = selectAll.checked; });
+      syncSelection();
+    });
+    selected().forEach((box) => box.addEventListener('change', syncSelection));
+
+    const syncOrder = () => {
+      const rows = [...(table?.querySelectorAll('tbody [data-resource-row]') || [])];
+      rows.forEach((row, index) => {
+        const up = row.querySelector('[data-resource-up]');
+        const down = row.querySelector('[data-resource-down]');
+        if (up) up.disabled = index === 0;
+        if (down) down.disabled = index === rows.length - 1;
+      });
+    };
+    table?.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-resource-up],[data-resource-down]');
+      const row = button?.closest('[data-resource-row]');
+      if (!button || !row) return;
+      if (button.hasAttribute('data-resource-up') && row.previousElementSibling) {
+        row.parentNode.insertBefore(row, row.previousElementSibling);
+      } else if (button.hasAttribute('data-resource-down') && row.nextElementSibling) {
+        row.parentNode.insertBefore(row.nextElementSibling, row);
+      }
+      syncOrder();
+      button.focus();
+    });
+    syncSelection();
+    syncOrder();
+  });
+
   const accountMenu = document.querySelector('.account-menu');
   document.addEventListener('click', (event) => {
     if (accountMenu?.open && !accountMenu.contains(event.target)) {

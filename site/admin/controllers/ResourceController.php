@@ -15,6 +15,9 @@ final class ResourceController extends Controller
         if (!$resource) return $this->notFound();
         if (!$this->user() || !$this->auth()->has($this->user(), (string)$resource['capability'])) return $this->forbidden();
         $id = max(0, (int)$r->input('id', 0));
+        $search = mb_substr(trim($r->string('q')), 0, 190);
+        $page = max(1, (int)$r->input('page', 1));
+        $perPage = 25;
         $error = null;
         if ($r->isPost()) {
             $action = $r->string('action', 'save');
@@ -29,7 +32,42 @@ final class ResourceController extends Controller
                     }
                     $error = is_string($result) ? $result : 'The record could not be deleted.';
                 }
-            } else {
+            } elseif ($action === 'reorder') {
+                [$ids, $error] = $this->recordIds($r->post['ordered_ids'] ?? null, 'There are no records to reorder.');
+                if ($error === null && !is_callable($resource['reorder'] ?? null)) {
+                    $error = 'This resource cannot be reordered.';
+                }
+                if ($error === null) {
+                    $result = ($resource['reorder'])($ids);
+                    $error = $this->actionError($result, 'The record order could not be saved.');
+                    if ($error === null) {
+                        $this->audit('module.resource.reordered', [
+                            'package'=>$resource['package'],'resource'=>$resource['key'],'ids'=>$ids,
+                        ]);
+                        $this->flash('success', 'Record order saved.');
+                        return $this->redirect($r, $this->listRoute($resource, $search, $page));
+                    }
+                }
+            } elseif ($action === 'bulk') {
+                $bulkAction = $r->string('bulk_action');
+                [$ids, $error] = $this->recordIds($r->post['selected_ids'] ?? null, 'Select at least one record.');
+                if ($error === null && (!is_callable($resource['bulk'] ?? null)
+                    || !array_key_exists($bulkAction, (array)($resource['bulk_actions'] ?? [])))) {
+                    $error = 'Select a valid bulk action.';
+                }
+                if ($error === null) {
+                    $result = ($resource['bulk'])($ids, $bulkAction);
+                    $error = $this->actionError($result, 'The bulk action could not be completed.');
+                    if ($error === null) {
+                        $this->audit('module.resource.bulk', [
+                            'package'=>$resource['package'],'resource'=>$resource['key'],
+                            'action'=>$bulkAction,'ids'=>$ids,
+                        ]);
+                        $this->flash('success', 'Bulk action completed.');
+                        return $this->redirect($r, $this->listRoute($resource, $search, $page));
+                    }
+                }
+            } elseif ($action === 'save') {
                 [$data, $error] = $this->validated($resource['fields'], $r->post);
                 if ($error === null) {
                     $result = ($resource['save'])($id > 0 ? $id : null, $data);
@@ -41,11 +79,12 @@ final class ResourceController extends Controller
                     }
                     $error = is_string($saveError) ? $saveError : 'The record could not be saved.';
                 }
+            } else {
+                $error = 'Select a valid resource action.';
             }
         }
         $record = $id > 0 ? ($resource['find'])($id) : null;
         if ($id > 0 && !is_array($record)) return $this->notFound();
-        $search = mb_substr(trim($r->string('q')), 0, 190); $page = max(1, (int)$r->input('page', 1)); $perPage = 25;
         $result = ($resource['list'])($search, $page, $perPage);
         $rows = is_array($result) && isset($result['rows']) ? (array)$result['rows'] : (array)$result;
         $total = is_array($result) && isset($result['total']) ? (int)$result['total'] : count($rows);
@@ -74,6 +113,35 @@ final class ResourceController extends Controller
             $data[$name]=is_string($value)?mb_substr(strip_tags($value),0,$type==='textarea'?12000:1000):$value;
         }
         return [$data,null];
+    }
+
+    /** @return array{0:list<int>,1:?string} */
+    private function recordIds(mixed $input, string $emptyError): array
+    {
+        if (!is_array($input) || $input === []) return [[], $emptyError];
+        if (count($input) > 100) return [[], 'No more than 100 records may be changed at once.'];
+        $ids = [];
+        foreach ($input as $value) {
+            if (!is_int($value) && !is_string($value)) return [[], 'Select valid records.'];
+            $id = filter_var($value, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]);
+            if ($id === false) return [[], 'Select valid records.'];
+            $ids[(int)$id] = (int)$id;
+        }
+        return [array_values($ids), [] === $ids ? $emptyError : null];
+    }
+
+    private function actionError(mixed $result, string $fallback): ?string
+    {
+        if ($result === true || $result === null) return null;
+        return is_string($result) && trim($result) !== '' ? trim($result) : $fallback;
+    }
+
+    private function listRoute(array $resource, string $search, int $page): string
+    {
+        $query = [];
+        if ($search !== '') $query['q'] = $search;
+        if ($page > 1) $query['page'] = $page;
+        return (string)$resource['route'] . ($query === [] ? '' : '&' . http_build_query($query, '', '&', PHP_QUERY_RFC3986));
     }
 
     private function notFound(): Response

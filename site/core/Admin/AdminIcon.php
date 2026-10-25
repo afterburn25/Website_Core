@@ -24,6 +24,8 @@ final class AdminIcon
             'seo' => '<circle cx="10" cy="10" r="6"/><path d="m15 15 5 5M8 10l1.5 1.5L13 8"/>',
             'media' => '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 3-3 4 4"/>',
             'appearance' => '<path d="M12 3a9 9 0 1 0 0 18h1.5a2 2 0 0 0 0-4H12a2 2 0 0 1 0-4h3a6 6 0 0 0 0-12h-3Z"/><circle cx="7.5" cy="10" r="1"/><circle cx="9" cy="6.5" r="1"/><circle cx="14" cy="6" r="1"/>',
+            'products' => '<path d="M4 7h16v14H4zM8 7a4 4 0 0 1 8 0M4 11h16"/>',
+            'orders' => '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
             'privacy' => '<path d="M12 3 4.5 6v5c0 5 3 8.5 7.5 10 4.5-1.5 7.5-5 7.5-10V6z"/><path d="M9 12l2 2 4-5"/>',
             'integrations' => '<path d="M8 12H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4M16 12h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-4M7 8h10M12 8v8"/><rect x="8" y="16" width="8" height="5" rx="1"/>',
             'users' => '<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7M17 8h5M19.5 5.5v5"/>',

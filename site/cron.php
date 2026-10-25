@@ -66,13 +66,19 @@ $processed = $runner->run(10, 25);
 // Drain the transactional queue every pass — no separate cron entry needed.
 $mailed = $app->container()->get(\Core\Mail\SystemMail::class)->flush(10);
 $analyticsPruned = 0;
+$accountResetsPruned = 0;
 try {
     $analyticsPruned = $app->container()->get(\Core\Analytics\AnalyticsService::class)->cleanup();
 } catch (\Throwable $e) {
     error_log('[website-core] analytics retention: ' . $e->getMessage());
 }
+try {
+    $accountResetsPruned = $app->container()->get(\Core\Accounts\CustomerAuth::class)->cleanupExpiredResets();
+} catch (\Throwable $e) {
+    error_log('[website-core] customer reset retention: ' . $e->getMessage());
+}
 $settings->set('system.cron_last_run', date('Y-m-d H:i:s'));
 if (!$cli) {
     header('Content-Type: text/plain');
 }
-echo "processed={$processed} mailed={$mailed} analytics_pruned={$analyticsPruned}\n";
+echo "processed={$processed} mailed={$mailed} analytics_pruned={$analyticsPruned} account_resets_pruned={$accountResetsPruned}\n";

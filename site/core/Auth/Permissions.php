@@ -20,6 +20,9 @@ final class Permissions
         'media.manage' => ['Website', 'Manage media', 'Upload, organize, replace, and remove media.'],
         'navigation.manage' => ['Website', 'Manage navigation', 'Change header/footer links and redirects.'],
         'appearance.manage' => ['Website', 'Manage appearance', 'Change brand assets, design tokens, and themes.'],
+        'commerce.manage' => ['Store', 'Manage products', 'Create products, pricing, inventory, and store settings.'],
+        'orders.manage' => ['Store', 'Manage orders', 'Review orders and update fulfillment and payment status.'],
+        'customers.manage' => ['Customers', 'Manage customers', 'Review and disable public customer accounts.'],
         'settings.manage' => ['System', 'Manage settings', 'Change site-wide configuration and security policy.'],
         'modules.view' => ['Extensions', 'View modules', 'Review installed modules, add-ons, and themes.'],
         'modules.install' => ['Extensions', 'Manage modules', 'Install, update, enable, disable, and remove packages.'],
@@ -34,7 +37,7 @@ final class Permissions
         'owner'  => ['*'],
         'admin'  => [
             'content.manage', 'content.publish', 'forms.manage', 'media.manage', 'navigation.manage',
-            'appearance.manage', 'settings.manage', 'modules.view', 'modules.install',
+            'appearance.manage', 'commerce.manage', 'orders.manage', 'customers.manage', 'settings.manage', 'modules.view', 'modules.install',
             'system.view', 'audit.view', 'backups.manage',
             'admins.view', 'admins.manage_nonowner',
         ],
@@ -45,6 +48,9 @@ final class Permissions
 
     /** @var array<string, string> extra capability => description (module-declared) */
     private array $extensions = [];
+    /** @var array<string,true> Core capabilities made relevant by enabled modules. */
+    private array $optionalActive = [];
+    private const OPTIONAL = ['commerce.manage', 'orders.manage', 'customers.manage'];
 
     public function __construct(private ?Connection $db = null) {}
 
@@ -53,12 +59,18 @@ final class Permissions
         $this->extensions[$capability] = $description;
     }
 
+    public function activateOptional(string $capability): void
+    {
+        if (in_array($capability, self::OPTIONAL, true)) $this->optionalActive[$capability] = true;
+    }
+
     /** @return list<string> */
     public function allCapabilities(): array
     {
         $core = array_values(array_unique(array_merge(...array_values(
             array_filter(self::ROLES, fn ($c) => $c !== ['*'])
         ))));
+        $core = array_values(array_filter($core, fn(string $capability): bool => !in_array($capability, self::OPTIONAL, true) || isset($this->optionalActive[$capability])));
         return array_merge($core, array_keys($this->extensions));
     }
 
@@ -95,6 +107,7 @@ final class Permissions
 
     public function allows(string $role, string $capability): bool
     {
+        if (in_array($capability, self::OPTIONAL, true) && !isset($this->optionalActive[$capability])) return false;
         $caps = self::ROLES[$role] ?? ($this->custom($role) ?? []);
         if (in_array('*', $caps, true)) {
             return true;

@@ -56,7 +56,26 @@ final class SearchController extends Controller
                     }
                 }
             }
-            foreach ($this->c->get(ModuleRegistry::class)->search($query) as $result) {
+            $registry = $this->c->get(ModuleRegistry::class);
+            if ($registry->supportsFeature('commerce.catalog') && $this->auth()->has($u, 'commerce.manage')) {
+                $owner = (string) ($registry->feature('commerce.catalog')['package'] ?? '');
+                foreach ($this->db()->fetchAll('SELECT id,name,sku,active FROM `' . $this->db()->table('commerce_products') . '` WHERE owner_package=? AND (name LIKE ? OR sku LIKE ?) ORDER BY updated_at DESC LIMIT 20', [$owner,$like,$like]) as $row) {
+                    $results[]=['type'=>'Product','title'=>$row['name'],'detail'=>$row['sku'].' · '.((int)$row['active']?'active':'hidden'),'url'=>'/admin/store/products/edit&id='.$row['id']];
+                }
+            }
+            if ($registry->supportsFeature('commerce.orders') && $this->auth()->has($u, 'orders.manage')) {
+                $owner = (string) ($registry->feature('commerce.orders')['package'] ?? '');
+                foreach ($this->db()->fetchAll('SELECT id,order_number,customer_name,status FROM `' . $this->db()->table('commerce_orders') . '` WHERE source_package=? AND (order_number LIKE ? OR customer_name LIKE ? OR customer_email LIKE ?) ORDER BY placed_at DESC LIMIT 20', [$owner,$like,$like,$like]) as $row) {
+                    $results[]=['type'=>'Order','title'=>$row['order_number'],'detail'=>$row['customer_name'].' · '.$row['status'],'url'=>'/admin/store/orders/view&id='.$row['id']];
+                }
+            }
+            if ($registry->supportsFeature('accounts.customers') && $this->auth()->has($u, 'customers.manage')) {
+                $owner = (string) ($registry->feature('accounts.customers')['package'] ?? '');
+                foreach ($this->db()->fetchAll('SELECT id,name,email,status FROM `' . $this->db()->table('customer_accounts') . '` WHERE owner_package=? AND (name LIKE ? OR email LIKE ?) ORDER BY created_at DESC LIMIT 20', [$owner,$like,$like]) as $row) {
+                    $results[]=['type'=>'Customer','title'=>$row['name'],'detail'=>$row['email'].' · '.$row['status'],'url'=>'/admin/customers'];
+                }
+            }
+            foreach ($registry->search($query) as $result) {
                 if (empty($result['capability']) || $this->auth()->has($u, (string) $result['capability'])) {
                     $results[] = [
                         'type' => substr((string) ($result['type'] ?? 'Package'), 0, 40),

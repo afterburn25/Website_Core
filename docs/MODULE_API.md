@@ -33,6 +33,9 @@ breaking changes bump the major and ship with a migration guide.
 | `brandAssetUrl($request, $role, $width = null)` | Resolve the current Core-owned public URL for a logo, favicon, or social image in module layouts. |
 | `copyrightNotice($siteName)` | Resolve Core's custom copyright text after expanding `{year}` and `{site_name}`. Escape it when rendering. |
 | `socialLinks($location = null)` | Read Core's validated, nonblank social profiles, optionally filtered to `header` or `footer`. |
+| `coreFeature($feature, $options = [])` | Opt into one allowlisted optional Core surface. Undeclared features remain hidden and unreachable. |
+| `commerce($options = [])` | Opt into selected `catalog`, `cart`, `checkout`, and `orders` surfaces and supply store currency/fulfillment defaults. |
+| `customerAccounts($options = [])` | Opt into public customer registration, sign-in, recovery, profile/order history, and Core customer administration. |
 | `permission($capability, $description)` | Declare a package capability. Owner always holds it; `admin` does by default. Packages can never grant core capabilities. |
 | `views($dir)` | Register a view directory, resolving as `mod-<slug>:<name>`; active-theme overrides at `templates/modules/<pkg-id>/<name>.php` win, package views fall back. Returns the namespace. |
 | `service($id)` | Resolve a core service (`View`, `SettingsRepository`, `JobQueue`, `SystemMail`, `ContentItems`, …). Packages are trusted in-process code — this is the supported way to reach shared infrastructure. |
@@ -90,6 +93,42 @@ Modules render only the returned social records, using Core's `SocialIcon`
 helper when they need the standard dependency-free SVG marks. Core applies one
 global placement—header, footer, or both—to every configured profile; a blank
 profile appears nowhere.
+
+### Optional Core features
+
+Commerce and customer accounts are present in Core but dormant by default.
+An enabled industry module must opt in; disabling that module immediately
+removes the corresponding public routes, administrator navigation, and role
+choices without deleting records. Re-enabling the module restores them.
+
+```php
+$ctx->commerce([
+    'store_name' => 'Catering Co. Store',
+    'currency' => 'USD',
+    'fulfillment' => ['pickup', 'delivery'],
+    // Optional: 'features' => ['catalog', 'cart', 'checkout', 'orders'],
+]);
+$ctx->customerAccounts([
+    'registration' => true,
+    'account_label' => 'My catering account',
+]);
+```
+
+Core owns generic products, inventory, session carts, order snapshots,
+customer identities, and password recovery. The declaring module remains the
+owner key on every product/order/account. Modules own product meaning,
+merchandising, and industry rules. Gateway SDKs, automatic payment
+confirmation, tax calculation, and industry-specific fulfillment stay in
+separate packages. Core's built-in manual methods are Venmo, PayPal, and Cash
+App; administrators enable them and provide instructions. Orders remain
+`payment pending` until staff explicitly records receipt.
+
+A module may seed a starter catalog once through the supported
+`ProductRepository` service, guarded by a package-specific setting marker.
+Only seed when that package has no Core products; never overwrite live Core
+catalog records on boot or upgrade. Explicit package purge removes both the
+package partition and its commerce seed marker so a clean reinstall can seed
+again.
 
 ### Module-supplied brand defaults
 
@@ -158,6 +197,7 @@ isolated — it never aborts the operation that fired the event.
 | `package.uninstalled` | `package`, `data` | files removed, data preserved |
 | `package.purged` | `package` | package-owned tables dropped |
 | `core.update` | audit entry | a core self-update applies |
+| `commerce.order.placed` | `id`, `order_number`, `payment_method`, `total_minor`, `currency` | an order transaction commits |
 
 ## Content types
 

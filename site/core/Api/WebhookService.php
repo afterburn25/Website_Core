@@ -11,7 +11,7 @@ use Core\Security\PublicHttpsUrl;
 
 final class WebhookService
 {
-    public const EVENTS = ['page.saved', 'page.published', 'page.draft', 'page.review_requested', 'backup.created'];
+    public const EVENTS = ['page.saved', 'page.published', 'page.draft', 'page.review_requested', 'backup.created', 'commerce.order.placed'];
 
     public function __construct(private Connection $db, private JobQueue $jobs, private Config $config) {}
 

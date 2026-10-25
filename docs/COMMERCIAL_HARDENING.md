@@ -1,9 +1,10 @@
 # Commercial Hardening Program
 
-Website Core is in a **feature freeze**. Work after 2.0.1 closes gaps in the
-existing product, completes wiring, expands useful options, improves the GUI,
-and proves that every advertised workflow is suitable for a paid commercial
-release. New broad product areas are out of scope until this program closes.
+Website Core completed its 2.0 feature-freeze program. Work after 2.0.1 closed
+gaps in the existing product, completed wiring, expanded useful options,
+improved the GUI, and proved the established workflows. Version 2.1.0 begins
+the separately gated, module-activated commerce and customer-account
+foundation approved after that program.
 
 ## How work proceeds
 
@@ -42,6 +43,21 @@ Every listed surface must satisfy all applicable gates:
 ## Ordered surface audit
 
 Status values: **queued**, **in progress**, **code complete**, **verified**.
+
+## 2.1.0 — Opt-in commerce and public customer accounts
+
+- [x] Enabled modules explicitly declare catalog, cart, checkout, orders, and
+      customer accounts; undeclared surfaces are hidden and return 404.
+- [x] Product pricing and tracked inventory are revalidated transactionally;
+      cancellation restores stock once and cannot be reopened accidentally.
+- [x] Venmo, PayPal, and Cash App are owner-configurable manual methods; cash
+      is absent and orders remain pending until staff verifies payment.
+- [x] Customer registration, sign-in, profile, recovery, history, throttling,
+      disable/restore, permissions, CSRF, and auditing are wired.
+- [x] Disable/uninstall preserve Core feature records; explicit module purge
+      removes the package partition in dependency-safe order.
+- [ ] Full PHP 8.4/8.5, MySQL/MariaDB, package, and artifact CI matrix.
+- [ ] Packaged browser acceptance on shared hosting.
 
 ## 2.0.32 — Core analytics and transactional-mail acceptance
 

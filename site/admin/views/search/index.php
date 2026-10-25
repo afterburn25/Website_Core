@@ -1,7 +1,7 @@
 <?php /** @var string $query @var list<array{type:string,title:string,detail:string,url:string}> $results */ ?>
 <div class="card">
 <form method="get" action="<?= e_attr($basePath) ?>/admin/search" role="search">
-<label for="admin-search">Search pages, media, and packages</label>
+<label for="admin-search">Search pages, media, packages, and active module records</label>
 <div class="inline-fields"><input id="admin-search" type="search" name="q" value="<?= e_attr($query) ?>" autofocus><button class="btn" type="submit">Search</button></div>
 </form>
 </div>

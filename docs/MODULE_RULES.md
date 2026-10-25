@@ -9,15 +9,21 @@ is the detailed authority; module work must read both before implementation.
 
 ## Ownership boundaries
 
-- Core owns authentication, administrator accounts, permissions, settings,
+- Core owns authentication, administrator and opt-in customer accounts, permissions, settings,
   pages, Media, forms, navigation storage, branding selections, themes,
   backups, updates, health, audit history, privacy, and integrations.
+- Core owns generic commerce storage and workflows only when the enabled
+  industry module declares the corresponding features. A module owns product
+  meaning, merchandising defaults, and industry fulfillment rules.
 - A module owns only its industry-specific schema, services, blocks, public
   routes, seeded industry content, and its named administration category.
 - A module may declare starting header/footer navigation and brand assets.
   Core imports those defaults once; the administrator owns all later edits.
 - A module must not create a second dashboard. It contributes overview widgets
   to the Core Dashboard and industry pages to its own admin category.
+- Optional Core features must be declared through `commerce()`,
+  `customerAccounts()`, or an allowlisted `coreFeature()`. Modules must never
+  duplicate these records or show links to features they did not declare.
 
 ## Administrator experience
 

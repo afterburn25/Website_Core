@@ -1275,3 +1275,23 @@ integrity.
   private config directory. Failed marker writes cause safe retries.
 - Added direct unit coverage and artifact membership checks for the runtime
   cache helper. This is a Core-wide shared-host behavior, not a catering rule.
+
+## 2026-10-25 — Core 2.1.0 opt-in commerce and customer accounts
+
+- Product direction changed the former commerce boundary: Core now provides a
+  dormant generic catalog/cart/checkout/order foundation and dormant public
+  customer identities. An enabled module must activate each surface through
+  `ModuleContext`; otherwise navigation, permissions, routes, and search stay
+  absent.
+- Catering reference module 0.2.0 activates all commerce features, pickup and
+  delivery, and customer accounts. New navigation defaults include Order
+  Online and My Account.
+- Manual checkout supports Venmo, PayPal, and Cash App only. There is no cash
+  option and no false gateway confirmation; payment starts pending until an
+  administrator verifies it.
+- Migration 0029 owns package-keyed products, order snapshots, customer
+  accounts, and one-time password recovery. Disable/uninstall preserve these;
+  explicit package purge removes them.
+- Local PHP is unavailable in this workspace. Do not mark release verification
+  complete until the full GitHub matrix passes and the packaged artifact is
+  exercised on shared hosting.

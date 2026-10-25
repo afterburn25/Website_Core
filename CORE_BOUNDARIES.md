@@ -18,13 +18,20 @@ direction (packages → core API, never core → package internals).
   dependency management, data-preserving removal.
 - Shared routing, validation, database/migration, events, cache, jobs,
   system-notification, audit, health, backup, and recovery infrastructure.
+- An opt-in commerce foundation (catalog, cart, checkout, inventory, and
+  orders) whose screens and routes exist only when an enabled industry
+  module explicitly declares the matching Core features. Industry modules
+  own product taxonomy, merchandising defaults, and fulfillment rules.
+- Opt-in public customer identity, recovery, profiles, and order history,
+  activated only by an enabled module. Administrator identity remains a
+  separate security realm.
 
 ## Core MUST NOT contain
 
-payments, processor SDKs, orders, invoices, taxes, subscriptions,
-commerce/catalogs, booking, CRM, public customer registration, client
+processor SDKs, gateway-specific payment logic, invoices, tax calculation,
+subscriptions, booking, CRM, client
 portals, memberships, blogs, advanced forms/galleries, newsletters,
-analytics, webmail, hosting resale, 20i, domains, VPS, SSH, agency fleet
+third-party surveillance analytics, webmail, hosting resale, 20i, domains, VPS, SSH, agency fleet
 tools, or industry-specific tables and workflows.
 
 ## Dependency direction
@@ -45,3 +52,7 @@ tools, or industry-specific tables and workflows.
 - Password-reset delivery: core. Mailbox/newsletter: not.
 - Safe outbound HTTP + inbound route/webhook boundary: core. Provider
   contracts/SDKs: packages.
+- Generic commerce records and workflows: core. A module opts into each
+  surface with `commerce()` or `coreFeature()`; undeclared features remain
+  unreachable and absent from navigation. Gateway integrations, product
+  meaning, tax rules, and industry fulfillment logic remain packages.

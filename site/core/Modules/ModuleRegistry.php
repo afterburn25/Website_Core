@@ -351,6 +351,28 @@ final class ModuleRegistry
         return $out;
     }
 
+    /** @return array<string,array{package:string,options:array}> */
+    public function coreFeatures(): array
+    {
+        $out = [];
+        foreach ($this->contexts as $ctx) {
+            foreach ($ctx->coreFeatures() as $feature => $options) {
+                $out[$feature] ??= ['package' => $ctx->packageId(), 'options' => $options];
+            }
+        }
+        return $out;
+    }
+
+    public function supportsFeature(string $feature): bool
+    {
+        return isset($this->coreFeatures()[$feature]);
+    }
+
+    public function feature(string $feature): ?array
+    {
+        return $this->coreFeatures()[$feature] ?? null;
+    }
+
     /** Deterministic load order: dependencies before dependents. */
     public function dependencyOrder(): array
     {

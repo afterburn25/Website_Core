@@ -30,7 +30,8 @@ final class DatabaseSmokeTest extends TestCase
         $migrator = new Migrator($db, WC_ROOT . '/database/migrations');
         $applied = $migrator->migrate();
         $this->assertContains('2026_10_14_0001', $applied);
-        foreach (['admins', 'settings', 'pages', 'packages', 'jobs', 'audit_log', 'rate_limits'] as $t) {
+        foreach (['admins', 'settings', 'pages', 'packages', 'jobs', 'audit_log', 'rate_limits',
+            'commerce_products', 'commerce_orders', 'commerce_order_items', 'customer_accounts', 'customer_password_resets'] as $t) {
             $this->assertTrue($db->tableExists($t), "missing table {$t}");
         }
         // Second run applies nothing (journal works).

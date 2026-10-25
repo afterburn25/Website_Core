@@ -38,6 +38,8 @@ final class ModuleContext
     private array $navigationMenus = [];
     /** @var array<string,string> */
     private array $brandAssets = [];
+    /** @var array<string,array> opt-in Core surfaces supplied by this package */
+    private array $coreFeatures = [];
 
     /**
      * @param callable|null $adminMiddleware combined auth+CSRF pipeline for
@@ -318,6 +320,85 @@ final class ModuleContext
         return $this->service(BrandAssets::class)->socialLinks($location);
     }
 
+    /**
+     * Opt an enabled package into a Core-owned feature. Core never shows or
+     * serves an optional feature merely because its code is present.
+     */
+    public function coreFeature(string $feature, array $options = []): void
+    {
+        $allowed = [
+            'commerce.catalog', 'commerce.cart', 'commerce.checkout', 'commerce.orders', 'accounts.customers',
+        ];
+        if (!in_array($feature, $allowed, true)) {
+            throw new \InvalidArgumentException('Unknown Core feature: ' . $feature);
+        }
+        if (isset($this->coreFeatures[$feature])) {
+            throw new \InvalidArgumentException('Core feature is already declared by this package.');
+        }
+        $this->coreFeatures[$feature] = $this->normalizeFeatureOptions($options);
+        $capability = match ($feature) {
+            'commerce.catalog', 'commerce.cart', 'commerce.checkout' => 'commerce.manage',
+            'commerce.orders' => 'orders.manage',
+            'accounts.customers' => 'customers.manage',
+            default => null,
+        };
+        if ($capability !== null) $this->permissions?->activateOptional($capability);
+    }
+
+    /** Declare a coherent store while retaining per-surface switches. */
+    public function commerce(array $options = []): void
+    {
+        $features = $options['features'] ?? ['catalog', 'cart', 'checkout', 'orders'];
+        if (!is_array($features) || $features === []) {
+            throw new \InvalidArgumentException('Commerce requires at least one feature.');
+        }
+        unset($options['features']);
+        $features=array_values(array_unique(array_map('strval',$features)));
+        if (in_array('checkout',$features,true)) $features=array_values(array_unique([...$features,'catalog','cart','orders']));
+        if (in_array('cart',$features,true) && !in_array('catalog',$features,true)) $features[]='catalog';
+        foreach ($features as $feature) {
+            if (!in_array($feature, ['catalog', 'cart', 'checkout', 'orders'], true)) {
+                throw new \InvalidArgumentException('Unsupported commerce feature: ' . $feature);
+            }
+            $this->coreFeature('commerce.' . $feature, $options);
+        }
+    }
+
+    /** Opt into public customer identities; omitted modules expose no account UI. */
+    public function customerAccounts(array $options = []): void
+    {
+        $this->coreFeature('accounts.customers', $options);
+    }
+
+    private function normalizeFeatureOptions(array $options): array
+    {
+        $allowed = ['store_name', 'currency', 'fulfillment', 'terms_url', 'registration', 'account_label'];
+        $normalized = [];
+        foreach ($options as $key => $value) {
+            if (!in_array((string) $key, $allowed, true)) {
+                throw new \InvalidArgumentException('Unsupported Core feature option: ' . $key);
+            }
+            if ($key === 'fulfillment') {
+                if (!is_array($value)) throw new \InvalidArgumentException('Fulfillment must be a list.');
+                $methods = array_values(array_intersect(['pickup', 'delivery', 'shipping'], array_map('strval', $value)));
+                if ($methods === []) throw new \InvalidArgumentException('Select at least one fulfillment method.');
+                $normalized[$key] = $methods;
+                continue;
+            }
+            if ($key === 'registration') {
+                $normalized[$key] = (bool) $value;
+                continue;
+            }
+            $text = trim((string) $value);
+            if (mb_strlen($text) > 200) throw new \InvalidArgumentException('Core feature options are limited to 200 characters.');
+            if ($key === 'currency' && !preg_match('/^[A-Z]{3}$/', strtoupper($text))) {
+                throw new \InvalidArgumentException('Commerce currency must be a three-letter ISO code.');
+            }
+            $normalized[$key] = $key === 'currency' ? strtoupper($text) : $text;
+        }
+        return $normalized;
+    }
+
     /** @return list<array{label:string,url:string,target:string,children:list<array>}> */
     private function normalizeNavigationItems(array $items, int $depth = 0): array
     {
@@ -459,4 +540,5 @@ final class ModuleContext
     public function pageBlocks(): array { return $this->pageBlocks; }
     public function navigationMenus(): array { return $this->navigationMenus; }
     public function declaredBrandAssets(): array { return $this->brandAssets; }
+    public function coreFeatures(): array { return $this->coreFeatures; }
 }

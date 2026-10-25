@@ -122,6 +122,7 @@ final class ReferencePackagesTest extends TestCase
             \Core\Security\RateLimiter::class => new \Core\Security\RateLimiter($this->db),
             \Core\Admin\Nav::class => new \Core\Admin\Nav($this->registry, null),
             \Core\Content\ContentItems::class => new \Core\Content\ContentItems($this->db, $this->registry),
+            \Core\Commerce\ProductRepository::class => new \Core\Commerce\ProductRepository($this->db),
             \Core\Media\MediaService::class => $media,
             \Core\Branding\BrandAssets::class => new \Core\Branding\BrandAssets($this->db, $settings, $media),
         ];
@@ -297,15 +298,17 @@ final class ReferencePackagesTest extends TestCase
             'SELECT original_name FROM `' . $this->db->table('media') . '` WHERE id = ?', [$logoId]
         ));
         $this->assertTrue((bool) $settings->get('branding.seeded.cajunwebpro.catering', false));
+        $this->assertTrue((bool) $settings->get('commerce.products_seeded.cajunwebpro.catering', false));
+        $this->assertSame(10,(int)$this->db->fetchColumn('SELECT COUNT(*) FROM `'.$this->db->table('commerce_products').'` WHERE owner_package=?',['cajunwebpro/catering']));
         $navigation = new \Core\Content\MenuService($this->db);
         $tree = $navigation->tree('primary');
         $this->assertSame(
-            ['Our Story', 'Menus', 'Services', 'Packages', 'Gallery', 'Contact'],
+            ['Our Story', 'Menus', 'Services', 'Packages', 'Order Online', 'My Account', 'Gallery', 'Contact'],
             array_column($tree, 'label')
         );
         $footerTree = $navigation->tree('footer');
         $this->assertSame(
-            ['Menus', 'Services', 'Packages', 'Gallery', 'Service Area', 'FAQ', 'Contact', 'Request a Quote'],
+            ['Menus', 'Services', 'Packages', 'Order Online', 'My Account', 'Gallery', 'Service Area', 'FAQ', 'Contact', 'Request a Quote'],
             array_column($footerTree, 'label')
         );
         $cateringNav = array_values(array_filter(
@@ -326,7 +329,7 @@ final class ReferencePackagesTest extends TestCase
         );
         $this->assertTrue($updated, (string) $error);
         [$updated, $error] = $navigation->updateItem(
-            (int) $tree[4]['id'], 'Gallery', '/gallery', null, 4, 'window'
+            (int) $tree[6]['id'], 'Gallery', '/gallery', null, 6, 'window'
         );
         $this->assertTrue($updated, (string) $error);
 

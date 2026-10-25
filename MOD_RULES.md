@@ -6,7 +6,8 @@ industry; a module may add industry behavior but may not replace Core.
 
 ## Required ownership model
 
-1. Core owns login, administrators, permissions, pages, Media, forms,
+1. Core owns login, administrators, optional public customer identity,
+   permissions, pages, Media, forms,
    navigation storage/editor, live brand selections, footer identity, social
    profiles, themes, dashboard, backups, updates, health, audit, privacy, and
    integrations.
@@ -20,6 +21,9 @@ industry; a module may add industry behavior but may not replace Core.
 5. Module admin routes use the authenticated Core admin pipeline and shared
    layout. Every mutation also checks its declared capability, validates
    input, uses CSRF, records an audit event, and confirms destructive effects.
+6. A module activates only the optional Core surfaces it can support through
+   `commerce()` and/or `customerAccounts()`. Undeclared features remain absent.
+   Core owns generic records; the module owns industry meaning and rules.
 
 ## Required manifest and lifecycle
 

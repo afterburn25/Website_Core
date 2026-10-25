@@ -53,6 +53,20 @@ final class Nav
             $this->core('/admin/audit',      'Audit',          'audit.view',            'System',         'core-system', 'audit'),
             $this->core('/admin/settings',   'Settings',       'settings.manage',       'System',         'core-system', 'settings'),
         ];
+        $featureNav = [];
+        if ($this->registry?->supportsFeature('commerce.catalog')) {
+            $featureNav[] = $this->core('/admin/store/products', 'Products', 'commerce.manage', 'Store', 'core-store', 'products');
+        }
+        if ($this->registry?->supportsFeature('commerce.orders')) {
+            $featureNav[] = $this->core('/admin/store/orders', 'Orders', 'orders.manage', 'Store', 'core-store', 'orders');
+        }
+        if ($this->registry?->supportsFeature('commerce.checkout')) {
+            $featureNav[] = $this->core('/admin/store/settings', 'Store settings', 'commerce.manage', 'Store', 'core-store', 'settings');
+        }
+        if ($this->registry?->supportsFeature('accounts.customers')) {
+            $featureNav[] = $this->core('/admin/customers', 'Customers', 'customers.manage', 'Customers', 'core-customers', 'users');
+        }
+        if ($featureNav !== []) array_splice($nav, 15, 0, $featureNav);
         if ($this->registry !== null) {
             foreach ($this->registry->adminNavItems() as $item) {
                 $package = (string) $item['package'];

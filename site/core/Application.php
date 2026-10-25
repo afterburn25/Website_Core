@@ -319,6 +319,17 @@ final class Application
             $this->container->get(Dispatcher::class),
             $this->container->get(\Core\License\LicenseValidation::class),
         ));
+        $this->container->instance(\Core\Commerce\CommerceFeatures::class, new \Core\Commerce\CommerceFeatures($registry));
+        $products = new \Core\Commerce\ProductRepository($db);
+        $this->container->instance(\Core\Commerce\ProductRepository::class, $products);
+        $this->container->instance(\Core\Commerce\CartService::class, new \Core\Commerce\CartService($products));
+        $this->container->instance(\Core\Commerce\PaymentMethods::class, new \Core\Commerce\PaymentMethods(
+            $this->container->get(SettingsRepository::class)
+        ));
+        $this->container->instance(\Core\Commerce\OrderService::class, new \Core\Commerce\OrderService(
+            $db, $this->container->get(Dispatcher::class)
+        ));
+        $this->container->instance(\Core\Accounts\CustomerAuth::class, new \Core\Accounts\CustomerAuth($db, $systemMail));
     }
 
     /**
@@ -586,6 +597,13 @@ final class Application
             $r->post('/analytics/search-console', fn (Request $req) => (new \Admin\Controllers\AnalyticsController($c))->searchConsole($req), [$auth, $csrfCheck]);
             $r->post('/notices/{id:\d+}/dismiss', fn (Request $req) => (new \Admin\Controllers\NoticesController($c))->dismiss($req), [$auth, $csrfCheck]);
             $r->any('/settings', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->index($req), [$auth, $csrfCheck]);
+            $r->any('/store/products', fn (Request $req) => (new \Admin\Controllers\CommerceController($c))->products($req), [$auth, $csrfCheck]);
+            $r->any('/store/products/edit', fn (Request $req) => (new \Admin\Controllers\CommerceController($c))->productEdit($req), [$auth, $csrfCheck]);
+            $r->get('/store/orders', fn (Request $req) => (new \Admin\Controllers\CommerceController($c))->orders($req), [$auth]);
+            $r->get('/store/orders/export', fn (Request $req) => (new \Admin\Controllers\CommerceController($c))->exportOrders($req), [$auth]);
+            $r->any('/store/orders/view', fn (Request $req) => (new \Admin\Controllers\CommerceController($c))->orderView($req), [$auth, $csrfCheck]);
+            $r->any('/store/settings', fn (Request $req) => (new \Admin\Controllers\CommerceController($c))->settings($req), [$auth, $csrfCheck]);
+            $r->any('/customers', fn (Request $req) => (new \Admin\Controllers\CustomersController($c))->index($req), [$auth, $csrfCheck]);
             $r->post('/settings/test-smtp', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->testSmtp($req), [$auth, $csrfCheck]);
             $r->post('/settings/test-mail', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->testMail($req), [$auth, $csrfCheck]);
             $r->any('/privacy', fn (Request $req) => (new \Admin\Controllers\PrivacyController($c))->index($req), [$auth, $csrfCheck]);
@@ -677,6 +695,20 @@ final class Application
         $this->router->get('/preview/{token:[a-f0-9]{48}}', fn (Request $r) => (new \Admin\Controllers\PublicPageController($c))->preview($r));
         $this->router->post('/forms/{id:\d+}/submit', fn (Request $r) => (new \Admin\Controllers\FormsController($c))->submit($r));
         $this->router->post('/analytics/heartbeat', fn (Request $r) => (new \Admin\Controllers\AnalyticsPublicController($c))->heartbeat($r));
+        $this->router->get('/store', fn (Request $r) => (new \Admin\Controllers\StorefrontController($c))->store($r));
+        $this->router->get('/store/{slug:[a-z0-9][a-z0-9-]*}', fn (Request $r) => (new \Admin\Controllers\StorefrontController($c))->product($r));
+        $this->router->post('/cart/add', fn (Request $r) => (new \Admin\Controllers\StorefrontController($c))->add($r), [$csrfCheck]);
+        $this->router->get('/cart', fn (Request $r) => (new \Admin\Controllers\StorefrontController($c))->cart($r));
+        $this->router->post('/cart', fn (Request $r) => (new \Admin\Controllers\StorefrontController($c))->cart($r), [$csrfCheck]);
+        $this->router->get('/checkout', fn (Request $r) => (new \Admin\Controllers\StorefrontController($c))->checkout($r));
+        $this->router->post('/checkout', fn (Request $r) => (new \Admin\Controllers\StorefrontController($c))->checkout($r), [$csrfCheck]);
+        $this->router->get('/checkout/complete', fn (Request $r) => (new \Admin\Controllers\StorefrontController($c))->complete($r));
+        $this->router->any('/account/login', fn (Request $r) => (new \Admin\Controllers\AccountController($c))->login($r), [$csrfCheck]);
+        $this->router->any('/account/register', fn (Request $r) => (new \Admin\Controllers\AccountController($c))->register($r), [$csrfCheck]);
+        $this->router->post('/account/logout', fn (Request $r) => (new \Admin\Controllers\AccountController($c))->logout($r), [$csrfCheck]);
+        $this->router->any('/account/forgot', fn (Request $r) => (new \Admin\Controllers\AccountController($c))->forgot($r), [$csrfCheck]);
+        $this->router->any('/account/reset', fn (Request $r) => (new \Admin\Controllers\AccountController($c))->reset($r), [$csrfCheck]);
+        $this->router->any('/account', fn (Request $r) => (new \Admin\Controllers\AccountController($c))->profile($r), [$csrfCheck]);
         $this->router->any('/privacy/request', fn (Request $r) => (new \Admin\Controllers\PrivacyController($c))->request($r));
         $this->router->get('/api/v1/health', fn (Request $r) => (new \Admin\Controllers\ApiController($c))->health($r));
         $this->router->get('/api/v1/pages', fn (Request $r) => (new \Admin\Controllers\ApiController($c))->pages($r));
@@ -702,7 +734,7 @@ final class Application
      */
     public const RESERVED_SLUGS = [
         'admin', '_a', 'media', 'preview', 'sitemap.xml', 'robots.txt',
-        'install.php', 'cron.php', 'api', 'forms', 'privacy', 'analytics', 'l', 'storage', 'upload',
+        'install.php', 'cron.php', 'api', 'forms', 'privacy', 'analytics', 'store', 'cart', 'checkout', 'account', 'l', 'storage', 'upload',
     ];
 
     private function registerPublicRoutes(): void

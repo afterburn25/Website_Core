@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use Core\Events\Dispatcher;
+use Core\Auth\Permissions;
 use Core\Modules\ModuleContext;
 use Core\Routing\Router;
 use PHPUnit\Framework\TestCase;
@@ -119,5 +120,30 @@ final class ModuleContextTest extends TestCase
         $context = new ModuleContext('acme/demo', new Router(), new Dispatcher());
         $this->expectException(\InvalidArgumentException::class);
         $context->permission('settings.manage', 'Attempt to claim a Core capability');
+    }
+
+    public function testModuleMustExplicitlyOptIntoOptionalCoreFeatures(): void
+    {
+        $permissions = new Permissions();
+        $context = new ModuleContext('acme/demo', new Router(), new Dispatcher(), $permissions);
+        $this->assertFalse($permissions->allows('admin', 'commerce.manage'));
+        $this->assertFalse($permissions->allows('admin', 'customers.manage'));
+
+        $context->commerce(['currency'=>'USD','fulfillment'=>['pickup','delivery']]);
+        $context->customerAccounts(['registration'=>true,'account_label'=>'My account']);
+
+        $this->assertArrayHasKey('commerce.catalog', $context->coreFeatures());
+        $this->assertArrayHasKey('commerce.orders', $context->coreFeatures());
+        $this->assertArrayHasKey('accounts.customers', $context->coreFeatures());
+        $this->assertTrue($permissions->allows('admin', 'commerce.manage'));
+        $this->assertTrue($permissions->allows('admin', 'orders.manage'));
+        $this->assertTrue($permissions->allows('admin', 'customers.manage'));
+    }
+
+    public function testUnknownCoreFeatureIsRejected(): void
+    {
+        $context = new ModuleContext('acme/demo', new Router(), new Dispatcher());
+        $this->expectException(\InvalidArgumentException::class);
+        $context->coreFeature('commerce.imaginary');
     }
 }

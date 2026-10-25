@@ -1,4 +1,4 @@
-<?php /** @var int $pageCount @var int $published @var array $jobs @var array $packages @var array $integrity @var array $notices @var array $moduleWidgets @var ?array $analytics @var string $php @var string $dbVersion */ ?>
+<?php /** @var int $pageCount @var int $published @var array $jobs @var array $packages @var array $integrity @var array $notices @var array $moduleWidgets @var ?array $analytics @var ?array $commerce @var string $php @var string $dbVersion */ ?>
 <div class="metric-grid">
 <a class="metric metric-link" href="<?= e_attr($basePath) ?>/admin/pages"><span>Published pages</span><strong><?= $published ?></strong><small><?= $pageCount ?> total · Manage content →</small></a>
 <a class="metric metric-link" href="<?= e_attr($basePath) ?>/admin/modules"><span>Active packages</span><strong><?= count(array_filter($packages, fn ($p) => $p['state'] === 'enabled')) ?></strong><small><?= count($packages) ?> discovered · Manage packages →</small></a>
@@ -6,6 +6,7 @@
 <a class="metric metric-link" href="<?= e_attr($basePath) ?>/admin/health"><span>Integrity</span><strong class="<?= $integrity['error'] ? 'text-bad' : 'text-ok' ?>"><?= $integrity['error'] ? $integrity['error'] . ' errors' : 'Ready' ?></strong><small><?= (int) $integrity['warn'] ?> warnings · Open health report →</small></a>
 </div>
 <?php if ($analytics !== null): ?><section class="dashboard-analytics"><div><p class="section-kicker">Last 7 days</p><h2>Audience snapshot</h2><p class="muted">First-party insight from successful public page visits.</p></div><div class="dashboard-analytics-metrics"><span><strong><?= (int)$analytics['visits'] ?></strong> visitors</span><span><strong><?= (int)$analytics['pageviews'] ?></strong> pageviews</span><span><strong><?= e(number_format((float)$analytics['bounce_rate'],1)) ?>%</strong> bounce</span><span class="live"><strong><?= (int)$analytics['live'] ?></strong> live now</span></div><a class="btn secondary" href="<?= e_attr($basePath) ?>/admin/analytics">Open analytics</a></section><?php endif; ?>
+<?php if (($commerce ?? null) !== null): ?><section class="dashboard-analytics commerce-snapshot"><div><p class="section-kicker">Store workflow</p><h2>Order snapshot</h2><p class="muted">What needs attention across checkout and fulfillment.</p></div><div class="dashboard-analytics-metrics"><span><strong><?= (int)$commerce['new'] ?></strong> new orders</span><span><strong><?= (int)$commerce['pending'] ?></strong> awaiting payment</span><span><strong><?= e($commerce['currency']) ?> $<?= number_format((int)$commerce['revenue']/100,2) ?></strong> recorded paid</span></div><a class="btn secondary" href="<?= e_attr($basePath) ?>/admin/store/orders">Open orders</a></section><?php endif; ?>
 <?php if ($moduleWidgets !== []): ?>
 <div class="metric-grid module-metrics"><?php foreach ($moduleWidgets as $widget): ?>
 <div class="metric"><span><?= e($widget['label']) ?></span><strong><?= e((string) ($widget['value'] ?? '—')) ?></strong><small><?= e((string) ($widget['detail'] ?? $widget['package'])) ?></small><?php if (!empty($widget['url'])): ?><a class="metric-action" href="<?= e_attr($basePath . $widget['url']) ?>">Open workspace →</a><?php endif; ?></div>
@@ -34,6 +35,7 @@
 <a href="<?= e_attr($basePath) ?>/admin/media"><strong>Manage media</strong><span>Upload and organize images and files</span></a>
 <a href="<?= e_attr($basePath) ?>/admin/navigation"><strong>Edit navigation</strong><span>Reorder links and build submenus</span></a>
 <a href="<?= e_attr($basePath) ?>/admin/settings"><strong>Site settings</strong><span>Identity, contact information, and mail</span></a>
+<?php if (($commerce ?? null) !== null): ?><a href="<?= e_attr($basePath) ?>/admin/store/orders"><strong>Review orders</strong><span>Payment and fulfillment workflow</span></a><?php endif; ?>
 </div>
 </section>
 </div>

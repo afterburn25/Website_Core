@@ -632,6 +632,35 @@ final class PackageManager
                 }
             }
         }
+        // Optional Core feature records are package-keyed even though their
+        // tables are Core-owned. Uninstall preserves them; explicit purge
+        // removes the whole package partition in dependency-safe order.
+        if ($this->db->tableExists('commerce_orders') && $this->db->tableExists('commerce_order_items')) {
+            $n = $this->db->run(
+                'DELETE FROM `' . $this->db->table('commerce_order_items') . '` WHERE order_id IN (SELECT id FROM `'
+                . $this->db->table('commerce_orders') . '` WHERE source_package = ?)', [$packageId]
+            )->rowCount();
+            if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} commerce order item row(s)");
+        }
+        foreach ([['commerce_orders','source_package'],['commerce_products','owner_package']] as [$shared,$column]) {
+            if (!$this->db->tableExists($shared)) continue;
+            $n=$this->db->run('DELETE FROM `'.$this->db->table($shared).'` WHERE `'.$column.'` = ?',[$packageId])->rowCount();
+            if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} {$shared} row(s)");
+        }
+        if ($this->db->tableExists('customer_accounts') && $this->db->tableExists('customer_password_resets')) {
+            $n=$this->db->run('DELETE FROM `'.$this->db->table('customer_password_resets').'` WHERE customer_id IN (SELECT id FROM `'
+                .$this->db->table('customer_accounts').'` WHERE owner_package = ?)',[$packageId])->rowCount();
+            if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} customer password reset row(s)");
+        }
+        if ($this->db->tableExists('customer_accounts')) {
+            $n=$this->db->run('DELETE FROM `'.$this->db->table('customer_accounts').'` WHERE owner_package = ?',[$packageId])->rowCount();
+            if ($n > 0) $this->journal($packageId, 'purge', 'ok', "deleted {$n} customer account row(s)");
+        }
+        if ($this->db->tableExists('settings')) {
+            $this->db->run('DELETE FROM `'.$this->db->table('settings').'` WHERE `key` = ?',[
+                'commerce.products_seeded.'.str_replace('/','.',$packageId),
+            ]);
+        }
         $this->journal($packageId, 'purge', 'ok', 'data purge complete');
         $this->fire('package.purged', ['package' => $packageId]);
         return [true, null];

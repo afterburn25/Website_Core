@@ -1330,3 +1330,20 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
 
+/* Opt-in commerce workspace */
+.commerce-product-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(20rem,1fr)); gap:.85rem; margin-top:1rem; }
+.commerce-product-card { display:grid; grid-template-columns:6.5rem minmax(0,1fr); gap:1rem; padding:.9rem; border:1px solid var(--admin-border); border-radius:.85rem; background:var(--admin-surface-soft); }
+.commerce-product-card.is-muted { opacity:.68; }
+.commerce-product-art { display:grid; width:6.5rem; height:6.5rem; overflow:hidden; place-items:center; border-radius:.7rem; background:linear-gradient(145deg,#e7eef3,#fff); color:var(--admin-accent); font-size:2rem; }
+.commerce-product-art img { width:100%; height:100%; object-fit:cover; }
+.commerce-product-heading,.commerce-product-meta { display:flex; align-items:flex-start; justify-content:space-between; gap:.7rem; }
+.commerce-product-heading strong,.commerce-product-heading small { display:block; }
+.commerce-product-heading small,.commerce-product-card p,.commerce-product-meta span { color:var(--admin-muted); font-size:.72rem; }
+.commerce-product-card p { min-height:2.2rem; margin:.45rem 0; }.commerce-product-meta { align-items:center; margin-bottom:.65rem; }
+.commerce-editor-layout,.commerce-order-layout { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(18rem,.55fr); gap:1rem; align-items:start; }
+.commerce-guidance,.commerce-order-layout>aside { position:sticky; top:5.7rem; }.commerce-guidance li { margin:.55rem 0; color:var(--admin-muted); }
+.commerce-detail-list { margin:0; }.commerce-detail-list div { display:grid; grid-template-columns:9rem minmax(0,1fr); gap:1rem; padding:.7rem 0; border-top:1px solid var(--admin-border); }.commerce-detail-list dt { color:var(--admin-muted); }.commerce-detail-list dd { margin:0; }
+.payment-method-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.8rem; margin-top:1rem; }.payment-method-card { padding:1rem; border:1px solid var(--admin-border); border-radius:.8rem; background:var(--admin-surface-soft); }.payment-method-card .toggle-control { display:grid; grid-template-columns:auto auto minmax(0,1fr); align-items:center; margin-bottom:1rem; }.payment-method-card .toggle-control strong,.payment-method-card .toggle-control small { display:block; }.payment-method-card .toggle-control small { color:var(--admin-muted); }
+@media(max-width:900px){.commerce-editor-layout,.commerce-order-layout,.payment-method-grid{grid-template-columns:1fr}.commerce-guidance,.commerce-order-layout>aside{position:static}}
+@media(max-width:560px){.commerce-product-card{grid-template-columns:1fr}.commerce-product-art{width:100%;height:auto;aspect-ratio:16/8}}
+

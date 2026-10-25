@@ -28,6 +28,7 @@ final class DashboardController extends Controller
             'SELECT COUNT(*) FROM `' . $db->table('pages') . '` WHERE status = ?', ['published']
         );
         $analytics = null;
+        $commerce = null;
         if ($this->user() && $this->auth()->has($this->user(), 'analytics.view')) {
             try {
                 $analytics = $this->c->get(\Core\Analytics\AnalyticsReport::class)
@@ -35,6 +36,17 @@ final class DashboardController extends Controller
             } catch (\Throwable) {
                 // Analytics migration may still be converging during an update.
             }
+        }
+        if ($registry->supportsFeature('commerce.orders') && $this->user() && $this->auth()->has($this->user(), 'orders.manage')) {
+            $owner=(string)($registry->feature('commerce.orders')['package']??'');
+            try {
+                $commerce=[
+                    'new'=>(int)$db->fetchColumn('SELECT COUNT(*) FROM `'.$db->table('commerce_orders').'` WHERE source_package=? AND status=?',[$owner,'new']),
+                    'pending'=>(int)$db->fetchColumn('SELECT COUNT(*) FROM `'.$db->table('commerce_orders').'` WHERE source_package=? AND payment_status=?',[$owner,'pending']),
+                    'revenue'=>(int)$db->fetchColumn('SELECT COALESCE(SUM(total_minor),0) FROM `'.$db->table('commerce_orders').'` WHERE source_package=? AND payment_status=?',[$owner,'paid']),
+                    'currency'=>(string)($registry->feature('commerce.orders')['options']['currency']??'USD'),
+                ];
+            } catch (\Throwable) { $commerce=null; }
         }
 
         return $this->page($r, 'dashboard/index', [
@@ -46,6 +58,7 @@ final class DashboardController extends Controller
             'notices'   => $notices,
             'moduleWidgets' => $moduleWidgets,
             'analytics' => $analytics,
+            'commerce' => $commerce,
             'php'       => PHP_VERSION,
             'dbVersion' => $db->driver() === 'sqlite'
                 ? 'sqlite ' . $db->pdo()->query('SELECT sqlite_version()')->fetchColumn()

@@ -5,6 +5,8 @@ namespace CajunWebPro\Catering;
 
 use Core\Modules\ModuleContext;
 use Core\Database\Connection;
+use Core\Commerce\ProductRepository;
+use Core\Settings\SettingsRepository;
 
 final class Provider
 {
@@ -41,6 +43,16 @@ final class Provider
 
         $ctx->permission('catering.manage', 'Manage catering menus, packages, and settings');
         $ctx->permission('catering.inquiries', 'View and manage catering inquiries');
+        $ctx->commerce([
+            'store_name' => 'Catering Co. Store',
+            'currency' => 'USD',
+            'fulfillment' => ['pickup', 'delivery'],
+        ]);
+        $ctx->customerAccounts([
+            'registration' => true,
+            'account_label' => 'My catering account',
+        ]);
+        $this->seedCommerceProducts($ctx);
         $ctx->adminPage('Menus', '/admin/catering/menus', 'catering.manage', 'Catering');
         $ctx->adminPage('Packages', '/admin/catering/packages', 'catering.manage', 'Catering');
         $ctx->adminPage('Leads & inquiries', '/admin/catering/inquiries', 'catering.inquiries', 'Catering');
@@ -81,6 +93,8 @@ final class Provider
             ['label' => 'Menus', 'url' => '/menus'],
             ['label' => 'Services', 'url' => '/services'],
             ['label' => 'Packages', 'url' => '/packages'],
+            ['label' => 'Order Online', 'url' => '/store'],
+            ['label' => 'My Account', 'url' => '/account'],
             ['label' => 'Gallery', 'url' => '/gallery'],
             ['label' => 'Contact', 'url' => '/contact'],
         ]);
@@ -88,6 +102,8 @@ final class Provider
             ['label' => 'Menus', 'url' => '/menus'],
             ['label' => 'Services', 'url' => '/services'],
             ['label' => 'Packages', 'url' => '/packages'],
+            ['label' => 'Order Online', 'url' => '/store'],
+            ['label' => 'My Account', 'url' => '/account'],
             ['label' => 'Gallery', 'url' => '/gallery'],
             ['label' => 'Service Area', 'url' => '/service-area'],
             ['label' => 'FAQ', 'url' => '/faq'],
@@ -97,5 +113,33 @@ final class Provider
         $ctx->brandAssets([
             'logo' => 'assets/images/catering-co-logo.png',
         ]);
+    }
+
+    /** Import the module's Cajun demo menu once; later Core edits always win. */
+    private function seedCommerceProducts(ModuleContext $ctx): void
+    {
+        $settings=$ctx->service(SettingsRepository::class);
+        $marker='commerce.products_seeded.'.str_replace('/','.',$ctx->packageId());
+        if ((bool)$settings->get($marker,false)) return;
+        $products=$ctx->service(ProductRepository::class);
+        if ($products->all($ctx->packageId())===[]) {
+            $db=$ctx->service(Connection::class);
+            foreach($db->fetchAll('SELECT slug,name,description,price_cents,image,featured,visible,sort_order FROM `'.$db->table('catering_menu_items').'` ORDER BY sort_order,name') as $item) {
+                [$id,$error]=$products->save([
+                    'name'=>$item['name'],
+                    'sku'=>'CAT-'.strtoupper(substr(preg_replace('/[^a-z0-9]+/i','-',(string)$item['slug']),0,90)),
+                    'slug'=>$item['slug'],
+                    'description'=>$item['description'],
+                    'price'=>number_format((int)$item['price_cents']/100,2,'.',''),
+                    'currency'=>'USD',
+                    'image_url'=>!empty($item['image'])?'index.php?p=/_a/modules/industry-catering/assets/images/menu/'.rawurlencode((string)$item['image']):'',
+                    'active'=>(int)$item['visible']===1?'1':'',
+                    'featured'=>(int)$item['featured']===1?'1':'',
+                    'sort_order'=>(int)$item['sort_order'],
+                ],$ctx->packageId());
+                if ($id===null || $error!==null) throw new \RuntimeException('Unable to seed Core commerce product: '.($error??'unknown error'));
+            }
+        }
+        $settings->set($marker,true);
     }
 }

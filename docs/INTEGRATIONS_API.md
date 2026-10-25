@@ -33,3 +33,9 @@ X-WC-Signature: sha256=<hex HMAC-SHA256 of raw body>
 Never parse and re-encode before verification. Delivery history and HTTP
 status are visible under Integrations; failed jobs follow normal queue retry
 and backoff behavior.
+
+Selectable events are `page.saved`, `page.published`, `page.draft`,
+`page.review_requested`, `backup.created`, and `commerce.order.placed`.
+The commerce event is emitted only after its database transaction commits and
+contains the order id/number, payment method, currency, and total in minor
+units; it never includes payment credentials.

@@ -4,11 +4,14 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use Core\Business\BusinessProfile;
+use Core\Auth\AdminRepository;
 use Core\Database\Connection;
 use Core\Database\Migrator;
 use Core\Leads\InquiryService;
 use Core\Leads\QuoteService;
 use Core\Settings\SettingsRepository;
+use Core\Security\Csrf;
+use Core\View\View;
 use PHPUnit\Framework\TestCase;
 
 final class LeadWorkflowTest extends TestCase
@@ -57,5 +60,60 @@ final class LeadWorkflowTest extends TestCase
         self::assertTrue($quotes->respond((string)$token,true));
         self::assertSame('accepted',$quotes->find((int)$quoteId,'acme/catering')['status']);
         self::assertNull($quotes->byToken((string)$token));
+    }
+
+    public function testInquiryDetailNotesUseCanonicalAdminSchemaAndStayPackageScoped(): void
+    {
+        $admins = new AdminRepository($this->db);
+        $adminId = $admins->create(
+            'case-owner',
+            'owner@example.test',
+            password_hash('correct-horse-12', PASSWORD_DEFAULT),
+            'owner',
+        );
+        $service = new InquiryService($this->db);
+        [$inquiryId, $error] = $service->submit('acme/catering', [
+            'name' => 'Morgan Client',
+            'email' => 'morgan@example.test',
+            'subject' => 'Company lunch',
+            'message' => 'Lunch for 40 people.',
+        ]);
+        self::assertNull($error);
+
+        $detail = $service->find((int) $inquiryId, 'acme/catering');
+        self::assertIsArray($detail);
+        self::assertSame([], $detail['notes']);
+        self::assertNull($service->find((int) $inquiryId, 'acme/landscaping'));
+        self::assertNull($service->addNote((int) $inquiryId, 'acme/catering', $adminId, 'Confirm delivery window.'));
+
+        $detail = $service->find((int) $inquiryId, 'acme/catering');
+        self::assertSame('case-owner', $detail['notes'][0]['admin_name']);
+        self::assertSame('Confirm delivery window.', $detail['notes'][0]['body']);
+
+        // Exercise the same administrator selector query and detail template
+        // used by LeadsController against the canonical username-only schema.
+        $availableAdmins = $this->db->fetchAll(
+            'SELECT id,username AS name FROM `' . $this->db->table('admins')
+            . '` WHERE disabled = 0 ORDER BY username'
+        );
+        self::assertSame('case-owner', $availableAdmins[0]['name']);
+        $view = new View();
+        $view->addResolver('admin', static function (string $name): ?string {
+            $path = WC_ROOT . '/admin/views/' . $name . '.php';
+            return is_file($path) ? $path : null;
+        });
+        $html = $view->render('leads/inquiry', [
+            'inquiry' => $detail,
+            'admins' => $availableAdmins,
+            'statuses' => InquiryService::STATUSES,
+            'priorities' => InquiryService::PRIORITIES,
+            'quotesEnabled' => true,
+            'error' => null,
+            'csrf' => new Csrf(),
+            'basePath' => '/catering/index.php?p=',
+        ]);
+        self::assertStringContainsString('Morgan Client', $html);
+        self::assertStringContainsString('case-owner', $html);
+        self::assertStringContainsString('Confirm delivery window.', $html);
     }
 }

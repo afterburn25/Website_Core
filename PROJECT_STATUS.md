@@ -1,6 +1,7 @@
 # Project Status
 
-**Current**: `2.2.1` CI-verified SMTP provider-host diagnostics, building on
+**Current**: `2.2.2` inquiry-detail schema repair candidate, building on the
+2.2.1 CI-verified SMTP provider-host diagnostics and
 2.2.0 shared business profile, reusable module administration,
 and opt-in inquiries/quotations. Continuation rules and the verified starting
 state are in `docs/CORE_SESSION_2026_10_25.md`. The planned 0.1.15 through 2.0 core milestones

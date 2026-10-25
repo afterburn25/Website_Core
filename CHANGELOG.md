@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.2.2 — 2026-10-25
+
+- Repairs the shared inquiry detail and internal-notes workflow against the
+  canonical administrator schema by using `username` for note attribution and
+  assignment choices.
+- Adds regression coverage for zero-note detail, attributed notes, package
+  isolation, administrator selection, and rendered detail output.
+- Preserves all inquiry and note records. No migration, Module API change, or
+  industry-module synchronization is required.
+
 ## 2.2.1 — 2026-10-25
 
 - Adds credential-free SMTP discovery in Settings with separate SSL/465 and

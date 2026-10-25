@@ -66,7 +66,7 @@ final class InquiryService
     {
         $row = $this->db->fetch('SELECT * FROM `' . $this->db->table('crm_inquiries') . '` WHERE id = ? AND owner_package = ?', [$id, $ownerPackage]);
         if (!$row) return null;
-        $row['notes'] = $this->db->fetchAll('SELECT n.*, a.name AS admin_name FROM `' . $this->db->table('crm_inquiry_notes') . '` n LEFT JOIN `'
+        $row['notes'] = $this->db->fetchAll('SELECT n.*, a.username AS admin_name FROM `' . $this->db->table('crm_inquiry_notes') . '` n LEFT JOIN `'
             . $this->db->table('admins') . '` a ON a.id=n.admin_id WHERE n.inquiry_id=? ORDER BY n.created_at DESC', [$id]);
         return $row;
     }

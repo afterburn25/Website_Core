@@ -32,7 +32,7 @@ final class LeadsController extends Controller
             if($error===null){$this->audit('crm.inquiry.updated',['id'=>$id]);$this->flash('success','Inquiry updated.');return $this->redirect($r,'/admin/inquiries/view&id='.$id);}
         }
         $inquiry=$service->find($id,$package);if(!$inquiry)return $this->missing();
-        $admins=$this->db()->fetchAll('SELECT id,name FROM `'.$this->db()->table('admins').'` WHERE disabled = 0 ORDER BY name');
+        $admins=$this->db()->fetchAll('SELECT id,username AS name FROM `'.$this->db()->table('admins').'` WHERE disabled = 0 ORDER BY username');
         return $this->page($r,'leads/inquiry',compact('inquiry','admins','error')+['statuses'=>InquiryService::STATUSES,'priorities'=>InquiryService::PRIORITIES,'quotesEnabled'=>$this->provider('crm.quotes')!==null], 'Inquiry details');
     }
 

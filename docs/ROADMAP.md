@@ -148,7 +148,7 @@ dietary logic or event operations into Core.
 ### CORE-REUSE-7A — Inquiry detail schema regression (2026-10-25)
 
 Catering module acceptance against Core 2.2.0 and source inspection of 2.2.1
-found that `Core\\Leads\\InquiryService::find()` joins `admins` using
+found that `Core\Leads\InquiryService::find()` joined `admins` using
 `a.name AS admin_name`, but the canonical administrator schema uses
 `username`. SQLite raises `no such column: a.name`, preventing the shared
 inquiry detail and notes screen from opening after successful submissions.
@@ -161,5 +161,7 @@ inquiry detail and notes screen from opening after successful submissions.
 - Catering keeps its module questionnaire/menu snapshot and links it through
   the existing service; it must not add a duplicate inbox or patch Core here.
 
-State: open Core implementation dependency. Recorded from module-only
-acceptance; no Core implementation or combined installer changed.
+State: repaired in Core 2.2.2. The query and administrator selector now use
+the canonical `username` field on SQLite, MySQL and MariaDB. Regression
+coverage verifies zero-note detail, note attribution, package isolation and
+rendered output. No migration or combined module installer changed.

@@ -56,7 +56,9 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
       confirmation, responsive layout and current-page ordering guidance.
 - [x] Focused API/controller tests cover rendering, callback arguments,
       deduplication, audit events and rejection paths.
-- [ ] Full CI, packaged-artifact verification and adoption by two industries.
+- [x] GitHub Actions run 541 passed PHP 8.4/8.5, Core-only boot, native
+      MySQL/MariaDB, installer and release-artifact checks.
+- [ ] Packaged-host adoption by two industries.
 
 ## 2.2.1 — SMTP provider-host diagnostics
 

@@ -70,5 +70,6 @@ was not merged.
   and allowlisted bulk actions. It adds bounded positive-ID validation,
   standard controls/feedback/audit evidence, API documentation, and focused
   regression coverage without a migration or industry snapshot change.
-- Full 2.3.0 CI and packaged-host adoption evidence remain pending until the
-  source candidate is pushed and exercised.
+- GitHub Actions push run 540 and pull-request run 541 passed all six jobs on
+  source commit `861d1b3e3c8def4ed4bb0b9e29614ad4290663a5`.
+  Packaged-host adoption by two industries remains pending.

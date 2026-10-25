@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.3.0` reusable module-record operations candidate, completing
+**Current**: `2.3.0` CI-verified reusable module-record operations, completing
 ordering and bulk actions on the 2.2 shared administration foundation and
 building on the 2.2.2 CI-verified inquiry-detail repair,
 2.2.1 SMTP provider-host diagnostics, and 2.2.0 shared business profile and

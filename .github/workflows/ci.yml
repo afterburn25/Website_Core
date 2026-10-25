@@ -534,7 +534,7 @@ jobs:
         run: |
           rm -rf /tmp/catering-repair-artifact
           mkdir -p /tmp/catering-repair-artifact
-          unzip -q /tmp/dist/Website-Core-catering-2.0.17-REPAIR-UPLOAD.zip -d /tmp/catering-repair-artifact
+          unzip -q /tmp/dist/Website-Core-catering-2.0.18-REPAIR-UPLOAD.zip -d /tmp/catering-repair-artifact
           test -f /tmp/catering-repair-artifact/install.php
           test -f /tmp/catering-repair-artifact/install/index.php
           test -f /tmp/catering-repair-artifact/core/Install/Installer.php
@@ -542,7 +542,7 @@ jobs:
       - name: Upload catering shared-host repair
         uses: actions/upload-artifact@v4
         with:
-          name: Website-Core-Catering-2.0.17-REPAIR-UPLOAD
+          name: Website-Core-Catering-2.0.18-REPAIR-UPLOAD
           path: /tmp/catering-repair-artifact/
           if-no-files-found: error
           compression-level: 0
@@ -583,7 +583,7 @@ jobs:
         run: |
           rm -rf /tmp/landscaping-repair-artifact
           mkdir -p /tmp/landscaping-repair-artifact
-          unzip -q /tmp/dist/Website-Core-landscaping-2.0.17-REPAIR-UPLOAD.zip -d /tmp/landscaping-repair-artifact
+          unzip -q /tmp/dist/Website-Core-landscaping-2.0.18-REPAIR-UPLOAD.zip -d /tmp/landscaping-repair-artifact
           test -f /tmp/landscaping-repair-artifact/install.php
           test -f /tmp/landscaping-repair-artifact/install/index.php
           test -f /tmp/landscaping-repair-artifact/core/Install/Installer.php
@@ -591,7 +591,7 @@ jobs:
       - name: Upload landscaping shared-host repair
         uses: actions/upload-artifact@v4
         with:
-          name: Website-Core-Landscaping-2.0.17-REPAIR-UPLOAD
+          name: Website-Core-Landscaping-2.0.18-REPAIR-UPLOAD
           path: /tmp/landscaping-repair-artifact/
           if-no-files-found: error
           compression-level: 0

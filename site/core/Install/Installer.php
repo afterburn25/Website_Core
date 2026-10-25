@@ -220,7 +220,8 @@ final class Installer
             $cleanupAccess,
             $cleanupAccess
                 ? 'Verified create, rename, and delete access in the document root.'
-                : 'PHP cannot create, rename, and delete entries in the document root. Ask the host to run PHP-FPM as the hosting account and repair document-root ownership before installing.'
+                : 'PHP cannot create, rename, and delete entries in the document root. Installation can continue. After setup, use the hosting File Manager to remove install.php and install/ if they remain.',
+            false
         );
 
         // Report bundled-product detection so the customer can confirm the
@@ -683,16 +684,20 @@ final class Installer
             }
         }
         $remaining = wc_remove_installer_artifacts(WC_ROOT);
+        $cleanupNote = '';
         if ($remaining !== []) {
             @file_put_contents(
                 $this->configDir . '/cleanup-required.lock',
                 date('c') . " installer cleanup pending\n",
                 LOCK_EX
             );
-            return Response::html(wc_installer_cleanup_page(WC_ROOT, $remaining), 503)
-                ->header('Retry-After', '60');
+            $cleanupItems = implode(' and ', array_map('e', $remaining));
+            $cleanupNote = '<div class="cleanup-warning" role="status"><strong>Manual cleanup recommended.</strong> '
+                . 'PHP could not remove ' . $cleanupItems . '. The installer is permanently disabled, so your site can launch safely. '
+                . 'Use your hosting File Manager to delete the root <code>install.php</code> file and <code>install</code> folder.</div>';
+        } else {
+            @unlink($this->configDir . '/cleanup-required.lock');
         }
-        @unlink($this->configDir . '/cleanup-required.lock');
 
         $licenseNote = '';
         if ($bundledModuleDir !== null && $licenseKey === null) {
@@ -716,12 +721,15 @@ final class Installer
             . 'display:grid;place-items:center;border-radius:50%;background:#1b8f66;color:white;font-size:30px}h1{font-size:clamp(2rem,5vw,3.2rem);'
             . 'margin:.7rem 0}.logo{display:block;width:min(390px,88%);height:auto;margin-bottom:28px;filter:drop-shadow(0 12px 24px #0007)}'
             . 'p{color:#b9c9dc;line-height:1.7}strong{color:#fff}.logo-link{display:block;width:fit-content;max-width:100%}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}.launch-link{display:inline-flex;padding:14px 22px;'
-            . 'border:1px solid #48627f;border-radius:12px;color:#eef5ff;text-decoration:none;font-weight:800}.launch-link.primary{border-color:#d6a94f;background:#d6a94f;color:#07111f}</style>'
+            . 'border:1px solid #48627f;border-radius:12px;color:#eef5ff;text-decoration:none;font-weight:800}.launch-link.primary{border-color:#d6a94f;background:#d6a94f;color:#07111f}'
+            . '.cleanup-warning{margin:20px 0;padding:16px 18px;border:1px solid #8a692d;border-radius:12px;background:#493817;color:#ffe3a6;line-height:1.6}'
+            . '.cleanup-warning strong{color:#fff2c9}.cleanup-warning code{color:#fff2c9}</style>'
             . '</head><body><main class="done"><a class="logo-link" href="https://cajunwebpro.com" target="_blank" rel="noopener noreferrer" aria-label="Visit CajunWebPro">'
             . '<img class="logo" src="' . e_attr($logoUrl) . '" alt="CajunWebPro — Web Design &amp; Development"></a>'
             . '<div class="mark">✓</div><p>CAJUNWEBPRO DEPLOYMENT</p><h1>Installation complete</h1>'
             . '<p>The installer is permanently disabled. Your site is secured and ready.</p>'
             . $licenseNote
+            . $cleanupNote
             . '<p>Sign in and enable two-factor authentication for the owner account.</p>'
             . '<div class="actions"><a class="launch-link primary" href="' . e_attr(rtrim($baseUrl, '/')) . '/">Visit website</a>'
             . '<a class="launch-link" href="' . e_attr(rtrim($baseUrl, '/')) . '/index.php?p=/admin">Open admin</a></div></main></body></html>'

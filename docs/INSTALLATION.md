@@ -130,12 +130,15 @@ that fail real create/read/rename/delete probes are rejected. No FTP or hosting
 credentials are requested, and chmod 0777 is never used. Long absolute paths
 wrap inside readiness cards rather than overflowing the setup panel.
 
-Installer self-removal has a separate required probe in the public document
+Installer self-removal has a separate advisory probe in the public document
 root. It verifies that PHP can create, rename, and delete root entries and
 install the managed access-deny rules used by the protected retirement
-fallback. If that root-level probe fails, ask the hosting provider to run
-PHP-FPM as the hosting account and repair document-root ownership. Do not work
-around it with mode 0777.
+fallback. A failed probe appears as a yellow warning and does not block setup.
+The completed configuration and permanent installation marker disable setup;
+if PHP cannot remove `install.php` or `install/`, the completion screen asks
+the operator to delete them with the hosting File Manager while the installed
+website remains available. Do not work around ownership problems with mode
+0777.
 
 An existing Website Core database is supported for reinstall/recovery. The
 installer applies only pending migrations, creates or refreshes the submitted

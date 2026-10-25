@@ -87,6 +87,8 @@ final class InstallerCleanupTest extends TestCase
         self::assertStringContainsString('Recheck cleanup', $html);
         self::assertStringContainsString('Visit website', $html);
         self::assertStringContainsString('Open admin', $html);
+        self::assertStringContainsString('website is available', $html);
+        self::assertStringNotContainsString('remain locked', $html);
         self::assertStringContainsString('href="/catering/?installer_cleanup_recheck=1"', $html);
         self::assertStringContainsString('href="/catering/index.php?p=/admin"', $html);
         self::assertStringContainsString('src="/catering/assets/images/cajunwebpro-logo.png"', $html);

@@ -1,5 +1,17 @@
 # Session Handoff
 
+## 2.0.18 advisory installer cleanup
+
+- The document-root create/rename/delete probe is advisory and renders as a
+  yellow warning; it no longer disables the Install website action.
+- A completed setup that cannot physically remove `install.php` or `install/`
+  returns the normal success page with manual File Manager instructions.
+- `config.php` plus `installed.lock` remain the permanent setup lockout. Normal
+  site/admin requests retry cleanup without returning a 503 or withholding the
+  installed application.
+- Core 2.0.18 rebuilds the directly usable Landscaping Website 1.0.0
+  TEST-BUNDLE and its versioned shared-host repair upload.
+
 ## 2.0.17 Forms and submissions workspace completion
 
 - Migration `2026_10_25_0025` adds form submit-button labels plus submission

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.18 — 2026-10-25
+
+- Changes failed document-root create, rename, and delete checks from a red
+  required failure to a yellow installer warning that permits setup to continue.
+- Keeps completed sites and administration available when hosting ownership
+  prevents physical installer cleanup, while retaining permanent setup lockout,
+  later cleanup retries, and clear File Manager instructions.
+- Rebuilds the combined Landscaping Website 1.0.0 installer and shared-host
+  repair upload on the latest Core release.
+
 ## 2.0.17 — 2026-10-24
 
 - Rebuilds Forms as a guided responsive workspace with live public preview,

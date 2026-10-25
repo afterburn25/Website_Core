@@ -1,6 +1,6 @@
 # Project Status
 
-**Current**: `2.0.17` commercial hardening. The planned 0.1.15 through 2.0 core milestones
+**Current**: `2.0.18` commercial hardening. The planned 0.1.15 through 2.0 core milestones
 are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
@@ -130,6 +130,12 @@ selection and bulk processing, expandable response and consent evidence,
 mail-queue status, confirmed deletion, and safe column-based CSV export.
 Public submissions validate dates and dropdown choices against the stored
 definition and use the shared branded response presentation.
+
+Version 2.0.18 makes the document-root cleanup probe advisory for shared hosts
+whose PHP-FPM worker cannot mutate panel-owned installer entries. Setup and the
+installed website remain available, the validated permanent install marker
+continues to disable setup, and the operator receives a yellow File Manager
+cleanup notice while Core keeps retrying safe removal on later requests.
 
 The 1.0.1 maintenance release adds an installed-site schema boot gate. A
 shared-hosting file-manager upload now applies pending core migrations before

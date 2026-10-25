@@ -57,6 +57,14 @@ PHP);
         $this->assertFileDoesNotExist($this->root . '/config/cleanup-required.lock');
     }
 
+    public function testCleanupGateNeverReturnsAServiceUnavailablePage(): void
+    {
+        $source = file_get_contents(dirname(__DIR__, 2) . '/site/includes/install-cleanup-gate.php');
+        $this->assertIsString($source);
+        $this->assertStringNotContainsString('http_response_code(503)', $source);
+        $this->assertStringNotContainsString('echo wc_installer_cleanup_page', $source);
+    }
+
     public function testMarkerWithoutValidConfigNeverAuthorizesAutomaticDeletion(): void
     {
         unlink($this->root . '/config/config.php');

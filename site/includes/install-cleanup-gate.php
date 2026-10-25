@@ -2,9 +2,10 @@
 declare(strict_types=1);
 
 /**
- * A completed installation must remove its public installer entry and folder.
- * Every public/admin request repeats the exact cleanup, and the site remains
- * fail-closed with recovery instructions until both canonical paths are gone.
+ * A completed installation retries removal of its public installer entry and
+ * folder. The validated configuration and permanent installation marker keep
+ * setup disabled even when shared-host ownership prevents physical deletion,
+ * so cleanup residue must never make the installed website unavailable.
  *
  * @return callable(string): bool
  */
@@ -23,11 +24,8 @@ return static function (string $root): bool {
     $remaining = wc_remove_installer_artifacts($root);
     if ($remaining !== []) {
         @file_put_contents($cleanupLock, date('c') . " installer cleanup pending\n", LOCK_EX);
-        http_response_code(503);
-        header('Retry-After: 60');
-        header('Content-Type: text/html; charset=utf-8');
-        echo wc_installer_cleanup_page($root, $remaining);
-        return true;
+        error_log('[website-core install] manual installer cleanup recommended: ' . implode(', ', $remaining));
+        return false;
     }
 
     @unlink($cleanupLock);

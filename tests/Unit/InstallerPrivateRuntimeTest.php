@@ -29,6 +29,17 @@ final class InstallerPrivateRuntimeTest extends TestCase
         self::assertStringNotContainsString('LocalFtpProvisioner', $installer . $view);
     }
 
+    public function testDocumentRootCleanupFailureIsAnAdvisoryWarning(): void
+    {
+        $installer = file_get_contents(WC_ROOT . '/core/Install/Installer.php');
+        self::assertIsString($installer);
+        self::assertMatchesRegularExpression(
+            "/'Installer self-removal',[\\s\\S]+?File Manager[^']*',\\s*false\\s*\\)/",
+            $installer
+        );
+        self::assertStringContainsString('Manual cleanup recommended.', $installer);
+    }
+
     public function testInstallerHasThinPublicArtifactsAndProtectedImplementation(): void
     {
         self::assertFileExists(WC_ROOT . '/core/Install/Installer.php');

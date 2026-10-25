@@ -60,7 +60,23 @@ Status values: **queued**, **in progress**, **code complete**, **verified**.
 | 13 | Agency management | Remote credential lifecycle, connection tests, health/version visibility, failure handling and least privilege | code complete — 2.0.26; packaged-browser check pending |
 | 14 | Installer and reinstall/upgrade | Single-page polish, database test, HTTPS, safe writable-path provisioning, existing DB handling, cleanup and manual recheck | code complete — 2.0.27; packaged-host check pending |
 | 15 | Industry-module contract | Module admin category, default navigation takeover, shared services, uninstall/reinstall, compatibility and isolated failure | code complete — 2.0.28; packaged-module check pending |
-| 16 | Final cross-browser release gate | Chrome/Edge/Firefox/Safari where available, mobile breakpoints, accessibility review, performance/load, clean-host install and oldest-supported upgrade | queued |
+| 16 | Final cross-browser release gate | Chrome/Edge/Firefox/Safari where available, mobile breakpoints, accessibility review, performance/load, clean-host install and oldest-supported upgrade | in progress — hosted 2.0.28 pass found backup repair shipped in 2.0.29 |
+
+## 2.0.29 — Hosted acceptance repair
+
+- [x] Reproduced the packaged MariaDB backup failure on shared hosting and
+      traced it to a native-prepared `SHOW TABLES LIKE ?` statement.
+- [x] Replaced table discovery with a bound `information_schema.tables` query
+      whose prefix comparison treats `_` and `%` literally.
+- [x] Added native MySQL/MariaDB backup creation and inspection coverage.
+- [x] Hosted 2.0.28 smoke testing covered major Core/Catering admin screens,
+      public pages, no-rewrite 404, contact handling, quote review, keyboard
+      entry, and persistent admin navigation state.
+- [ ] Deploy 2.0.29 to the shared-host target and verify create, inspect,
+      download, restore, and update rollback against the repaired package.
+- [ ] Complete root-domain, Landscaping, non-Chrome browser, mobile assistive-
+      technology, installer/reinstall, performance, and destructive lifecycle
+      gates on suitable disposable targets before tagging the commercial build.
 
 ## 2.0.27 — Installer and reinstall/upgrade acceptance
 

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Tests\Native;
 
+use Core\Backup\BackupService;
 use Core\Database\Connection;
 use Core\Database\Migrator;
 use Core\Modules\ArchiveInspector;
@@ -70,6 +71,32 @@ final class MySqlNativeTest extends TestCase
         $this->assertTrue($l->attempt($bucket, 2, 60));
         $this->assertTrue($l->attempt($bucket, 2, 60));
         $this->assertFalse($l->attempt($bucket, 2, 60));
+    }
+
+    public function testBackupCreateAndInspectOnMysql(): void
+    {
+        (new Migrator($this->db, WC_ROOT . '/database/migrations'))->migrate();
+        $tmp = \WcProcessTmpDirs::make('wc-native-backup-');
+        foreach (['backups', 'staging', 'site/config', 'site/upload'] as $dir) {
+            mkdir($tmp . '/' . $dir, 0777, true);
+        }
+        file_put_contents($tmp . '/site/config/config.php', '<?php return [];');
+
+        $service = new BackupService(
+            $this->db,
+            $tmp . '/backups',
+            $tmp . '/staging',
+            $tmp . '/site'
+        );
+        [$path, $error] = $service->create();
+        $this->assertNull($error);
+        $this->assertNotNull($path);
+        $this->assertFileExists($path);
+
+        [$meta, $error] = $service->inspect((string) $path);
+        $this->assertNull($error);
+        $this->assertNotNull($meta);
+        $this->assertContains($this->db->table('pages'), $meta['tables']);
     }
 
     public function testLandscapingModuleMigrationOnMysql(): void

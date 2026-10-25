@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.29 — 2026-10-25
+
+- Repairs MariaDB/MySQL backup table discovery by replacing the unsupported
+  native-prepared `SHOW TABLES LIKE ?` form with a safely bound
+  `information_schema.tables` query.
+- Treats table-prefix wildcard characters literally and retains deterministic
+  table ordering in backup manifests.
+- Adds native MySQL and MariaDB regression coverage that creates and inspects
+  an actual Core backup during CI.
+- Records the first packaged shared-host acceptance findings and keeps final
+  commercial tagging gated on the repaired live backup/restore pass.
+
 ## 2.0.28 — 2026-10-24
 
 - Adds the permanent root module-rules checklist and aligns executable API,

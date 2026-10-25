@@ -1,5 +1,21 @@
 # Session Handoff
 
+## 2.0.29 Hosted acceptance repair
+
+- Packaged 2.0.28 was exercised on the `/catering/` shared-host installation:
+  major Core and Catering admin screens, public routes, maintenance/login,
+  no-rewrite errors, contact handling, quote review, keyboard entry, and
+  navigation-state persistence passed.
+- Live backup creation exposed MariaDB error 1064 because native prepared
+  statements do not allow `SHOW TABLES LIKE ?`. Core now queries
+  `information_schema.tables` with bound prefix parameters instead.
+- Native MySQL/MariaDB CI now creates and inspects a real backup. Core advances
+  to 2.0.29 without a migration or API change.
+- Do not tag the final commercial release until 2.0.29 is deployed and live
+  backup/restore succeeds. Root-domain, Landscaping, non-Chrome, mobile
+  assistive-technology, installer/reinstall, rollback, and destructive module
+  gates still need appropriate disposable targets.
+
 ## 2.0.28 Industry-module contract completion
 
 - The root `MOD_RULES.md` now carries the permanent module creation/release

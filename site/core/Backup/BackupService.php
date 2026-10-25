@@ -291,9 +291,18 @@ final class BackupService
                 'name'
             );
         }
+        // MySQL and MariaDB do not accept native prepared placeholders in
+        // SHOW TABLES LIKE. Query information_schema instead so the prefix
+        // remains bound data rather than interpolated SQL. LEFT also treats
+        // underscores and percent signs in an allowed prefix literally.
         return array_column(
-            $this->db->fetchAll('SHOW TABLES LIKE ?', [$prefix . '%']),
-            0
+            $this->db->fetchAll(
+                'SELECT table_name AS name FROM information_schema.tables '
+                . 'WHERE table_schema = DATABASE() AND LEFT(table_name, ?) = ? '
+                . 'ORDER BY table_name',
+                [strlen($prefix), $prefix]
+            ),
+            'name'
         );
     }
 

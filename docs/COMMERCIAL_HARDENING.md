@@ -44,6 +44,22 @@ Every listed surface must satisfy all applicable gates:
 
 Status values: **queued**, **in progress**, **code complete**, **verified**.
 
+## 2.4.0 — Shared module content, Media and structured data
+
+- [x] Package content types can seed starter records once without replacing
+      existing records or repopulating intentionally removed content.
+- [x] Generated content editors support single and multiple public Core Media
+      selections and automatically maintain Media usage evidence.
+- [x] Media selection rejects missing/private identifiers and preserves Core
+      alt text, focal metadata and replacement behavior through stable IDs.
+- [x] Package structured-data providers return data only; Core supplies
+      `@context`, enforces type/property/depth/size limits, safely encodes one
+      JSON-LD graph, and isolates provider failures.
+- [x] Generated content deletion verifies package/type ownership.
+- [ ] GitHub Actions PHP/MySQL/MariaDB/artifact matrix.
+- [ ] Packaged-host browser acceptance and adoption by Catering plus a second
+      industry module.
+
 ## 2.3.0 — Reusable module record operations
 
 - [x] `adminResource()` accepts backward-compatible optional reorder and bulk

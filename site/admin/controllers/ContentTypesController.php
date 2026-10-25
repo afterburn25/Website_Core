@@ -68,6 +68,7 @@ final class ContentTypesController extends Controller
         }
         return $this->page($r, 'content/edit', [
             'def' => $def, 'item' => $item,
+            'mediaOptions' => $this->items()->mediaOptions(),
         ], ($item ? 'Edit' : 'New') . ' ' . $def['label']);
     }
 
@@ -96,6 +97,7 @@ final class ContentTypesController extends Controller
         $item = $id > 0 ? $this->items()->get($id) : null;
         return $this->page($r, 'content/edit', [
             'def' => $def, 'item' => $item, 'input' => $r->post,
+            'mediaOptions' => $this->items()->mediaOptions(),
         ], ($item ? 'Edit' : 'New') . ' ' . $def['label']);
     }
 
@@ -108,8 +110,8 @@ final class ContentTypesController extends Controller
         if ($def === null) {
             return $resp;
         }
-        $this->items()->delete((int) $r->string('id'));
-        $this->flash('ok', 'Deleted.');
+        $deleted = $this->items()->delete((int) $r->string('id'), $def['package'], $def['type']);
+        $this->flash($deleted ? 'ok' : 'error', $deleted ? 'Deleted.' : 'Item not found.');
         return $this->redirect($r, $this->listPath($def));
     }
 

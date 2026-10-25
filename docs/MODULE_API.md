@@ -26,6 +26,8 @@ breaking changes bump the major and ship with a migration guide.
 | `adminResource(..., $delete = null, $category = 'Industry', $options = [])` | Register a validated list/editor workspace with optional visible-row ordering and allowlisted bulk actions. |
 | `scheduledJob($type, $handler)` | Register an idempotent job handler executed by the queue runner. |
 | `contentType($type, $label, $fields)` | Register a structured content type — validated storage in `content_items` plus generated admin CRUD under `/admin/content`. |
+| `seedContent($type, $items)` | Seed declared structured content once while its package partition is empty; administrator edits and intentional deletion remain final. |
+| `structuredData($key, $provider)` | Contribute bounded package-scoped Schema.org objects to public HTML. Core validates types/properties, supplies `@context`, safely encodes JSON-LD and isolates provider failures. |
 | `dashboardWidget($key, $label, $provider, $capability = null, $url = null)` | Contribute a capability-filtered live metric to the Core dashboard. |
 | `adminSearchProvider($provider, $capability = null)` | Contribute capability-filtered results to Core global search. |
 | `healthCheck($key, $label, $provider)` | Contribute an isolated `ok`, `warn`, or `error` check to System Health. |
@@ -207,8 +209,11 @@ isolated — it never aborts the operation that fired the event.
 Each field is `['name' => snake_case, 'label' => ..., 'type' => ...,
 'required' => bool, 'options' => [...] (select only)]` with `type` one of
 `text`, `textarea`, `html` (HTMLPurifier-sanitized), `number`, `url`
-(http/https/mailto), `select`, `checkbox`. Undeclared keys are dropped at
-save time and `required`/`type` violations are rejected.
+(http/https/mailto), `select`, `checkbox`, `media`, and `media_list`.
+Media fields select public Core Media records and retain alt text, focal crop,
+replacement, and usage tracking instead of storing copied file paths.
+Undeclared keys are dropped at save time and `required`/`type` violations are
+rejected.
 
 Core stores items in `content_items` and generates the admin CRUD at
 `/admin/content` (capability `content.manage`). Packages read their own
@@ -223,6 +228,34 @@ Each item exposes `id`, `title` (derived from the first text-ish field or
 an explicit `title`), `status` (`draft`/`published`), `sort`, and a decoded
 `fields` map. The restaurant reference package uses this for `special`
 (daily specials) end-to-end.
+
+Starter records may be declared after the type. Core inserts them only before
+that package/type has live records and records a durable package marker. Later
+boots and upgrades never replace edits or repopulate content an administrator
+intentionally removed:
+
+```php
+$ctx->seedContent('faq', [
+    ['question' => 'How far do you travel?', 'answer' => 'See our service area.'],
+]);
+```
+
+### Package structured data
+
+Packages may describe their live records without writing script tags or
+editing Core's schema renderer. Providers receive the current request and
+return one Schema.org object or a list. Core removes package-supplied
+`@context`, accepts only bounded JSON values and allowlisted business/content
+types, escapes JSON-LD against markup termination, and combines successful
+providers into one `@graph`. Exceptions are logged and isolated.
+
+```php
+$ctx->structuredData('services', fn (\Core\Http\Request $request) => [[
+    '@type' => 'Service',
+    '@id' => 'https://' . $request->host() . '/services#weddings',
+    'name' => 'Wedding catering',
+]]);
+```
 
 ## Shared business, inquiries, and quotes (Core 2.2)
 

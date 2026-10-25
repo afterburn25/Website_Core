@@ -32,6 +32,9 @@ direction (packages → core API, never core → package internals).
 - Reusable module admin-shell and record-editor contracts. Modules retain
   persistence callbacks and business validation; Core supplies consistent
   permissions, CSRF, filtering, pagination, errors, and accessible controls.
+- Seed-once module content, Core Media selection/usage tracking, and bounded
+  package Schema.org contributions. Core owns editing, replacement, focal
+  metadata, safe JSON-LD encoding, and administrator changes after seeding.
 
 ## Core MUST NOT contain
 

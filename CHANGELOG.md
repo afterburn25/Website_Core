@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.4.0 — 2026-10-25
+
+- Adds durable `seedContent()` defaults for package-declared content types;
+  existing records and administrator-cleared content are never repopulated.
+- Adds reusable single and multiple Core Media fields to generated module
+  content editors with public-record validation and automatic usage tracking.
+- Adds package-scoped `structuredData()` providers. Core supplies `@context`,
+  validates bounded allowlisted Schema.org objects, escapes JSON-LD against
+  markup termination, combines contributions, and isolates provider failures.
+- Fixes generated-content deletion so a submitted package/type cannot delete
+  another package's record. No schema migration or API-major change is needed.
+
 ## 2.3.0 — 2026-10-25
 
 - Completes the reusable module record workspace with accessible visible-row

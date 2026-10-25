@@ -6,6 +6,7 @@ namespace Core\Modules;
 use Core\Auth\Permissions;
 use Core\Branding\BrandAssets;
 use Core\Business\BusinessProfile;
+use Core\Content\ContentItems;
 use Core\Content\MenuService;
 use Core\Database\Connection;
 use Core\Events\Dispatcher;
@@ -43,6 +44,8 @@ final class ModuleContext
     private array $coreFeatures = [];
     /** @var array<string,array> declarative admin resources keyed by route owner/resource */
     private array $adminResources = [];
+    /** @var array<string,callable> package-scoped Schema.org providers */
+    private array $structuredDataProviders = [];
     private ?string $viewNamespace = null;
 
     /**
@@ -167,6 +170,50 @@ final class ModuleContext
         if (trim($label) === '' || mb_strlen(trim($label)) > 120) throw new \InvalidArgumentException('Content type labels must be 1–120 characters.');
         if (isset($this->contentTypes[$type])) throw new \InvalidArgumentException('Content type is already registered by this package.');
         $this->contentTypes[$type] = ['label' => $label, 'fields' => $fields];
+    }
+
+    /**
+     * Seed starter records for a declared content type exactly once. Existing
+     * or intentionally cleared administrator content is never repopulated.
+     *
+     * @param list<array<string,mixed>> $items
+     */
+    public function seedContent(string $type, array $items): void
+    {
+        if (!isset($this->contentTypes[$type])) {
+            throw new \InvalidArgumentException('Declare the content type before seeding it.');
+        }
+        if ($this->serviceResolver === null || $items === []) {
+            return;
+        }
+        $settings = $this->service(SettingsRepository::class);
+        $marker = 'content.seeded.' . substr(hash('sha256', $this->packageId), 0, 24) . '.' . $type;
+        if ((bool) $settings->get($marker, false)) {
+            return;
+        }
+        $this->service(ContentItems::class)->seed(
+            $this->packageId,
+            $type,
+            $items,
+            $this->contentTypes[$type],
+        );
+        $settings->set($marker, true);
+    }
+
+    /**
+     * Register validated Schema.org data for public HTML responses. The
+     * provider receives the current Request and returns one schema object or
+     * a list of objects. Core supplies @context and performs final validation.
+     */
+    public function structuredData(string $key, callable $provider): void
+    {
+        if (!preg_match('/^[a-z][a-z0-9_-]{1,79}$/', $key)) {
+            throw new \InvalidArgumentException('Structured-data keys must be stable lowercase tokens.');
+        }
+        if (isset($this->structuredDataProviders[$key])) {
+            throw new \InvalidArgumentException('Structured-data key is already registered by this package.');
+        }
+        $this->structuredDataProviders[$key] = $provider;
     }
 
     /** Add a small live metric to the core dashboard. Provider returns a scalar or {value,detail}. */
@@ -651,4 +698,5 @@ final class ModuleContext
     public function declaredBrandAssets(): array { return $this->brandAssets; }
     public function coreFeatures(): array { return $this->coreFeatures; }
     public function adminResources(): array { return $this->adminResources; }
+    public function structuredDataProviders(): array { return $this->structuredDataProviders; }
 }

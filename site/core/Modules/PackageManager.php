@@ -623,6 +623,23 @@ final class PackageManager
         // Package rows in shared stores the table-prefix convention can't see.
         foreach (['content_items'] as $shared) {
             if ($this->db->tableExists($shared)) {
+                if ($shared === 'content_items' && $this->db->tableExists('media_usage')) {
+                    foreach ($this->db->fetchAll(
+                        'SELECT id, type FROM `' . $this->db->table('content_items') . '` WHERE package = ?',
+                        [$packageId]
+                    ) as $item) {
+                        $context = 'module.content.' . substr(
+                            hash('sha256', $packageId . '/' . (string) $item['type']),
+                            0,
+                            16,
+                        );
+                        $this->db->run(
+                            'DELETE FROM `' . $this->db->table('media_usage')
+                            . '` WHERE context = ? AND context_id = ?',
+                            [$context, (int) $item['id']]
+                        );
+                    }
+                }
                 $n = $this->db->run(
                     'DELETE FROM `' . $this->db->table($shared) . '` WHERE package = ?',
                     [$packageId]
@@ -677,6 +694,10 @@ final class PackageManager
                     $prefix.str_replace('/','.',$packageId),
                 ]);
             }
+            $this->db->run(
+                'DELETE FROM `' . $this->db->table('settings') . '` WHERE `key` LIKE ?',
+                ['content.seeded.' . substr(hash('sha256', $packageId), 0, 24) . '.%']
+            );
         }
         $this->journal($packageId, 'purge', 'ok', 'data purge complete');
         $this->fire('package.purged', ['package' => $packageId]);

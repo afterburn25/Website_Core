@@ -1,8 +1,8 @@
 # Project Status
 
-**Current**: `2.3.0` CI-verified reusable module-record operations, completing
-ordering and bulk actions on the 2.2 shared administration foundation and
-building on the 2.2.2 CI-verified inquiry-detail repair,
+**Current**: `2.4.0` shared module content, Media and structured-data candidate,
+building on the 2.3 CI-verified reusable module-record operations,
+2.2.2 CI-verified inquiry-detail repair,
 2.2.1 SMTP provider-host diagnostics, and 2.2.0 shared business profile and
 opt-in inquiries/quotations. Continuation rules and the verified starting
 state are in `docs/CORE_SESSION_2026_10_25.md`. The planned 0.1.15 through 2.0 core milestones
@@ -10,6 +10,12 @@ are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
 produces checksummed installation and update artifacts.
+
+Version 2.4.0 adds edit-preserving starter content, reusable public Core Media
+selectors with usage tracking, and package-scoped Schema.org contributions.
+Core owns validation and markup-safe JSON-LD output; modules provide data only.
+The existing page composer remains the editing, preview and revision contract.
+No database migration or Module API major bump is required.
 
 Version 2.3.0 adds optional visible-row ordering and allowlisted bulk actions
 to `adminResource()`. Core owns selection, bounded input validation,

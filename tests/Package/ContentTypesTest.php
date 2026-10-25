@@ -159,6 +159,11 @@ final class ContentTypesTest extends TestCase
     {
         [$ok, , $id] = $this->items->save(null, 'acme/faq', 'faq', ['question' => 'Q'], 1);
         $this->assertTrue($ok);
+        $this->db->insert('settings', [
+            'key' => 'content.seeded.' . substr(hash('sha256', 'acme/faq'), 0, 24) . '.faq',
+            'value' => 'true',
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
 
         $pm = new \Core\Modules\PackageManager(
             $this->db, $this->registry, new \Core\Modules\ArchiveInspector(),
@@ -176,6 +181,10 @@ final class ContentTypesTest extends TestCase
         // Explicit purge removes the shared-store rows too.
         $this->assertNull($this->items->get($id));
         $this->assertSame([], $this->items->items('acme/faq', 'faq'));
+        $this->assertFalse((bool) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('settings') . '` WHERE `key` = ?',
+            ['content.seeded.' . substr(hash('sha256', 'acme/faq'), 0, 24) . '.faq']
+        ));
     }
 
     public function testUpdateCannotCrossTypeBoundaries(): void

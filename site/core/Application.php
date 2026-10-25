@@ -402,6 +402,11 @@ final class Application
                 $cacheable = ($response->headers()['X-WC-Cacheable'] ?? '') === 'public';
                 $response->removeHeader('X-WC-Cacheable');
                 $response->setBody((new \Core\Branding\Attribution())->apply($response->body()));
+                if ($response->status() === 200) {
+                    $response->setBody((new \Core\Seo\ModuleSchema(
+                        $this->container->get(ModuleRegistry::class)
+                    ))->inject($response->body(), $request));
+                }
                 $response->setBody($this->container->get(\Core\Privacy\ConsentManager::class)
                     ->inject($response->body(), $request->routeBase()));
                 try {

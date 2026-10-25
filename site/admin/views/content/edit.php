@@ -1,8 +1,10 @@
 <?php
-/** @var array $def @var ?array $item @var ?array $input @var \Core\Security\Csrf $csrf @var string $basePath */
+/** @var array $def @var ?array $item @var ?array $input @var array $mediaOptions @var \Core\Security\Csrf $csrf @var string $basePath */
 $val = function (string $name) use ($item, $input): string {
     if (isset($input[$name])) {
-        return (string) $input[$name];
+        return is_array($input[$name])
+            ? implode(',', array_map('strval', $input[$name]))
+            : (string) $input[$name];
     }
     return (string) ($item['fields'][$name] ?? '');
 };
@@ -41,6 +43,23 @@ $qs = 'pkg=' . rawurlencode($def['package']) . '&amp;type=' . rawurlencode($def[
 <?php break;
     case 'checkbox': ?>
 <label class="inline"><input id="f_<?= e_attr($f['name']) ?>" name="<?= e_attr($f['name']) ?>" type="checkbox" value="1" <?= $val($f['name']) === '1' ? 'checked' : '' ?>> yes</label>
+<?php break;
+    case 'media': ?>
+<select id="f_<?= e_attr($f['name']) ?>" name="<?= e_attr($f['name']) ?>" <?= $req ?>>
+<option value="">— Select from Media —</option>
+<?php foreach ($mediaOptions as $media): ?>
+<option value="<?= (int) $media['id'] ?>" <?= $val($f['name']) === (string) $media['id'] ? 'selected' : '' ?>><?= e($media['label']) ?> · <?= e($media['mime']) ?></option>
+<?php endforeach; ?>
+</select>
+<p class="field-help">Uses the Core Media item, including its alt text, focal point, replacement history, and usage tracking. <a href="<?= e_attr($basePath) ?>/admin/media">Manage Media</a></p>
+<?php break;
+    case 'media_list': $selectedMedia = array_filter(array_map('intval', explode(',', $val($f['name'])))); ?>
+<select id="f_<?= e_attr($f['name']) ?>" name="<?= e_attr($f['name']) ?>[]" multiple size="8" <?= $req ?>>
+<?php foreach ($mediaOptions as $media): ?>
+<option value="<?= (int) $media['id'] ?>" <?= in_array((int) $media['id'], $selectedMedia, true) ? 'selected' : '' ?>><?= e($media['label']) ?> · <?= e($media['mime']) ?></option>
+<?php endforeach; ?>
+</select>
+<p class="field-help">Select up to 40 Core Media items. Use Ctrl/Command to select more than one. Order follows the selected Media IDs.</p>
 <?php break;
     default: ?>
 <input id="f_<?= e_attr($f['name']) ?>" name="<?= e_attr($f['name']) ?>" value="<?= e_attr($val($f['name'])) ?>" <?= $req ?>>

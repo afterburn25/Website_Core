@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.6.1 — 2026-10-26
+
+- Adds a dedicated **Geo service area** administration screen with center
+  city, state/region, optional country and mileage-range controls.
+- Renames the analytics Geography destination to **Audience locations** so
+  its reporting date range cannot be mistaken for service-area setup.
+- Keeps failed geocoding attempts from replacing the last verified center and
+  coordinates while retaining submitted values for correction.
+- No database migration or Module API change is required.
+
 ## 2.6.0 — 2026-10-25
 
 - Completes the Core implementation for `CORE-REUSE-5` through

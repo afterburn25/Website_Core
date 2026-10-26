@@ -1,7 +1,7 @@
 # Project Status
 
-**Current**: `2.6.0` CI-verified Core implementation for `CORE-REUSE-5`
-through `CORE-REUSE-11`, pending packaged-host and cross-industry adoption,
+**Current**: `2.6.1` Core maintenance release for `CORE-REUSE-5` through
+`CORE-REUSE-11`, pending packaged-host and cross-industry adoption,
 building on the 2.5 CI-verified shared module forms and notifications and 2.4
 CI-verified shared module content, Media and structured data and 2.3 reusable module-record operations,
 2.2.2 CI-verified inquiry-detail repair,
@@ -12,6 +12,13 @@ are implemented in focused, documented commits. The 0.9 gate added cache-safe
 defaults, cumulative update metadata, offline reproducible build support, and
 a dependency-free release contract check; 1.0 freezes that contract and
 produces checksummed installation and update artifacts.
+
+Version 2.6.1 separates service-area setup from audience-location analytics.
+Website administrators now receive a dedicated Geo service area destination
+with center city, state/region and mileage-range controls; the analytics
+report is explicitly named Audience locations. Failed geocoding does not
+replace the last verified coordinates. No migration or Module API change is
+required.
 
 Version 2.6.0 adds reusable presentation blocks, semantic Core-service
 requirements, quote attachments/reminders/immutable documents, a complete SDK

@@ -14,7 +14,7 @@ return [
         'timezone'    => 'UTC',
         'locale'      => 'en',
         'debug'       => false,
-        'version'     => '2.6.0',
+        'version'     => '2.6.1',
         'api_version' => 1,                     // extension API major version
     ],
     'database' => [

@@ -15,7 +15,13 @@ final class Config
     public function __construct(string $path)
     {
         if (is_file($path)) {
-            $values = require $path;
+            try {
+                $values = require $path;
+            } catch (\Throwable) {
+                // A damaged or partial generated config means "not installed"
+                // so the recovery installer can render instead of a raw fatal.
+                return;
+            }
             if (is_array($values)) {
                 $this->data = $values;
                 $this->loaded = true;

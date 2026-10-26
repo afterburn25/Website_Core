@@ -21,6 +21,7 @@ final class AuthServiceTest extends TestCase
     private Connection $db;
     private AuthService $auth;
     private AdminRepository $admins;
+    private \Core\Mail\SystemMail $mail;
 
     protected function setUp(): void
     {
@@ -43,6 +44,8 @@ final class AuthServiceTest extends TestCase
             new SessionManager($config),
             new RateLimiter($this->db),
             new AuditLog($this->db),
+            $config,
+            $this->mail = new \Core\Mail\SystemMail($this->db, new \Core\Settings\SettingsRepository($this->db)),
         );
     }
 
@@ -148,6 +151,24 @@ final class AuthServiceTest extends TestCase
         $this->assertNull($this->auth->user());
     }
 
+    public function testOtherSessionCanBeListedAndRevokedWithoutRevokingCurrent(): void
+    {
+        $id = $this->makeAdmin();
+        $this->auth->attemptPassword($this->request(), 'owner1', 'correct-horse-12');
+        $otherId = (int) $this->db->insert('admin_sessions', [
+            'admin_id' => $id, 'session_hash' => hash('sha256', 'other-device'),
+            'ip' => '203.0.113.4', 'user_agent' => 'Other browser',
+            'created_at' => date('Y-m-d H:i:s'), 'last_seen' => date('Y-m-d H:i:s'),
+        ]);
+        $sessions = $this->auth->sessionsFor($id);
+        $this->assertCount(2, $sessions);
+        $current = array_values(array_filter($sessions, fn (array $s) => $s['current']));
+        $this->assertCount(1, $current);
+        $this->assertFalse($this->auth->revokeSession($id, (int) $current[0]['id']));
+        $this->assertTrue($this->auth->revokeSession($id, $otherId));
+        $this->assertCount(1, $this->auth->sessionsFor($id));
+    }
+
     public function testLastOwnerProtectionData(): void
     {
         $this->makeAdmin();
@@ -167,6 +188,52 @@ final class AuthServiceTest extends TestCase
         $perms->register('custom.thing');
         $this->assertTrue($perms->allows('admin', 'custom.thing'));
         $this->assertFalse($perms->allows('editor', 'custom.thing'));
+    }
+
+    public function testPasswordResetFlowSingleUseAndRevokesSessions(): void
+    {
+        $id = $this->makeAdmin();
+        $captured = [];
+        \Core\Mail\SystemMail::captureWith(function (string $to, string $s, string $b) use (&$captured) {
+            $captured[] = [$to, $b];
+        });
+        (new \Core\Settings\SettingsRepository($this->db))->set('mail.transport', 'capture');
+
+        $this->auth->requestReset($this->request(), 'owner@example.test');
+        $this->mail->flush(); // requestReset queues; delivery happens on flush
+        $this->assertCount(1, $captured);
+        preg_match('/token=([a-f0-9]{64})/', $captured[0][1], $m);
+        $this->assertNotEmpty($m[1], 'reset link carries the raw token');
+        // Only the hash is stored.
+        $row = $this->db->fetch('SELECT reset_token_hash FROM `' . $this->db->table('admins') . '` WHERE id = ?', [$id]);
+        $this->assertSame(hash('sha256', $m[1]), $row['reset_token_hash']);
+
+        $this->assertTrue($this->auth->completeReset($this->request(), $m[1], 'brand-new-pass-99'));
+        // Single-use: the same token cannot be replayed.
+        $this->assertFalse($this->auth->completeReset($this->request(), $m[1], 'another-pass-99'));
+        // New password actually works.
+        $this->assertNotNull($this->auth->attemptPassword($this->request(), 'owner1', 'brand-new-pass-99'));
+    }
+
+    public function testPasswordResetUnknownIdentifierIsSilent(): void
+    {
+        $captured = 0;
+        \Core\Mail\SystemMail::captureWith(function () use (&$captured) {
+            $captured++;
+        });
+        $this->auth->requestReset($this->request(), 'nobody@example.test');
+        $this->assertSame(0, $captured, 'unknown accounts must not receive mail or disclosure');
+    }
+
+    public function testPasswordResetExpiredTokenRefused(): void
+    {
+        $id = $this->makeAdmin();
+        $token = bin2hex(random_bytes(32));
+        $this->admins->update($id, [
+            'reset_token_hash' => hash('sha256', $token),
+            'reset_expires_at' => date('Y-m-d H:i:s', time() - 60),
+        ]);
+        $this->assertFalse($this->auth->completeReset($this->request(), $token, 'brand-new-pass-99'));
     }
 
     public function testAuditRedaction(): void

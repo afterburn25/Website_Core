@@ -1,0 +1,266 @@
+<?php
+declare(strict_types=1);
+
+namespace Tests\Unit;
+
+use Core\Config;
+use Core\Content\MenuService;
+use Core\Content\PreviewTokens;
+use Core\Database\Connection;
+use Core\Database\Migrator;
+use Core\Media\MediaService;
+use PHPUnit\Framework\TestCase;
+
+final class ContentMediaTest extends TestCase
+{
+    private Connection $db;
+    private string $tmp;
+
+    protected function setUp(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('pdo_sqlite not available');
+        }
+        $this->db = new Connection(new \PDO('sqlite::memory:'), 'wc_');
+        (new Migrator($this->db, WC_ROOT . '/database/migrations'))->migrate();
+        $this->tmp = sys_get_temp_dir() . '/wc-media-' . bin2hex(random_bytes(4));
+        mkdir($this->tmp, 0777, true);
+    }
+
+    protected function tearDown(): void
+    {
+        $it = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($this->tmp, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($it as $f) {
+            $f->isDir() ? rmdir($f->getPathname()) : unlink($f->getPathname());
+        }
+        rmdir($this->tmp);
+    }
+
+    private function media(): MediaService
+    {
+        $config = new Config('/nonexistent');
+        $ref = new \ReflectionClass($config);
+        $prop = $ref->getProperty('data');
+        $prop->setAccessible(true);
+        $prop->setValue($config, ['paths' => ['storage' => $this->tmp]]);
+        $prop2 = $ref->getProperty('loaded');
+        $prop2->setAccessible(true);
+        $prop2->setValue($config, true);
+        return new MediaService($this->db, $config);
+    }
+
+    private function fakeUpload(string $content, string $name): array
+    {
+        $tmp = $this->tmp . '/upload-' . bin2hex(random_bytes(4)) . '.tmp';
+        file_put_contents($tmp, $content);
+        return ['tmp_name' => $tmp, 'name' => $name, 'size' => strlen($content), 'error' => UPLOAD_ERR_OK];
+    }
+
+    private function pngBytes(): string
+    {
+        // 1x1 PNG
+        return base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+    }
+
+    public function testStoreValidPng(): void
+    {
+        [$id, $err] = $this->media()->store($this->fakeUpload($this->pngBytes(), 'dot.png'), 1);
+        $this->assertNull($err);
+        $this->assertNotNull($id);
+        $m = $this->media()->find($id);
+        $this->assertSame('image/png', $m['mime']);
+        $this->assertSame(1, (int) $m['width']);
+        $this->assertTrue(is_file($this->media()->pathFor($m)));
+    }
+
+    public function testReplacementPreservesMediaIdAndMetadata(): void
+    {
+        $service = $this->media();
+        [$id] = $service->store($this->fakeUpload($this->pngBytes(), 'first.png'), 1);
+        $this->db->update('media', ['alt_text' => 'Brand mark'], 'id = ?', [$id]);
+        $oldPath = $service->pathFor($service->find($id));
+
+        $error = $service->replace($id, $this->fakeUpload($this->pngBytes(), 'replacement.png'), 2);
+        $this->assertNull($error);
+        $item = $service->find($id);
+        $this->assertSame('replacement.png', $item['original_name']);
+        $this->assertSame('Brand mark', $item['alt_text']);
+        $this->assertFileDoesNotExist($oldPath);
+        $this->assertFileExists($service->pathFor($item));
+    }
+
+    public function testRejectsDisallowedExtension(): void
+    {
+        [, $err] = $this->media()->store($this->fakeUpload('MZ exe', 'virus.exe'), 1);
+        $this->assertNotNull($err);
+    }
+
+    public function testRejectsMimeMismatch(): void
+    {
+        [, $err] = $this->media()->store($this->fakeUpload('plain text', 'fake.png'), 1);
+        $this->assertNotNull($err);
+    }
+
+    public function testRejectsSvg(): void
+    {
+        [, $err] = $this->media()->store($this->fakeUpload('<svg xmlns="x"><script/></svg>', 'icon.svg'), 1);
+        $this->assertNotNull($err);
+    }
+
+    public function testRejectsPolyglotMarkup(): void
+    {
+        $payload = $this->pngBytes() . '<?php echo 1; ?>';
+        [, $err] = $this->media()->store($this->fakeUpload($payload, 'poly.png'), 1);
+        $this->assertNotNull($err);
+    }
+
+    public function testRejectsOversize(): void
+    {
+        [, $err] = $this->media()->store(
+            ['tmp_name' => $this->tmp . '/x', 'name' => 'a.png', 'size' => 16 * 1024 * 1024, 'error' => UPLOAD_ERR_OK],
+            1
+        );
+        $this->assertNotNull($err);
+    }
+
+    public function testMenuUrlValidation(): void
+    {
+        $menu = new MenuService($this->db);
+        $this->assertTrue($menu->urlOk('/about'));
+        $this->assertTrue($menu->urlOk('https://example.com/x'));
+        $this->assertTrue($menu->urlOk('mailto:a@b.c'));
+        $this->assertTrue($menu->urlOk('tel:+13375551212'));
+        $this->assertTrue($menu->urlOk('#menu-packages'));
+        $this->assertFalse($menu->urlOk('javascript:alert(1)'));
+        $this->assertFalse($menu->urlOk('https:broken'));
+        $this->assertFalse($menu->urlOk('mailto:not-an-email'));
+        $this->assertFalse($menu->urlOk('//evil.test/x'));
+        $this->assertFalse($menu->urlOk('#123-invalid'));
+        $this->assertFalse($menu->urlOk(''));
+    }
+
+    public function testMenuTreeAndReparent(): void
+    {
+        $menu = new MenuService($this->db);
+        $menuId = $menu->ensureLocation('primary', 'Primary');
+        [$a] = $menu->addItem($menuId, 'Home', '/', null, 0);
+        [$b] = $menu->addItem($menuId, 'About', '/about', $a, 1);
+        $tree = $menu->tree('primary');
+        $this->assertCount(1, $tree);
+        $this->assertSame('About', $tree[0]['children'][0]['label']);
+        // Deleting a parent re-parents children to top level.
+        $menu->deleteItem($a);
+        $tree = $menu->tree('primary');
+        $this->assertCount(1, $tree);
+        $this->assertSame('About', $tree[0]['label']);
+    }
+
+    public function testHeaderAndFooterMenuLocationsRemainIsolated(): void
+    {
+        $menu = new MenuService($this->db);
+        $headerId = $menu->ensureLocation('primary', 'Primary');
+        $footerId = $menu->ensureLocation('footer', 'Footer');
+        [$headerItem] = $menu->addItem($headerId, 'Home', '/', null, 0);
+        [$footerItem] = $menu->addItem($footerId, 'Privacy', '/privacy', null, 0);
+
+        $this->assertTrue($menu->itemBelongsToMenu($headerItem, $headerId));
+        $this->assertFalse($menu->itemBelongsToMenu($headerItem, $footerId));
+        $this->assertSame(['Home'], array_column($menu->tree('primary'), 'label'));
+        $this->assertSame(['Privacy'], array_column($menu->tree('footer'), 'label'));
+        $this->assertTrue($menu->itemBelongsToMenu($footerItem, $footerId));
+    }
+
+    public function testMenuItemsCanBeEditedAndCircularParentsAreRejected(): void
+    {
+        $menu = new MenuService($this->db);
+        $menuId = $menu->ensureLocation('primary', 'Primary');
+        [$parent] = $menu->addItem($menuId, 'Services', '/services', null, 0);
+        [$child] = $menu->addItem($menuId, 'Catering', '/catering', $parent, 1);
+
+        [$ok, $error] = $menu->updateItem($child, 'Event catering', '/events', $parent, 3);
+        $this->assertTrue($ok);
+        $this->assertNull($error);
+        $this->assertSame('Event catering', $menu->tree('primary')[0]['children'][0]['label']);
+
+        [$ok, $error] = $menu->updateItem($parent, 'Services', '/services', $child, 0);
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('loop', (string) $error);
+    }
+
+    public function testMenuCanLinkPagesUseTargetsAndSaveDraggedTree(): void
+    {
+        $pageId = (int) $this->db->insert('pages', ['slug' => 'our-story', 'title' => 'Our Story', 'status' => 'published', 'created_at' => date('Y-m-d H:i:s')]);
+        $menu = new MenuService($this->db);
+        $menuId = $menu->ensureLocation('primary', 'Primary');
+        [$about, $error] = $menu->addItem($menuId, 'About', '', null, 0, 'tab', $pageId);
+        [$contact] = $menu->addItem($menuId, 'Contact', '/contact', null, 1, 'window');
+        $this->assertNull($error);
+        $this->assertSame('/our-story', $menu->tree('primary')[0]['url']);
+        $this->assertSame('tab', $menu->tree('primary')[0]['target']);
+        [$ok, $error] = $menu->reorder($menuId, [['id' => $contact, 'children' => [['id' => $about, 'children' => []]]]]);
+        $this->assertTrue($ok, (string) $error);
+        $tree = $menu->tree('primary');
+        $this->assertSame('Contact', $tree[0]['label']);
+        $this->assertSame('About', $tree[0]['children'][0]['label']);
+    }
+
+    public function testHiddenNavigationAndItsSubtreeStayOutOfThePublicTree(): void
+    {
+        $menu = new MenuService($this->db);
+        $menuId = $menu->ensureLocation('primary', 'Primary');
+        [$visible] = $menu->addItem($menuId, 'Home', '/', null, 0);
+        [$hidden] = $menu->addItem($menuId, 'Future services', '/future', null, 1, 'self', null, false);
+        [$child] = $menu->addItem($menuId, 'Future detail', '/future/detail', $hidden, 0);
+
+        $this->assertSame(['Home'], array_column($menu->tree('primary'), 'label'));
+        $adminTree = $menu->tree('primary', true);
+        $this->assertSame(['Home', 'Future services'], array_column($adminTree, 'label'));
+        $this->assertSame('Future detail', $adminTree[1]['children'][0]['label']);
+        $this->assertTrue($menu->itemBelongsToMenu($visible, $menuId));
+        $this->assertTrue($menu->itemBelongsToMenu($child, $menuId));
+    }
+
+    public function testDeletingNestedParentPromotesChildrenOneLevelInPlace(): void
+    {
+        $menu = new MenuService($this->db);
+        $menuId = $menu->ensureLocation('primary', 'Primary');
+        [$services] = $menu->addItem($menuId, 'Services', '/services', null, 0);
+        [$planning] = $menu->addItem($menuId, 'Planning', '/planning', $services, 0);
+        [$weddings] = $menu->addItem($menuId, 'Weddings', '/weddings', $planning, 0);
+        [$delivery] = $menu->addItem($menuId, 'Delivery', '/delivery', $services, 1);
+
+        $menu->deleteItem($planning);
+        $children = $menu->tree('primary')[0]['children'];
+        $this->assertSame(['Weddings', 'Delivery'], array_column($children, 'label'));
+        $this->assertSame([0, 1], array_map('intval', array_column($children, 'sort_order')));
+    }
+
+    public function testNavigationVisibilityMigrationIsInstalled(): void
+    {
+        $columns = array_column(
+            $this->db->fetchAll('PRAGMA table_info(`' . $this->db->table('menu_items') . '`)'),
+            'name'
+        );
+        $this->assertContains('is_enabled', $columns);
+    }
+
+    public function testPreviewTokens(): void
+    {
+        $db = $this->db;
+        $db->insert('pages', [
+            'slug' => 'drafty', 'title' => 'Draft', 'status' => 'draft',
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        $pageId = (int) $db->fetchColumn('SELECT id FROM `' . $db->table('pages') . '` WHERE slug=?', ['drafty']);
+        $tokens = new PreviewTokens($db);
+        $t = $tokens->issue($pageId, 1, 3600);
+        $this->assertSame($pageId, $tokens->peek($t));
+        $this->assertNull($tokens->peek('bogus'));
+        // Single-use redeem burns the token.
+        $this->assertSame($pageId, $tokens->redeem($t));
+        $this->assertNull($tokens->redeem($t));
+    }
+}

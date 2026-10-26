@@ -9,8 +9,9 @@ use Core\Database\Connection;
 /**
  * Bounded, single-pass job runner used by cron.php. Claims a batch under a
  * worker lease, invokes registered handlers, and records results. A job that
- * throws is retried with backoff; a job left running past its lease returns
- * to 'uncertain' for manual review rather than silent re-execution.
+ * throws is retried with backoff; a job whose worker died mid-run returns to
+ * 'uncertain' on the next claim and is retried — handlers must be idempotent
+ * (at-least-once delivery, never exactly-once external effects).
  */
 final class Runner
 {
@@ -19,11 +20,10 @@ final class Runner
     public function run(int $batch = 10, int $secondsBudget = 25): int
     {
         $queue = $this->container->get(JobQueue::class);
-        $context = $this->container->has(\Core\Modules\ModuleContext::class)
-            ? $this->container->get(\Core\Modules\ModuleContext::class)
+        $registry = $this->container->has(\Core\Modules\ModuleRegistry::class)
+            ? $this->container->get(\Core\Modules\ModuleRegistry::class)
             : null;
-        $handlers = $context?->jobHandlers() ?? [];
-        $handlers += $this->coreHandlers();
+        $handlers = ($registry?->jobHandlers() ?? []) + $this->coreHandlers();
 
         $workerId = gethostname() . ':' . getmypid() . ':' . bin2hex(random_bytes(4));
         $deadline = time() + $secondsBudget;
@@ -56,6 +56,55 @@ final class Runner
         return [
             'core.heartbeat' => function (array $payload, Container $c): void {
                 $c->get(Connection::class); // touch DB; proves runner works
+            },
+            'mail.send' => function (array $payload, Container $c): void {
+                $c->get(\Core\Mail\SystemMail::class)->flush((int) ($payload['limit'] ?? 10));
+            },
+            'license.validate' => function (array $payload, Container $c): void {
+                $c->get(\Core\Jobs\LicenseValidationJob::class)->handle($payload);
+            },
+            'webhook.deliver' => function (array $payload, Container $c): void {
+                $c->get(\Core\Api\WebhookService::class)->deliver((int) ($payload['delivery_id'] ?? 0));
+            },
+            'core.managed_update' => function (array $payload, Container $c): void {
+                $c->get(\Core\Update\ManagedUpdateService::class)->run();
+            },
+            'crm.quote_reminders' => function (array $payload, Container $c): void {
+                $quotes = $c->get(\Core\Leads\QuoteService::class);
+                foreach ($quotes->dueReminders((int) ($payload['limit'] ?? 50)) as $reminder) {
+                    if ($reminder['channel'] === 'email') {
+                        $c->get(\Core\Mail\SystemMail::class)->queue(
+                            (string) $reminder['recipient'],
+                            'Quote reminder',
+                            (string) $reminder['message'],
+                            'quote-reminder:' . (int) $reminder['id'],
+                        );
+                    } else {
+                        $c->get(\Core\Admin\NoticeCenter::class)->publish(
+                            'Quote reminder',
+                            (string) $reminder['message'],
+                            'info',
+                            '/admin/quotes/edit&id=' . (int) $reminder['quote_id'],
+                        );
+                    }
+                    $quotes->completeReminder((int) $reminder['id'], (string) $reminder['owner_package'], true);
+                }
+            },
+            'core.backup' => function (array $payload, Container $c): void {
+                $config = $c->get(\Core\Config::class);
+                $storage = (string) $config->get('paths.storage', WC_ROOT . '/storage');
+                [$path, $error] = (new \Core\Backup\BackupService(
+                    $c->get(Connection::class),
+                    $storage . '/backups',
+                    $storage . '/staging',
+                    WC_ROOT,
+                    $storage,
+                    WC_CONFIG,
+                    (string) $config->get('paths.upload', WC_ROOT . '/upload')
+                ))->create();
+                if ($error !== null) throw new \RuntimeException($error);
+                $remoteError = (new \Core\Backup\RemoteBackup($config))->upload((string) $path);
+                if ($remoteError !== null) throw new \RuntimeException($remoteError);
             },
         ];
     }

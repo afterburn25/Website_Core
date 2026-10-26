@@ -34,7 +34,11 @@ final class JobQueue
         $now = time();
         $expiry = $now + $leaseSeconds;
 
-        $rows = $this->db->fetchAll(
+        // Reap dead leases first: a worker that crashed mid-job leaves the
+        // row 'running' forever without this — invisible, never retried.
+        // It returns to 'uncertain' (retryable under at-least-once).
+        $this->recoverExpiredLeases();
+        $candidates = $this->db->fetchAll(
             "SELECT * FROM `{$table}`
              WHERE status IN ('pending','uncertain')
                AND run_after <= ?
@@ -42,14 +46,32 @@ final class JobQueue
              ORDER BY id LIMIT " . (int) $limit,
             [$now, $now]
         );
-        foreach ($rows as $row) {
-            $this->db->run(
+        // Atomic claim: the UPDATE only transitions unclaimed states, so a
+        // second concurrent worker can never lease the same job — an
+        // already-'running' row matches zero rows and is skipped.
+        $rows = [];
+        foreach ($candidates as $row) {
+            $claimed = $this->db->run(
                 "UPDATE `{$table}` SET leased_by = ?, leased_until = ?, status = 'running',
-                    attempts = attempts + 1 WHERE id = ? AND status IN ('pending','uncertain','running')",
-                [$workerId, $expiry, (int) $row['id']]
+                    attempts = attempts + 1
+                 WHERE id = ?
+                   AND status IN ('pending','uncertain')
+                   AND (leased_until IS NULL OR leased_until < ?)",
+                [$workerId, $expiry, (int) $row['id'], $now]
             );
+            if ($claimed->rowCount() > 0) {
+                $rows[] = $row;
+            }
         }
         return $rows;
+    }
+
+    public function recoverExpiredLeases(): int
+    {
+        return $this->db->run(
+            'UPDATE `' . $this->db->table('jobs') . "` SET status = 'uncertain', leased_by = NULL, leased_until = NULL WHERE status = 'running' AND leased_until IS NOT NULL AND leased_until < ?",
+            [time()]
+        )->rowCount();
     }
 
     public function complete(int $id): void
@@ -91,5 +113,29 @@ final class JobQueue
             $out[$r['status']] = (int) $r['c'];
         }
         return $out;
+    }
+
+    /** @return list<array> */
+    public function recent(int $limit = 50): array
+    {
+        return $this->db->fetchAll(
+            'SELECT * FROM `' . $this->db->table('jobs') . '` ORDER BY id DESC LIMIT ' . max(1, min(200, $limit))
+        );
+    }
+
+    public function retry(int $id): bool
+    {
+        return $this->db->update('jobs', [
+            'status' => 'pending', 'attempts' => 0, 'run_after' => time(),
+            'leased_by' => null, 'leased_until' => null, 'last_error' => null, 'finished_at' => null,
+        ], "id = ? AND status IN ('failed','uncertain')", [$id]) > 0;
+    }
+
+    public function pruneCompleted(int $olderThanDays = 30): int
+    {
+        return $this->db->run(
+            'DELETE FROM `' . $this->db->table('jobs') . '` WHERE status = ? AND finished_at < ?',
+            ['done', date('Y-m-d H:i:s', time() - max(1, $olderThanDays) * 86400)]
+        )->rowCount();
     }
 }

@@ -4,7 +4,10 @@
     "type": "project",
     "license": "UNLICENSED-INTERNAL",
     "require": {
-        "php": ">=8.4"
+        "php": ">=8.4",
+        "ezyang/htmlpurifier": "^4.19",
+        "phpmailer/phpmailer": "^7.1",
+        "paragonie/sodium_compat": "^2.5"
     },
     "require-dev": {
         "phpunit/phpunit": "^12.0"
@@ -12,8 +15,7 @@
     "autoload": {
         "psr-4": {
             "Core\\": "site/core/",
-            "Admin\\": "site/admin/",
-            "Install\\": "site/install/"
+            "Admin\\": "site/admin/"
         }
     },
     "autoload-dev": {

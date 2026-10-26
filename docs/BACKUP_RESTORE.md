@@ -1,32 +1,53 @@
-# Backup & Restore (design — implementation is M4)
+# Backup & Restore
 
-## Scope
+## Scope (implemented)
 
-Full local backup/restore of: database (all core + registered-module
-tables), required files (config, keys, themes, modules, uploads),
-version/manifest inventory, and job state — encrypted at rest, with
-recovery credentials delivered separately from the archive itself.
+A backup is a single ZIP in `storage/backups/` containing:
+
+- `db.sql` — a driver-aware dump of **all** prefixed tables (core and
+  package tables alike; statement-bounded, hex-encoded values so user
+  data cannot forge delimiters).
+- `files/…` — the trees under the restorable roots: `config/` (settings,
+  keys), `upload/`, protected `storage/media`, `modules/`, and `themes/`.
+  `storage/media` follows configured `paths.storage`, including a protected
+  directory outside the public deployment root. Other storage paths are deliberately excluded — backups never contain
+  backups, locks, caches, or staged updates.
+- `meta.json` — format version, DB driver, table prefix, `db_sha256`,
+  per-file SHA-256 manifest, table inventory.
+
+Restore (owner-only, `/admin/backups`) replays `db.sql` after a driver +
+prefix match, verifies every embedded file's hash before writing, and
+writes files only into the restorable roots. Three traversal guards
+apply: member names are validated before `extractTo` (shared
+`ArchiveInspector::memberNameOk`), manifest `..`/backslash keys fail
+integrity or are rejected, and the write loop refuses paths outside the
+roots even with a forged manifest. Manifest paths are forward-slash
+normalized at backup time so archives are portable across OSes.
 
 ## Constraints (shared hosting)
 
-- No `mysqldump`, shell, or unbounded request timeouts: bounded,
-  resumable browser operations with progress; consistent snapshot via a
-  single-transaction dump where possible, else an authenticated
-  maintenance window that holds writes.
-- Private staging under `paths.storage`/backups; retention + quotas
-  enforced; incomplete or unsupported snapshots are rejected loudly —
-  never a green check on partial data.
+- No `mysqldump`, shell, or unbounded request timeouts: the dump is a
+  bounded per-table SELECT loop. Manual backups/restores run in an admin
+  request; automatic backups run as bounded cron jobs.
+- Restore automatically creates a pre-restore safety snapshot, enables
+  maintenance mode for the restore window, resets OPcache, and then returns
+  the site to its prior maintenance state.
+- Private staging under `paths.storage`; unsupported or incomplete
+  snapshots are rejected loudly — never a green check on partial data.
 - Backups are protected runtime artifacts — never release assets and
-  never web-reachable.
+  never web-reachable (`storage/` is denied at the web layer).
 
-## Restore semantics
+## Not yet implemented (honest gaps)
 
-- Verified on an isolated installation including module data and the
-  original keys. A downloaded ZIP or passing CRC is not acceptance.
-- Restores pause outbound jobs/system messages until reconciliation so
-  an old payment/email attempt is never replayed as a fresh action.
-- **Clone vs disaster-recovery are distinct**: cloning generates a new
-  installation identity, salts, keys, and sessions; DR restores keep the
-  original identity.
-- Failure drills (interruption, disk-full, recovery-mode access) are part
-  of the M6 acceptance matrix.
+- **Encryption at rest** — backup ZIPs are plaintext under `storage/`.
+  Filesystem/deny rules are the boundary; treat the backup dir as
+  sensitive.
+- **Job/message reconciliation on restore** — a restore does not pause
+  the outbound queue; a pre-restore `mail.send`/job can run afterward.
+  Until reconcile exists, drain or inspect the queue around DR restores.
+- **Clone-vs-DR identity split** — restore currently keeps the original
+  identity (config, keys, sessions); cloning into a NEW identity
+  (fresh salts/keys) is a future operation.
+- **Resumable browser progress** — create/restore are single requests;
+  sites large enough to hit request limits need the CLI path or a
+  chunked design (future).

@@ -7,6 +7,7 @@ final class Response
 {
     /** @var array<string, string> */
     private array $headers = [];
+    private ?string $filePath = null;
 
     public function __construct(
         private string $body = '',
@@ -34,6 +35,16 @@ final class Response
         return (new self('', $status))->header('Location', $to);
     }
 
+    public static function file(string $path, int $status = 200): self
+    {
+        if (!is_file($path) || !is_readable($path)) {
+            throw new \InvalidArgumentException('Response file is not readable.');
+        }
+        $response = new self('', $status);
+        $response->filePath = $path;
+        return $response;
+    }
+
     public static function notFound(string $body = 'Not Found'): self
     {
         return self::html($body, 404);
@@ -41,7 +52,23 @@ final class Response
 
     public function header(string $name, string $value): self
     {
+        // PHP's header() already refuses multi-line values, but fail loudly
+        // here so a smuggled CR/LF/NUL surfaces as an application error
+        // instead of a silent SAPI warning and a broken response.
+        if (preg_match('/[\x00-\x1F\x7F]/', $name . $value)) {
+            throw new \InvalidArgumentException('Header name/value contains control characters.');
+        }
         $this->headers[$name] = $value;
+        return $this;
+    }
+
+    public function removeHeader(string $name): self
+    {
+        foreach (array_keys($this->headers) as $existing) {
+            if (strcasecmp($existing, $name) === 0) {
+                unset($this->headers[$existing]);
+            }
+        }
         return $this;
     }
 
@@ -58,6 +85,9 @@ final class Response
 
     public function body(): string
     {
+        if ($this->filePath !== null) {
+            return (string) file_get_contents($this->filePath);
+        }
         return $this->body;
     }
 
@@ -72,6 +102,10 @@ final class Response
         http_response_code($this->status);
         foreach ($this->headers as $name => $value) {
             header($name . ': ' . $value);
+        }
+        if ($this->filePath !== null) {
+            readfile($this->filePath);
+            return;
         }
         echo $this->body;
     }

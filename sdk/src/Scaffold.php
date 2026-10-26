@@ -25,7 +25,7 @@ final class Scaffold
         if (is_dir($dir)) {
             throw new \RuntimeException("destination exists: {$dir}");
         }
-        mkdir($dir . '/src', 0777, true);
+        mkdir($dir . '/src', 0750, true);
 
         $manifest = [
             'schema' => 1, 'id' => $id, 'type' => $type,
@@ -35,20 +35,30 @@ final class Scaffold
         ];
 
         if ($type === 'theme') {
-            mkdir($dir . '/templates', 0777, true);
-            mkdir($dir . '/assets/css', 0777, true);
+            mkdir($dir . '/templates', 0750, true);
+            mkdir($dir . '/assets/css', 0750, true);
             $manifest['tokens'] = ['font' => 'system-ui, sans-serif', 'color-accent' => '#0369a1'];
             $manifest['templates'] = ['layout', 'page', '404'];
             file_put_contents($dir . '/templates/layout.php', self::themeLayout());
             file_put_contents($dir . '/assets/css/site.css', "/* {$id} theme styles */\n");
             file_put_contents($dir . '/theme.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            file_put_contents($dir . '/README.md', self::readme($id, $type));
             return;
         }
 
+        mkdir($dir . '/views/admin', 0750, true);
+        mkdir($dir . '/migrations', 0750, true);
+        mkdir($dir . '/tests', 0750, true);
         $manifest['provider'] = $ns . '\\Provider';
         $manifest['psr4'] = [$ns . '\\' => 'src/'];
-        $manifest['capabilities'] = [];
-        file_put_contents($dir . '/src/Provider.php', self::provider($ns));
+        $manifest['capabilities'] = [$name . '.manage'];
+        $manifest['migrations'] = ['migrations'];
+        $manifest['requires']['services'] = ['content.presentation' => '^1.0.0'];
+        file_put_contents($dir . '/src/Provider.php', self::provider($ns, $name));
+        file_put_contents($dir . '/views/admin/index.php', self::adminView($name));
+        file_put_contents($dir . '/migrations/0001_records.php', self::migration($name));
+        file_put_contents($dir . '/tests/ContractTest.php', self::contractTest($id));
+        file_put_contents($dir . '/README.md', self::readme($id, $type));
         file_put_contents($dir . '/addon.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
 
@@ -57,8 +67,9 @@ final class Scaffold
         return str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $segment)));
     }
 
-    private static function provider(string $ns): string
+    private static function provider(string $ns, string $name): string
     {
+        $label = ucwords(str_replace(['-', '_'], ' ', $name));
         return <<<PHP
         <?php
         declare(strict_types=1);
@@ -71,11 +82,74 @@ final class Scaffold
         {
             public function register(ModuleContext \$ctx): void
             {
+                \$ctx->permission('{$name}.manage', 'Manage {$name} records');
+                \$views = \$ctx->views(__DIR__ . '/../views');
+                \$ctx->adminPage('{$label}', '/admin/{$name}', '{$name}.manage');
+                \$ctx->adminRoute('GET', '/admin/{$name}', static fn (\Core\Http\Request \$request) =>
+                    \$ctx->adminView(\$request, \$views . ':admin/index', [], '{$label}', '{$name}.manage')
+                );
                 // Register routes, admin pages, jobs, content types, listeners.
                 // Only the ModuleContext surface is supported.
             }
         }
         PHP;
+    }
+
+    private static function adminView(string $name): string
+    {
+        $label = ucwords(str_replace(['-', '_'], ' ', $name));
+        return "<?php declare(strict_types=1); ?>\n<section class=\"card\"><h2>" . htmlspecialchars($label, ENT_QUOTES) . "</h2><p>Your package workspace is ready.</p></section>\n";
+    }
+
+    private static function migration(string $name): string
+    {
+        $table = str_replace('-', '_', $name) . '_records';
+        return <<<PHP
+        <?php
+        declare(strict_types=1);
+
+        use Core\Database\Connection;
+        use Core\Database\Migration;
+
+        return new class extends Migration {
+            public function id(): string { return '0001'; }
+            public function description(): string { return 'Create package records'; }
+            public function up(Connection \$db): void
+            {
+                \$table = \$db->table('{$table}');
+                \$auto = \$db->driver() === 'sqlite'
+                    ? 'INTEGER PRIMARY KEY AUTOINCREMENT'
+                    : 'BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY';
+                \$engine = \$db->driver() === 'sqlite' ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4';
+                \$db->pdo()->exec("CREATE TABLE IF NOT EXISTS `{\$table}` (id {\$auto}, title VARCHAR(190) NOT NULL, created_at VARCHAR(30) NOT NULL){\$engine}");
+            }
+        };
+        PHP;
+    }
+
+    private static function contractTest(string $id): string
+    {
+        return <<<PHP
+        <?php
+        declare(strict_types=1);
+
+        use PHPUnit\Framework\TestCase;
+
+        final class ContractTest extends TestCase
+        {
+            public function testManifestIdentity(): void
+            {
+                \$manifest = json_decode((string) file_get_contents(__DIR__ . '/../addon.json'), true);
+                self::assertSame('{$id}', \$manifest['id'] ?? null);
+                self::assertSame(1, \$manifest['schema'] ?? null);
+            }
+        }
+        PHP;
+    }
+
+    private static function readme(string $id, string $type): string
+    {
+        return "# {$id}\n\nGenerated Website Core {$type} package. Build the directly installable module ZIP with `php sdk/package.php <package-dir> <output.zip>`.\n";
     }
 
     private static function themeLayout(): string

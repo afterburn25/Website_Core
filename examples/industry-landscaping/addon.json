@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "id": "cajunwebpro/landscaping",
+  "type": "industry",
+  "name": "Lawn Care & Landscaping Website",
+  "version": "1.0.0",
+  "license": "PROPRIETARY",
+  "requires": { "core": ">=2.0.7,<3.0.0", "api": 1 },
+  "provider": "CajunWebPro\\Landscaping\\Provider",
+  "psr4": { "CajunWebPro\\Landscaping\\": "src/" },
+  "migrations": "migrations",
+  "assets": {
+    "css": ["assets/css/landscaping.css"],
+    "images": [
+      "assets/images/landscaping-mark.png",
+      "assets/images/hero.webp",
+      "assets/images/services/lawn-maintenance.webp",
+      "assets/images/services/landscape-installation.webp",
+      "assets/images/services/property-cleanup.webp"
+    ]
+  },
+  "capabilities": ["landscaping.manage", "landscaping.estimates"]
+}

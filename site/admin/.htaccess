@@ -1,8 +1,19 @@
-# Deny direct HTTP access (Apache 2.4 + legacy).
+# Only the thin admin directory entry is public. Controllers and views remain
+# protected source files; all application requests still use the root front
+# controller.
+Options -Indexes
+DirectoryIndex index.php
+
 <IfModule mod_authz_core.c>
-    Require all denied
+    <FilesMatch "^(?!index\.php$).+">
+        Require all denied
+    </FilesMatch>
 </IfModule>
 <IfModule !mod_authz_core.c>
     Order deny,allow
     Deny from all
+    <Files "index.php">
+        Order allow,deny
+        Allow from all
+    </Files>
 </IfModule>

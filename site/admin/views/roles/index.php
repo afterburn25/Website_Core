@@ -1,0 +1,25 @@
+<?php
+/** @var array $customRoles @var array $capabilityCatalog @var array $builtInAssignments @var \Core\Security\Csrf $csrf */
+$groups = [];
+foreach ($capabilityCatalog as $key => $meta) $groups[$meta['group']][$key] = $meta;
+$renderCapabilities = static function (array $selected = []) use ($groups): void {
+    foreach ($groups as $group => $capabilities): ?>
+      <fieldset class="capability-group"><legend><?= e($group) ?></legend>
+      <?php foreach ($capabilities as $capability => $meta): ?><label class="capability-choice"><input type="checkbox" name="capabilities[]" value="<?= e_attr($capability) ?>" <?= in_array($capability, $selected, true) ? 'checked' : '' ?>><span><strong><?= e($meta['label']) ?></strong><small><?= e($meta['description']) ?></small><code><?= e($capability) ?></code></span></label><?php endforeach; ?>
+      </fieldset>
+    <?php endforeach;
+};
+?>
+<section class="status-strip" aria-label="Role overview"><div class="status-chip ok"><strong>3</strong><span>Protected built-in roles</span></div><div class="status-chip"><strong><?= count($customRoles) ?></strong><span>Custom roles</span></div><div class="status-chip"><strong><?= count($capabilityCatalog) ?></strong><span>Available capabilities</span></div></section>
+
+<section class="role-builtins">
+<?php foreach ([
+  'owner' => ['Owner', 'Full authority, including owners, roles, packages, security, and recovery.'],
+  'admin' => ['Administrator', 'Runs the website and system but cannot control owner accounts.'],
+  'editor' => ['Editor', 'Creates content, forms, and media without publishing or system access.'],
+] as $slug => [$label, $description]): ?><article class="card role-summary-card"><span class="role-icon" aria-hidden="true"><?= strtoupper(substr($label, 0, 1)) ?></span><div><h2><?= e($label) ?></h2><p><?= e($description) ?></p><span class="badge neutral"><?= (int) $builtInAssignments[$slug] ?> assigned</span></div><?php if ($slug === 'owner'): ?><span class="badge ok">Protected</span><?php endif; ?></article><?php endforeach; ?>
+</section>
+
+<section class="card"><div class="card-heading"><div><p class="section-kicker">Least privilege</p><h2>Custom roles</h2><p class="card-subtitle">Build focused access from understandable capabilities. Core prevents deleting a role while anyone still uses it.</p></div><details class="create-role-dialog"><summary class="btn">Create custom role</summary><div class="create-role-panel"><form method="post" data-protect-unsaved><?= $csrf->field() ?><input type="hidden" name="action" value="save"><div class="grid2"><div><label for="role-slug">Role identifier</label><input id="role-slug" name="slug" maxlength="20" required placeholder="marketing"><small>Lowercase identifier used internally.</small></div><div><label for="role-label">Display name</label><input id="role-label" name="label" maxlength="80" required placeholder="Marketing manager"></div></div><div class="capability-groups"><?php $renderCapabilities(); ?></div><div class="action-bar"><span>Choose only what this role needs.</span><button class="btn" type="submit">Create role</button></div></form></div></details></div>
+<?php if (!$customRoles): ?><div class="empty-state"><strong>No custom roles yet</strong><span>The built-in roles are ready to use, or create a narrower role for a specific responsibility.</span></div><?php else: ?><div class="custom-role-list"><?php foreach ($customRoles as $role): $selected = json_decode((string) $role['capabilities_json'], true) ?: []; ?><details class="role-editor disclosure"><summary><span><strong><?= e($role['label']) ?></strong><code><?= e($role['slug']) ?></code></span><span class="role-editor-meta"><span class="badge neutral"><?= count($selected) ?> capabilities</span><span class="badge neutral"><?= (int) $role['assignments'] ?> assigned</span></span></summary><div class="disclosure-body"><form method="post" data-protect-unsaved><?= $csrf->field() ?><input type="hidden" name="action" value="save"><input type="hidden" name="slug" value="<?= e_attr($role['slug']) ?>"><label for="role-label-<?= e_attr($role['slug']) ?>">Display name</label><input id="role-label-<?= e_attr($role['slug']) ?>" name="label" maxlength="80" value="<?= e_attr($role['label']) ?>" required><div class="capability-groups"><?php $renderCapabilities($selected); ?></div><div class="action-bar"><span><?= (int) $role['assignments'] ? 'Changes apply to assigned administrators on their next request.' : 'No administrators currently use this role.' ?></span><button class="btn">Save role</button></div></form><form method="post" class="danger-zone action-bar"><?= $csrf->field() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="slug" value="<?= e_attr($role['slug']) ?>"><span>Deletion is blocked until assigned administrators are moved.</span><button class="btn small danger" <?= (int) $role['assignments'] ? 'disabled title="Reassign administrators first"' : '' ?> data-confirm="Permanently delete this custom role?">Delete role</button></form></div></details><?php endforeach; ?></div><?php endif; ?>
+</section>

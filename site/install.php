@@ -2,11 +2,19 @@
 declare(strict_types=1);
 
 /**
- * Thin installer entry. The installer self-disables after success and is
- * permanently blocked by config/installed.lock even if this file cannot be
- * removed by the host. See docs/INSTALLATION.md for the secure-claim model.
+ * Public setup entry. Successful setup physically removes this file and the
+ * companion install/ folder. A completed installation can never run setup
+ * again: it only retries exact cleanup and then returns to the application.
  */
-$app = require __DIR__ . '/includes/bootstrap.php';
+$cleanupGate = require __DIR__ . '/includes/install-cleanup-gate.php';
+if ($cleanupGate(__DIR__)) {
+    exit;
+}
 
-$installer = new \Install\Installer($app);
-$installer->run();
+$app = require __DIR__ . '/includes/bootstrap.php';
+if ($app->installed()) {
+    header('Location: ./', true, 302);
+    exit;
+}
+
+(new \Core\Install\Installer($app))->run();

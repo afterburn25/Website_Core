@@ -6,7 +6,10 @@ ModuleContext API only — never core internals.
 - `schema/addon.schema.json` — manifest schema v1 (validated at runtime by
   `Core\Modules\Manifest`; keep this file and the validator in sync).
 - `scaffold.php` — `php sdk/scaffold.php <industry|addon|theme> <publisher/name> <dest>`
-  generates a minimal valid package skeleton.
+  generates a working manifest/provider, shared admin contribution, migration,
+  fallback view, contract test and package README.
+- `package.php` — builds one directly installable root-level module ZIP and
+  rejects nested ZIP files.
 - Compatibility kit: install your package directory under
   `site/modules/{industries,addons}/` or `site/themes/` on a dev install —
   the registry reports every manifest/compatibility/dependency error, and

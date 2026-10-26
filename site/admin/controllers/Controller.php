@@ -48,11 +48,38 @@ abstract class Controller
         $v = $this->c->get(View::class);
         $v->share('user', $this->user());
         $v->share('csrf', $this->csrf());
-        $v->share('basePath', $r->basePath);
+        $v->share('basePath', $r->routeBase());
+        $v->share('siteBasePath', rtrim($r->basePath, '/'));
         $v->share('currentPath', $r->path);
         $v->share('nav', $this->visibleNav());
         $v->share('pageTitle', $title);
+        $v->share('pageMeta', \Core\Admin\PageCatalog::for($title));
         $v->share('siteName', $this->settings()->get('site.name', 'Website Core'));
+        try {
+            $brand = $this->c->get(\Core\Branding\BrandAssets::class);
+            $v->share('brandLogoUrl', $brand->url($r, 'logo', 480));
+            $v->share('faviconUrl', $brand->url($r, 'favicon'));
+        } catch (\Throwable) {
+            $v->share('brandLogoUrl', null);
+            $v->share('faviconUrl', null);
+        }
+        $coreVersion = defined('WC_VERSION') ? WC_VERSION : 'development';
+        $industryVersions = [];
+        try {
+            // During an upgrade or an isolated controller render the module
+            // registry may not be bound yet. Admin must still render with the
+            // authoritative core constant instead of failing the whole page.
+            $versions = $this->c->get(\Core\System\Version::class);
+            $coreVersion = $versions->core();
+            $industryVersions = $versions->industries();
+        } catch (\Throwable) {
+            // The full application binds Version; this is a safe degraded view.
+        }
+        $v->share('coreVersion', $coreVersion);
+        $v->share('industryVersions', $industryVersions);
+        $u = $this->user();
+        $v->share('noticeCount', $u && $this->c->has(\Core\Admin\NoticeCenter::class)
+            ? $this->c->get(\Core\Admin\NoticeCenter::class)->countFor($u->id) : 0);
         $v->share('flash', $_SESSION['_wc_flash'] ?? null);
         unset($_SESSION['_wc_flash']);
         return Response::html($v->renderInLayout('admin:' . $view, 'admin:layouts/admin', $data));
@@ -63,43 +90,76 @@ abstract class Controller
         $_SESSION['_wc_flash'] = ['type' => $type, 'message' => $message];
     }
 
+    /** Record an authenticated administrator mutation without repeating container plumbing. */
+    protected function audit(string $event, array $detail = []): void
+    {
+        $user = $this->user();
+        if ($user !== null && $this->c->has(\Core\Audit\AuditLog::class)) {
+            $this->c->get(\Core\Audit\AuditLog::class)->record($event, $user->id, $detail);
+        }
+    }
+
     protected function redirect(Request $r, string $path): Response
     {
-        return Response::redirect($r->basePath . $path);
+        return Response::redirect($r->routeUrl($path));
     }
 
     /** Core admin navigation; module pages are merged in by the registry. */
     protected function adminNav(): array
     {
-        $nav = [
-            ['route' => '/admin',          'label' => 'Dashboard',    'cap' => null],
-            ['route' => '/admin/pages',    'label' => 'Content',      'cap' => 'content.manage'],
-            ['route' => '/admin/modules',  'label' => 'Modules',      'cap' => 'modules.view'],
-            ['route' => '/admin/users',    'label' => 'Administrators','cap' => 'admins.view'],
-            ['route' => '/admin/settings', 'label' => 'Settings',     'cap' => 'settings.manage'],
-        ];
-        if ($this->c->has(\Core\Modules\ModuleContext::class)) {
-            foreach ($this->c->get(\Core\Modules\ModuleContext::class)->adminNavItems() as $item) {
-                $nav[] = ['route' => $item['route'], 'label' => $item['label'], 'cap' => $item['capability']];
-            }
-        }
-        return $nav;
+        return $this->nav()->all();
     }
 
     /** Navigation filtered by the current user's capabilities (server-side). */
     private function visibleNav(): array
     {
-        $user = $this->user();
-        return array_values(array_filter(
-            $this->adminNav(),
-            fn (array $item) => $item['cap'] === null
-                || ($user !== null && $this->auth()->has($user, (string) $item['cap']))
-        ));
+        return $this->nav()->visible($this->user());
+    }
+
+    private function nav(): \Core\Admin\Nav
+    {
+        return new \Core\Admin\Nav(
+            $this->c->has(\Core\Modules\ModuleRegistry::class) ? $this->c->get(\Core\Modules\ModuleRegistry::class) : null,
+            $this->c->has(AuthService::class) ? $this->auth() : null,
+        );
     }
 
     /** 403 helper for capability failures. */
     protected function forbidden(): Response
     {
-        return Response::html('<h1>403 — Forbidden</h1>', 403);
+        return Response::html(\Core\Branding\StatusPage::render(
+            403, 'This area is not available to you.',
+            'Your account is signed in, but it does not have permission for this action.',
+            Request::capture()->routeBase(), (string) $this->settings()->get('site.name', 'Website'),
+            null, 'Back to dashboard', '/admin'
+        ), 403);
+    }
+
+    /**
+     * Error message when PHP silently discarded the entire POST body
+     * (CONTENT_LENGTH > post_max_size leaves $_POST and $_FILES empty).
+     */
+    protected function discardedPostError(Request $r): ?string
+    {
+        return $r->isPost()
+            && (int) ($r->server['CONTENT_LENGTH'] ?? 0) > 0
+            && $r->post === [] && $r->files === []
+            ? 'Upload exceeds the server post size limit (' . ini_get('post_max_size') . ').'
+            : null;
+    }
+
+    /** Human-readable upload failure for $field, or null on success. */
+    protected function uploadError(Request $r, string $field): ?string
+    {
+        $file = $r->files[$field] ?? null;
+        if (is_array($file) && ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+            return null;
+        }
+        return $this->discardedPostError($r) ?? match ($file['error'] ?? UPLOAD_ERR_NO_FILE) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Upload exceeds the server file size limit (' . ini_get('upload_max_filesize') . ').',
+            UPLOAD_ERR_PARTIAL => 'Upload was incomplete — try again.',
+            UPLOAD_ERR_NO_TMP_DIR, UPLOAD_ERR_CANT_WRITE, UPLOAD_ERR_EXTENSION => 'Server upload error — check the host configuration.',
+            default => 'Choose a file to upload.',
+        };
     }
 }

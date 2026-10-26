@@ -28,11 +28,46 @@ lives at `sdk/schema/addon.schema.json`.
 | `provider` | class | FQCN with `register(ModuleContext $ctx)` |
 | `psr4` | object | prefix → dir, registered at boot |
 | `capabilities` | list | declared capability tokens (`area.action`) — documentation/policy, not sandboxing |
-| `migrations` | path/list | module-owned migration source |
-| `assets` | object | `css`/`js` lists served via `/_a/modules/<id>/...` |
+| `migrations` | path/list | one or more safe package-relative module-owned migration directories |
+| `assets` | object | `css`/`js`/`images` lists served via `/_a/modules/<id>/...`; module-supplied brand defaults must be listed here and declared through Module API |
 | `integrity.files` | object | path → sha256 for post-extract verification |
 | `templates` | list | theme: named template inventory |
 | `tokens` | object | theme: design tokens (fonts/colors/radius/...) |
+| `license_key` | string | Optional: license key binding this module to a site |
+
+## Bundled products
+
+Commercial distributions bundle the core + industry module in one ZIP:
+
+- `site/` — Website Core
+- `site/modules/industries/industry-{name}/` — module with `license_key`
+  in `addon.json`
+
+**Install flow:**
+1. Installer detects the bundled module
+   (`site/modules/industries/*/addon.json` carrying `license_key`) and
+   reports it on the checks page
+2. Reads `license_key` from the manifest
+3. Validates `{key, domain}` against the licensing service
+   (`{license.api_url}/validate.php`) — the domain must be registered to
+   the license in the customer portal first
+4. If valid → stores the license, registers the package, runs module
+   migrations, marks it `enabled`
+5. If invalid → shows the server's error inline, refuses to proceed
+
+**Module binding:** Once a site is installed with a module, that module is
+bound to the license key. `install`/`enable` operations on licensed
+modules check the key match — mismatched keys are refused; `disable()`
+is exempt for recovery.
+
+**Domain binding:** The license key is associated with registered
+domain(s) in the licensing service (max two active — public + test;
+`www.`/apex variants count as one site). Periodic validation checks the
+key + domain — daily while valid, hourly while deactivated; if the
+domain changes, the old site deactivates on its next check (public
+503, `/admin` reachable; Settings → "Validate now" re-checks on demand).
+
+See `docs/LICENSING_API.md` for the full API contract.
 
 ## Rules enforced by the registry
 
@@ -45,6 +80,10 @@ lives at `sdk/schema/addon.schema.json`.
 5. A provider that throws during boot is quarantined (`state=failed`,
    journal row written); the rest of the site keeps running.
 6. Themes never specify `provider`/`entry` executable hooks.
+7. Manifest type must match its destination directory; all executable,
+   migration, asset, and integrity paths remain inside the package.
+8. Exactly one industry can be enabled at a time; reusable behavior belongs
+   in add-ons and presentation variants belong in themes.
 
 ## Lifecycle states
 

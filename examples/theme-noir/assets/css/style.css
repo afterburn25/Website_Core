@@ -1,0 +1,28 @@
+/* Noir — dark minimal theme: fixed rail nav, mono accents, wide stage. */
+:root {
+  --bg: #0f1115; --panel: #161a21; --text: #e5e7eb; --dim: #9aa3b2;
+  --accent: #34d399; --line: #262c36;
+  --font: 'Segoe UI', system-ui, sans-serif; --mono: ui-monospace, 'Cascadia Code', monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.6; }
+.shell { display: grid; grid-template-columns: 16rem 1fr; min-height: 100vh; }
+.rail { background: var(--panel); border-right: 1px solid var(--line); padding: 2.5rem 1.5rem; position: sticky; top: 0; height: 100vh; }
+.rail-brand { font-family: var(--mono); font-size: 1.1rem; color: var(--accent); text-decoration: none; }
+.rail-tag { color: var(--dim); font-size: .85rem; }
+.rail-nav { margin-top: 2.5rem; display: flex; flex-direction: column; gap: .25rem; }
+.rail-nav a { color: var(--text); text-decoration: none; padding: .5rem .75rem; border-left: 2px solid transparent; }
+.rail-nav a:hover { border-left-color: var(--accent); color: var(--accent); }
+.stage { max-width: 72rem; padding: 3rem 3rem 4rem; }
+.doc-head .doc-rule { display: block; width: 3rem; height: 3px; background: var(--accent); margin-bottom: 1rem; }
+.doc-head h1 { font-size: 2rem; font-weight: 600; margin: 0 0 1.5rem; }
+.doc-body img { max-width: 100%; height: auto; }
+.doc-body a { color: var(--accent); }
+.doc-body code { font-family: var(--mono); background: var(--panel); padding: .1rem .35rem; }
+.code-line { font-family: var(--mono); color: var(--dim); font-size: .9rem; }
+.btn-line { font-family: var(--mono); color: var(--accent); text-decoration: none; border: 1px solid var(--accent); padding: .4rem 1rem; }
+.foot { margin-top: 4rem; color: var(--dim); font-family: var(--mono); font-size: .8rem; border-top: 1px solid var(--line); padding-top: 1.5rem; }
+.menu-item, .salon-service, .salon-staff { padding: .75rem 0; border-bottom: 1px solid var(--line); }
+.menu-item-price { float: right; font-family: var(--mono); color: var(--accent); }
+@media (max-width: 48rem) { .shell { grid-template-columns: 1fr; } .rail { position: static; height: auto; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

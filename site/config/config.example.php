@@ -14,7 +14,7 @@ return [
         'timezone'    => 'UTC',
         'locale'      => 'en',
         'debug'       => false,
-        'version'     => '0.1.0-dev',
+        'version'     => '2.6.1',
         'api_version' => 1,                     // extension API major version
     ],
     'database' => [
@@ -44,19 +44,33 @@ return [
         'trusted_proxies'   => [],         // CIDRs whose X-Forwarded-* are honored
     ],
     'mail' => [
-        'transport'   => 'capture',        // capture | smtp
-        'smtp_host'   => '',
-        'smtp_port'   => 587,
+        'transport'   => 'smtp',           // smtp | mail | none (capture is tests only)
+        'smtp_host'   => 'mail.example.com',
+        'smtp_port'   => 465,
         'smtp_user'   => '',
         'smtp_pass'   => '',
-        'smtp_secure' => 'tls',
-        'from'        => 'no-reply@example.com',
+        'smtp_secure' => 'ssl',
+        'from'        => 'admin@example.com',
         'from_name'   => 'Website Core',
     ],
     'updates' => [
-        // Trust roots for signed update metadata. Empty until an approved
-        // production trust configuration exists — see docs/UPGRADES.md.
-        'trust_roots' => [],
         'channel'     => 'stable',
+        // When true, /admin/updates/apply refuses until the owner creates
+        // <paths.storage>/maintenance.flag — the maintenance-window gate.
+        'require_window' => false,
+    ],
+    // Optional HTTPS WebDAV replication. Keep these credentials in this
+    // protected configuration file; the admin database never stores them.
+    'backups' => ['remote' => [
+        'webdav_url' => '', 'webdav_user' => '', 'webdav_password' => '',
+    ]],
+    'trust' => [
+        // Ed25519 public keys (base64) trusted to sign package/update
+        // manifests. Package PHP never executes before this check.
+        'public_keys'    => [],
+        // Development default; production releases should ship false and
+        // an approved trust root. Signed packages ALWAYS require a
+        // matching key regardless of this flag.
+        'allow_unsigned' => true,
     ],
 ];

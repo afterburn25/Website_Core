@@ -101,4 +101,18 @@ final class AdminExperienceTest extends TestCase
             WC_ROOT . '/includes/server-error-pages.php'
         ));
     }
+
+    public function testIndustryThemesUseVisualCardsPaletteDropdownsAndDirectActivation(): void
+    {
+        $view = (string) file_get_contents(WC_ROOT . '/admin/views/appearance/index.php');
+        $script = (string) file_get_contents(WC_ROOT . '/assets/js/admin.js');
+
+        $this->assertStringContainsString('Choose your website design', $view);
+        $this->assertStringContainsString('module-theme-thumbnail', $view);
+        $this->assertStringContainsString('data-theme-palette', $view);
+        $this->assertStringContainsString('name="operation" value="activate"', $view);
+        $this->assertStringContainsString('Activate theme', $view);
+        $this->assertStringNotContainsString('Module theme collections', $view);
+        $this->assertStringContainsString('[data-theme-palette]', $script);
+    }
 }

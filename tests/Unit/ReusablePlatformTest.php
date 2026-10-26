@@ -38,6 +38,7 @@ final class ReusablePlatformTest extends TestCase
         file_put_contents($this->tmp . '/layouts/editorial.php', '<?php echo "layout";');
         file_put_contents($this->tmp . '/layouts/modern.php', '<?php echo "modern";');
         file_put_contents($this->tmp . '/assets/theme.css', '.theme{}');
+        file_put_contents($this->tmp . '/assets/preview.webp', 'preview');
     }
 
     protected function tearDown(): void
@@ -195,6 +196,7 @@ final class ReusablePlatformTest extends TestCase
             $this->variant('editorial', 'Editorial', 'layouts/editorial.php', '#ffffff', '#111827', true),
             $this->variant('modern', 'Modern', 'layouts/modern.php', '#111827', '#ffffff', true),
         ], $this->tmp, 'industry-catering');
+        self::assertSame('assets/preview.webp', $service->collections()['acme/catering']['variants']['editorial']['thumbnail']);
         self::assertGreaterThanOrEqual(4.5, ModuleThemeCollections::contrast('#ffffff', '#111827'));
         [$ok, $error] = $service->saveDraft('acme/catering', 'editorial', 'default', ['hero'=>$firstMedia]);
         self::assertTrue($ok, (string) $error); self::assertTrue($service->publish('acme/catering')[0]);
@@ -203,10 +205,7 @@ final class ReusablePlatformTest extends TestCase
         self::assertSame(1, (int) $this->db->fetchColumn(
             'SELECT COUNT(*) FROM `' . $this->db->table('media_usage') . '` WHERE media_id=?', [$firstMedia],
         ));
-        self::assertTrue($service->saveDraft('acme/catering', 'modern', 'default', ['hero'=>$secondMedia])[0]);
-        self::assertSame($firstMedia, $service->current('acme/catering')['media']['hero'], 'Draft Media must not leak into the published selection.');
-        self::assertSame($secondMedia, $service->current('acme/catering', true)['media']['hero']);
-        self::assertTrue($service->publish('acme/catering')[0]);
+        self::assertTrue($service->activate('acme/catering', 'modern', 'default', ['hero'=>$secondMedia])[0]);
         self::assertSame('modern', $service->current('acme/catering')['variant_id']);
         self::assertSame($secondMedia, $service->current('acme/catering')['media']['hero']);
         self::assertSame(2, (int) $this->db->fetchColumn(
@@ -294,6 +293,7 @@ final class ReusablePlatformTest extends TestCase
     {
         return [
             'id'=>$id,'name'=>$name,'description'=>$name . ' description','layout'=>$layout,
+            'thumbnail'=>'assets/preview.webp',
             'assets'=>['css'=>['assets/theme.css']],
             'palettes'=>['default'=>['name'=>'Default','tokens'=>[
                 'background'=>$background,'text'=>$text,'accent'=>'#0369a1',

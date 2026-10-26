@@ -11,11 +11,28 @@ final class AdminExperienceTest extends TestCase
 {
     public function testEveryCoreDestinationHasPurposefulPageMetadata(): void
     {
-        foreach (['Dashboard','Content','Media','Navigation Menu','Forms','SEO','Appearance','Privacy','Integrations','Administrators','Security','Modules','Backups','Operations','System health','Core updates','Audit log','Settings'] as $title) {
+        foreach (['Dashboard','Content','Media','Navigation Menu','Forms','SEO','Appearance','Geo service area','Audience locations','Privacy','Integrations','Administrators','Security','Modules','Backups','Operations','System health','Core updates','Audit log','Settings'] as $title) {
             $meta = PageCatalog::for($title);
             $this->assertNotSame('Manage this part of your website.', $meta['description'], $title);
             $this->assertStringContainsString('<svg', AdminIcon::svg($meta['icon']));
         }
+    }
+
+    public function testGeoServiceAreaUsesLocationAndMileageFieldsInsteadOfDateRange(): void
+    {
+        $view = (string) file_get_contents(WC_ROOT . '/admin/views/business/service-area.php');
+        $nav = (string) file_get_contents(WC_ROOT . '/core/Admin/Nav.php');
+        $application = (string) file_get_contents(WC_ROOT . '/core/Application.php');
+        $analytics = (string) file_get_contents(WC_ROOT . '/admin/views/analytics/geography.php');
+
+        $this->assertStringContainsString('name="service_area_center_city"', $view);
+        $this->assertStringContainsString('name="service_area_center_region"', $view);
+        $this->assertStringContainsString('name="service_area_radius_miles"', $view);
+        $this->assertStringContainsString('Range from city (miles)', $view);
+        $this->assertStringNotContainsString('type="date"', $view);
+        $this->assertStringContainsString("'/admin/service-area', 'Geo service area'", $nav);
+        $this->assertStringContainsString("'/service-area'", $application);
+        $this->assertStringContainsString('Audience locations', $analytics);
     }
 
     public function testSharedAdminInteractionsCoverSafetyAndSubfolderNavigation(): void

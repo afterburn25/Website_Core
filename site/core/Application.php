@@ -635,6 +635,7 @@ final class Application
             $r->post('/notices/{id:\d+}/dismiss', fn (Request $req) => (new \Admin\Controllers\NoticesController($c))->dismiss($req), [$auth, $csrfCheck]);
             $r->any('/settings', fn (Request $req) => (new \Admin\Controllers\SettingsController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/business', fn (Request $req) => (new \Admin\Controllers\BusinessController($c))->index($req), [$auth, $csrfCheck]);
+            $r->any('/service-area', fn (Request $req) => (new \Admin\Controllers\BusinessController($c))->serviceArea($req), [$auth, $csrfCheck]);
             $r->any('/resources/{owner:[a-z0-9_-]+}/{resource:[a-z0-9_-]+}', fn (Request $req) => (new \Admin\Controllers\ResourceController($c))->index($req), [$auth, $csrfCheck]);
             $r->any('/store/products', fn (Request $req) => (new \Admin\Controllers\CommerceController($c))->products($req), [$auth, $csrfCheck]);
             $r->any('/store/products/edit', fn (Request $req) => (new \Admin\Controllers\CommerceController($c))->productEdit($req), [$auth, $csrfCheck]);

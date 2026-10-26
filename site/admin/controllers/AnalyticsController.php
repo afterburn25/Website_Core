@@ -45,7 +45,7 @@ final class AnalyticsController extends Controller
     public function geography(Request $r): Response
     {
         if(!$this->allowed())return $this->forbidden(); [$from,$to]=$this->dates($r);
-        return $this->page($r,'analytics/geography',['data'=>$this->report()->geography($from,$to),'enabled'=>(bool)$this->settings()->get('analytics.geography_enabled',true)],'Analytics Geography');
+        return $this->page($r,'analytics/geography',['data'=>$this->report()->geography($from,$to),'enabled'=>(bool)$this->settings()->get('analytics.geography_enabled',true)],'Audience locations');
     }
 
     public function live(Request $r): Response

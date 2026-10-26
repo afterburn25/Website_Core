@@ -29,7 +29,7 @@ final class Nav
             $this->core('/admin/notices',    'Notifications',  null,                    'Overview',       'core-overview', 'bell'),
             $this->core('/admin/analytics',  'Dashboard',      'analytics.view',        'Analytics',      'core-analytics', 'analytics'),
             $this->core('/admin/analytics/visitors','Visitor Explorer','analytics.view','Analytics',      'core-analytics', 'visitors'),
-            $this->core('/admin/analytics/geography','Geography','analytics.view',      'Analytics',      'core-analytics', 'geography'),
+            $this->core('/admin/analytics/geography','Audience locations','analytics.view','Analytics',  'core-analytics', 'geography'),
             $this->core('/admin/agency',      'Client sites',   'system.update',         'Agency',         'core-agency', 'sites'),
             $this->core('/admin/pages',      'Content',        'content.manage',        'Website',        'core-website', 'content'),
             $this->core('/admin/patterns',   'Layout patterns','content.manage',        'Website',        'core-website', 'patterns'),
@@ -55,6 +55,9 @@ final class Nav
             $this->core('/admin/settings',   'Settings',       'settings.manage',       'System',         'core-system', 'settings'),
         ];
         $featureNav = [];
+        if ($this->registry?->supportsFeature('business.service_area')) {
+            $featureNav[] = $this->core('/admin/service-area', 'Geo service area', 'settings.manage', 'Website', 'core-website', 'geography');
+        }
         if ($this->registry?->supportsFeature('commerce.catalog')) {
             $featureNav[] = $this->core('/admin/store/products', 'Products', 'commerce.manage', 'Store', 'core-store', 'products');
         }

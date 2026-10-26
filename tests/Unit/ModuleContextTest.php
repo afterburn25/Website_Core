@@ -41,11 +41,15 @@ final class ModuleContextTest extends TestCase
             new Router(),
             new Dispatcher(),
         );
-        $context->adminPage('Menus', '/admin/catering/menus', 'catering.manage', 'Catering');
+        $context->adminPage('Menus', '/admin/catering/menus', 'catering.manage', 'Catering', 'products');
 
         $items = $context->adminNavItems();
         $this->assertSame('Catering', $items[0]['category']);
         $this->assertSame('cajunwebpro/catering', $items[0]['package']);
+        $this->assertSame('products', $items[0]['icon']);
+
+        $context->adminPage('Settings', '/admin/catering/settings', 'catering.manage');
+        $this->assertSame('modules', $context->adminNavItems()[1]['icon']);
     }
 
     public function testSharedAdminHooksRemainPackageAttributed(): void

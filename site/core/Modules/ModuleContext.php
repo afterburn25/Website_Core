@@ -28,7 +28,7 @@ use Core\View\View;
  */
 final class ModuleContext
 {
-    /** @var list<array{label:string,route:string,capability:string,package:string,category:?string}> */
+    /** @var list<array{label:string,route:string,capability:string,package:string,category:?string,icon:string}> */
     private array $adminNav = [];
     /** @var array<string, callable> */
     private array $jobHandlers = [];
@@ -147,7 +147,8 @@ final class ModuleContext
         string $label,
         string $route,
         string $capability,
-        ?string $category = null
+        ?string $category = null,
+        string $icon = 'modules',
     ): void
     {
         $label = trim($label);
@@ -157,10 +158,13 @@ final class ModuleContext
         if (!str_starts_with($route, '/admin/') || mb_strlen($route) > 500) throw new \InvalidArgumentException('Admin page routes must be internal /admin/ paths.');
         if (!preg_match('/^[a-z0-9_.:-]+$/', $capability)) throw new \InvalidArgumentException('Admin pages require a valid package capability.');
         if ($category !== null && mb_strlen(trim($category)) > 80) throw new \InvalidArgumentException('Admin categories must be 80 characters or fewer.');
+        $icon = trim($icon);
+        if (!preg_match('/^[a-z][a-z0-9_-]{0,39}$/', $icon)) throw new \InvalidArgumentException('Admin page icons must be safe lowercase tokens.');
         $this->adminNav[] = [
             'label' => $label, 'route' => $route,
             'capability' => $capability, 'package' => $this->packageId,
             'category' => $category === null || trim($category) === '' ? null : trim($category),
+            'icon' => $icon,
         ];
     }
 
@@ -740,7 +744,7 @@ final class ModuleContext
      *
      * @param list<array{name:string,label:string,type?:string,required?:bool,options?:array}> $fields
      * @param list<array{name:string,label:string}> $columns
-     * @param array{reorder?:callable,bulk?:callable,bulk_actions?:array<string,string>} $options
+     * @param array{reorder?:callable,bulk?:callable,bulk_actions?:array<string,string>,icon?:string} $options
      */
     public function adminResource(
         string $key,
@@ -760,13 +764,14 @@ final class ModuleContext
         if (!preg_match('/^[a-z0-9_.:-]+$/', $capability)) throw new \InvalidArgumentException('Resources require a valid capability.');
         if ($fields === [] || $columns === []) throw new \InvalidArgumentException('Resources require fields and columns.');
         foreach (array_keys($options) as $option) {
-            if (!in_array((string) $option, ['reorder', 'bulk', 'bulk_actions'], true)) {
+            if (!in_array((string) $option, ['reorder', 'bulk', 'bulk_actions', 'icon'], true)) {
                 throw new \InvalidArgumentException('Unsupported admin resource option: ' . $option);
             }
         }
         $reorder = $options['reorder'] ?? null;
         $bulk = $options['bulk'] ?? null;
         $bulkActions = $options['bulk_actions'] ?? [];
+        $icon = trim((string) ($options['icon'] ?? 'modules'));
         if ($reorder !== null && !is_callable($reorder)) throw new \InvalidArgumentException('Resource reorder must be callable.');
         if ($bulk !== null && !is_callable($bulk)) throw new \InvalidArgumentException('Resource bulk handler must be callable.');
         if (!is_array($bulkActions)) throw new \InvalidArgumentException('Resource bulk actions must be a map.');
@@ -805,7 +810,7 @@ final class ModuleContext
             'reorder'=>$reorder,'bulk'=>$bulk,'bulk_actions'=>$normalizedBulkActions,
             'route'=>$route,'package'=>$this->packageId,
         ];
-        $this->adminPage(trim($label), $route, $capability, $category);
+        $this->adminPage(trim($label), $route, $capability, $category, $icon);
     }
 
     /**

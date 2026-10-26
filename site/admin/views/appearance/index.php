@@ -82,37 +82,43 @@ $populatedSocial = count(array_filter($socialProfiles, static fn (array $profile
 <?php endif; ?>
 
 <?php if (($moduleThemeCollections ?? []) !== [] || ($themeQuery ?? '') !== ''): ?>
-<section class="theme-library-heading"><div><p class="section-kicker">Industry layouts</p><h2>Module theme collections</h2><p class="muted">Draft, preview, publish, or roll back package layouts without replacing pages, navigation, records, or administrator-selected Media.</p></div></section>
+<section class="theme-library-heading"><div><p class="section-kicker">Industry themes</p><h2>Choose your website design</h2><p class="muted">Compare the real layouts below, choose a color palette, and activate the design you want. Your pages, menus, forms, and business data stay intact.</p></div></section>
 <form method="get" action="<?= e_attr($basePath) ?>/admin/appearance" class="toolbar-search">
-    <label for="module-theme-search">Search layouts</label>
-    <input id="module-theme-search" type="search" name="theme_q" value="<?= e_attr($themeQuery ?? '') ?>" maxlength="120" placeholder="Search layout name or description">
+    <label for="module-theme-search">Search themes</label>
+    <input id="module-theme-search" type="search" name="theme_q" value="<?= e_attr($themeQuery ?? '') ?>" maxlength="120" placeholder="Search theme name or style">
     <button class="btn secondary" type="submit">Search</button>
 </form>
-<?php if (($moduleThemeCollections ?? []) === []): ?><div class="empty-state"><strong>No matching module layouts</strong><span>Clear the search or enable a module that registers a theme collection.</span></div><?php endif; ?>
+<?php if (($moduleThemeCollections ?? []) === []): ?><div class="empty-state"><strong>No matching themes</strong><span>Clear the search or enable an industry module that supplies website themes.</span></div><?php endif; ?>
 <?php foreach (($moduleThemeCollections ?? []) as $package => $collection): $current = $moduleThemeCurrent[$package] ?? null; ?>
-<section class="card" aria-labelledby="collection-<?= e_attr(substr(hash('sha256', (string) $package), 0, 10)) ?>">
-    <div class="card-heading"><div><h3 id="collection-<?= e_attr(substr(hash('sha256', (string) $package), 0, 10)) ?>"><?= e($collection['label']) ?></h3><p class="muted"><?= e($package) ?> · <?= count($collection['variants']) ?> available layouts</p></div><?php if ($current): ?><span class="badge ok"><?= e($current['variant']['name']) ?> / <?= e($current['palette']['name']) ?></span><?php endif; ?></div>
+<section aria-labelledby="collection-<?= e_attr(substr(hash('sha256', (string) $package), 0, 10)) ?>">
+    <div class="card-heading"><div><h3 id="collection-<?= e_attr(substr(hash('sha256', (string) $package), 0, 10)) ?>"><?= e($collection['label']) ?></h3><p class="muted"><?= count($collection['variants']) ?> complete themes with independent layouts, images, and color palettes.</p></div><?php if ($current): ?><span class="badge ok">Active: <?= e($current['variant']['name']) ?> · <?= e($current['palette']['name']) ?></span><?php endif; ?></div>
     <div class="theme-card-grid">
-    <?php foreach ($collection['variants'] as $variant): ?>
-        <article class="theme-card">
-            <div class="theme-card-body"><h4><?= e($variant['name']) ?></h4><p><?= e($variant['description']) ?></p>
-            <?php foreach ($variant['palettes'] as $paletteId => $palette): $tokens = $palette['tokens']; ?>
-            <form method="post" action="<?= e_attr($basePath) ?>/admin/appearance/module-theme" class="appearance-panel">
-                <?= $csrf->field() ?><input type="hidden" name="operation" value="draft"><input type="hidden" name="package" value="<?= e_attr($package) ?>"><input type="hidden" name="variant" value="<?= e_attr($variant['id']) ?>"><input type="hidden" name="palette" value="<?= e_attr($paletteId) ?>">
-                <div class="theme-swatch" style="--theme-bg:<?= e_attr($tokens['background']) ?>;--theme-text:<?= e_attr($tokens['text']) ?>;--theme-accent:<?= e_attr($tokens['accent'] ?? $tokens['primary'] ?? $tokens['text']) ?>"><span></span><strong>Aa</strong><i></i></div>
-                <strong><?= e($palette['name']) ?></strong>
-                <?php foreach ($variant['media_slots'] as $slot => $slotDef): ?><label><?= e($slotDef['label']) ?><select name="media[<?= e_attr($slot) ?>]"><option value="">Bundled default</option><?php foreach ($mediaItems as $media): ?><option value="<?= (int) $media['id'] ?>"><?= e($media['original_name']) ?></option><?php endforeach; ?></select></label><?php endforeach; ?>
-                <button class="btn small secondary" type="submit">Save draft</button>
-            </form>
-            <?php endforeach; ?>
+    <?php foreach ($collection['variants'] as $variant):
+        $isActiveVariant = $current && $current['variant_id'] === $variant['id'];
+        $selectedPalette = $isActiveVariant ? $current['palette_id'] : (string) array_key_first($variant['palettes']);
+        $thumbnail = (string) ($variant['thumbnail'] ?? '');
+        $thumbnailUrl = $thumbnail === '' ? '' : rtrim($siteBasePath, '/') . '/index.php?p=/_a/modules/' . rawurlencode((string) $collection['asset_namespace']) . '/' . ltrim($thumbnail, '/');
+    ?>
+        <article class="card theme-card <?= $isActiveVariant ? 'is-active' : '' ?>">
+            <?php if ($thumbnailUrl !== ''): ?><img class="module-theme-thumbnail" src="<?= e_attr($thumbnailUrl) ?>" alt="<?= e_attr($variant['name']) ?> website theme preview" loading="lazy"><?php else: $fallbackPalette = $variant['palettes'][$selectedPalette]; $fallbackTokens = $fallbackPalette['tokens']; ?><div class="theme-swatch" style="--theme-bg:<?= e_attr($fallbackTokens['background']) ?>;--theme-text:<?= e_attr($fallbackTokens['text']) ?>;--theme-accent:<?= e_attr($fallbackTokens['accent'] ?? $fallbackTokens['primary'] ?? $fallbackTokens['text']) ?>"><span></span><strong>Aa</strong><i></i></div><?php endif; ?>
+            <div class="theme-card-body">
+                <div class="theme-card-title"><div><h3><?= e($variant['name']) ?></h3><p><?= e($variant['description']) ?></p></div><?php if ($isActiveVariant): ?><span class="badge ok">Active</span><?php endif; ?></div>
+                <form method="post" action="<?= e_attr($basePath) ?>/admin/appearance/module-theme" class="module-theme-form" data-confirm="Activate <?= e_attr($variant['name']) ?>? Your website content and settings will stay unchanged.">
+                    <?= $csrf->field() ?><input type="hidden" name="operation" value="activate"><input type="hidden" name="package" value="<?= e_attr($package) ?>"><input type="hidden" name="variant" value="<?= e_attr($variant['id']) ?>">
+                    <label>Color palette
+                        <select name="palette" data-theme-palette>
+                            <?php foreach ($variant['palettes'] as $paletteId => $palette): $optionColors = array_values(array_filter(array_map(static fn (string $token): string => (string) ($palette['tokens'][$token] ?? ''), ['background','surface','primary','accent','text']))); ?><option value="<?= e_attr($paletteId) ?>" data-colors="<?= e_attr(implode(',', $optionColors)) ?>" <?= $paletteId === $selectedPalette ? 'selected' : '' ?>><?= e($palette['name']) ?></option><?php endforeach; ?>
+                        </select>
+                    </label>
+                    <?php $paletteTokens = $variant['palettes'][$selectedPalette]['tokens']; ?><div class="module-theme-palette-preview" data-theme-palette-preview aria-label="Selected palette colors"><?php foreach (['background','surface','primary','accent','text'] as $token): if (!empty($paletteTokens[$token])): ?><span style="background:<?= e_attr($paletteTokens[$token]) ?>" title="<?= e_attr(ucfirst($token)) ?>"></span><?php endif; endforeach; ?></div>
+                    <?php if ($variant['media_slots'] !== []): ?><details class="module-theme-images"><summary>Optional image overrides</summary><?php foreach ($variant['media_slots'] as $slot => $slotDef): $selectedMedia = $isActiveVariant ? (int) ($current['media'][$slot] ?? 0) : 0; ?><label><?= e($slotDef['label']) ?><select name="media[<?= e_attr($slot) ?>]"><option value="">Use this theme's pictured default</option><?php foreach ($mediaItems as $media): ?><option value="<?= (int) $media['id'] ?>" <?= $selectedMedia === (int) $media['id'] ? 'selected' : '' ?>><?= e($media['original_name']) ?></option><?php endforeach; ?></select></label><?php endforeach; ?></details><?php endif; ?>
+                    <button class="btn" type="submit"><?= $isActiveVariant ? 'Apply palette & images' : 'Activate theme' ?></button>
+                </form>
             </div>
         </article>
     <?php endforeach; ?>
     </div>
-    <div class="action-bar">
-        <form method="post" action="<?= e_attr($basePath) ?>/admin/appearance/module-theme"><?= $csrf->field() ?><input type="hidden" name="operation" value="rollback"><input type="hidden" name="package" value="<?= e_attr($package) ?>"><button class="btn secondary" type="submit">Roll back</button></form>
-        <form method="post" action="<?= e_attr($basePath) ?>/admin/appearance/module-theme" data-confirm="Publish this module layout and palette?"><?= $csrf->field() ?><input type="hidden" name="operation" value="publish"><input type="hidden" name="package" value="<?= e_attr($package) ?>"><button class="btn" type="submit">Publish draft</button></form>
-    </div>
+    <div class="action-bar"><span>Need the last design back?</span><form method="post" action="<?= e_attr($basePath) ?>/admin/appearance/module-theme" data-confirm="Restore the previously active theme?"><?= $csrf->field() ?><input type="hidden" name="operation" value="rollback"><input type="hidden" name="package" value="<?= e_attr($package) ?>"><button class="btn secondary" type="submit">Restore previous theme</button></form></div>
 </section>
 <?php endforeach; ?>
 <?php endif; ?>

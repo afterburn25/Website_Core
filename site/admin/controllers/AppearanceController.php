@@ -213,10 +213,17 @@ final class AppearanceController extends Controller
         $operation = $r->string('operation');
         $service = $this->c->get(ModuleThemeCollections::class);
         if (!isset($service->collections()[$package])) {
-            $this->flash('error', 'Module theme collection is unavailable.');
+            $this->flash('error', 'Industry theme library is unavailable.');
             return $this->redirect($r, '/admin/appearance');
         }
         [$ok, $error] = match ($operation) {
+            'activate' => $service->activate(
+                $package,
+                $r->string('variant'),
+                $r->string('palette'),
+                is_array($r->input('media', [])) ? $r->input('media', []) : [],
+                $u->id,
+            ),
             'draft' => $service->saveDraft(
                 $package,
                 $r->string('variant'),
@@ -230,6 +237,7 @@ final class AppearanceController extends Controller
         };
         $this->flash($ok ? 'ok' : 'error', $ok
             ? match ($operation) {
+                'activate' => 'Theme activated. Its layout, color palette, and selected images are now live.',
                 'draft' => 'Module theme draft saved. Preview it before publishing.',
                 'publish' => 'Module theme published. Content, navigation, and selected Media were preserved.',
                 default => 'Previous module theme restored.',

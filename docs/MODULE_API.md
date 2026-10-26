@@ -21,7 +21,8 @@ breaking changes bump the major and ship with a migration guide.
 | `route($methods, $pattern, $handler, $middleware = [])` | Register HTTP routes (`{param:regex}` syntax). Module routes register before the public slug catch-all. |
 | `adminRoute($methods, $pattern, $handler)` | Register a route inside the same authenticated-session + CSRF pipeline as every core admin screen. The handler must still check its own declared capability. |
 | `on($event, $listener)` | Subscribe to core lifecycle events (fault-isolated). |
-| `adminPage($label, $route, $capability, $category = null)` | Add an admin nav item inside the package's own collapsible category; authorization is still checked server-side per route. |
+| `adminPage($label, $route, $capability, $category = null, $icon = 'modules')` | Add an admin nav item inside the package's own collapsible category, optionally using a safe Core icon token; authorization is still checked server-side per route. |
+| `adminResource(..., $category = 'Industry', $options = [])` | Register a Core-rendered package resource; `options.icon` assigns its safe administration navigation icon alongside reorder and bulk-action options. |
 | `adminView($request, $view, $data, $title, $capability)` | Render a registered module view inside the authenticated Core admin shell with a server-side capability check. |
 | `adminResource(..., $delete = null, $category = 'Industry', $options = [])` | Register a validated list/editor workspace with optional visible-row ordering and allowlisted bulk actions. |
 | `scheduledJob($type, $handler)` | Register an idempotent job handler executed by the queue runner. |
@@ -39,7 +40,7 @@ breaking changes bump the major and ship with a migration guide.
 | `checkServiceAddress($address, $provider = '')` | Resolve a package-scoped inside/outside/unknown decision through a registered provider, including an audited override. |
 | `overrideServiceAddress($address, $inside, $reason, $adminId, $expiresAt = null)` | Record an audited, optionally expiring staff decision for an address requiring review. |
 | `serviceAreaMap($label = 'Service area')` | Render the accessible attributed no-JavaScript radius component and text fallback. |
-| `themeCollection($label, $variants)` | Register package-confined layouts/assets, contrast-safe palettes and Core Media slots. |
+| `themeCollection($label, $variants)` | Register package-confined layouts/assets, an optional packaged preview thumbnail, contrast-safe palettes and Core Media slots; Core renders the visual cards, palette dropdown and Activate action. |
 | `activeModuleTheme($draft = false)` | Read the package's published or draft module-theme selection with safe layout/asset paths. |
 | `checkoutValidator($validator, $options = [])` | Register one fail-closed package checkout validator with bounded timeout/context and supported outcomes. |
 | `quoteAttachment($quoteId, $mediaId, $label, $adminId = null)` | Attach a public Core Media record to a package-owned quote. |

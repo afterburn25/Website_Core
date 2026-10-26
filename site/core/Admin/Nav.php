@@ -89,7 +89,7 @@ final class Nav
                     'group' => $group,
                     'group_key' => 'package-' . substr(hash('sha256', $package), 0, 12),
                     'package' => $package,
-                    'icon' => 'modules',
+                    'icon' => (string) ($item['icon'] ?? 'modules'),
                 ];
             }
         }

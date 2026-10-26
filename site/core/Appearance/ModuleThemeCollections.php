@@ -37,6 +37,13 @@ final class ModuleThemeCollections
             if (!Manifest::relativePathOk($layout) || !str_ends_with(strtolower($layout), '.php') || !$this->insidePackage($packageRoot, $layout)) {
                 throw new \InvalidArgumentException("Theme variant {$id} has an unsafe or missing layout.");
             }
+            $thumbnail = (string) ($variant['thumbnail'] ?? '');
+            $thumbnailExtension = strtolower(pathinfo($thumbnail, PATHINFO_EXTENSION));
+            if ($thumbnail !== '' && (!Manifest::relativePathOk($thumbnail)
+                || !in_array($thumbnailExtension, ['png', 'jpg', 'jpeg', 'webp', 'gif'], true)
+                || !$this->insidePackage($packageRoot, $thumbnail))) {
+                throw new \InvalidArgumentException("Theme variant {$id} has an unsafe or missing thumbnail.");
+            }
             $assets = ['css' => [], 'js' => []];
             foreach ($assets as $kind => $_) {
                 foreach (($variant['assets'][$kind] ?? []) as $path) {
@@ -90,7 +97,8 @@ final class ModuleThemeCollections
             $clean[$id] = [
                 'id' => $id, 'name' => $name,
                 'description' => mb_substr(trim(strip_tags((string) ($variant['description'] ?? ''))), 0, 500),
-                'layout' => $layout, 'assets' => $assets, 'palettes' => $palettes,
+                'layout' => $layout, 'thumbnail' => $thumbnail,
+                'assets' => $assets, 'palettes' => $palettes,
                 'media_slots' => $slots,
             ];
         }
@@ -156,6 +164,21 @@ final class ModuleThemeCollections
         $this->syncMediaUsage($packageId);
         $this->audit?->record('module_theme.publish', $adminId, ['package' => $packageId, 'variant' => $state['draft_variant'], 'palette' => $state['draft_palette']]);
         return [true, null];
+    }
+
+    /** Save and publish one explicit visual choice from a theme card. */
+    public function activate(
+        string $packageId,
+        string $variant,
+        string $palette,
+        array $media = [],
+        ?int $adminId = null,
+    ): array {
+        return $this->db->transaction(function () use ($packageId, $variant, $palette, $media, $adminId): array {
+            [$saved, $error] = $this->saveDraft($packageId, $variant, $palette, $media, $adminId);
+            if (!$saved) return [false, $error];
+            return $this->publish($packageId, $adminId);
+        });
     }
 
     public function rollback(string $packageId, ?int $adminId = null): array

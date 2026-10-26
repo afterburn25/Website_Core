@@ -1054,6 +1054,21 @@
     apply();
   });
 
+  document.querySelectorAll('[data-theme-palette]').forEach((select) => {
+    const preview = select.closest('form')?.querySelector('[data-theme-palette-preview]');
+    const sync = () => {
+      if (!preview) return;
+      const colors = (select.selectedOptions[0]?.dataset.colors || '').split(',').filter(Boolean);
+      preview.replaceChildren(...colors.map((color) => {
+        const dot = document.createElement('span');
+        dot.style.background = color;
+        return dot;
+      }));
+    };
+    select.addEventListener('change', sync);
+    sync();
+  });
+
   document.querySelectorAll('.row-editor').forEach((details) => {
     details.addEventListener('toggle', () => {
       if (!details.open) return;

@@ -77,6 +77,7 @@ final class HostPreflightTest extends TestCase
         unlink($site . '/install/index.php');
         rmdir($site . '/install');
         $private = \WcProcessTmpDirs::make('wc-host-private-');
+        mkdir($private, 0700, true);
         file_put_contents($private . '/config.php',
             '<?php return ["password" => "PRIVATE-RUNTIME-SECRET"];');
         file_put_contents($private . '/installed.lock', 'install complete');

@@ -147,6 +147,28 @@ admin available when the hosting panel refuses physical deletion.
 
 **Expected result**: clean core-only update, settings/content/packages preserved.
 
+## CI-only subfolder/no-rewrite package acceptance
+
+The native MySQL 8.4 **and** MariaDB 11.4 jobs now stage the actual
+`Website-Core-catering-2.6.2-TEST-BUNDLE.zip` at a nested
+`/catering/` document-root path and serve it using PHP's built-in
+HTTP server **without** `tools/dev-router.php` or rewrite rules.
+`tools/verify-subfolder-artifact.sh` completes an HTTPS-proxy-header
+installer session, confirms config/lock and physical installer cleanup,
+checks enabled/migrated Catering 2.1.1 in the database, and verifies:
+
+- `/catering/index.php?p=/` — homepage;
+- `/catering/index.php?p=/admin/login` — query fallback;
+- `/catering/index.php/admin/login` — PATH_INFO fallback;
+- subfolder-prefixed links, missing page/cron denial, and a static image;
+- the CLI-only host preflight's installed-version summary.
+
+This is an automated **PHP-server simulation**, not a claim that Apache
+2.4, LiteSpeed, Hostinger, WAF rules, PHP-FPM file ownership or a real
+shared-host subfolder has passed. Retain the host-specific acceptance
+matrix below and collect its separate observations before production
+release.
+
 ## Host-Specific Checks
 
 ### Apache 2.4 mod_rewrite

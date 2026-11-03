@@ -359,6 +359,16 @@ jobs:
           kill $SITE_PID 2>/dev/null || true
           echo "keyless TEST-BUNDLE acceptance OK"
 
+      - name: Subfolder install + rewrite-free routing from real Catering artifact
+        # Both native MySQL and MariaDB matrix entries exercise the exact
+        # package bytes under /catering/ on a PHP server with no rewrite router.
+        # Apache/LiteSpeed/WAF/real-host verification remains owner-gated.
+        run: |
+          set -euo pipefail
+          bundle=(/tmp/keyless-dist/Website-Core-catering-*-TEST-BUNDLE.zip)
+          test "${#bundle[@]}" -eq 1
+          bash tools/verify-subfolder-artifact.sh "${bundle[0]}"
+
   core-only-boot:
     name: Core-only boot check
     runs-on: ubuntu-latest

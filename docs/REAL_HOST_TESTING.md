@@ -171,6 +171,18 @@ release.
 
 ## Host-Specific Checks
 
+### Private vendor guard with and without mod_rewrite
+
+On a dedicated staging host after extracting the exact acceptance artifact,
+test `/vendor/composer/installed.json` using an unauthenticated request
+with the application at both the root and under a subfolder. Expect **403**,
+including when rewrite is disabled. Confirm the staged
+`vendor/.htaccess` file contains independent `Require all denied` and
+legacy `Deny from all` rules. Do not treat the PHP development server as
+proof of Apache/LiteSpeed authorization behavior; it ignores `.htaccess`.
+The root-level and directory-level guards are both required, and runtime
+dependency code must never be linked as public static content.
+
 ### Apache 2.4 mod_rewrite
 
 - Verify `.htaccess` rewrite rules are honored (Apache configuration must allow `AllowOverride All` in the site directory).

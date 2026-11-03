@@ -9,12 +9,19 @@ adoption of [Cajun Web Pro Module Rules v1.1](../../MOD_RULES.md).
 
 ## Current release
 
-- Module version: `2.1.0`
+- Module version: `2.1.1`
 - Module ID: `cajunwebpro/catering`
 - Type: `industry`
 - Module API: `1`
 - Required Core: `>=2.6.2,<3.0.0`
 - Development branch: `module/catering`
+
+## Social placement repair in 2.1.1
+
+All ten visual Catering themes now honor Core's global Header, Footer, or
+Both social-link placement. Previously some layouts omitted one or both
+locations even when enabled. This is a presentation-only repair; customer
+records, module API, and database migrations are unchanged.
 
 ## Core 2.6 integration in 2.0.0
 

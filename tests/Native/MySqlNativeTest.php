@@ -99,6 +99,57 @@ final class MySqlNativeTest extends TestCase
         $this->assertContains($this->db->table('pages'), $meta['tables']);
     }
 
+    public function testBackupRestorePreservesMysqlDataAndProtectedFiles(): void
+    {
+        // Use an isolated prefix, so the destructive restore cannot disturb
+        // the other native scenarios sharing the same ephemeral CI database.
+        $db = new Connection($this->db->pdo(), 'wcdr_' . bin2hex(random_bytes(3)) . '_');
+        (new Migrator($db, WC_ROOT . '/database/migrations'))->migrate();
+
+        $tmp = \WcProcessTmpDirs::make('wc-native-restore-');
+        foreach (['backups', 'staging', 'site/config', 'site/upload/docs'] as $dir) {
+            mkdir($tmp . '/' . $dir, 0777, true);
+        }
+        $config = $tmp . '/site/config/config.php';
+        $customerFile = $tmp . '/site/upload/docs/customer-note.txt';
+        file_put_contents($config, '<?php return ["keep" => true];');
+        file_put_contents($customerFile, 'Customer-original-file');
+        $slug = 'restore-check-' . bin2hex(random_bytes(4));
+        $original = "Customer data;\\n-- WC-STMT-END\\nnot executable SQL";
+        $db->insert('pages', [
+            'slug' => $slug,
+            'title' => 'Protected client page',
+            'body' => $original,
+            'status' => 'published',
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $backup = new BackupService($db, $tmp . '/backups', $tmp . '/staging', $tmp . '/site');
+        [$archive, $error] = $backup->create();
+        $this->assertNull($error);
+        $this->assertNotNull($archive);
+        $this->assertFileExists($archive);
+        [$meta, $error] = $backup->inspect((string) $archive);
+        $this->assertNull($error);
+        $this->assertContains($db->table('pages'), $meta['tables']);
+        $this->assertArrayHasKey('config/config.php', $meta['files']);
+        $this->assertArrayHasKey('upload/docs/customer-note.txt', $meta['files']);
+
+        $pdo = $db->pdo();
+        $change = $pdo->prepare('UPDATE `' . $db->table('pages') . '` SET body = ? WHERE slug = ?');
+        $change->execute(['MUTATED DATA', $slug]);
+        file_put_contents($config, '<?php return ["keep" => false];');
+        file_put_contents($customerFile, 'MUTATED FILE');
+
+        [$restored, $error] = $backup->restore((string) $archive);
+        $this->assertTrue($restored, (string) $error);
+        $this->assertSame($original, $db->fetchColumn(
+            'SELECT body FROM `' . $db->table('pages') . '` WHERE slug = ?', [$slug]
+        ));
+        $this->assertSame('<?php return ["keep" => true];', file_get_contents($config));
+        $this->assertSame('Customer-original-file', file_get_contents($customerFile));
+    }
+
     public function testLandscapingModuleMigrationOnMysql(): void
     {
         (new Migrator($this->db, WC_ROOT . '/database/migrations'))->migrate();

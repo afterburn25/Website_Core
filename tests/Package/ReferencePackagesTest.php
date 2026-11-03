@@ -107,25 +107,65 @@ final class ReferencePackagesTest extends TestCase
         file_put_contents($configFile, '<?php return ' . var_export([
             'paths' => ['storage' => $this->tmp . '/storage'],
         ], true) . ';');
-        $media = new \Core\Media\MediaService($this->db, new \Core\Config($configFile));
+        $config = new \Core\Config($configFile);
+        $media = new \Core\Media\MediaService($this->db, $config);
+        $audit = new \Core\Audit\AuditLog($this->db);
+        $limiter = new \Core\Security\RateLimiter($this->db);
+        $permissions = new \Core\Auth\Permissions();
+        $admins = new \Core\Auth\AdminRepository($this->db);
+        $auth = new \Core\Auth\AuthService(
+            $this->db,
+            $admins,
+            $permissions,
+            new \Core\Security\SessionManager($config),
+            $limiter,
+            $audit
+        );
         $view = new \Core\View\View();
+        $view->share('coreVersion', WC_VERSION);
+        $view->share('industryVersions', []);
+        $view->share('noticeCount', 0);
+        $view->share('pageMeta', []);
         $view->addResolver('admin', fn (string $v): ?string =>
             is_file(WC_ROOT . '/admin/views/' . $v . '.php') ? WC_ROOT . '/admin/views/' . $v . '.php' : null);
         $view->addResolver('theme', fn (string $v): ?string =>
             is_file(WC_THEMES . '/base/templates/' . $v . '.php') ? WC_THEMES . '/base/templates/' . $v . '.php' : null);
+
+        // Modern industry packages use Core's business, lead, appearance and
+        // commerce services. A missing test-only binding used to quarantine
+        // Catering 2.1.0 and make its valid public routes appear to be 404s.
         $map = [
             Connection::class => $this->db,
+            \Core\Config::class => $config,
             \Core\Settings\SettingsRepository::class => $settings,
             \Core\View\View::class => $view,
             \Core\Security\Csrf::class => new \Core\Security\Csrf(),
+            \Core\Security\RateLimiter::class => $limiter,
+            \Core\Auth\AuthService::class => $auth,
+            \Core\Auth\Permissions::class => $permissions,
+            \Core\Audit\AuditLog::class => $audit,
+            \Core\Modules\ModuleRegistry::class => $this->registry,
             \Core\Mail\SystemMail::class => new \Core\Mail\SystemMail($this->db, $settings),
-            \Core\Security\RateLimiter::class => new \Core\Security\RateLimiter($this->db),
-            \Core\Admin\Nav::class => new \Core\Admin\Nav($this->registry, null),
+            \Core\Admin\Nav::class => new \Core\Admin\Nav($this->registry, $auth),
+            \Core\Admin\NoticeCenter::class => new \Core\Admin\NoticeCenter($this->db),
             \Core\Content\ContentItems::class => new \Core\Content\ContentItems($this->db, $this->registry),
             \Core\Commerce\ProductRepository::class => new \Core\Commerce\ProductRepository($this->db),
+            \Core\Commerce\CheckoutValidation::class => new \Core\Commerce\CheckoutValidation($this->db),
             \Core\Media\MediaService::class => $media,
             \Core\Branding\BrandAssets::class => new \Core\Branding\BrandAssets($this->db, $settings, $media),
+            \Core\Business\BusinessProfile::class => new \Core\Business\BusinessProfile($settings),
+            \Core\Business\ServiceAreaService::class => new \Core\Business\ServiceAreaService($this->db, $settings, $audit),
+            \Core\Leads\InquiryService::class => new \Core\Leads\InquiryService($this->db),
+            \Core\Leads\QuoteService::class => new \Core\Leads\QuoteService($this->db),
+            \Core\Appearance\ModuleThemeCollections::class => new \Core\Appearance\ModuleThemeCollections($this->db, $audit),
+            \Core\System\Version::class => new \Core\System\Version($this->registry),
         ];
+        $container = new \Core\Container();
+        foreach ($map as $id => $service) {
+            $container->instance($id, $service);
+        }
+        $map[\Core\Modules\ModuleAdminRenderer::class] = new \Core\Modules\ModuleAdminRenderer($container);
+
         return fn (string $id) => $map[$id] ?? throw new \RuntimeException("unbound {$id}");
     }
 
@@ -298,17 +338,23 @@ final class ReferencePackagesTest extends TestCase
             'SELECT original_name FROM `' . $this->db->table('media') . '` WHERE id = ?', [$logoId]
         ));
         $this->assertTrue((bool) $settings->get('branding.seeded.cajunwebpro.catering', false));
-        $this->assertTrue((bool) $settings->get('commerce.products_seeded.cajunwebpro.catering', false));
-        $this->assertSame(10,(int)$this->db->fetchColumn('SELECT COUNT(*) FROM `'.$this->db->table('commerce_products').'` WHERE owner_package=?',['cajunwebpro/catering']));
+        // Catering 2.1.0 is quote-only by default. Direct ordering is an
+        // explicit administrator choice, never seeded as a live storefront.
+        $this->assertSame('quote_only', $settings->get('catering.ordering_mode', 'quote_only'));
+        $this->assertFalse((bool) $settings->get('commerce.products_seeded.cajunwebpro.catering', false));
+        $this->assertSame(0, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('commerce_products') . '` WHERE owner_package=?',
+            ['cajunwebpro/catering']
+        ));
         $navigation = new \Core\Content\MenuService($this->db);
         $tree = $navigation->tree('primary');
         $this->assertSame(
-            ['Our Story', 'Menus', 'Services', 'Packages', 'Order Online', 'My Account', 'Gallery', 'Contact'],
+            ['Our Story', 'Menus', 'Services', 'Packages', 'Gallery', 'Venues', 'Event Stories', 'Contact'],
             array_column($tree, 'label')
         );
         $footerTree = $navigation->tree('footer');
         $this->assertSame(
-            ['Menus', 'Services', 'Packages', 'Order Online', 'My Account', 'Gallery', 'Service Area', 'FAQ', 'Contact', 'Request a Quote'],
+            ['Menus', 'Services', 'Packages', 'Gallery', 'Venue Partners', 'Event Stories', 'Service Area', 'FAQ', 'Contact', 'Request a Quote'],
             array_column($footerTree, 'label')
         );
         $cateringNav = array_values(array_filter(
@@ -317,8 +363,8 @@ final class ReferencePackagesTest extends TestCase
         ));
         $this->assertNotContains('Dashboard', array_column($cateringNav, 'label'));
         $widgets = $this->registry->dashboardWidgets();
-        $this->assertSame(['new-inquiries'], array_column($widgets, 'key'));
-        $this->assertSame('/admin/catering/inquiries', $widgets[0]['url']);
+        $this->assertSame(['upcoming-events'], array_column($widgets, 'key'));
+        $this->assertSame('/admin/catering/events', $widgets[0]['url']);
 
         [$updated, $error] = $navigation->updateItem(
             (int) $tree[0]['id'], 'Our Story', '/about', null, 0, 'tab'
@@ -329,7 +375,7 @@ final class ReferencePackagesTest extends TestCase
         );
         $this->assertTrue($updated, (string) $error);
         [$updated, $error] = $navigation->updateItem(
-            (int) $tree[6]['id'], 'Gallery', '/gallery', null, 6, 'window'
+            (int) $tree[4]['id'], 'Gallery', '/gallery', null, 6, 'window'
         );
         $this->assertTrue($updated, (string) $error);
 
@@ -357,15 +403,19 @@ final class ReferencePackagesTest extends TestCase
         $this->assertStringContainsString('class="c-header-social"', $homeWithSocial->body());
         $this->assertStringContainsString('class="c-footer-social"', $homeWithSocial->body());
         $this->assertSame(2, substr_count($homeWithSocial->body(), 'aria-label="Instagram"'));
-        $this->assertLessThan(
-            strpos($homeWithSocial->body(), 'class="c-header-social"'),
-            strpos($homeWithSocial->body(), 'class="c-header-cta"')
-        );
+        // Every Catering theme must honor Core's global social placement;
+        // in Heritage Editorial the header action uses the new shared
+        // theme-header-action wrapper instead of the legacy c-header-cta.
+        $headerSocialPos = strpos($homeWithSocial->body(), 'class="c-header-social"');
+        $headerActionPos = strpos($homeWithSocial->body(), 'class="c-button" href="/index.php?p=/request-a-quote"');
+        $this->assertNotFalse($headerSocialPos);
+        $this->assertNotFalse($headerActionPos);
+        $this->assertLessThan($headerActionPos, $headerSocialPos);
 
         foreach (['/services', '/menus', '/packages', '/gallery', '/about', '/service-area', '/faq', '/contact', '/request-a-quote'] as $route) {
             $response = $this->req('GET', $route);
             $this->assertSame(200, $response->status(), $route);
-            $this->assertStringContainsString('<main id="main-content">', $response->body(), $route);
+            $this->assertStringContainsString('<main id="main-content"', $response->body(), $route);
         }
 
         $menu = $this->req('GET', '/menus/plated-entrees');
@@ -389,6 +439,11 @@ final class ReferencePackagesTest extends TestCase
             'guest_count' => '120',
             'venue' => 'Garden Hall',
             'service_style' => 'Plated dinner',
+            // Catering 2.1.1 requires an explicit fulfillment selection,
+            // a configured window, and consent that a quote is not a booking.
+            'fulfillment_method' => 'pickup',
+            'fulfillment_window' => 'Pickup time confirmed with team',
+            'acknowledged' => '1',
             'menu_interest' => 'Plated Entrées',
             'budget' => '$10,000–$20,000',
             'dietary' => 'Two gluten-free meals',

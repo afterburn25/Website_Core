@@ -337,6 +337,25 @@ jobs:
           curl -s http://127.0.0.1:8101/index.php | grep -q "Catering" || { echo "catering homepage did not render"; exit 1; }
           curl -s http://127.0.0.1:8101/index.php | grep -q "License Warning" && { echo "license warning leaked into keyless bundle"; exit 1; } || true
 
+          # Inspect the actual extracted, installed package without opening
+          # config.php, making HTTP calls, or leaking the test login/keys.
+          php tools/host-preflight.php /tmp/wcsite3 >/tmp/wc-host-preflight.json
+          php -r '
+            $r=json_decode((string)file_get_contents("/tmp/wc-host-preflight.json"),true,512,JSON_THROW_ON_ERROR);
+            if(($r["core_version"]??null)!=="2.6.2"
+              || ($r["installation_state"]??null)!=="marker_and_config_present"
+              || ($r["checks"]["install_php_present"]??true)
+              || ($r["checks"]["install_dir_present"]??true)
+              || ($r["industries"][0]["version"]??null)!=="2.1.1"
+              || ($r["industries"][0]["state"]??null)!=="on_disk_unverified") {
+                fwrite(STDERR,"Read-only installed artifact preflight failed\\n"); exit(1);
+            }
+            $raw=file_get_contents("/tmp/wc-host-preflight.json");
+            if(str_contains($raw,"ci-keyless-pass-1")||str_contains($raw,"/tmp/wcsite3")) {
+                fwrite(STDERR,"Diagnostic leaked local path or login fixture\\n"); exit(1);
+            }
+            echo "installed artifact preflight OK\\n";'
+
           kill $SITE_PID 2>/dev/null || true
           echo "keyless TEST-BUNDLE acceptance OK"
 

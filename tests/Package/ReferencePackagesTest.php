@@ -338,17 +338,23 @@ final class ReferencePackagesTest extends TestCase
             'SELECT original_name FROM `' . $this->db->table('media') . '` WHERE id = ?', [$logoId]
         ));
         $this->assertTrue((bool) $settings->get('branding.seeded.cajunwebpro.catering', false));
-        $this->assertTrue((bool) $settings->get('commerce.products_seeded.cajunwebpro.catering', false));
-        $this->assertSame(10,(int)$this->db->fetchColumn('SELECT COUNT(*) FROM `'.$this->db->table('commerce_products').'` WHERE owner_package=?',['cajunwebpro/catering']));
+        // Catering 2.1.0 is quote-only by default. Direct ordering is an
+        // explicit administrator choice, never seeded as a live storefront.
+        $this->assertSame('quote_only', $settings->get('catering.ordering_mode', 'quote_only'));
+        $this->assertFalse((bool) $settings->get('commerce.products_seeded.cajunwebpro.catering', false));
+        $this->assertSame(0, (int) $this->db->fetchColumn(
+            'SELECT COUNT(*) FROM `' . $this->db->table('commerce_products') . '` WHERE owner_package=?',
+            ['cajunwebpro/catering']
+        ));
         $navigation = new \Core\Content\MenuService($this->db);
         $tree = $navigation->tree('primary');
         $this->assertSame(
-            ['Our Story', 'Menus', 'Services', 'Packages', 'Order Online', 'My Account', 'Gallery', 'Contact'],
+            ['Our Story', 'Menus', 'Services', 'Packages', 'Gallery', 'Venues', 'Event Stories', 'Contact'],
             array_column($tree, 'label')
         );
         $footerTree = $navigation->tree('footer');
         $this->assertSame(
-            ['Menus', 'Services', 'Packages', 'Order Online', 'My Account', 'Gallery', 'Service Area', 'FAQ', 'Contact', 'Request a Quote'],
+            ['Menus', 'Services', 'Packages', 'Gallery', 'Venue Partners', 'Event Stories', 'Service Area', 'FAQ', 'Contact', 'Request a Quote'],
             array_column($footerTree, 'label')
         );
         $cateringNav = array_values(array_filter(
@@ -357,8 +363,8 @@ final class ReferencePackagesTest extends TestCase
         ));
         $this->assertNotContains('Dashboard', array_column($cateringNav, 'label'));
         $widgets = $this->registry->dashboardWidgets();
-        $this->assertSame(['new-inquiries'], array_column($widgets, 'key'));
-        $this->assertSame('/admin/catering/inquiries', $widgets[0]['url']);
+        $this->assertSame(['upcoming-events'], array_column($widgets, 'key'));
+        $this->assertSame('/admin/catering/events', $widgets[0]['url']);
 
         [$updated, $error] = $navigation->updateItem(
             (int) $tree[0]['id'], 'Our Story', '/about', null, 0, 'tab'
@@ -369,7 +375,7 @@ final class ReferencePackagesTest extends TestCase
         );
         $this->assertTrue($updated, (string) $error);
         [$updated, $error] = $navigation->updateItem(
-            (int) $tree[6]['id'], 'Gallery', '/gallery', null, 6, 'window'
+            (int) $tree[4]['id'], 'Gallery', '/gallery', null, 6, 'window'
         );
         $this->assertTrue($updated, (string) $error);
 

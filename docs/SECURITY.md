@@ -79,6 +79,22 @@ navigation and screen readers:
 - Assets: namespaced resolver, allowlisted MIME, realpath confinement,
   SVG excluded until a reviewed sanitizer ships.
 
+## Direct HTTP access to runtime dependencies
+
+Composer runtime dependencies must be available to PHP through local filesystem
+autoloading, **not** directly served to visitors. The deployable
+`vendor/.htaccess` independently denies HTTP access on Apache 2.4 and legacy
+authorization modules, including sites installed in subfolders and sites
+without `mod_rewrite`. This complements the root rewrite guard; it does not
+assume that root rewrite rules are active.
+
+Release-gate and ZIP-contract checks now require the independent guard in
+Core-only uploads and industry bundles/repair uploads. On an authorized
+Apache/LiteSpeed staging host, explicitly verify a harmless static
+`/vendor/composer/installed.json` request returns **403**. Server behavior
+remains an owner-gated acceptance check; file presence alone does not
+establish that the hosting panel honors `.htaccess`.
+
 ## Dependency policy
 
 Maintained libraries for crypto/sanitization/SMTP as those features land

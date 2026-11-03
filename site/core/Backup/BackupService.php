@@ -78,6 +78,12 @@ final class BackupService
                     'storage/media' => rtrim((string) $this->storageRoot, '/\\') . '/media',
                     default => $this->siteRoot . '/' . trim($rel, '/'),
                 };
+                // A configured root may be deliberately outside the webroot,
+                // but it must be a real directory, not a link to an unrelated
+                // tree. This avoids archiving secrets by following symlinks.
+                if (is_link($src)) {
+                    return [null, 'Backup stopped: a source root is a symbolic link.'];
+                }
                 if (!is_dir($src)) {
                     continue;
                 }
@@ -85,6 +91,11 @@ final class BackupService
                     new \RecursiveDirectoryIterator($src, \FilesystemIterator::SKIP_DOTS)
                 );
                 foreach ($it as $f) {
+                    // isFile() follows links to files; silently skipping links
+                    // to directories would also create incomplete backups.
+                    if ($f->isLink()) {
+                        return [null, 'Backup stopped: a symbolic link was found in a restorable root.'];
+                    }
                     if (!$f->isFile()) {
                         continue;
                     }
@@ -94,7 +105,13 @@ final class BackupService
                     $dest = $filesBase . '/' . $sub;
                     @mkdir(dirname($dest), 0750, true);
                     if (!@copy($f->getPathname(), $dest)) return [null, 'Backup stopped because a required file could not be read: ' . $sub];
-                    $manifest['files'][$sub] = hash_file('sha256', $f->getPathname());
+                    // Hash the actual snapshot bytes, not the potentially
+                    // changing original after copy (TOCTOU consistency).
+                    $digest = hash_file('sha256', $dest);
+                    if ($digest === false) {
+                        return [null, 'Backup stopped: a copied file could not be verified.'];
+                    }
+                    $manifest['files'][$sub] = $digest;
                 }
             }
 
@@ -252,6 +269,9 @@ final class BackupService
                     if ($dest === null) {
                         continue;
                     }
+                    if ($this->restoreDestinationHasSymlink((string) $rel, $dest)) {
+                        return [false, "Restore refused a symbolic-link destination: {$rel}"];
+                    }
                     if (is_file($dest) && hash_equals((string) $hash, hash_file('sha256', $dest))) {
                         continue;
                     }
@@ -288,6 +308,11 @@ final class BackupService
                     $dest = $this->restoreDestination((string) $rel);
                     if ($dest === null) {
                         continue;
+                    }
+                    // Recheck immediately before copying too: the directory
+                    // tree may have changed since the preflight pass.
+                    if ($this->restoreDestinationHasSymlink((string) $rel, $dest)) {
+                        return [false, "Restore refused a symbolic-link destination: {$rel}"];
                     }
                     if (is_file($dest) && hash_equals((string) $hash, hash_file('sha256', $dest))) {
                         continue;
@@ -407,6 +432,41 @@ final class BackupService
             $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
         }
         @rmdir($dir);
+    }
+
+    /**
+     * Refuse symlink redirection at any destination component down to its
+     * configured restore root. Checking only the final file is insufficient:
+     * upload/docs can itself point outside the protected upload tree.
+     */
+    private function restoreDestinationHasSymlink(string $rel, string $dest): bool
+    {
+        $base = match (true) {
+            str_starts_with($rel, 'config/') => (string) $this->configRoot,
+            str_starts_with($rel, 'upload/') => (string) $this->uploadRoot,
+            str_starts_with($rel, 'storage/media/') => (string) $this->storageRoot . '/media',
+            str_starts_with($rel, 'modules/') => $this->siteRoot . '/modules',
+            str_starts_with($rel, 'themes/') => $this->siteRoot . '/themes',
+            default => '',
+        };
+        $base = rtrim(str_replace(DIRECTORY_SEPARATOR, '/', $base), '/');
+        $path = rtrim(str_replace(DIRECTORY_SEPARATOR, '/', $dest), '/');
+        if ($base === '' || !str_starts_with($path, $base . '/')) {
+            return true;
+        }
+        while (true) {
+            if (is_link($path)) {
+                return true;
+            }
+            if ($path === $base) {
+                return false;
+            }
+            $parent = dirname($path);
+            if ($parent === $path) {
+                return true;
+            }
+            $path = $parent;
+        }
     }
 
     private function restoreDestination(string $rel): ?string

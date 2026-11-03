@@ -268,6 +268,95 @@ final class BackupTest extends TestCase
         $this->assertFileDoesNotExist($this->siteRoot . '/core/evil.php');
     }
 
+    public function testBackupRefusesSymlinkedSourceWithoutCapturingExternalSecret(): void
+    {
+        if (!function_exists('symlink')) {
+            $this->markTestSkipped('Symbolic links unavailable on this runtime');
+        }
+        $outside = $this->tmp . '/outside-sensitive.txt';
+        file_put_contents($outside, 'DO-NOT-ARCHIVE-THIS-SECRET');
+        $link = $this->siteRoot . '/upload/docs/external.txt';
+        if (!@symlink($outside, $link)) {
+            $this->markTestSkipped('Runtime cannot create a file symlink');
+        }
+
+        try {
+            [$backup, $error] = $this->svc()->create();
+            $this->assertNull($backup);
+            $this->assertStringContainsString('symbolic link', (string) $error);
+            $this->assertSame('DO-NOT-ARCHIVE-THIS-SECRET', file_get_contents($outside));
+            $this->assertSame([], glob($this->tmp . '/backups/backup-*.zip') ?: []);
+        } finally {
+            @unlink($link);
+        }
+    }
+
+    public function testRestoreRejectsSymlinkedParentBeforeDatabaseImport(): void
+    {
+        if (!function_exists('symlink')) {
+            $this->markTestSkipped('Symbolic links unavailable on this runtime');
+        }
+        $slug = 'restore-symlink-probe';
+        $id = $this->db->insert('pages', [
+            'title' => 'Protected', 'slug' => $slug, 'body' => 'ORIGINAL',
+            'status' => 'published', 'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        [$archive, $error] = $this->svc()->create();
+        $this->assertNull($error);
+        $this->assertNotNull($archive);
+
+        $update = $this->db->pdo()->prepare('UPDATE ' . $this->db->table('pages') . ' SET body = ? WHERE id = ?');
+        $update->execute(['MUTATED', $id]);
+
+        $outside = $this->tmp . '/outside-restore';
+        mkdir($outside, 0777, true);
+        file_put_contents($outside . '/a.txt', 'EXTERNAL-CONTENT');
+        $directory = $this->siteRoot . '/upload/docs';
+        unlink($directory . '/a.txt');
+        rmdir($directory);
+        if (!@symlink($outside, $directory)) {
+            $this->markTestSkipped('Runtime cannot create a directory symlink');
+        }
+
+        try {
+            [$ok, $error] = $this->svc()->restore((string) $archive);
+            $this->assertFalse($ok);
+            $this->assertStringContainsString('symbolic-link destination', (string) $error);
+            $this->assertSame('EXTERNAL-CONTENT', file_get_contents($outside . '/a.txt'));
+            $this->assertSame('MUTATED', $this->db->fetchColumn(
+                'SELECT body FROM ' . $this->db->table('pages') . ' WHERE id = ?', [$id]
+            ));
+        } finally {
+            @unlink($directory);
+        }
+    }
+
+    public function testRestoreRejectsSymlinkedFinalFileEvenWhenContentsMatch(): void
+    {
+        if (!function_exists('symlink')) {
+            $this->markTestSkipped('Symbolic links unavailable on this runtime');
+        }
+        [$archive, $error] = $this->svc()->create();
+        $this->assertNull($error);
+
+        $outside = $this->tmp . '/external-same-bytes.txt';
+        file_put_contents($outside, 'payload');
+        $link = $this->siteRoot . '/upload/docs/a.txt';
+        unlink($link);
+        if (!@symlink($outside, $link)) {
+            $this->markTestSkipped('Runtime cannot create a file symlink');
+        }
+        try {
+            [$ok, $error] = $this->svc()->restore((string) $archive);
+            $this->assertFalse($ok);
+            $this->assertStringContainsString('symbolic-link destination', (string) $error);
+            $this->assertSame('payload', file_get_contents($outside));
+        } finally {
+            @unlink($link);
+        }
+    }
+
     public function testSymlinkMemberRejected(): void
     {
         [$path] = $this->svc()->create();

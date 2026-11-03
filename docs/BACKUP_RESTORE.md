@@ -24,6 +24,22 @@ integrity or are rejected, and the write loop refuses paths outside the
 roots even with a forged manifest. Manifest paths are forward-slash
 normalized at backup time so archives are portable across OSes.
 
+## Symbolic-link safety
+
+A backup must remain inside its declared, operator-configured roots. Core now
+**rejects** a backup when a selected root or an included file/directory is a
+symbolic link; it does not dereference such links into unrelated filesystem
+trees or silently omit them. The backup manifest hashes the copied staging
+bytes rather than an original that might change during the copy.
+
+A restore verifies every path component from its configured restore root
+down to the destination file before importing SQL, then checks again before
+copying. A symlinked destination or parent directory **fails closed**, even
+if the linked file happens to match the expected checksum. On shared hosts
+using symlinks for controlled configuration, replace them with supported
+regular directories or obtain a separate explicitly reviewed backup plan;
+never bypass these checks to complete an upgrade.
+
 ## Constraints (shared hosting)
 
 - No `mysqldump`, shell, or unbounded request timeouts: the dump is a

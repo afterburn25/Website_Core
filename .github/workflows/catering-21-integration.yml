@@ -14,7 +14,7 @@ permissions:
 # review when the authoritative module branch advances.
 jobs:
   catering-21:
-    name: Core 2.6.2 + authoritative Catering 2.1.0 (MySQL 8.4)
+    name: Core 2.6.2 + authoritative Catering 2.1.1 (MySQL 8.4)
     runs-on: ubuntu-latest
     services:
       db:
@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: afterburn25/Core_Mods
-          ref: ecdf34b8a471f5db113a1cadc84c78fc688e735a
+          ref: 94af6281a7f7068e2a24cf050f066097c1715041
           path: authoritative-modules
           persist-credentials: false
       - name: Set up PHP
@@ -42,7 +42,7 @@ jobs:
           php-version: '8.4'
           extensions: mbstring, openssl, pdo_mysql, pdo_sqlite, fileinfo, gd, intl, zip
           coverage: none
-      - name: Prove original Core reference tests before replacing their historical fixture
+      - name: Prove promoted Core reference tests before authoritative overlay
         working-directory: core
         run: |
           set -euo pipefail
@@ -50,11 +50,11 @@ jobs:
           php tools/release-gate.php
           php tools/lint.php
           vendor/bin/phpunit --testsuite unit,package
-      - name: Stage exact 2.1.0 module into isolated Core build
+      - name: Stage exact 2.1.1 module into isolated Core build
         working-directory: core
         run: |
           set -euo pipefail
-          test "$(git -C ../authoritative-modules rev-parse HEAD)" = "ecdf34b8a471f5db113a1cadc84c78fc688e735a"
+          test "$(git -C ../authoritative-modules rev-parse HEAD)" = "94af6281a7f7068e2a24cf050f066097c1715041"
           test "$(git rev-parse --short HEAD)" != ""
           rm -rf examples/industry-catering
           mkdir -p examples/industry-catering
@@ -66,14 +66,14 @@ jobs:
           php -r '
             $m=json_decode(file_get_contents("examples/industry-catering/addon.json"),true);
             if (($m["id"]??null)!=="cajunwebpro/catering"
-              || ($m["version"]??null)!=="2.1.0"
+              || ($m["version"]??null)!=="2.1.1"
               || ($m["requires"]["core"]??null)!==">=2.6.2,<3.0.0"
               || ($m["requires"]["api"]??null)!==1
               || !is_array($m["requires"]["services"]??null)) {
                 fwrite(STDERR, "Expected pinned module version/service contract missing\n"); exit(1);
             }
             echo "Pinned latest module manifest OK\n";'
-      - name: Lint and verify pinned 2.1.0 module-specific acceptance contracts
+      - name: Lint and verify pinned 2.1.1 module-specific acceptance contracts
         working-directory: core
         run: |
           set -euo pipefail
@@ -101,7 +101,7 @@ jobs:
               fwrite(STDERR, "Missing or unreadable test bundle\n"); exit(1);
             }
             $m=json_decode((string)$z->getFromName("modules/industries/industry-catering/addon.json"),true);
-            if (($m["version"]??null)!=="2.1.0" || isset($m["license_key"])) {
+            if (($m["version"]??null)!=="2.1.1" || isset($m["license_key"])) {
               fwrite(STDERR, "Wrong bundled module or unexpected license\n"); exit(1);
             }
             foreach (["index.php",".htaccess","install.php","install/index.php",
@@ -122,7 +122,7 @@ jobs:
             if ($z->locateName("config/config.php")!==false) {
               fwrite(STDERR, "Runtime credentials in package\n");exit(1);
             }
-            echo "Current module artifact contract OK\n";'
+            echo "Pinned 2.1.1 module artifact contract OK\n";'
       - name: Extract directly usable upload for acceptance (not production release)
         run: |
           set -euo pipefail
@@ -189,17 +189,17 @@ jobs:
           php -r '
             $p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_current_catering","root","");
             $row=$p->query("SELECT version,state FROM wc_packages WHERE package_id=\"cajunwebpro/catering\"")->fetch(PDO::FETCH_ASSOC);
-            if (!$row || $row["version"]!=="2.1.0" || $row["state"]!=="enabled") {
+            if (!$row || $row["version"]!=="2.1.1" || $row["state"]!=="enabled") {
               fwrite(STDERR, "Actual current module not registered and enabled\n"); exit(1);
             }
             $p->query("SELECT COUNT(*) FROM wc_catering_inquiries")->fetchColumn();
-            echo "Current Catering 2.1.0 installed, migrated, and enabled\n";'
+            echo "Current Catering 2.1.1 installed, migrated, and enabled\n";'
           test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8112/index.php)" = "200"
           test "$(curl -sS -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8112/index.php?p=/admin/login')" = "200"
       - name: Upload direct latest-module TEST-BUNDLE (not signed production)
         uses: actions/upload-artifact@v4
         with:
-          name: Website-Core-2.6.2-Catering-2.1.0-AUTHORITATIVE-TEST-BUNDLE
+          name: Website-Core-2.6.2-Catering-2.1.1-AUTHORITATIVE-TEST-BUNDLE
           path: /tmp/catering-21-artifact/
           if-no-files-found: error
           include-hidden-files: true

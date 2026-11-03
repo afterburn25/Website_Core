@@ -19,6 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: core
+          fetch-depth: 0
       - name: Check out pinned authoritative module commit
         uses: actions/checkout@v4
         with:

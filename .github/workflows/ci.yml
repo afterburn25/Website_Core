@@ -373,6 +373,10 @@ jobs:
           extensions: mbstring, openssl, pdo_mysql, pdo_sqlite, fileinfo, zip
           coverage: none
       - run: composer install --no-interaction --prefer-dist
+      - name: Audit locked production Composer dependencies
+        # Runtime vulnerabilities are a production release blocker. Audit
+        # the lockfile even when composer install itself succeeds.
+        run: composer audit --locked --no-dev --no-interaction --format=plain
       - name: Resolve release version
         id: release-version
         run: |

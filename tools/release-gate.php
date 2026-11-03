@@ -90,6 +90,17 @@ foreach ([
     $ok(is_file($root . '/' . $doc), 'Required release documentation missing: ' . $doc);
 }
 
+// The root .htaccess private-dir rules use mod_rewrite. A host that
+// disables mod_rewrite still needs independent per-directory guards
+// protecting Composer's PHP source and metadata from direct downloads.
+foreach (['config', 'core', 'database', 'includes', 'install', 'modules',
+          'storage', 'themes', 'upload', 'vendor'] as $privateDir) {
+    $guard = $read($root . '/site/' . $privateDir . '/.htaccess');
+    $ok(str_contains($guard, 'Require all denied')
+        && str_contains($guard, 'Deny from all'),
+        'Private directory guard missing both Apache 2.4 and legacy deny rules: ' . $privateDir);
+}
+
 $attribution = $read($root . '/site/core/Branding/Attribution.php');
 $ok(substr_count($attribution, 'https://cajunwebpro.com') >= 1,
     'Required Cajun Web Pro attribution link is missing.');

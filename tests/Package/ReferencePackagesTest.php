@@ -439,6 +439,11 @@ final class ReferencePackagesTest extends TestCase
             'guest_count' => '120',
             'venue' => 'Garden Hall',
             'service_style' => 'Plated dinner',
+            // Catering 2.1.1 requires an explicit fulfillment selection,
+            // a configured window, and consent that a quote is not a booking.
+            'fulfillment_method' => 'pickup',
+            'fulfillment_window' => 'Pickup time confirmed with team',
+            'acknowledged' => '1',
             'menu_interest' => 'Plated Entrées',
             'budget' => '$10,000–$20,000',
             'dietary' => 'Two gluten-free meals',

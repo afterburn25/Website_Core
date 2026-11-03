@@ -449,8 +449,8 @@ final class BackupService
             str_starts_with($rel, 'themes/') => $this->siteRoot . '/themes',
             default => '',
         };
-        $base = rtrim(str_replace('\\\\', '/', $base), '/');
-        $path = rtrim(str_replace('\\\\', '/', $dest), '/');
+        $base = rtrim(str_replace(DIRECTORY_SEPARATOR, '/', $base), '/');
+        $path = rtrim(str_replace(DIRECTORY_SEPARATOR, '/', $dest), '/');
         if ($base === '' || !str_starts_with($path, $base . '/')) {
             return true;
         }

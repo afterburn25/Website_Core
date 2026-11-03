@@ -4,7 +4,7 @@
  * @var array $footerNavigation @var string $copyrightNotice @var array $headerSocialLinks @var array $footerSocialLinks
  * @var string|null $brandLogoUrl @var string|null $faviconUrl */
 $asset = $assetBase;
-$assetVersion = rawurlencode(defined('WC_VERSION') ? WC_VERSION : 'development');
+$assetVersion = rawurlencode((defined('WC_VERSION') ? WC_VERSION : 'development') . '-' . ($moduleVersion ?? '0.2.0'));
 $renderNavigation = function (array $items, bool $child = false) use (&$renderNavigation, $basePath, $currentPath): void {
     echo '<ul class="' . ($child ? 'c-nav-children' : 'c-nav-root') . '">';
     foreach ($items as $item) {

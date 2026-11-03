@@ -3,21 +3,79 @@
   "id": "cajunwebpro/catering",
   "type": "industry",
   "name": "Catering Website",
-  "version": "0.2.0",
+  "version": "2.1.0",
   "license": "PROPRIETARY",
-  "requires": { "core": ">=2.1.0,<3.0.0", "api": 1 },
+  "requires": {
+    "core": ">=2.6.2,<3.0.0",
+    "api": 1,
+    "services": {
+      "content.presentation": "^1.0",
+      "forms.starter": "^1.0",
+      "leads.quotes": "^2.0",
+      "business.service_area": "^1.0",
+      "appearance.collections": "^1.0",
+      "commerce.checkout_validation": "^1.0"
+    }
+  },
   "provider": "CajunWebPro\\Catering\\Provider",
-  "psr4": { "CajunWebPro\\Catering\\": "src/" },
+  "psr4": {
+    "CajunWebPro\\Catering\\": "src/"
+  },
   "migrations": "migrations",
   "assets": {
-    "css": ["assets/css/catering.css"],
-    "js": ["assets/js/catering.js"],
+    "css": [
+      "assets/css/catering.css",
+      "assets/css/themes.css"
+    ],
+    "js": [
+      "assets/js/catering.js"
+    ],
     "images": [
       "assets/images/hero.webp",
       "assets/images/plated-dinner.webp",
       "assets/images/wedding-table.webp",
       "assets/images/corporate-service.webp",
       "assets/images/catering-co-logo.png",
+      "assets/images/themes/heritage-editorial.webp",
+      "assets/images/themes/modern-culinary.webp",
+      "assets/images/themes/garden-celebration.webp",
+      "assets/images/themes/grand-wedding.webp",
+      "assets/images/themes/corporate-table.webp",
+      "assets/images/themes/rustic-gathering.webp",
+      "assets/images/themes/bayou-night.webp",
+      "assets/images/themes/market-kitchen.webp",
+      "assets/images/themes/social-feast.webp",
+      "assets/images/themes/minimal-luxe.webp",
+      "assets/images/theme-packs/heritage-editorial-hero.webp",
+      "assets/images/theme-packs/heritage-editorial-feature.webp",
+      "assets/images/theme-packs/heritage-editorial-accent.webp",
+      "assets/images/theme-packs/modern-culinary-hero.webp",
+      "assets/images/theme-packs/modern-culinary-feature.webp",
+      "assets/images/theme-packs/modern-culinary-accent.webp",
+      "assets/images/theme-packs/garden-celebration-hero.webp",
+      "assets/images/theme-packs/garden-celebration-feature.webp",
+      "assets/images/theme-packs/garden-celebration-accent.webp",
+      "assets/images/theme-packs/grand-wedding-hero.webp",
+      "assets/images/theme-packs/grand-wedding-feature.webp",
+      "assets/images/theme-packs/grand-wedding-accent.webp",
+      "assets/images/theme-packs/corporate-table-hero.webp",
+      "assets/images/theme-packs/corporate-table-feature.webp",
+      "assets/images/theme-packs/corporate-table-accent.webp",
+      "assets/images/theme-packs/rustic-gathering-hero.webp",
+      "assets/images/theme-packs/rustic-gathering-feature.webp",
+      "assets/images/theme-packs/rustic-gathering-accent.webp",
+      "assets/images/theme-packs/bayou-night-hero.webp",
+      "assets/images/theme-packs/bayou-night-feature.webp",
+      "assets/images/theme-packs/bayou-night-accent.webp",
+      "assets/images/theme-packs/market-kitchen-hero.webp",
+      "assets/images/theme-packs/market-kitchen-feature.webp",
+      "assets/images/theme-packs/market-kitchen-accent.webp",
+      "assets/images/theme-packs/social-feast-hero.webp",
+      "assets/images/theme-packs/social-feast-feature.webp",
+      "assets/images/theme-packs/social-feast-accent.webp",
+      "assets/images/theme-packs/minimal-luxe-hero.webp",
+      "assets/images/theme-packs/minimal-luxe-feature.webp",
+      "assets/images/theme-packs/minimal-luxe-accent.webp",
       "assets/images/menu/boudin-balls.webp",
       "assets/images/menu/crawfish-bread.webp",
       "assets/images/menu/cajun-shrimp-grits-bites.webp",
@@ -30,5 +88,7 @@
       "assets/images/menu/bananas-foster-bread-pudding.webp"
     ]
   },
-  "capabilities": ["catering.manage", "catering.inquiries"]
+  "capabilities": [
+    "catering.manage"
+  ]
 }

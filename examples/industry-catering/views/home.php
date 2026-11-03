@@ -1,4 +1,4 @@
-<?php /** @var array $featuredItems @var array $packages @var string $basePath @var string $assetBase */ ?>
+<?php /** @var array $featuredItems @var array $packages @var ?array $review @var string $basePath @var string $assetBase */ ?>
 <section class="c-hero c-hero-home">
 <div class="c-hero-shade"></div>
 <div class="c-hero-content">
@@ -60,7 +60,7 @@
 </section>
 
 <section class="c-testimonial">
-<div class="c-testimonial-photo"></div><div class="c-testimonial-copy"><p class="c-eyebrow c-eyebrow-light">Kind words</p><h2>From our clients</h2><blockquote>“Add an authentic customer story here—one that reflects the food, service, and feeling of the day.”</blockquote><p class="c-quote-credit">Sample testimonial · Replace before launch</p></div>
+<div class="c-testimonial-photo"></div><div class="c-testimonial-copy"><p class="c-eyebrow c-eyebrow-light">Kind words</p><h2>From our clients</h2><?php if($review):?><blockquote>“<?=e((string)$review['fields']['review'])?>”</blockquote><p class="c-quote-credit"><?=e((string)$review['fields']['customer_name'])?><?=!empty($review['fields']['event_type'])?' · '.e((string)$review['fields']['event_type']):''?><?=($review['fields']['verified']??'0')==='1'?' · Verified event':''?></p><?php else:?><blockquote>“Add an authentic customer story here—one that reflects the food, service, and feeling of the day.”</blockquote><p class="c-quote-credit">Sample testimonial · Replace before launch</p><?php endif;?></div>
 </section>
 
 <section class="c-process c-wrap c-section" aria-labelledby="process-title">

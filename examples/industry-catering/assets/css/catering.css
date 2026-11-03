@@ -63,3 +63,72 @@
 .c-menu-price small{display:inline;margin-left:.35rem}
 .c-menu-detail-list{display:grid;gap:1.5rem}
 .c-menu-detail-list h2{font-size:1.65rem;margin:0}
+
+/* Catering menu planner: scoped to the industry and progressively enhanced. */
+.c-quote-page [hidden],.c-wrap [hidden]{display:none!important}
+.c-planner-filter{display:flex;align-items:end;gap:1rem;margin:1.5rem 0;padding:1rem;background:#f1f3ed;border-radius:10px}
+.c-planner-filter label{flex:0 0 220px;margin:0}
+.c-planner-filter p{margin:0}
+.c-planner-rules{padding:1rem;border-left:3px solid var(--gold);background:#f5f2e9;font-size:.9rem;line-height:1.6}
+.c-planner-category{margin:1.75rem 0}
+.c-planner-category h2{font-size:1.6rem}
+.c-planner-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.c-quote-form label.c-planner-item{display:grid;grid-template-columns:24px minmax(0,1fr);align-content:start;gap:.65rem;margin:0;padding:1rem;border:1px solid #d6ddd3;border-radius:12px;background:#fff;cursor:pointer;min-width:0}
+.c-planner-item:has(input:checked){outline:2px solid #375d45;background:#f3f7f0}
+.c-planner-item:focus-within{outline:3px solid #947129;outline-offset:3px}
+.c-quote-form .c-planner-item>input{width:20px;height:20px;margin:.25rem 0;accent-color:#375d45}
+.c-planner-item>img{grid-column:2;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;border-radius:7px}
+.c-planner-copy{grid-column:2;display:grid;gap:.5rem;font-size:.85rem;line-height:1.5;overflow-wrap:anywhere}
+.c-planner-copy>strong{font-size:1.05rem;color:#1c3828}
+.c-planner-copy small{font-size:.75rem;font-weight:400}
+.c-planner-price{font-weight:650}
+.c-estimate{padding:1.25rem;background:#edf2e9;border:1px solid #c9d7c2;border-radius:12px;margin:1.5rem 0;overflow-wrap:anywhere}
+.c-estimate h3{margin-top:0;font-size:1.3rem}
+.c-estimate>strong{display:block;font-size:1.3rem;margin:.75rem 0;color:#203c2b}
+.c-estimate[aria-busy=true]{opacity:.65}
+.c-allergen-info{font-size:.8rem;line-height:1.5;color:#525a50}
+.c-menu-planner-link{display:flex;gap:1rem;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:2rem}
+@media(max-width:640px){.c-planner-grid{grid-template-columns:1fr}.c-planner-filter{display:block}.c-planner-filter p{margin-top:.75rem}.c-planner-filter label{width:100%}.c-quote-main{min-width:0}.c-quote-form .c-form-grid-three{grid-template-columns:1fr}.c-planner-rules{overflow-wrap:anywhere}}
+.c-option-card{position:relative}
+.c-quote-form .c-option-card input{width:1px;height:1px;padding:0;margin:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.c-quote-form label.c-planner-item{text-transform:none;letter-spacing:0}
+.c-quote-form .c-planner-extras{padding:1.25rem;margin:1.5rem 0;border:1px solid var(--line);border-radius:12px}
+.c-quote-form .c-planner-extras>legend{font-family:var(--sans);font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:0;padding:0 .35rem}
+@media(min-width:761px){.c-quote-page{background:linear-gradient(90deg,var(--forest) 390px,var(--paper) 390px)}.c-quote-aside{align-self:start;position:sticky;top:0;min-height:100vh}}
+@media(min-width:761px) and (max-width:1050px){.c-quote-page{background:linear-gradient(90deg,var(--forest) 300px,var(--paper) 300px)}}
+.c-quote-page~.skip-link:not(:focus),body>.skip-link:not(:focus){clip-path:inset(50%);width:1px;height:1px;padding:0;overflow:hidden}
+
+/* Core-owned service-radius output and content Media adopted in Catering 2.0. */
+.c-core-service-map .wc-service-area{padding:2rem;background:var(--cream);border:1px solid var(--line);border-radius:18px}
+.c-core-service-map .wc-service-area h2{font-size:1.75rem;margin-top:0}
+.c-core-service-map .wc-service-area-map{max-width:520px;margin:auto;color:var(--forest)}
+.c-core-service-map svg{display:block;width:100%;height:auto}
+.c-core-service-map circle,.c-core-service-map path{fill:color-mix(in srgb,var(--sage) 24%,transparent);stroke:currentColor;stroke-width:2}
+.c-core-service-map circle.center{fill:var(--gold);stroke:var(--forest);stroke-width:3}
+.c-content-card-image{display:block;width:calc(100% + 3rem);max-width:none;height:230px;object-fit:cover;margin:-1.5rem -1.5rem 1.5rem}
+.c-story-gallery{display:grid;grid-template-columns:2fr 1fr;gap:.35rem;margin:-1.5rem -1.5rem 1.5rem;overflow:hidden}
+.c-story-gallery img{width:100%;height:220px;object-fit:cover}.c-story-gallery img:nth-child(n+3){display:none}
+.c-review-image{width:72px;height:72px;border-radius:50%;object-fit:cover;float:right;margin:0 0 1rem 1rem}
+
+/* 2.1 commercial navigation and interaction pass. */
+.c-site-header{height:72px;position:sticky;top:0;z-index:1000;background:rgba(255,253,248,.75);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);box-shadow:0 1px 0 rgba(32,57,45,.1);transition:background .2s,box-shadow .2s}
+.c-site-header.is-scrolled{background:rgba(255,253,248,.9);box-shadow:0 14px 35px rgba(18,32,24,.12)}
+.c-site-header .c-brand-logo{max-height:48px}
+.c-site-header .c-nav-root{justify-content:center;gap:clamp(1rem,2vw,2rem)}
+.c-site-header .c-nav a{font-size:clamp(.88rem,1vw,1rem);font-weight:750;letter-spacing:.01em;padding:.65rem .15rem}
+.c-site-header .c-nav a:after{height:3px;bottom:.12rem;border-radius:99px}
+.c-site-header .c-nav a[aria-current=page]{color:var(--forest)}
+.c-site-header .c-nav a[aria-current=page]:before{content:'';position:absolute;inset:.25rem -.5rem;border-radius:999px;background:rgba(185,148,75,.12);z-index:-1}
+.c-site-header .c-header-cta{min-height:40px;padding:.62rem 1rem}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+body:before{content:'';position:fixed;left:0;right:0;top:0;height:3px;z-index:10000;background:var(--gold);transform:scaleX(0);transform-origin:left;transition:transform .38s ease;pointer-events:none}
+body.is-page-leaving:before{transform:scaleX(.88)}
+body.is-page-leaving main{opacity:.72;transition:opacity .18s ease}
+.c-image-card,.c-dish-card,.c-package-card,.c-package-full{border-radius:18px;overflow:hidden}
+.c-image-card{border:1px solid var(--line);box-shadow:0 12px 32px rgba(31,40,33,.07)}
+.c-section-heading,.c-heading-centered{position:relative}
+.c-section-heading:after,.c-heading-centered:after{content:'';display:block;width:54px;height:3px;border-radius:99px;background:var(--gold);margin-top:1rem}
+.c-heading-centered:after{margin-inline:auto}
+
+@media(max-width:1120px){.c-site-header{grid-template-columns:minmax(150px,1fr) auto minmax(150px,1fr);gap:.8rem}.c-site-header .c-nav-root{gap:.8rem}.c-site-header .c-nav a{font-size:.83rem}.c-header-social{display:none}}
+@media(max-width:900px){.c-site-header{height:66px;grid-template-columns:1fr auto auto;padding-inline:1rem}.c-site-header .c-brand-logo{max-height:44px}.c-site-header .c-nav{top:66px;position:absolute;left:0;right:0;padding:1rem;background:rgba(255,253,248,.96);backdrop-filter:blur(18px);box-shadow:0 20px 45px rgba(20,30,24,.15)}.c-site-header .c-nav-root{display:block}.c-site-header .c-nav a{font-size:1rem;padding:.85rem}.c-site-header .c-nav a[aria-current=page]:before{inset:.3rem 0}.c-site-header .c-nav-children{position:static;display:block;margin-left:1rem;box-shadow:none;border:0;background:transparent}.c-header-cta{display:none}}

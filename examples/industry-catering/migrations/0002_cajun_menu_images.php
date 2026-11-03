@@ -35,10 +35,17 @@ return new class extends Migration {
             'buffet-favorites' => ['Bayou Favorites', 'Generous crowd-pleasing selections for family-style service and festive buffets.'],
             'desserts' => ['Louisiana Desserts', 'A sweet Southern finish with warm spice, caramel, pecans, and celebration-ready presentation.'],
         ];
+        $originalCategories = [
+            'seasonal-small-plates' => ['Seasonal Small Plates', 'Passed and displayed bites designed to begin the gathering beautifully.', 10],
+            'plated-entrees' => ['Plated Entrées', 'Refined main courses finished with seasonal accompaniments.', 20],
+            'buffet-favorites' => ['Buffet Favorites', 'Generous crowd-pleasing selections for relaxed service.', 30],
+            'desserts' => ['Desserts', 'A sweet finish, from petite pastries to celebration cakes.', 40],
+        ];
         foreach ($categories as $slug => [$name, $description]) {
+            [$originalName, $originalDescription, $originalSort] = $originalCategories[$slug];
             $db->run(
-                "UPDATE `{$categoriesTable}` SET name = ?, description = ? WHERE slug = ?",
-                [$name, $description, $slug]
+                "UPDATE `{$categoriesTable}` SET name = ?, description = ? WHERE slug = ? AND name = ? AND description = ? AND sort_order = ? AND visible = 1",
+                [$name, $description, $slug, $originalName, $originalDescription, $originalSort]
             );
         }
 
@@ -53,18 +60,41 @@ return new class extends Migration {
             'mediterranean-table' => ['cajun-jambalaya', 'Cajun Jambalaya', 'Louisiana brown jambalaya with Gulf shrimp, chicken, and smoked andouille sausage.', 2400, 'per guest', 'Gluten Free', 0, 20, 'cajun-jambalaya.webp'],
             'petite-dessert-table' => ['bananas-foster-bread-pudding', 'Bananas Foster Bread Pudding', 'Warm bread pudding with caramelized bananas, rum caramel, toasted pecans, and vanilla cream.', 1100, 'per guest', 'Vegetarian', 0, 10, 'bananas-foster-bread-pudding.webp'],
         ];
+        // This migration may still be pending on 0.1.21 sites. Match complete
+        // original starter records before replacing them; a familiar slug alone
+        // does not authorize overwriting the owner's edits.
+        $originalItems = [
+            'garden-crostini' => ['Garden Crostini', 'Whipped chèvre, roasted tomato, basil oil, and garden herbs.', 650, 'Vegetarian'],
+            'gulf-shrimp-spoons' => ['Gulf Shrimp Spoons', 'Citrus-poached shrimp, cucumber, avocado, and pepper relish.', 850, 'Gluten Free'],
+            'wild-mushroom-tartlet' => ['Wild Mushroom Tartlet', 'Caramelized shallot, thyme, and aged parmesan.', 725, 'Vegetarian'],
+            'herb-crusted-salmon' => ['Herb-Crusted Salmon', 'Seasonal grains, charred vegetables, lemon beurre blanc.', 3600, 'Gluten Free'],
+            'filet-mignon' => ['Filet Mignon', 'Truffle potatoes, roasted heirloom carrots, red-wine reduction.', 4800, 'Gluten Free'],
+            'garden-harvest' => ['Garden Harvest', 'Roasted squash, creamy polenta, greens, and smoked tomato jus.', 3000, 'Vegan, Gluten Free'],
+            'southern-celebration' => ['Southern Celebration', 'Herb chicken, braised greens, whipped potatoes, and warm rolls.', 2800, ''],
+            'mediterranean-table' => ['Mediterranean Table', 'Grilled chicken, lemon rice, seasonal vegetables, hummus, and flatbread.', 2700, 'Vegetarian options'],
+            'petite-dessert-table' => ['Petite Dessert Table', 'Chef-selected tartlets, truffles, macarons, and seasonal sweets.', 1200, 'Vegetarian'],
+        ];
+        $originalCategorySlugs = [
+            'garden-crostini' => 'seasonal-small-plates', 'gulf-shrimp-spoons' => 'seasonal-small-plates', 'wild-mushroom-tartlet' => 'seasonal-small-plates',
+            'herb-crusted-salmon' => 'plated-entrees', 'filet-mignon' => 'plated-entrees', 'garden-harvest' => 'plated-entrees',
+            'southern-celebration' => 'buffet-favorites', 'mediterranean-table' => 'buffet-favorites', 'petite-dessert-table' => 'desserts',
+        ];
+        $originalFeatured = ['garden-crostini' => 1, 'gulf-shrimp-spoons' => 1, 'herb-crusted-salmon' => 1, 'filet-mignon' => 1];
+        $upgradedStarter = false;
         foreach ($replacements as $oldSlug => $item) {
+            [$originalName, $originalDescription, $originalPrice, $originalDietary] = $originalItems[$oldSlug];
             [$slug, $name, $description, $price, $unit, $dietary, $featured, $sort, $image] = $item;
             if ((int) $db->fetchColumn("SELECT COUNT(*) FROM `{$itemsTable}` WHERE slug = ?", [$slug]) > 0) {
                 continue;
             }
-            $db->run(
-                "UPDATE `{$itemsTable}` SET slug = ?, name = ?, description = ?, price_cents = ?, price_unit = ?, dietary = ?, featured = ?, sort_order = ?, image = ? WHERE slug = ?",
-                [$slug, $name, $description, $price, $unit, $dietary, $featured, $sort, $image, $oldSlug]
+            $updated = $db->run(
+                "UPDATE `{$itemsTable}` SET slug = ?, name = ?, description = ?, price_cents = ?, price_unit = ?, dietary = ?, featured = ?, sort_order = ?, image = ? WHERE slug = ? AND name = ? AND description = ? AND price_cents = ? AND dietary = ? AND price_unit = ? AND featured = ? AND sort_order = ? AND visible = 1 AND (image IS NULL OR image = ?) AND category_id = (SELECT id FROM `{$categoriesTable}` WHERE slug = ?)",
+                [$slug, $name, $description, $price, $unit, $dietary, $featured, $sort, $image, $oldSlug, $originalName, $originalDescription, $originalPrice, $originalDietary, 'per guest', $originalFeatured[$oldSlug] ?? 0, $sort, '', $originalCategorySlugs[$oldSlug]]
             );
+            $upgradedStarter = $upgradedStarter || $updated->rowCount() > 0;
         }
 
-        if ((int) $db->fetchColumn("SELECT COUNT(*) FROM `{$itemsTable}` WHERE slug = ?", ['blackened-redfish']) === 0) {
+        if ($upgradedStarter && (int) $db->fetchColumn("SELECT COUNT(*) FROM `{$itemsTable}` WHERE slug = ?", ['blackened-redfish']) === 0) {
             $categoryId = $db->fetchColumn("SELECT id FROM `{$categoriesTable}` WHERE slug = ?", ['plated-entrees']);
             if ($categoryId !== false) {
                 $db->insert('catering_menu_items', [

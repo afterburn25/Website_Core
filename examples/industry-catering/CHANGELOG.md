@@ -1,5 +1,13 @@
 # Catering Module Changelog
 
+## 2.1.1 — 2026-11-03
+
+- Repair social-link placement across all ten industry theme layouts. Every
+  theme renders the Core-owned header and footer social sets when selected.
+- Preserve the existing Core global Header/Footer/Both selection and accessible
+  Social media navigation labels; never add icons when profile URLs are blank.
+- No schema, API, license, commerce, or customer-data changes.
+
 ## 2.1.0 — 2026-10-26
 
 - Reworked all ten themes for a commercial-quality visual hierarchy while

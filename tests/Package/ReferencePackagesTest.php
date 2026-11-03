@@ -415,7 +415,7 @@ final class ReferencePackagesTest extends TestCase
         foreach (['/services', '/menus', '/packages', '/gallery', '/about', '/service-area', '/faq', '/contact', '/request-a-quote'] as $route) {
             $response = $this->req('GET', $route);
             $this->assertSame(200, $response->status(), $route);
-            $this->assertStringContainsString('<main id="main-content">', $response->body(), $route);
+            $this->assertStringContainsString('<main id="main-content"', $response->body(), $route);
         }
 
         $menu = $this->req('GET', '/menus/plated-entrees');

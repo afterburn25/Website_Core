@@ -171,6 +171,13 @@ if (in_array($argv[1] ?? null, ['bundle', 'test-bundle'], true)) {
         }
         $path = $file->getPathname();
         $rel = str_replace('\\', '/', substr($path, strlen($moduleBase) + 1));
+        // A module can keep its own distribution ZIP in releases/, but a
+        // combined Core bundle must never contain a ZIP inside a ZIP.
+        // Refuse rather than silently discarding unexpected source files.
+        if (str_ends_with(strtolower($rel), '.zip')) {
+            fwrite(STDERR, "Nested ZIP not allowed in module bundle: {$rel}\\n");
+            exit(1);
+        }
         if (str_ends_with($rel, '.env') || str_contains($rel, '.key') || str_contains($rel, '.pem')) {
             continue;
         }
@@ -262,6 +269,10 @@ function buildZip(string $zipPath, string $base, callable $map, array $extra = [
         $target = $map($rel);
         if ($target === null) {
             continue;
+        }
+        if (str_ends_with(strtolower($target), '.zip')) {
+            fwrite(STDERR, "Nested ZIP not allowed in release archive: {$target}\\n");
+            exit(1);
         }
         $zip->addFile($f->getPathname(), $target);
         $count++;

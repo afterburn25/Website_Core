@@ -1,0 +1,207 @@
+name: Catering 2.1 authoritative integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# This is an exact-commit integration check, not a live licensing purchase or
+# permission to publish an unsigned production release. Update the pin through
+# review when the authoritative module branch advances.
+jobs:
+  catering-21:
+    name: Core 2.6.2 + authoritative Catering 2.1.0 (MySQL 8.4)
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: '1'
+          MYSQL_DATABASE: wc_current_catering
+        ports:
+          - 3306:3306
+    steps:
+      - name: Check out Website Core under test
+        uses: actions/checkout@v4
+        with:
+          path: core
+      - name: Check out exact authoritative Catering module commit
+        uses: actions/checkout@v4
+        with:
+          repository: afterburn25/Core_Mods
+          ref: ecdf34b8a471f5db113a1cadc84c78fc688e735a
+          path: authoritative-modules
+          persist-credentials: false
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, openssl, pdo_mysql, pdo_sqlite, fileinfo, gd, intl, zip
+          coverage: none
+      - name: Prove original Core reference tests before replacing their historical fixture
+        working-directory: core
+        run: |
+          set -euo pipefail
+          composer install --no-interaction --prefer-dist
+          php tools/release-gate.php
+          php tools/lint.php
+          vendor/bin/phpunit --testsuite unit,package
+      - name: Stage exact 2.1.0 module into isolated Core build
+        working-directory: core
+        run: |
+          set -euo pipefail
+          test "$(git -C ../authoritative-modules rev-parse HEAD)" = "ecdf34b8a471f5db113a1cadc84c78fc688e735a"
+          test "$(git rev-parse --short HEAD)" != ""
+          rm -rf examples/industry-catering
+          mkdir -p examples/industry-catering
+          cp -a ../authoritative-modules/modules/industry-catering/. examples/industry-catering/
+          # The authoritative module repo retains its own separately
+          # downloadable release ZIP. Never place that ZIP in a new ZIP.
+          rm -rf examples/industry-catering/releases
+          test -z "$(find examples/industry-catering -type f -iname '*.zip' -print -quit)"
+          php -r '
+            $m=json_decode(file_get_contents("examples/industry-catering/addon.json"),true);
+            if (($m["id"]??null)!=="cajunwebpro/catering"
+              || ($m["version"]??null)!=="2.1.0"
+              || ($m["requires"]["core"]??null)!==">=2.6.2,<3.0.0"
+              || ($m["requires"]["api"]??null)!==1
+              || !is_array($m["requires"]["services"]??null)) {
+                fwrite(STDERR, "Expected pinned module version/service contract missing\n"); exit(1);
+            }
+            echo "Pinned latest module manifest OK\n";'
+      - name: Lint and verify pinned 2.1.0 module-specific acceptance contracts
+        working-directory: core
+        run: |
+          set -euo pipefail
+          php tools/release-gate.php
+          php tools/lint.php
+          php examples/industry-catering/tests/release-readiness.php
+      - name: Reject a nested module ZIP before making a bundle
+        working-directory: core
+        run: |
+          set -euo pipefail
+          printf 'not a real zip\n' > examples/industry-catering/nested-release.zip
+          if php tools/build-packages.php test-bundle catering /tmp/catering-nested-negative; then
+            echo "Packaging accepted a nested ZIP" >&2
+            exit 1
+          fi
+          rm examples/industry-catering/nested-release.zip
+      - name: Build exact current Core + Catering test bundle
+        working-directory: core
+        run: |
+          set -euo pipefail
+          php tools/build-packages.php test-bundle catering /tmp/catering-21-dist
+          php -r '
+            $p=glob("/tmp/catering-21-dist/Website-Core-catering-*-TEST-BUNDLE.zip")[0]??null;
+            if (!$p || !($z=new ZipArchive()) || $z->open($p)!==true) {
+              fwrite(STDERR, "Missing or unreadable test bundle\n"); exit(1);
+            }
+            $m=json_decode((string)$z->getFromName("modules/industries/industry-catering/addon.json"),true);
+            if (($m["version"]??null)!=="2.1.0" || isset($m["license_key"])) {
+              fwrite(STDERR, "Wrong bundled module or unexpected license\n"); exit(1);
+            }
+            foreach (["index.php",".htaccess","install.php","install/index.php",
+              "core/Install/Installer.php","vendor/autoload.php",
+              "modules/industries/industry-catering/src/Provider.php",
+              "modules/industries/industry-catering/src/ThemeSupport.php",
+              "modules/industries/industry-catering/migrations/0008_event_workspace.php"] as $required) {
+              if ($z->locateName($required)===false) {
+                fwrite(STDERR, "Missing: $required\n");exit(1);
+              }
+            }
+            for ($i=0;$i<$z->numFiles;$i++){
+              $path=$z->getNameIndex($i);
+              if (preg_match("/\\.zip$/i",$path)) {
+                fwrite(STDERR, "Forbidden nested ZIP: $path\n");exit(1);
+              }
+            }
+            if ($z->locateName("config/config.php")!==false) {
+              fwrite(STDERR, "Runtime credentials in package\n");exit(1);
+            }
+            echo "Current module artifact contract OK\n";'
+      - name: Extract directly usable upload for acceptance (not production release)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/catering-21-artifact /tmp/catering-21-live
+          unzip -q /tmp/catering-21-dist/Website-Core-catering-*-TEST-BUNDLE.zip -d /tmp/catering-21-artifact
+          unzip -q /tmp/catering-21-dist/Website-Core-catering-*-TEST-BUNDLE.zip -d /tmp/catering-21-live
+          test -f /tmp/catering-21-artifact/install.php
+          test -f /tmp/catering-21-artifact/.htaccess
+          test ! -f /tmp/catering-21-artifact/config/config.php
+          test -z "$(find /tmp/catering-21-artifact -type f -name '*.zip' -print -quit)"
+      - name: Live HTTP installer and DB/module activation smoke (MySQL)
+        run: |
+          set -euo pipefail
+          php -r '
+            $deadline=time()+60;
+            do {
+              try {
+                new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_current_catering","root","");
+                echo "MySQL ready\n";exit(0);
+              } catch (Throwable $e) {usleep(500000);}
+            } while (time()<$deadline);
+            fwrite(STDERR,"MySQL unavailable\n");exit(1);'
+          php -S 127.0.0.1:8112 -t /tmp/catering-21-live >/tmp/catering-21-http.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true; cat /tmp/catering-21-http.log || true' EXIT
+          for i in $(seq 1 30); do
+            curl -sS -D /tmp/catering-21-get.headers -H 'X-Forwarded-Proto: https' -b /tmp/catering-21-cookies -c /tmp/catering-21-cookies -o /tmp/catering-21-install.html http://127.0.0.1:8112/ && break
+            sleep 1
+          done
+          grep -q 'Install' /tmp/catering-21-install.html
+          grep -q 'industry-catering' /tmp/catering-21-install.html
+          csrf=$(sed -n 's/.*name="installer_csrf" value="\([^"]*\)".*/\1/p' /tmp/catering-21-install.html | head -1)
+          cookie=$(sed -n 's/^[Ss]et-[Cc]ookie: WCINSTALL=\([^;]*\).*/\1/p' /tmp/catering-21-get.headers | tail -1)
+          if [ -z "$cookie" ]; then
+            cookie=$(awk '$6=="WCINSTALL"{print $7}' /tmp/catering-21-cookies | tail -1)
+          fi
+          test -n "$csrf"
+          test -n "$cookie"
+          code=$(curl -sS --cookie "WCINSTALL=$cookie" -c /tmp/catering-21-cookies -o /tmp/catering-21-result.html -w '%{http_code}' \
+            -H 'X-Forwarded-Proto: https' -X POST http://127.0.0.1:8112/ \
+            --data-urlencode "installer_csrf=$csrf" \
+            --data-urlencode "site_name=Current Catering CI" \
+            --data-urlencode "base_url=https://127.0.0.1:8112" \
+            --data-urlencode "timezone=UTC" \
+            --data-urlencode "db_host=127.0.0.1" \
+            --data-urlencode "db_port=3306" \
+            --data-urlencode "db_name=wc_current_catering" \
+            --data-urlencode "db_user=root" \
+            --data-urlencode "db_pass=" \
+            --data-urlencode "db_prefix=wc_" \
+            --data-urlencode "owner_username=ci-owner" \
+            --data-urlencode "owner_email=owner@example.test" \
+            --data-urlencode "owner_password=ci-acceptance-pass-1" \
+            --data-urlencode "owner_password2=ci-acceptance-pass-1" \
+            --data-urlencode "storage_path=/tmp/catering-21-live/storage")
+          if [ "$code" != "200" ] || ! grep -q "Installation complete" /tmp/catering-21-result.html; then
+            echo "Current Catering installer failed with HTTP $code" >&2
+            head -c 2000 /tmp/catering-21-result.html
+            exit 1
+          fi
+          test -f /tmp/catering-21-live/config/installed.lock
+          test ! -e /tmp/catering-21-live/install.php
+          test ! -d /tmp/catering-21-live/install
+          php -r '
+            $p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_current_catering","root","");
+            $row=$p->query("SELECT version,state FROM wc_packages WHERE package_id=\"cajunwebpro/catering\"")->fetch(PDO::FETCH_ASSOC);
+            if (!$row || $row["version"]!=="2.1.0" || $row["state"]!=="enabled") {
+              fwrite(STDERR, "Actual current module not registered and enabled\n"); exit(1);
+            }
+            $p->query("SELECT COUNT(*) FROM wc_catering_inquiries")->fetchColumn();
+            echo "Current Catering 2.1.0 installed, migrated, and enabled\n";'
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8112/index.php)" = "200"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8112/index.php?p=/admin/login')" = "200"
+      - name: Upload direct latest-module TEST-BUNDLE (not signed production)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Website-Core-2.6.2-Catering-2.1.0-AUTHORITATIVE-TEST-BUNDLE
+          path: /tmp/catering-21-artifact/
+          if-no-files-found: error
+          include-hidden-files: true
+          compression-level: 0
+          retention-days: 30

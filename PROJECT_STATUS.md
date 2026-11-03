@@ -1,5 +1,17 @@
 # Project Status
 
+**Current integration (2026-11-03):** Core `2.6.2` remains the runtime
+version, and the reference Catering module is now **2.1.1** after
+[PR #11](https://github.com/afterburn25/Website_Core/pull/11)
+merged at `9f7f677f`. Its authoritative module repair
+[Core_Mods PR #2](https://github.com/afterburn25/Core_Mods/pull/2)
+also merged after all module and native acceptance jobs passed. All six
+Core CI jobs and the pinned authoritative Catering integration job passed
+on the final PR head `fd5597b7`. A new post-merge run and packaged-host,
+restore, production licensing, signing, browser/accessibility and
+published-release gates remain distinct and must not be called complete
+until verified. See `docs/2.6.2_RELEASE_READINESS.md`.
+
 **Current on `main` (2026-11-03): Website Core 2.6.2 is merged and CI-verified,
 but a production release has not been published.** [PR #7](https://github.com/afterburn25/Website_Core/pull/7)
 (M0–M6 and licensed bundle support) and

@@ -403,10 +403,14 @@ final class ReferencePackagesTest extends TestCase
         $this->assertStringContainsString('class="c-header-social"', $homeWithSocial->body());
         $this->assertStringContainsString('class="c-footer-social"', $homeWithSocial->body());
         $this->assertSame(2, substr_count($homeWithSocial->body(), 'aria-label="Instagram"'));
-        $this->assertLessThan(
-            strpos($homeWithSocial->body(), 'class="c-header-social"'),
-            strpos($homeWithSocial->body(), 'class="c-header-cta"')
-        );
+        // Every Catering theme must honor Core's global social placement;
+        // in Heritage Editorial the header action uses the new shared
+        // theme-header-action wrapper instead of the legacy c-header-cta.
+        $headerSocialPos = strpos($homeWithSocial->body(), 'class="c-header-social"');
+        $headerActionPos = strpos($homeWithSocial->body(), 'class="c-button" href="/index.php?p=/request-a-quote"');
+        $this->assertNotFalse($headerSocialPos);
+        $this->assertNotFalse($headerActionPos);
+        $this->assertLessThan($headerActionPos, $headerSocialPos);
 
         foreach (['/services', '/menus', '/packages', '/gallery', '/about', '/service-area', '/faq', '/contact', '/request-a-quote'] as $route) {
             $response = $this->req('GET', $route);

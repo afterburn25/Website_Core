@@ -42,6 +42,14 @@ jobs:
           php-version: '8.4'
           extensions: mbstring, openssl, pdo_mysql, pdo_sqlite, fileinfo, gd, intl, zip
           coverage: none
+      - name: Prove original Core reference tests before replacing their historical fixture
+        working-directory: core
+        run: |
+          set -euo pipefail
+          composer install --no-interaction --prefer-dist
+          php tools/release-gate.php
+          php tools/lint.php
+          vendor/bin/phpunit --testsuite unit,package
       - name: Stage exact 2.1.0 module into isolated Core build
         working-directory: core
         run: |
@@ -65,14 +73,13 @@ jobs:
                 fwrite(STDERR, "Expected pinned module version/service contract missing\n"); exit(1);
             }
             echo "Pinned latest module manifest OK\n";'
-      - name: Install Composer dependencies and run Core tests with current module snapshot
+      - name: Lint and verify pinned 2.1.0 module-specific acceptance contracts
         working-directory: core
         run: |
           set -euo pipefail
-          composer install --no-interaction --prefer-dist
           php tools/release-gate.php
           php tools/lint.php
-          vendor/bin/phpunit --testsuite unit,package
+          php examples/industry-catering/tests/release-readiness.php
       - name: Reject a nested module ZIP before making a bundle
         working-directory: core
         run: |

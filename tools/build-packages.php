@@ -104,7 +104,7 @@ if (in_array($argv[1] ?? null, ['bundle', 'test-bundle'], true)) {
     $ver = preg_replace('/[^a-zA-Z0-9.\-]+/', '-', $version);
     echo $testingBundle
         ? "Building keyless TEST-BUNDLE for {$industry}\n"
-        : "Building licensed bundle for {$industry} with license_key={$licenseKey}\n";
+        : "Building licensed bundle for {$industry} (license key redacted)\n";
     echo "version={$ver}\n";
     // Find the industry module in examples/
     $examples = glob($root . '/examples/industry-*', GLOB_ONLYDIR);
@@ -297,6 +297,25 @@ $skipRuntime = fn (string $rel): bool =>
     || str_starts_with($rel, '.git/') || str_contains($rel, '/.git/')
     || str_ends_with($rel, '.ser');           // purifier cache
 
+// A declared production signing intent must be fail-closed. Do not spend time
+// building or publish an unsigned update if the supplied key is malformed,
+// empty, or cannot be used by the current PHP runtime. Test bundles do not
+// consult WC_UPDATE_SIGN_KEY because they are not Core update artifacts.
+$signingSecret = null;
+$signKey = getenv('WC_UPDATE_SIGN_KEY');
+if ($signKey !== false) {
+    if ($signKey === '' || !extension_loaded('sodium')) {
+        fwrite(STDERR, "WC_UPDATE_SIGN_KEY is set but missing or sodium signing is unavailable; refusing release build.\n");
+        exit(1);
+    }
+    $decoded = base64_decode($signKey, true);
+    if ($decoded === false || strlen($decoded) !== SODIUM_CRYPTO_SIGN_SECRETKEYBYTES) {
+        fwrite(STDERR, "WC_UPDATE_SIGN_KEY is invalid; refusing release build.\n");
+        exit(1);
+    }
+    $signingSecret = $decoded;
+}
+
 // --- production vendor: clean `composer install --no-dev` in a temp dir --
 $tmpVendor = buildProductionVendor($root);
 
@@ -339,16 +358,10 @@ $manifest = [
     // A target-version floor would make every genuine upgrade impossible.
     'min_core' => trim((string) getenv('WC_UPDATE_MIN_CORE')) ?: '0.1.14-dev',
 ];
-$signKey = getenv('WC_UPDATE_SIGN_KEY');
-if ($signKey && extension_loaded('sodium')) {
-    $secret = base64_decode($signKey, true);
-    if ($secret !== false && strlen($secret) === SODIUM_CRYPTO_SIGN_SECRETKEYBYTES) {
-        $payload = json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        $manifest['signature'] = base64_encode(sodium_crypto_sign_detached($payload, $secret));
-        echo "update manifest signed\n";
-    } else {
-        fwrite(STDERR, "WC_UPDATE_SIGN_KEY set but invalid — shipping unsigned update\n");
-    }
+if ($signingSecret !== null) {
+    $payload = json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    $manifest['signature'] = base64_encode(sodium_crypto_sign_detached($payload, $signingSecret));
+    echo "update manifest signed\n";
 }
 $uz->addFromString('update.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 $uz->close();

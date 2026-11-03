@@ -379,8 +379,35 @@ jobs:
           version=$(sed -n "s/define('WC_VERSION', '\([^']*\)').*/\1/p" site/includes/bootstrap.php)
           test -n "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Reject incorrectly configured release signing before building
+        run: |
+          set -euo pipefail
+          if WC_UPDATE_SIGN_KEY=invalid-key php tools/build-packages.php /tmp/invalid-signer-output; then
+            echo "Invalid signing key incorrectly produced release artifacts" >&2
+            exit 1
+          fi
+          test ! -e /tmp/invalid-signer-output/Website-Core-2.6.2-UPDATE.zip
       - name: Build all release artifacts
         run: php tools/build-packages.php /tmp/dist
+      - name: Verify production-style signed update using CI-only ephemeral Ed25519 keys
+        run: |
+          set -euo pipefail
+          trap 'rm -f /tmp/wc-ci-sign.secret /tmp/wc-ci-sign.public' EXIT
+          php -r '
+          $pair=sodium_crypto_sign_keypair();
+          file_put_contents("/tmp/wc-ci-sign.secret",base64_encode(sodium_crypto_sign_secretkey($pair)));
+          file_put_contents("/tmp/wc-ci-sign.public",base64_encode(sodium_crypto_sign_publickey($pair)));'
+          chmod 600 /tmp/wc-ci-sign.secret
+          # Reuse the first build's clean production vendor tree. Never ship
+          # test dependencies or embed another ZIP in the finished artifacts.
+          mkdir -p /tmp/wc-ci-prod-vendor
+          unzip -q /tmp/dist/Website-Core-*-COMPLETE-UPLOAD.zip 'vendor/*' -d /tmp/wc-ci-prod-vendor
+          WC_UPDATE_SIGN_KEY="$(cat /tmp/wc-ci-sign.secret)" \
+            WC_BUILD_VENDOR_DIR=/tmp/wc-ci-prod-vendor/vendor \
+            php tools/build-packages.php /tmp/wc-ci-signed-dist
+          WC_TEST_SIGN_PUBLIC="$(cat /tmp/wc-ci-sign.public)" php tools/verify-update-signing.php \
+            /tmp/dist/Website-Core-*-UPDATE.zip \
+            /tmp/wc-ci-signed-dist/Website-Core-*-UPDATE.zip
       - name: Build and inspect keyless testing bundle
         run: |
           php tools/build-packages.php test-bundle restaurant /tmp/test-dist

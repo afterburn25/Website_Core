@@ -673,3 +673,46 @@ jobs:
           }
           foreach ($found as $h=>$ok) if (!$ok) { fwrite(STDERR,"FULL-PROJECT missing $h\n"); exit(1); }
           echo "artifact contract OK\n";'
+
+      # Actions creates a ZIP around the uploaded directory. Unpack the build
+      # outputs first so testers receive one directly usable ZIP with the site
+      # at archive root, never a ZIP inside a ZIP.
+      - name: Stage Core-only complete upload for hosted acceptance
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/core-complete-artifact
+          unzip -q /tmp/dist/Website-Core-*-COMPLETE-UPLOAD.zip -d /tmp/core-complete-artifact
+          for required in index.php .htaccess install.php install/index.php core/Install/Installer.php core/Install/views/installer.php vendor/autoload.php; do
+            test -f "/tmp/core-complete-artifact/$required"
+          done
+          test ! -f /tmp/core-complete-artifact/config/config.php
+          test -z "$(find /tmp/core-complete-artifact -type f -name '*.zip' -print -quit)"
+      - name: Upload Core-only complete upload (acceptance, not published release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Website-Core-${{ steps.release-version.outputs.version }}-COMPLETE-UPLOAD
+          path: /tmp/core-complete-artifact/
+          if-no-files-found: error
+          compression-level: 0
+          include-hidden-files: true
+          retention-days: 30
+
+      - name: Stage full source project for independent review
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/core-source-artifact
+          unzip -q /tmp/dist/Website-Core-*-FULL-PROJECT.zip -d /tmp/core-source-artifact
+          for required in AGENTS.md README.md docs/RELEASE_CHECKLIST.md tests/bootstrap.php tools/release-gate.php; do
+            test -f "/tmp/core-source-artifact/Website-Core/$required"
+          done
+          test -z "$(find /tmp/core-source-artifact -type f -name '*.zip' -print -quit)"
+          test ! -e /tmp/core-source-artifact/Website-Core/site/config/config.php
+      - name: Upload full source project (review, not published release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Website-Core-${{ steps.release-version.outputs.version }}-FULL-PROJECT
+          path: /tmp/core-source-artifact/
+          if-no-files-found: error
+          compression-level: 0
+          include-hidden-files: true
+          retention-days: 30

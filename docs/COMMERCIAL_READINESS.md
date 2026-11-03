@@ -55,10 +55,17 @@ Website Core supports a DRM licensing model for bundled products:
 - **Build tool**: `php tools/build-packages.php bundle <industry>
   <license_key>` creates bundled ZIPs.
 
-**Status**: API specification in `docs/LICENSING_API.md`. Cajunwebpro.com
-licensing service is NOT yet implemented — needs license key generation,
-domain registration portal, validation endpoint, and domain change
-workflow.
+**Status (2026-11-03)**: The licensing API contract is documented in
+`docs/LICENSING_API.md`. Merged [Website Core PR #7](https://github.com/afterburn25/Website_Core/pull/7)
+reports that the companion service on `Cajun_Web` `main` has a validation
+endpoint, license/domain/bundle storage, paid-invoice fulfilment, and portal
+domain/download management. Core's MySQL/MariaDB installer and periodic
+authorization-denial-reactivation cycle passed against a **mock license
+service** in CI. **No real purchase → licensed download → installed host →
+production API validation has been verified for this Core release.** Recheck
+the current companion-service revision and configure the real server, keys,
+and trusted domain registration before publication. See
+`docs/2.6.2_RELEASE_READINESS.md` for the live acceptance steps.
 
 ## Performance posture
 

@@ -1,6 +1,17 @@
 # Project Status
 
-**Current**: `2.6.1` Core maintenance release for `CORE-REUSE-5` through
+**Current on `main` (2026-11-03): Website Core 2.6.2 is merged and CI-verified,
+but a production release has not been published.** [PR #7](https://github.com/afterburn25/Website_Core/pull/7)
+(M0–M6 and licensed bundle support) and
+[PR #8](https://github.com/afterburn25/Website_Core/pull/8)
+(visual industry themes and distinct module administration icons) merged on
+2026-10-26. [CI run 40252422095](https://github.com/afterburn25/Website_Core/actions/runs/40252422095)
+passed all six jobs on merge commit `15601a49`. Live packaged-host,
+cross-industry, production licensing, signing, and release-publication checks
+remain open. See [the 2.6.2 release-readiness matrix](docs/2.6.2_RELEASE_READINESS.md)
+before interpreting earlier development status as commercial acceptance.
+
+**Earlier 2.6.1 development status (historical):** `2.6.1` Core maintenance release for `CORE-REUSE-5` through
 `CORE-REUSE-11`, pending packaged-host and cross-industry adoption,
 building on the 2.5 CI-verified shared module forms and notifications and 2.4
 CI-verified shared module content, Media and structured data and 2.3 reusable module-record operations,

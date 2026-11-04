@@ -31,6 +31,31 @@ if (!is_array($data) || empty($data['license_key']) || empty($data['domain'])) {
 $key = (string) $data['license_key'];
 $domain = strtolower((string) $data['domain']);
 
+// HTTP 200 with non-boolean or missing authorization is *not* a verdict.
+if (str_starts_with($key, 'MISSING-')) {
+    echo json_encode(['notice' => 'license server did not evaluate request']);
+    exit;
+}
+if (str_starts_with($key, 'STRING-')) {
+    echo json_encode(['authorized' => 'false']);
+    exit;
+}
+if (str_starts_with($key, 'STRINGTRUE-')) {
+    echo json_encode(['authorized' => 'true']);
+    exit;
+}
+if (str_starts_with($key, 'NULL-')) {
+    echo json_encode(['authorized' => null]);
+    exit;
+}
+if (str_starts_with($key, 'NUMERIC-')) {
+    echo json_encode(['authorized' => 1]);
+    exit;
+}
+if (str_starts_with($key, 'ARRAYERROR-')) {
+    echo json_encode(['authorized' => false, 'error' => ['unexpected', 'array']]);
+    exit;
+}
 if (str_starts_with($key, 'BROKEN-')) {
     echo 'this is not json';
     exit;

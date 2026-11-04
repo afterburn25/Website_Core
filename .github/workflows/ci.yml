@@ -443,6 +443,40 @@ jobs:
           WC_TEST_SIGN_PUBLIC="$(cat /tmp/wc-ci-sign.public)" php tools/verify-update-signing.php \
             /tmp/dist/Website-Core-*-UPDATE.zip \
             /tmp/wc-ci-signed-dist/Website-Core-*-UPDATE.zip
+      - name: Commercial bundle signing is mandatory and fail-closed
+        run: |
+          set -euo pipefail
+          # Never allow a production-labeled bundle to leave the builder
+          # without a configured Ed25519 signing key.
+          if php tools/build-packages.php bundle catering CI-TEST-CUSTOMER-LICENSE-2026 /tmp/wc-ci-no-key; then
+            echo "Unsigned commercial bundle was accepted" >&2
+            exit 1
+          fi
+          test ! -f /tmp/wc-ci-no-key/Website-Core-catering-2.6.2-BUNDLE.zip
+          if WC_BUNDLE_SIGN_KEY=invalid php tools/build-packages.php bundle catering CI-TEST-CUSTOMER-LICENSE-2026 /tmp/wc-ci-bad-key; then
+            echo "Malformed production bundle key was accepted" >&2
+            exit 1
+          fi
+          test ! -f /tmp/wc-ci-bad-key/Website-Core-catering-2.6.2-BUNDLE.zip
+      - name: Sign and verify licensed bundle with ephemeral CI keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'rm -f /tmp/wc-ci-bundle-sign.secret /tmp/wc-ci-bundle-sign.public' EXIT
+          php -r '
+          $kp=sodium_crypto_sign_keypair();
+          file_put_contents("/tmp/wc-ci-bundle-sign.secret",base64_encode(sodium_crypto_sign_secretkey($kp)));
+          file_put_contents("/tmp/wc-ci-bundle-sign.public",base64_encode(sodium_crypto_sign_publickey($kp)));'
+          chmod 600 /tmp/wc-ci-bundle-sign.secret
+          mkdir -p /tmp/wc-ci-bundle-vendor
+          unzip -q /tmp/dist/Website-Core-*-COMPLETE-UPLOAD.zip 'vendor/*' -d /tmp/wc-ci-bundle-vendor
+          WC_BUNDLE_SIGN_KEY="$(cat /tmp/wc-ci-bundle-sign.secret)" \
+            WC_BUILD_VENDOR_DIR=/tmp/wc-ci-bundle-vendor/vendor \
+            php tools/build-packages.php bundle catering CI-TEST-CUSTOMER-LICENSE-2026 /tmp/wc-ci-bundle
+          WC_TEST_BUNDLE_PUBLIC="$(cat /tmp/wc-ci-bundle-sign.public)" \
+            WC_TEST_BUNDLE_LICENSE=CI-TEST-CUSTOMER-LICENSE-2026 \
+            php tools/verify-bundle-signing.php \
+            /tmp/wc-ci-bundle/Website-Core-catering-2.6.2-BUNDLE.zip catering
       - name: Build and inspect keyless testing bundle
         run: |
           php tools/build-packages.php test-bundle restaurant /tmp/test-dist

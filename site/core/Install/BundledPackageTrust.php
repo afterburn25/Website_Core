@@ -74,27 +74,10 @@ final class BundledPackageTrust
             return 'Licensed bundle module directory is invalid.';
         }
 
-        $seen = [];
-        foreach ($files as $rel => $digest) {
-            if (!is_string($rel) || $rel === '' || !ArchiveInspector::memberNameOk($rel)
-                || str_contains($rel, '\\') || str_contains($rel, '//')
-                || str_starts_with($rel, '/') || str_ends_with($rel, '/')
-                || preg_match('#(^|/)\.(/|$)#', $rel)
-                || !is_string($digest) || preg_match('/^[a-f0-9]{64}$/D', $digest) !== 1
-                || $rel === 'addon.json') {
-                return 'Licensed bundle contains an invalid signed file inventory.';
-            }
-            $path = rtrim($moduleDir, '/\\') . '/' . $rel;
-            if (is_link($path) || !is_file($path) || !is_readable($path)
-                || !hash_equals($digest, (string) hash_file('sha256', $path))) {
-                return 'Licensed bundle is missing a file or its signed checksum does not match.';
-            }
-            $seen[$rel] = true;
-        }
-
-        // No executable/source/asset bytes may be present outside the signed
-        // inventory. Also detect links to directories, which the recursive
-        // iterator otherwise would not traverse.
+        // Inspect the entire extracted tree before reading/checksumming even
+        // one signed member. Otherwise a symlinked parent could redirect the
+        // checksum read into private host files before we find that link.
+        $present = [];
         $directory = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($moduleDir, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST
@@ -111,8 +94,34 @@ final class BundledPackageTrust
                 return 'Licensed bundle contains a nonregular file.';
             }
             $rel = str_replace('\\', '/', substr($entry->getPathname(), strlen($root)));
-            if ($rel !== 'addon.json' && !isset($seen[$rel])) {
+            if ($rel !== 'addon.json' && !array_key_exists($rel, $files)) {
                 return 'Licensed bundle contains an unsigned extra file.';
+            }
+            $present[$rel] = true;
+        }
+        if (!isset($present['addon.json'])) {
+            return 'Licensed bundle module manifest is missing.';
+        }
+
+        foreach ($files as $rel => $digest) {
+            if (!is_string($rel) || $rel === '' || !ArchiveInspector::memberNameOk($rel)
+                || str_contains($rel, '\\') || str_contains($rel, '//')
+                || str_starts_with($rel, '/') || str_ends_with($rel, '/')
+                || preg_match('#(^|/)\.(/|$)#', $rel)
+                || !is_string($digest) || preg_match('/^[a-f0-9]{64}$/D', $digest) !== 1
+                || $rel === 'addon.json') {
+                return 'Licensed bundle contains an invalid signed file inventory.';
+            }
+            if (!isset($present[$rel])) {
+                return 'Licensed bundle is missing a signed module file.';
+            }
+            $path = $root . $rel;
+            if (!is_file($path) || !is_readable($path)) {
+                return 'Licensed bundle is missing a file or its signed checksum does not match.';
+            }
+            $hash = hash_file('sha256', $path);
+            if (!is_string($hash) || !hash_equals($digest, $hash)) {
+                return 'Licensed bundle is missing a file or its signed checksum does not match.';
             }
         }
         return null;

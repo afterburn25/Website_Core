@@ -262,6 +262,70 @@ final class MySqlNativeTest extends TestCase
         ));
     }
 
+    public function testModulePurgeNeverDropsLookalikeNativeTablesOrForeignDbPrefix(): void
+    {
+        $db = new Connection($this->db->pdo(), 'wcguard_');
+        (new Migrator($db, WC_ROOT . '/database/migrations'))->migrate();
+        $tmp = \WcProcessTmpDirs::make('wc-native-purge-');
+        foreach (['staging', 'industries', 'addons', 'themes'] as $dir) {
+            mkdir($tmp . '/' . $dir, 0777, true);
+        }
+        $registry = new ModuleRegistry(
+            $db, $tmp . '/industries', $tmp . '/addons', $tmp . '/themes'
+        );
+        $manager = new PackageManager(
+            $db, $registry, new ArchiveInspector(),
+            $tmp . '/staging', $tmp . '/industries', $tmp . '/addons',
+            $tmp . '/themes', $tmp . '/op.lock'
+        );
+        $archive = $tmp . '/widgets.zip';
+        $zip = new ZipArchive();
+        $this->assertTrue($zip->open($archive, ZipArchive::CREATE | ZipArchive::OVERWRITE));
+        $this->assertTrue($zip->addFromString(
+            'widgets/addon.json',
+            json_encode([
+                'schema' => 1,
+                'id' => 'acme/widgets',
+                'type' => 'addon',
+                'name' => 'Purge Isolation Fixture',
+                'version' => '1.0.0',
+                'license' => 'MIT',
+                'requires' => ['core' => '>=2.6.2', 'api' => 1],
+            ], JSON_THROW_ON_ERROR)
+        ));
+        $this->assertTrue($zip->close());
+        [, $error] = $manager->stage($archive);
+        $this->assertNull($error);
+        [$ok, $error] = $manager->install('acme/widgets');
+        $this->assertTrue($ok, (string) $error);
+        [$ok, $error] = $manager->uninstall('acme/widgets');
+        $this->assertTrue($ok, (string) $error);
+
+        // In an unescaped LIKE, both the DB prefix underscore and module
+        // separator underscore are wildcards. Preserve two foreign tables
+        // that an unsafe purge could otherwise irreversibly delete.
+        foreach ([
+            'wcguard_widgets_data',
+            'wcguard_widgetsx_customer',
+            'wcguardxwidgets_customer',
+        ] as $table) {
+            $db->pdo()->exec(
+                'CREATE TABLE ' . $table . ' (id INT PRIMARY KEY, payload VARCHAR(40))'
+            );
+            $db->pdo()->prepare(
+                'INSERT INTO ' . $table . ' (id, payload) VALUES (1, ?)'
+            )->execute(['keep']);
+        }
+        [$ok, $error] = $manager->purgeData('acme/widgets');
+        $this->assertTrue($ok, (string) $error);
+        $this->assertFalse($db->tableExists('widgets_data'));
+        foreach (['wcguard_widgetsx_customer', 'wcguardxwidgets_customer'] as $foreign) {
+            $this->assertSame('keep', $db->pdo()->query(
+                'SELECT payload FROM ' . $foreign . ' WHERE id=1'
+            )->fetchColumn(), 'Purge touched foreign customer table ' . $foreign);
+        }
+    }
+
     public function testAuthoritativeCateringAndLandscapingSwitchPreservesRecordsOnMysql(): void
     {
         // Separate native DB prefix prevents interference with other tests.

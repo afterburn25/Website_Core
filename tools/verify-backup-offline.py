@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify a privately exported Website Core backup without restoring it.
+r"""Verify a privately exported Website Core backup without restoring it.
 
 This command reads the ZIP in place. It does NOT unpack files, contact a
 server, import SQL, or print the database, configuration or filenames.

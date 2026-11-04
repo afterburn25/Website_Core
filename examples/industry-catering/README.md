@@ -9,12 +9,24 @@ adoption of [Cajun Web Pro Module Rules v1.1](../../MOD_RULES.md).
 
 ## Current release
 
-- Module version: `2.1.1`
+- Module version: `2.1.2`
 - Module ID: `cajunwebpro/catering`
 - Type: `industry`
 - Module API: `1`
 - Required Core: `>=2.6.2,<3.0.0`
 - Development branch: `module/catering`
+
+## Single page hero and compact navigation in 2.1.2
+
+Every selected visual theme **replaces** the old page-template hero. The public
+page renders one route-specific theme hero, not a theme showcase followed by
+the original content hero. Primary page titles appear once, and the hero
+photograph changes by destination, using existing packaged media and respecting
+Core's current Home/Services/Menus theme-media choices. Header menus are
+centered in a shorter 58px sticky, gradient-shaded 75%-opaque bar (25%
+transparent); mobile uses 56px with keyboard-dismissable navigation. All ten
+unique theme layouts retain their visual personality. No new module database
+migration, user content overwrite, or shared Core change is required.
 
 ## Social placement repair in 2.1.1
 

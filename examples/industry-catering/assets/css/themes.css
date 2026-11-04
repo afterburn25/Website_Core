@@ -175,3 +175,157 @@
 @media(max-width:520px){
   .theme-nav-shell .c-brand{max-width:145px}.theme-nav-shell .c-brand-logo{max-width:145px}.te-visual img{min-height:360px}.tw-title h1,.tb-hero h1,.tl-opening h1{font-size:clamp(2.75rem,13vw,4rem)}.tc-banner>div{padding:2rem 1.25rem}.tr-collage{padding-inline:1rem}.ts-mosaic{padding:.5rem}.tk-market>div{padding:3rem 1.25rem}
 }
+
+
+/* 2.1.2: one route-specific hero per page; compact centered glass navigation.
+   The glass tint is 75% opaque / 25% transparent across all ten variants. */
+.theme-shell{--theme-header-height:58px}
+.theme-shell .theme-nav-shell,
+.theme-shell .theme-nav-shell.is-scrolled{
+  position:sticky;top:0;z-index:1000;height:58px;min-height:58px;
+  display:grid;grid-template-columns:minmax(115px,1fr) minmax(0,max-content) minmax(115px,1fr);
+  align-items:center;gap:clamp(.5rem,1.5vw,1.5rem);
+  padding:.25rem clamp(1rem,3vw,3rem);
+  background:linear-gradient(110deg,
+    color-mix(in srgb,var(--theme-background) 75%,transparent),
+    color-mix(in srgb,var(--theme-surface) 75%,transparent));
+  color:var(--theme-text);border-bottom:1px solid color-mix(in srgb,var(--theme-text) 18%,transparent);
+  box-shadow:0 8px 24px color-mix(in srgb,var(--theme-text) 12%,transparent);
+  backdrop-filter:blur(18px) saturate(145%);
+  -webkit-backdrop-filter:blur(18px) saturate(145%);
+}
+.theme-shell .theme-nav-shell .c-brand{justify-self:start;max-width:145px;min-width:0}
+.theme-shell .theme-nav-shell .c-brand-logo{max-height:38px;max-width:145px}
+.theme-shell .theme-nav-shell .c-nav{justify-self:center;min-width:0;margin:0}
+.theme-shell .theme-nav-shell .c-nav-root{justify-content:center;gap:clamp(.55rem,1.2vw,1.35rem);margin:0;padding:0}
+.theme-shell .theme-nav-shell .c-nav a{padding:.45rem .1rem;font-size:clamp(.78rem,.83vw,.92rem);line-height:1.2}
+.theme-shell .theme-nav-shell .theme-header-action{justify-self:end;margin:0}
+.theme-shell .theme-nav-shell .theme-header-action .c-button,
+.theme-shell .theme-nav-shell .theme-header-action .ts-cta{min-height:34px;padding:.4rem .7rem;font-size:.64rem}
+.theme-shell .theme-nav-shell .c-header-social a{height:1.8rem;width:1.8rem}
+.theme-shell .theme-nav-shell .tr-brand{min-width:0}
+.theme-shell .theme-nav-shell .tr-brand em{display:none}
+.theme-shell .te-nav,.theme-shell .tk-nav{border:0}
+.theme-shell .tb-dock{flex-direction:row}
+.theme-shell .tw-bar{grid-template-columns:minmax(115px,1fr) minmax(0,max-content) minmax(115px,1fr)}
+.theme-shell .c-theme-hero-title{font-family:var(--serif);font-weight:400}
+
+/* Original image/heading heroes are omitted server-side when a theme is
+   selected; these are the theme's ONE replacement hero. */
+.theme-shell .te-frame{display:block;max-width:none}
+.theme-shell .te-visual{height:clamp(330px,48vh,490px);margin:0;padding:0;border:0;overflow:hidden}
+.theme-shell .te-visual img{height:100%;min-height:0;max-height:none;width:100%;object-fit:cover;border-radius:0}
+.theme-shell .te-visual:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(5,15,10,.78),rgba(5,15,10,.1));pointer-events:none}
+.theme-shell .te-visual .c-themed-hero-copy{position:absolute;left:clamp(1.5rem,6vw,6rem);right:1.5rem;bottom:clamp(1.5rem,4vw,3rem);z-index:2;color:#fff;max-width:760px}
+.theme-shell .te-visual .c-themed-hero-copy p{writing-mode:horizontal-tb;position:static;margin:0 0 .6rem;font-size:.8rem;letter-spacing:.2em;color:#fff}
+.theme-shell .te-visual h1{font-size:clamp(2.3rem,5.5vw,5.5rem);line-height:1.05;margin:0;color:#fff}
+.theme-shell .te-content{width:100%}
+
+.theme-shell .tm-intro{height:clamp(330px,48vh,490px);min-height:0;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr);align-items:center;gap:clamp(1rem,3vw,3rem);padding:1.5rem clamp(1rem,4vw,4rem)}
+.theme-shell .tm-intro>div{align-self:center;min-width:0}
+.theme-shell .tm-intro h1{font-size:clamp(2.2rem,4.4vw,4.9rem);line-height:1.02;margin:.9rem 0}
+.theme-shell .tm-intro figure{transform:none;align-self:stretch;min-height:0;overflow:hidden}
+.theme-shell .tm-intro img{width:100%;height:100%;min-height:0;max-height:420px;object-fit:cover}
+.theme-shell .tm-intro figcaption{font-size:.78rem;line-height:1.4;padding:.25rem 0}
+.theme-shell .tm-intro>a{display:none}
+
+.theme-shell .tg-hero{height:clamp(330px,48vh,490px);min-height:0;max-width:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);margin:0 auto 1.5rem;padding:1.2rem clamp(1rem,4vw,4rem);gap:1rem}
+.theme-shell .tg-hero img{height:100%;min-height:0;max-height:460px;width:100%;object-fit:cover;border-radius:3rem .75rem 3rem .75rem}
+.theme-shell .tg-hero>div{align-self:center;min-width:0;margin:0;padding:clamp(1.2rem,3vw,3rem);border-radius:2rem 0 2rem 0}
+.theme-shell .tg-hero h1{font-size:clamp(2.2rem,4.2vw,4.3rem)}
+
+.theme-shell .tw-hero{height:clamp(330px,50vh,500px);min-height:0;display:flex;justify-content:center;align-items:center}
+.theme-shell .tw-title{padding:2.5rem clamp(1rem,4vw,4rem)}
+.theme-shell .tw-title h1{font-size:clamp(2.5rem,5.5vw,5.4rem)}
+
+.theme-shell .tc-banner{height:clamp(330px,48vh,490px);min-height:0;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr)}
+.theme-shell .tc-banner img{height:100%;min-height:0;width:100%;object-fit:cover}
+.theme-shell .tc-banner>div{padding:clamp(1.4rem,3vw,3rem);overflow:auto}
+.theme-shell .tc-banner h1{font-size:clamp(2rem,3.8vw,4.2rem);line-height:1.03;margin:.6rem 0}
+
+.theme-shell .tr-collage{height:clamp(330px,48vh,490px);min-height:0;max-width:none;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);grid-template-rows:1fr;gap:0;margin:0;padding:0}
+.theme-shell .tr-collage>img:first-child{height:100%;min-height:0;max-height:490px;width:100%;grid-row:1;grid-column:1;transform:none;object-fit:cover;border-radius:0}
+.theme-shell .tr-collage>div{grid-column:2;grid-row:1;align-self:stretch;display:flex;flex-direction:column;justify-content:center;padding:clamp(1.5rem,4vw,4rem);transform:none}
+.theme-shell .tr-collage h1{font-size:clamp(2.2rem,4.5vw,4.5rem)}
+
+.theme-shell .tb-hero{height:clamp(330px,50vh,500px);min-height:0}
+.theme-shell .tb-hero img{height:100%;object-fit:cover;transform:none}
+.theme-shell .tb-hero h1{font-size:clamp(2.4rem,5.5vw,5.2rem)}
+
+.theme-shell .tk-market{height:clamp(330px,48vh,490px);min-height:0;display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr)}
+.theme-shell .tk-market>div{min-width:0;padding:clamp(1.2rem,4vw,4rem)}
+.theme-shell .tk-market>img{height:100%;min-height:0;max-height:490px;width:100%;object-fit:cover}
+.theme-shell .tk-market h1{font-size:clamp(2.3rem,4.5vw,4.5rem)}
+
+.theme-shell .ts-mosaic{height:clamp(330px,50vh,500px);min-height:0;display:grid;grid-template-columns:1fr;grid-template-rows:1fr;gap:0;padding:0;position:relative;overflow:hidden}
+.theme-shell .ts-mosaic figure{grid-column:1;grid-row:1;margin:0;height:100%;min-height:0;width:100%}
+.theme-shell .ts-mosaic figure img{height:100%;width:100%;object-fit:cover}
+.theme-shell .ts-mosaic:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,20,20,.72),transparent);pointer-events:none}
+.theme-shell .ts-mosaic>div{grid-column:1;grid-row:1;align-self:end;justify-self:start;position:relative;z-index:2;display:block;background:transparent;padding:clamp(1.5rem,4vw,4rem);max-width:760px;color:#fff}
+.theme-shell .ts-mosaic h1{font-size:clamp(2.4rem,5.2vw,5.3rem);line-height:1.05;text-transform:none;letter-spacing:0}
+.theme-shell .ts-mosaic figure figcaption{z-index:2;left:auto;right:1rem;bottom:1rem;font-size:.7rem}
+
+.theme-shell .tl-opening{max-width:none;padding:clamp(1.5rem,3vw,3rem) clamp(1rem,5vw,5rem);min-height:0}
+.theme-shell .tl-opening h1{font-size:clamp(2.3rem,5vw,5rem);max-width:1100px;line-height:1.06;margin:.7rem 0 1rem}
+.theme-shell .tl-opening figure{display:block;margin:1rem 0 0;height:clamp(230px,30vh,310px);position:relative}
+.theme-shell .tl-opening img{height:100%;min-height:0;max-height:310px;object-fit:cover;width:100%;box-shadow:none}
+.theme-shell .tl-opening figcaption{writing-mode:horizontal-tb;position:absolute;bottom:1rem;right:1rem;padding:.4rem .7rem;background:color-mix(in srgb,var(--theme-background) 75%,transparent);font-size:.75rem}
+
+/* Dynamic menu/service/package details retain practical price and request
+   information as compact body panels rather than creating another image hero. */
+.theme-shell .c-detail-hero{display:block;min-height:0;background:var(--theme-surface)}
+.theme-shell .c-detail-hero-photo{display:none}
+.theme-shell .c-detail-hero-copy{padding:clamp(1.5rem,4vw,3.5rem);max-width:1050px;margin:auto}
+.theme-shell .c-detail-hero-copy h2,.theme-shell .c-package-detail-hero h2{font-size:clamp(1.8rem,3.5vw,3.1rem)}
+.theme-shell .c-package-detail-hero{background:var(--theme-surface)!important;color:var(--theme-text);min-height:0;padding:clamp(2rem,4vw,3.5rem) max(1.5rem,calc((100% - var(--wrap))/2))}
+.theme-shell .c-package-hero-price{color:var(--theme-primary)}
+.theme-shell .c-contact-page,.theme-shell .c-quote-page{min-height:0}
+
+@media(max-width:900px){
+  .theme-shell{--theme-header-height:56px}
+  .theme-shell .theme-nav-shell,.theme-shell .theme-nav-shell.is-scrolled{height:56px;min-height:56px;grid-template-columns:1fr auto;gap:.5rem;padding:.25rem 1rem}
+  .theme-shell .theme-nav-shell .c-nav{display:none}
+  .theme-shell .theme-nav-shell .c-nav.is-open{display:block;position:absolute;top:56px;left:0;right:0;z-index:1001;max-height:calc(100vh - 56px);overflow:auto;background:color-mix(in srgb,var(--theme-background) 94%,transparent);padding:1rem}
+  .theme-shell .theme-nav-shell .c-nav.is-open .c-nav-root{display:block}
+  .theme-shell .theme-nav-shell .c-nav-toggle{display:block;justify-self:end}
+  .theme-shell .theme-nav-shell .theme-header-action{display:none}
+  .theme-shell .te-visual .c-themed-hero-copy p{display:block}
+  .theme-shell .tm-intro{grid-template-columns:1fr 1.1fr;padding:1rem}
+  .theme-shell .tg-hero{grid-template-columns:1fr 1fr;margin:0 0 1rem}
+  .theme-shell .tr-collage{grid-template-columns:1.1fr .9fr}
+  .theme-shell .ts-mosaic{display:grid}
+  .theme-shell .ts-mosaic>div{display:block}
+}
+@media(max-width:600px){
+  .theme-shell .te-visual,.theme-shell .tm-intro,.theme-shell .tg-hero,.theme-shell .tw-hero,.theme-shell .tc-banner,
+  .theme-shell .tr-collage,.theme-shell .tb-hero,.theme-shell .tk-market,.theme-shell .ts-mosaic{height:clamp(280px,42vh,410px);min-height:0}
+  .theme-shell .tm-intro,.theme-shell .tg-hero,.theme-shell .tc-banner,.theme-shell .tr-collage,.theme-shell .tk-market{grid-template-columns:1fr 1fr}
+  .theme-shell .tm-intro figcaption{display:none}
+  .theme-shell .tg-hero{padding:.5rem}
+  .theme-shell .tg-hero>div{padding:.8rem;border-radius:1rem}
+  .theme-shell .tg-hero h1,.theme-shell .tc-banner h1,.theme-shell .tr-collage h1,.theme-shell .tk-market h1{font-size:clamp(1.35rem,5.2vw,2.5rem)}
+  .theme-shell .tr-collage>div,.theme-shell .tc-banner>div,.theme-shell .tk-market>div{padding:1rem}
+  .theme-shell .ts-mosaic{display:grid}
+  .theme-shell .ts-mosaic figure{height:100%}
+  .theme-shell .tl-opening{padding:1rem}
+  .theme-shell .tl-opening h1{font-size:clamp(2.1rem,8vw,3.6rem)}
+  .theme-shell .tl-opening figure{margin-top:1rem}
+}
+
+
+/* 2.1.2 visual acceptance: Bayou Night uses light palette text. The fallback
+   ivory story panel cannot be allowed to wash out headlines and descriptions. */
+.theme-bayou-night .c-story-split{
+  background:var(--theme-surface);
+  color:var(--theme-text);
+}
+.theme-bayou-night .c-story-split h2,
+.theme-bayou-night .c-story-split h3{color:var(--theme-text)}
+.theme-bayou-night .c-story-split .c-lead{
+  color:color-mix(in srgb,var(--theme-text) 88%,var(--theme-surface));
+}
+.theme-bayou-night .c-story-split .c-eyebrow,
+.theme-bayou-night .c-story-split .c-text-link{color:var(--theme-accent)}
+/* The Market Kitchen notice duplicates the compact header visually; the
+   information remains represented by its page hero and navigation. */
+.theme-market-kitchen .tk-notice{display:none}

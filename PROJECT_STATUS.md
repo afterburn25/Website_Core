@@ -1,5 +1,18 @@
 # Project Status
 
+**Catering 2.1.2 synchronization candidate (2026-11-03):** The authoritative
+[Catering PR #3](https://github.com/afterburn25/Core_Mods/pull/3)
+is merged on `Core_Mods:module/catering` as `5aef1584dc814bde2f84256aab20175a1f69fa76`. Its
+one-hero-per-page design, 58px/56px centered sticky shaded navigation, and
+distinct page photos passed PHP 8.4/8.5, MySQL/MariaDB, and 160 Chromium
+page/viewport browser assertions on the exact module head before promotion.
+This Core reference refresh is proposed for integration; it does **not**
+establish successful Core CI until the exact Core PR head runs pass, nor
+does it upgrade the `demo.cajunwebpro.com/catering/` staging install.
+Staging last observed Core 2.6.2 and Catering 2.0.2, maintenance ON.
+A fresh independent backup and signed/trusted hosted module update remain
+required before any live test upgrade or commercial release.
+
 **Current integration (2026-11-03):** Core `2.6.2` remains the runtime
 version, and the reference Catering module is now **2.1.1** after
 [PR #11](https://github.com/afterburn25/Website_Core/pull/11)

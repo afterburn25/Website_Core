@@ -1028,6 +1028,12 @@ final class CateringController
             'themeTokens' => is_array($theme['palette']['tokens'] ?? null) ? $theme['palette']['tokens'] : [],
             'themeMedia' => $themeMedia,
             'themePreview' => $preview,
+            'pageTemplate' => $template,
+            'pageHeroSource' => (string) ($data['service']['image'] ?? ''),
+            // A selected industry theme owns the page hero. Never render the
+            // legacy content hero below a second theme-specific showcase.
+            'themeOwnsHero' => $theme !== null
+                && str_starts_with((string) ($theme['variant']['layout'] ?? ''), 'views/themes/'),
             'orderingMode' => $ordering->mode(),
             'storeUrl' => $this->ctx->url($request->basePath, '/store'),
             'page' => [

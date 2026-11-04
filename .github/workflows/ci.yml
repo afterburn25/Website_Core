@@ -346,7 +346,7 @@ jobs:
               || ($r["installation_state"]??null)!=="marker_and_config_present"
               || ($r["checks"]["install_php_present"]??true)
               || ($r["checks"]["install_dir_present"]??true)
-              || ($r["industries"][0]["version"]??null)!=="2.1.1"
+              || ($r["industries"][0]["version"]??null)!=="2.1.2"
               || ($r["industries"][0]["state"]??null)!=="on_disk_unverified") {
                 fwrite(STDERR,"Read-only installed artifact preflight failed\\n"); exit(1);
             }

@@ -1,5 +1,7 @@
 <?php /** @var array $categories @var array $items @var string $basePath @var string $assetBase */ ?>
+<?php if (empty($themeOwnsHero)): ?>
 <section class="c-page-hero c-page-hero-menu"><div><p class="c-eyebrow c-eyebrow-light">Seasonal, personal, memorable</p><h1>Menus designed<br>to bring people together.</h1><p>Use these selections as a starting point. Every proposal can be shaped around your occasion, guests, and vision.</p></div></section>
+<?php endif; ?>
 <section class="c-wrap c-section">
 <div class="c-menu-planner-link"><div><h2>Make it your menu</h2><p>Choose dishes, enter your headcount, and explore a preliminary food estimate.</p></div><a class="c-button c-button-green" href="<?= e_attr($basePath) ?>/request-a-quote">Plan my menu</a></div><div class="c-planner-filter" data-filter-controls hidden><label>Dietary options<select data-dietary-filter><option value="">All dishes</option><?php foreach ($dietaryLabels as $key => $label): ?><option value="<?= e_attr($key) ?>"><?= e($label) ?></option><?php endforeach; ?></select></label><p class="c-disclaimer">Labels are supplied by the business. Ask the team about allergies and cross-contact.</p></div><div class="c-menu-nav" aria-label="Menu categories"><?php foreach ($categories as $category): ?><a href="#<?= e_attr($category['slug']) ?>"><?= e($category['name']) ?></a><?php endforeach; ?></div>
 <?php foreach ($categories as $category): ?>

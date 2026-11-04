@@ -132,17 +132,36 @@ final class BackupService
             if ($zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
                 return [null, 'Could not create backup archive.'];
             }
-            $zip->addFile($tmp . '/meta.json', 'meta.json');
-            $zip->addFile($tmp . '/db.sql', 'db.sql');
+            if (!$zip->addFile($tmp . '/meta.json', 'meta.json')
+                || !$zip->addFile($tmp . '/db.sql', 'db.sql')) {
+                $zip->close();
+                @unlink($path);
+                return [null, 'Could not add mandatory backup members.'];
+            }
             $it = new \RecursiveIteratorIterator(
                 new \RecursiveDirectoryIterator($filesBase, \FilesystemIterator::SKIP_DOTS)
             );
+            $allAdded = true;
             foreach ($it as $f) {
-                if ($f->isFile()) {
-                    $zip->addFile($f->getPathname(), 'files/' . substr($f->getPathname(), strlen($filesBase) + 1));
+                if ($f->isFile()
+                    && !$zip->addFile($f->getPathname(), 'files/' . substr($f->getPathname(), strlen($filesBase) + 1))) {
+                    $allAdded = false;
+                    break;
                 }
             }
-            $zip->close();
+            $closed = $zip->close();
+            if (!$allAdded || !$closed) {
+                @unlink($path);
+                return [null, 'Backup ZIP could not be completed with all required files.'];
+            }
+            // Do not show "Backup created and verified" until each stored
+            // protected file has been re-read and checksum-verified from the
+            // finalized ZIP. Remove incomplete or corrupted snapshots.
+            [$verified, $verificationError] = $this->inspect($path);
+            if ($verified === null) {
+                @unlink($path);
+                return [null, 'Backup archive failed final verification: ' . $verificationError];
+            }
             return [$path, null];
         } finally {
             $this->removeTree($tmp);
@@ -202,6 +221,68 @@ final class BackupService
         }
         if (($meta['prefix'] ?? '') !== $this->db->prefix()) {
             return [null, 'Backup was made with a different table prefix.'];
+        }
+
+        // "Verified" in Admin > Backups and the owner-only download route
+        // must mean that ALL protected file bytes are present and match the
+        // manifest, not only that db.sql passed its SHA-256 check. Reading a
+        // streaming ZIP member avoids loading uploads into PHP memory.
+        $files = $meta['files'] ?? null;
+        if (!is_array($files)) {
+            return [null, 'Incomplete backup: protected-file manifest is missing.'];
+        }
+        $zip = new \ZipArchive();
+        if ($zip->open($path, \ZipArchive::RDONLY) !== true) {
+            return [null, 'Not a readable archive.'];
+        }
+        try {
+            $members = [];
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $member = (string) $zip->getNameIndex($i);
+                if (isset($members[$member])) {
+                    return [null, 'Backup contains a duplicate archive member.'];
+                }
+                $members[$member] = true;
+                if ($member === 'meta.json' || $member === 'db.sql' || str_ends_with($member, '/')) {
+                    continue;
+                }
+                if (!str_starts_with($member, 'files/')
+                    || !array_key_exists(substr($member, 6), $files)) {
+                    return [null, 'Backup contains a protected file missing from its manifest.'];
+                }
+            }
+
+            foreach ($files as $rel => $expected) {
+                if (!is_string($rel) || $rel === ''
+                    || !\Core\Modules\ArchiveInspector::memberNameOk($rel)
+                    || str_contains($rel, '\\') || str_contains($rel, '//')
+                    || str_starts_with($rel, '/') || str_ends_with($rel, '/')
+                    || preg_match('#(^|/)\\.(/|$)#', $rel)) {
+                    return [null, 'Backup manifest contains an unsafe protected-file path.'];
+                }
+                if (!is_string($expected) || preg_match('/^[a-f0-9]{64}$/D', $expected) !== 1) {
+                    return [null, 'Backup manifest contains an invalid protected-file checksum.'];
+                }
+                $member = 'files/' . $rel;
+                if (!isset($members[$member])) {
+                    return [null, 'Backup protected file is missing: ' . $rel];
+                }
+                $stream = $zip->getStream($member);
+                if (!is_resource($stream)) {
+                    return [null, 'Backup protected file cannot be read: ' . $rel];
+                }
+                try {
+                    $hash = hash_init('sha256');
+                    $bytes = hash_update_stream($hash, $stream);
+                    if ($bytes === false || !hash_equals($expected, hash_final($hash))) {
+                        return [null, 'Backup protected file integrity check failed: ' . $rel];
+                    }
+                } finally {
+                    fclose($stream);
+                }
+            }
+        } finally {
+            $zip->close();
         }
         return [$meta, null];
     }

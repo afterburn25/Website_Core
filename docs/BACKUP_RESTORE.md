@@ -24,6 +24,28 @@ integrity or are rejected, and the write loop refuses paths outside the
 roots even with a forged manifest. Manifest paths are forward-slash
 normalized at backup time so archives are portable across OSes.
 
+## What “Verified” actually proves (commercial acceptance hardening)
+
+Starting with the backup-integrity hardening on the 2.6.2 release branch,
+`BackupService::inspect()` checks the stored `db.sql` checksum **and
+streams every protected file directly out of the finalized ZIP**, verifying
+each against its `meta.json` SHA-256. Missing members, unlisted payload
+files, malformed or unsafe manifest paths, and checksum mismatches are
+rejected instead of appearing as a green recovery point. This inspection
+occurs when the Backups page lists archives, before owner-only downloads,
+before restores, and when a newly created backup is finalized. If a fresh
+snapshot cannot pass read-back verification, it is not reported as created
+and verified.
+
+**Verification is not a restore drill.** A fully checksummed local ZIP is
+not proof that PHP-FPM can rewrite an existing deployment, recover a
+database on a new server, restart the app, reconcile email/jobs, or that
+the archive exists independently offsite. Restore to a disposable isolated
+clone with matching driver/prefix and disabled mail/cron/live payments,
+prove representative content/media, then record evidence. The archive
+includes configuration and secrets, so store any offsite copy privately;
+never upload it to a public repository or untrusted file host.
+
 ## Explicit module purge data protection
 
 Uninstall removes module files but **preserves** module data. A separate

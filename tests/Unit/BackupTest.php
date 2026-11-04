@@ -108,6 +108,71 @@ final class BackupTest extends TestCase
         $this->assertStringContainsString('integrity', (string) $err);
     }
 
+    /**
+     * Reconstruct a copy of a real backup archive without altering the
+     * original. One member can be damaged, omitted or injected for testing.
+     */
+    private function alteredArchive(string $path, ?string $corrupt = null, ?string $omit = null, bool $extra = false): string
+    {
+        $target = $this->tmp . '/altered-' . bin2hex(random_bytes(4)) . '.zip';
+        $source = new \ZipArchive();
+        $this->assertTrue($source->open($path, \ZipArchive::RDONLY));
+        $copy = new \ZipArchive();
+        $this->assertTrue($copy->open($target, \ZipArchive::CREATE | \ZipArchive::OVERWRITE));
+        for ($i = 0; $i < $source->numFiles; $i++) {
+            $name = (string) $source->getNameIndex($i);
+            if ($name === $omit) continue;
+            $bytes = $source->getFromIndex($i);
+            $this->assertIsString($bytes);
+            $this->assertTrue($copy->addFromString($name, $name === $corrupt ? 'CORRUPTED-PROTECTED-BYTES' : $bytes));
+        }
+        if ($extra) {
+            $this->assertTrue($copy->addFromString('files/upload/docs/not-declared.txt', 'EXTRA'));
+        }
+        $this->assertTrue($copy->close());
+        $source->close();
+        return $target;
+    }
+
+    public function testProtectFileChecksumMustPassBeforeDashboardReportsVerified(): void
+    {
+        [$original, $error] = $this->svc()->create();
+        $this->assertNull($error);
+        $bad = $this->alteredArchive((string) $original, 'files/upload/docs/a.txt');
+        [$meta, $error] = $this->svc()->inspect($bad);
+        $this->assertNull($meta);
+        $this->assertStringContainsString('protected file integrity', (string) $error);
+        [$ok, $restoreError] = $this->svc()->restore($bad);
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('protected file integrity', (string) $restoreError);
+        $this->assertSame('payload', file_get_contents($this->siteRoot . '/upload/docs/a.txt'));
+
+        // The original must remain usable: this is a read-only inspection.
+        [$verified, $originalError] = $this->svc()->inspect((string) $original);
+        $this->assertNull($originalError);
+        $this->assertNotNull($verified);
+    }
+
+    public function testMissingProtectedFileMustFailBeforeRestore(): void
+    {
+        [$original, $error] = $this->svc()->create();
+        $this->assertNull($error);
+        $bad = $this->alteredArchive((string) $original, null, 'files/upload/docs/a.txt');
+        [$meta, $error] = $this->svc()->inspect($bad);
+        $this->assertNull($meta);
+        $this->assertStringContainsString('protected file is missing', (string) $error);
+    }
+
+    public function testUnmanifestedBackupPayloadCannotBeLabeledVerified(): void
+    {
+        [$original, $error] = $this->svc()->create();
+        $this->assertNull($error);
+        $bad = $this->alteredArchive((string) $original, null, null, true);
+        [$meta, $error] = $this->svc()->inspect($bad);
+        $this->assertNull($meta);
+        $this->assertStringContainsString('missing from its manifest', (string) $error);
+    }
+
     public function testConfiguredExternalMediaStorageRoundtrips(): void
     {
         $external = $this->tmp . '/private-runtime';
@@ -204,6 +269,16 @@ final class BackupTest extends TestCase
         $zip->open($fake, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
         $zip->addFromString('meta.json', json_encode($meta));
         $zip->addFromString('db.sql', $sql);
+        // Preserve every original file while testing only a forged driver:
+        // a missing file would now correctly fail at archive inspection.
+        $src->open($path, \ZipArchive::RDONLY);
+        for ($i = 0; $i < $src->numFiles; $i++) {
+            $name = (string) $src->getNameIndex($i);
+            if ($name !== 'meta.json' && $name !== 'db.sql') {
+                $zip->addFromString($name, $src->getFromIndex($i));
+            }
+        }
+        $src->close();
         $zip->close();
         [$ok, $err] = $this->svc()->restore($fake);
         $this->assertFalse($ok);
@@ -249,7 +324,7 @@ final class BackupTest extends TestCase
         $zip->close();
         [$ok, $err] = $this->svc()->restore($bad);
         $this->assertFalse($ok);
-        $this->assertStringContainsString('integrity', (string) $err);
+        $this->assertStringContainsString('unsafe protected-file path', (string) $err);
         $this->assertFileDoesNotExist($this->siteRoot . '/escape2.txt');
 
         // (c) A legal member outside the restorable roots passes integrity

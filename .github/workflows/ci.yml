@@ -170,9 +170,36 @@ jobs:
           cp -r vendor /tmp/wcsite2/vendor
           mkdir -p /tmp/wcsite2/modules/industries
           cp -r examples/industry-restaurant /tmp/wcsite2/modules/industries/industry-restaurant
-          php -r '$f="/tmp/wcsite2/modules/industries/industry-restaurant/addon.json";$m=json_decode(file_get_contents($f),true);$m["license_key"]="GOOD-KEY-1";file_put_contents($f,json_encode($m,JSON_PRETTY_PRINT));'
-
-          WC_LICENSE_API_URL=http://127.0.0.1:8098/api php -S 127.0.0.1:8100 -t /tmp/wcsite2 >/tmp/php-lic.log 2>&1 &
+          # The licensed-install path must verify a signed full-file
+          # manifest BEFORE database mutations. Sign the test fixture with
+          # a fresh disposable key, never production keys.
+          php -r '
+            require "site/core/Update/SignatureVerifier.php";
+            $dir="/tmp/wcsite2/modules/industries/industry-restaurant";
+            $file=$dir."/addon.json";
+            $m=json_decode(file_get_contents($file),true,512,JSON_THROW_ON_ERROR);
+            $m["license_key"]="GOOD-KEY-1";
+            unset($m["signature"]);
+            $hashes=[];
+            $it=new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir,FilesystemIterator::SKIP_DOTS));
+            foreach($it as $item){
+              if(!$item->isFile()||$item->isLink())continue;
+              $rel=str_replace("\\","/",substr($item->getPathname(),strlen($dir)+1));
+              if($rel==="addon.json")continue;
+              $hashes[$rel]=hash_file("sha256",$item->getPathname());
+            }
+            ksort($hashes,SORT_STRING);
+            $m["integrity"]=["files"=>$hashes];
+            $keys=Core\Update\SignatureVerifier::generateKeypair();
+            $m=Core\Update\SignatureVerifier::signManifest($m,$keys["secret"]);
+            file_put_contents($file,json_encode($m,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR));
+            file_put_contents("/tmp/wc-ci-bundle-installer-public",$keys["public"]);
+          '
+          # The host/admin must independently provision the expected PUBLIC
+          # signer; the installer may not trust a key from the bundle itself.
+          WC_INSTALL_TRUST_PUBLIC_KEYS="$(cat /tmp/wc-ci-bundle-installer-public)" \
+            WC_LICENSE_API_URL=http://127.0.0.1:8098/api \
+            php -S 127.0.0.1:8100 -t /tmp/wcsite2 >/tmp/php-lic.log 2>&1 &
           SITE_PID=$!
           for i in $(seq 1 30); do
             curl -s -D /tmp/lic-get.headers -H 'X-Forwarded-Proto: https' -b /tmp/wcjar2 -c /tmp/wcjar2 -o /tmp/lic-get.html http://127.0.0.1:8100/ && break
@@ -208,6 +235,15 @@ jobs:
           fi
           test ! -e /tmp/wcsite2/install.php
           test ! -d /tmp/wcsite2/install
+          # Fresh install retains the independently provisioned signer for
+          # subsequent strict-trust module updates (not an empty array).
+          WC_EXPECTED_PUBLIC="$(cat /tmp/wc-ci-bundle-installer-public)" php -r '
+            $config=require "/tmp/wcsite2/config/config.php";
+            $keys=$config["trust"]["public_keys"]??[];
+            if($keys!==[getenv("WC_EXPECTED_PUBLIC")]||($config["trust"]["allow_unsigned"]??true)!==false){
+              fwrite(STDERR,"Installer did not preserve independent strict-trust root\n");exit(1);
+            }'
+          rm -f /tmp/wc-ci-bundle-installer-public
 
           # License stored valid; module registered + enabled + migrated.
           php -r '$p=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_install_lic","root","");

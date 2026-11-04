@@ -86,13 +86,17 @@ final class LicenseValidation
         }
 
         $data = json_decode($response, true);
-        if (!is_array($data)) {
-            $this->recordValidation($licenseKey, $domain, null, 'Invalid API response');
+        // Only literal JSON booleans convey a license verdict. A missing
+        // authorized field must not deactivate an existing customer, and
+        // string "false" must never coerce to a successful authorization.
+        if (!is_array($data) || !isset($data['authorized'])
+            || !is_bool($data['authorized'])) {
+            $this->recordValidation($licenseKey, $domain, null, 'Invalid API authorization verdict');
             return [false, 'Invalid response from license server.', false];
         }
 
-        $valid = (bool) ($data['authorized'] ?? false);
-        $error = $data['error'] ?? null;
+        $valid = $data['authorized'];
+        $error = is_string($data['error'] ?? null) ? $data['error'] : null;
 
         $this->recordValidation($licenseKey, $domain, $valid, $error);
 

@@ -83,6 +83,31 @@ version mismatch.
 - A broken optional extension can never lock administrators out: the
   recovery-mode flag boots trusted core only (Modules screen).
 
+## Signing customer-licensed bundles (commercial release gate)
+
+The customer-licensed `bundle <industry> <license_key> [outdir]` command now
+**refuses to build without** a valid base64 Ed25519 secret in
+`WC_BUNDLE_SIGN_KEY`. The private key is not stored in source, GitHub,
+release ZIPs or CI logs. Provision it through the owner's private build
+environment/secret vault; store a matching trusted **public** key in the
+target install's `trust.public_keys` and keep `trust.allow_unsigned=false`.
+A signed package with no trusted key is rejected, as it should be.
+
+The builder embeds the customer's license key first, regenerates a complete
+`integrity.files` SHA-256 map of **all** module payload members, and signs
+the resulting `addon.json` manifest. Neither the customer license key nor
+any PHP/migration/asset bytes can be changed without invalidating the signed
+manifest/integrity verification. Building the source module first and
+modifying a previously signed manifest after the fact is prohibited.
+
+`test-bundle <industry> [outdir]` remains a clearly labeled keyless
+development artifact. It may be optionally signed with the same environment
+variable for a strict-trust staging environment, **but it is not a
+customer-licensed commercial release**. CI generates only throwaway signing
+keys and mock license identifiers and checks that unsigned, tampered or
+wrong-key packages fail in strict mode. These test keys cannot be reused as
+production trust roots. No production signing keys exist in this repository.
+
 ## Signing update manifests
 
 Builds ship unsigned unless `WC_UPDATE_SIGN_KEY` (base64 Ed25519 secret)

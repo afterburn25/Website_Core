@@ -94,6 +94,31 @@ if (in_array($argv[1] ?? null, ['bundle', 'test-bundle'], true)) {
             : "Usage: php tools/build-packages.php bundle <industry> <license_key> [outdir]\n");
         exit(1);
     }
+    // Commercial bundles must be signed *after* embedding the customer's
+    // license key. Unsigned or tampered bundles are rejected by the site's
+    // production trust policy, so refuse to generate one accidentally.
+    // TEST-BUNDLE keeps its explicit keyless/unsigned development option;
+    // supplying WC_BUNDLE_SIGN_KEY signs it for strict-trust staging tests.
+    $bundleSignKey = getenv('WC_BUNDLE_SIGN_KEY');
+    if ($bundleSignKey === false) $bundleSignKey = null;
+    if (!$testingBundle && $bundleSignKey === null) {
+        fwrite(STDERR, "Commercial bundles require WC_BUNDLE_SIGN_KEY (Ed25519); refusing unsigned bundle.\n");
+        exit(1);
+    }
+    if (!$testingBundle && (!is_string($licenseKey) || strlen($licenseKey) < 8)) {
+        fwrite(STDERR, "Commercial bundle requires a valid customer license key.\n");
+        exit(1);
+    }
+    if ($bundleSignKey !== null) {
+        $decodedKey = base64_decode($bundleSignKey, true);
+        if (!function_exists('sodium_crypto_sign_detached') || $decodedKey === false
+            || strlen($decodedKey) !== SODIUM_CRYPTO_SIGN_SECRETKEYBYTES) {
+            fwrite(STDERR, "WC_BUNDLE_SIGN_KEY is malformed or Ed25519 signing is unavailable; refusing bundle.\n");
+            exit(1);
+        }
+        unset($decodedKey);
+        require_once $root . '/site/core/Update/SignatureVerifier.php';
+    }
     $version = '0.0.0-dev';
     if (is_file($root . '/site/includes/bootstrap.php')) {
         $b = file_get_contents($root . '/site/includes/bootstrap.php');
@@ -159,43 +184,76 @@ if (in_array($argv[1] ?? null, ['bundle', 'test-bundle'], true)) {
         $zip->addFile($path, $archiveRoot . $rel);
         $count++;
     }
-    // Add module files. Production bundles embed license_key; TEST-BUNDLE
-    // explicitly removes it so the result cannot accidentally phone home.
-    $moduleBase = $moduleDir;
+    // Gather all package members before writing the manifest. Sign the
+    // FINAL license-bearing manifest with per-file hashes so the signature
+    // also authenticates every module source, migration, image, style and JS.
+    // A signature inherited from a source manifest is invalid after adding
+    // the customer license key and must never be reused.
+    $moduleFiles = [];
     $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($moduleBase, FilesystemIterator::SKIP_DOTS)
+        new RecursiveDirectoryIterator($moduleDir, FilesystemIterator::SKIP_DOTS)
     );
     foreach ($iterator as $file) {
         if (!$file->isFile() || $file->isLink()) {
             continue;
         }
         $path = $file->getPathname();
-        $rel = str_replace('\\', '/', substr($path, strlen($moduleBase) + 1));
-        // A module can keep its own distribution ZIP in releases/, but a
-        // combined Core bundle must never contain a ZIP inside a ZIP.
-        // Refuse rather than silently discarding unexpected source files.
+        $rel = str_replace('\\', '/', substr($path, strlen($moduleDir) + 1));
         if (str_ends_with(strtolower($rel), '.zip')) {
-            fwrite(STDERR, "Nested ZIP not allowed in module bundle: {$rel}\\n");
+            fwrite(STDERR, "Nested ZIP not allowed in module bundle: {$rel}\n");
             exit(1);
         }
         if (str_ends_with($rel, '.env') || str_contains($rel, '.key') || str_contains($rel, '.pem')) {
             continue;
         }
-        // Embed or remove license_key in addon.json.
-        if ($rel === 'addon.json') {
-            $content = file_get_contents($path);
-            $manifest = json_decode($content, true);
-            if ($testingBundle) {
-                unset($manifest['license_key']);
-            } else {
-                $manifest['license_key'] = $licenseKey;
+        $moduleFiles[$rel] = $path;
+    }
+    ksort($moduleFiles, SORT_STRING);
+    if (!isset($moduleFiles['addon.json'])) {
+        fwrite(STDERR, "Industry module addon.json is missing.\n");
+        exit(1);
+    }
+    $manifest = json_decode((string) file_get_contents($moduleFiles['addon.json']), true);
+    if (!is_array($manifest)) {
+        fwrite(STDERR, "Industry module addon.json is not valid JSON.\n");
+        exit(1);
+    }
+    unset($manifest['signature']);
+    if ($testingBundle) {
+        unset($manifest['license_key']);
+    } else {
+        $manifest['license_key'] = $licenseKey;
+    }
+    if ($bundleSignKey !== null) {
+        $fileHashes = [];
+        foreach ($moduleFiles as $rel => $path) {
+            if ($rel === 'addon.json') continue;
+            $digest = hash_file('sha256', $path);
+            if (!is_string($digest)) {
+                fwrite(STDERR, "Cannot checksum a required module file; refusing bundle.\n");
+                exit(1);
             }
-            $zip->addFromString($archiveRoot . 'modules/industries/' . $moduleName . '/addon.json',
-                json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-        } else {
-            $zip->addFile($path, $archiveRoot . 'modules/industries/' . $moduleName . '/' . $rel);
+            $fileHashes[$rel] = $digest;
+        }
+        $manifest['integrity'] = ['files' => $fileHashes];
+        $manifest = \Core\Update\SignatureVerifier::signManifest($manifest, $bundleSignKey);
+    }
+    $manifestBody = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    if (!$zip->addFromString($archiveRoot . 'modules/industries/' . $moduleName . '/addon.json', $manifestBody)) {
+        fwrite(STDERR, "Cannot add verified module manifest to bundle.\n");
+        exit(1);
+    }
+    $count++;
+    foreach ($moduleFiles as $rel => $path) {
+        if ($rel === 'addon.json') continue;
+        if (!$zip->addFile($path, $archiveRoot . 'modules/industries/' . $moduleName . '/' . $rel)) {
+            fwrite(STDERR, "Cannot include required module file: {$rel}\n");
+            exit(1);
         }
         $count++;
+    }
+    if ($bundleSignKey !== null) {
+        echo "Module manifest signed and SHA-256 bound to its bundled files\n";
     }
     // A bundle is a complete upload, not a source-only archive. Add a clean
     // production vendor tree under the same deployable site/ root.
@@ -211,7 +269,11 @@ if (in_array($argv[1] ?? null, ['bundle', 'test-bundle'], true)) {
         $zip->addFile($file->getPathname(), $archiveRoot . 'vendor/' . $rel);
         $count++;
     }
-    $zip->close();
+    if (!$zip->close()) {
+        @unlink($bundleZip);
+        fwrite(STDERR, "Cannot finalize complete bundle ZIP.\n");
+        exit(1);
+    }
     echo "Bundle created: {$bundleZip} ({$count} files)\n";
     if ($testingBundle) {
         $webInstaller = "{$out}/CajunWebPro-" . ucfirst($industry)

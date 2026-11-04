@@ -213,6 +213,12 @@ final class PackageManager
                 'manifest' => json_encode($manifest), 'updated_at' => date('Y-m-d H:i:s'),
             ]);
         }
+        // Keep the same-request module registry synchronized with the
+        // authoritative database and disk. destDir() discovers while the
+        // version is still 'staged'; without refresh, successful upgrades
+        // can misleadingly report 'staged' despite enabled DB state and
+        // leave old module manifest data in the current request.
+        $this->registry->discover();
     }
 
     private function destDir(array $manifest): string

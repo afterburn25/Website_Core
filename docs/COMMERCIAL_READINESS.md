@@ -23,6 +23,22 @@ Dev-only: phpunit/phpunit ^12 (BSD-3) plus its transitive tree — never
 shipped (excluded from artifacts; verified by artifact contents check in
 `tools/build-packages.php` output).
 
+## Licensed-bundle signing acceptance (production gate)
+
+The licensed-bundle builder requires `WC_BUNDLE_SIGN_KEY` and signs the
+customer's final license-bearing `addon.json` plus complete per-file
+SHA-256 inventory; missing/invalid signing material fails closed. CI uses
+only ephemeral Ed25519 keys to test this contract, signature verification,
+wrong-key/tampered-license rejection, and archive contents. No key or mock
+customer license is published as a commercial asset.
+
+**Still owner-controlled and unverified on production hosting:** provision
+the protected production signer and trusted public key, provide an actual
+authorized customer/domain license issued by Cajun Web Pro, verify the
+purchase/payment/license authorization lifecycle against the live
+nonproduction provider, and have counsel/owner approve legal terms.
+Never turn on live merchant transactions merely to satisfy tests.
+
 ## Open owner/legal decisions (engineering continues regardless)
 
 - Product license terms + legal entity name for copyright notices

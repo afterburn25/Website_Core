@@ -59,6 +59,18 @@ jobs:
         ports: ['3306:3306']
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch pinned historical Catering 2.0.2 upgrade source
+        uses: actions/checkout@v4
+        with:
+          repository: afterburn25/Core_Mods
+          ref: 6d0370777e4edb54f9565b50229e5bba0f47ffe9
+          path: .acceptance/catering-202
+          persist-credentials: false
+      - name: Verify immutable historical Catering source
+        run: |
+          set -euo pipefail
+          test "$(git -C .acceptance/catering-202 rev-parse HEAD)" = "6d0370777e4edb54f9565b50229e5bba0f47ffe9"
+          php -r '$m=json_decode(file_get_contents(".acceptance/catering-202/modules/industry-catering/addon.json"),true);if(($m["version"]??null)!=="2.0.2"||($m["id"]??null)!=="cajunwebpro/catering"){fwrite(STDERR,"Historical upgrade fixture has wrong manifest\n");exit(1);}'
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -86,6 +98,7 @@ jobs:
           WC_TEST_MYSQL_DSN: 'mysql:host=127.0.0.1;port=3306;dbname=wc_test'
           WC_TEST_MYSQL_USER: root
           WC_TEST_MYSQL_PASS: ''
+          WC_CATERING_LEGACY_202_DIR: ${{ github.workspace }}/.acceptance/catering-202/modules/industry-catering
         run: vendor/bin/phpunit --testsuite native
       - name: Installer acceptance through SSL proxy contract (real MySQL)
         run: |

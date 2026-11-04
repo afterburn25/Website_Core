@@ -757,6 +757,16 @@ jobs:
           done
           test ! -f /tmp/core-complete-artifact/config/config.php
           test -z "$(find /tmp/core-complete-artifact -type f -name '*.zip' -print -quit)"
+      - name: Apache 2.4 access-control acceptance (rewrite on/off, root/subfolder)
+        # Verify actual shipped .htaccess guard behavior with real Apache,
+        # independent of PHP's development server. Isolated loopback only.
+        # This does not prove an Apache+PHP-FPM installed application.
+        run: |
+          set -euo pipefail
+          sudo apt-get -o Acquire::Retries=5 update -qq
+          sudo apt-get -o Acquire::Retries=5 install -y apache2
+          bash tools/verify-apache-guards.sh /tmp/core-complete-artifact
+
       - name: Upload Core-only complete upload (acceptance, not published release)
         uses: actions/upload-artifact@v4
         with:

@@ -183,6 +183,17 @@ proof of Apache/LiteSpeed authorization behavior; it ignores `.htaccess`.
 The root-level and directory-level guards are both required, and runtime
 dependency code must never be linked as public static content.
 
+### Exact-artifact Apache CI security check
+
+The release-artifact job runs `bash tools/verify-apache-guards.sh
+/tmp/core-complete-artifact` under Apache 2.4 on loopback, with rewrite both
+enabled and disabled. It verifies deny rules for protected Composer files,
+configuration, PHP source, admin views, theme metadata, and `.htaccess`,
+plus public branded image access, at root and at `/catering/`. No installed
+PHP handler, authentication or database is used in this security test.
+Record the actual green job URL as evidence only for this limited claim.
+The real shared-host checklist below is still mandatory.
+
 ### Apache 2.4 mod_rewrite
 
 - Verify `.htaccess` rewrite rules are honored (Apache configuration must allow `AllowOverride All` in the site directory).

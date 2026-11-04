@@ -262,6 +262,120 @@ final class MySqlNativeTest extends TestCase
         ));
     }
 
+    public function testAuthoritativeCateringAndLandscapingSwitchPreservesRecordsOnMysql(): void
+    {
+        // Separate native DB prefix prevents interference with other tests.
+        $db = new Connection($this->db->pdo(), 'wcindustries_');
+        (new Migrator($db, WC_ROOT . '/database/migrations'))->migrate();
+
+        $tmp = \WcProcessTmpDirs::make('wc-native-industries-');
+        foreach (['staging', 'industries', 'addons', 'themes'] as $dir) {
+            mkdir($tmp . '/' . $dir, 0777, true);
+        }
+        $registry = new ModuleRegistry(
+            $db, $tmp . '/industries', $tmp . '/addons', $tmp . '/themes'
+        );
+        $manager = new PackageManager(
+            $db, $registry, new ArchiveInspector(),
+            $tmp . '/staging', $tmp . '/industries', $tmp . '/addons',
+            $tmp . '/themes', $tmp . '/op.lock'
+        );
+
+        foreach (['catering', 'landscaping'] as $industry) {
+            $source = WC_ROOT . '/../examples/industry-' . $industry;
+            $archive = $tmp . '/' . $industry . '.zip';
+            $zip = new ZipArchive();
+            $this->assertTrue($zip->open($archive, ZipArchive::CREATE | ZipArchive::OVERWRITE));
+            $it = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($it as $file) {
+                if (!$file->isFile() || $file->isLink()) {
+                    continue;
+                }
+                $rel = str_replace('\\', '/', substr($file->getPathname(), strlen($source) + 1));
+                $this->assertTrue($zip->addFile($file->getPathname(), $industry . '/' . $rel));
+            }
+            $this->assertTrue($zip->close());
+
+            [, $error] = $manager->stage($archive);
+            $this->assertNull($error);
+            [$ok, $error] = $manager->install('cajunwebpro/' . $industry);
+            $this->assertTrue($ok, (string) $error);
+        }
+
+        $catering = 'cajunwebpro/catering';
+        $landscaping = 'cajunwebpro/landscaping';
+        $this->assertSame('2.1.1', $db->fetchColumn(
+            'SELECT version FROM ' . $db->table('packages') . ' WHERE package_id=?', [$catering]
+        ));
+        $this->assertSame('1.0.0', $db->fetchColumn(
+            'SELECT version FROM ' . $db->table('packages') . ' WHERE package_id=?', [$landscaping]
+        ));
+        $this->assertTrue($db->tableExists('catering_menu_items'));
+        $this->assertTrue($db->tableExists('landscaping_services'));
+
+        [$ok, $error] = $manager->enable($catering);
+        $this->assertTrue($ok, (string) $error);
+        $this->assertSame('enabled', $registry->state($catering));
+
+        $cateringId = $db->fetchColumn(
+            'SELECT id FROM ' . $db->table('catering_menu_items') . ' ORDER BY id LIMIT 1'
+        );
+        $this->assertNotFalse($cateringId);
+        $db->pdo()->prepare(
+            'UPDATE ' . $db->table('catering_menu_items') . ' SET name=? WHERE id=?'
+        )->execute(['Native catering customer edit', $cateringId]);
+
+        [$ok, $error] = $manager->enable($landscaping);
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('Disable the active industry package', (string) $error);
+        $this->assertSame('enabled', $registry->state($catering));
+        $this->assertSame('installed', $registry->state($landscaping));
+
+        [$ok, $error] = $manager->disable($catering);
+        $this->assertTrue($ok, (string) $error);
+        [$ok, $error] = $manager->enable($landscaping);
+        $this->assertTrue($ok, (string) $error);
+        $this->assertSame('enabled', $registry->state($landscaping));
+
+        $landscapingId = $db->fetchColumn(
+            'SELECT id FROM ' . $db->table('landscaping_services') . ' ORDER BY id LIMIT 1'
+        );
+        $this->assertNotFalse($landscapingId);
+        $db->pdo()->prepare(
+            'UPDATE ' . $db->table('landscaping_services') . ' SET name=? WHERE id=?'
+        )->execute(['Native landscaping customer edit', $landscapingId]);
+
+        [$ok, $error] = $manager->disable($landscaping);
+        $this->assertTrue($ok, (string) $error);
+        [$ok, $error] = $manager->uninstall($landscaping);
+        $this->assertTrue($ok, (string) $error);
+        $this->assertTrue($db->tableExists('landscaping_services'));
+        $this->assertSame('Native landscaping customer edit', $db->fetchColumn(
+            'SELECT name FROM ' . $db->table('landscaping_services') . ' WHERE id=?',
+            [$landscapingId]
+        ));
+
+        [$ok, $error] = $manager->enable($catering);
+        $this->assertTrue($ok, (string) $error);
+        $this->assertSame('enabled', $registry->state($catering));
+        $this->assertSame('Native catering customer edit', $db->fetchColumn(
+            'SELECT name FROM ' . $db->table('catering_menu_items') . ' WHERE id=?',
+            [$cateringId]
+        ));
+
+        [$ok, $error] = $manager->disable($catering);
+        $this->assertTrue($ok, (string) $error);
+        [$ok, $error] = $manager->uninstall($catering);
+        $this->assertTrue($ok, (string) $error);
+        $this->assertTrue($db->tableExists('catering_menu_items'));
+        $this->assertSame('Native catering customer edit', $db->fetchColumn(
+            'SELECT name FROM ' . $db->table('catering_menu_items') . ' WHERE id=?',
+            [$cateringId]
+        ));
+    }
+
     private function landscapingZip(string $path, bool $failingMigration = false): string
     {
         $source = WC_ROOT . '/../examples/industry-landscaping';

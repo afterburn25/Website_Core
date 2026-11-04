@@ -156,6 +156,36 @@ final class LicenseApiContractTest extends TestCase
         $this->assertFalse($denied, 'malformed responses must not be treated as explicit denial');
     }
 
+    public function testMissingOrWrongTypedHttp200VerdictIsNeverAuthorizationOrDenial(): void
+    {
+        foreach (['MISSING-', 'STRING-', 'STRINGTRUE-', 'NULL-', 'NUMERIC-'] as $prefix) {
+            [$license, $conn] = $this->licenseWithDb();
+            $key = $prefix . 'KEY';
+            $license->storeLicenseKey($key, 'e2e.example.com');
+            $conn->run('UPDATE ' . $conn->table('license') . ' SET license_valid = 1');
+
+            [$valid, $error, $denied] = $license->validate($key, 'e2e.example.com');
+            $this->assertFalse($valid, $key . ' was wrongly authorized');
+            $this->assertFalse($denied, $key . ' was wrongly denied');
+            $this->assertSame('Invalid response from license server.', $error);
+            $this->assertSame(1, (int) $license->status()['license_valid'],
+                $key . ' erased the prior authorized verdict');
+            $this->assertTrue($license->isValid(),
+                $key . ' deactivated a previously valid license');
+        }
+    }
+
+    public function testNonStringErrorOnRealDenialUsesSafeMessage(): void
+    {
+        $license = $this->license();
+        [$valid, $error, $denied] = $license->validate(
+            'ARRAYERROR-KEY', 'e2e.example.com'
+        );
+        $this->assertFalse($valid);
+        $this->assertTrue($denied);
+        $this->assertSame('License validation failed.', $error);
+    }
+
     public function testRateLimitedIsInconclusiveNotDenial(): void
     {
         $license = $this->license();

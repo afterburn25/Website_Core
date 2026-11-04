@@ -49,6 +49,15 @@ HTTP 200
 {"authorized": false, "error": "License key not found or domain not registered"}
 ```
 
+**Response (malformed HTTP 200 — inconclusive):** the `authorized`
+property must exist and be a literal JSON boolean. Missing, `null`,
+`"true"`, `"false"`, `0`, `1`, object or array values are not
+authorization decisions. This is important because PHP casts the string
+`"false"` to `true`. Invalid verdicts never activate, explicitly deny,
+or erase a previously authorized license; the next periodic check retries.
+A malformed/non-string `error` field is ignored in favor of a safe
+generic message.
+
 **Response (transient — never deactivates):** any non-200 status
 (429 rate-limited, 400 malformed request, 5xx server error). Only a
 `200 + authorized:false` verdict is a real denial; every other outcome —

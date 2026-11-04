@@ -839,12 +839,16 @@ final class Installer
         }
 
         $data = json_decode($response, true);
-        if (!is_array($data)) {
+        // A definitive denial or approval must be a literal JSON boolean.
+        // Missing, null, numeric and string fields are inconclusive, even
+        // on HTTP 200. PHP casts "false" to true, which is not safe here.
+        if (!is_array($data) || !isset($data['authorized'])
+            || !is_bool($data['authorized'])) {
             return [false, 'Invalid response from license server.', false];
         }
 
-        $valid = (bool) ($data['authorized'] ?? false);
-        $error = $data['error'] ?? null;
+        $valid = $data['authorized'];
+        $error = is_string($data['error'] ?? null) ? $data['error'] : null;
 
         if (!$valid) {
             return [false, is_string($error) ? $error : 'License validation failed.', true];

@@ -124,6 +124,26 @@ final class InstallerLicenseContractTest extends TestCase
         $this->assertFalse($denied, 'HTTP 500 is inconclusive even when its JSON body says authorized:false');
     }
 
+    public function testInstallDefersNonBooleanOrMissingAuthorizationVerdicts(): void
+    {
+        foreach (['MISSING-', 'STRING-', 'STRINGTRUE-', 'NULL-', 'NUMERIC-'] as $prefix) {
+            [$valid, $error, $denied] = $this->validate(
+                $prefix . 'KEY', 'e2e.example.com'
+            );
+            $this->assertFalse($valid, $prefix . ' must not authorize installation');
+            $this->assertFalse($denied, $prefix . ' must not block a customer as an explicit denial');
+            $this->assertSame('Invalid response from license server.', $error);
+        }
+    }
+
+    public function testInstallHandlesNonStringErrorForDefinitiveDenial(): void
+    {
+        [$valid, $error, $denied] = $this->validate('ARRAYERROR-KEY', 'e2e.example.com');
+        $this->assertFalse($valid);
+        $this->assertTrue($denied);
+        $this->assertSame('License validation failed.', $error);
+    }
+
     public function testRateLimitedIsInconclusiveNotDenial(): void
     {
         [$valid, , $denied] = $this->validate('RATELIMIT-KEY', 'e2e.example.com');

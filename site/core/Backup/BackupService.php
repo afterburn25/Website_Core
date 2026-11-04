@@ -132,17 +132,36 @@ final class BackupService
             if ($zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
                 return [null, 'Could not create backup archive.'];
             }
-            $zip->addFile($tmp . '/meta.json', 'meta.json');
-            $zip->addFile($tmp . '/db.sql', 'db.sql');
+            if (!$zip->addFile($tmp . '/meta.json', 'meta.json')
+                || !$zip->addFile($tmp . '/db.sql', 'db.sql')) {
+                $zip->close();
+                @unlink($path);
+                return [null, 'Could not add mandatory backup members.'];
+            }
             $it = new \RecursiveIteratorIterator(
                 new \RecursiveDirectoryIterator($filesBase, \FilesystemIterator::SKIP_DOTS)
             );
+            $allAdded = true;
             foreach ($it as $f) {
-                if ($f->isFile()) {
-                    $zip->addFile($f->getPathname(), 'files/' . substr($f->getPathname(), strlen($filesBase) + 1));
+                if ($f->isFile()
+                    && !$zip->addFile($f->getPathname(), 'files/' . substr($f->getPathname(), strlen($filesBase) + 1))) {
+                    $allAdded = false;
+                    break;
                 }
             }
-            $zip->close();
+            $closed = $zip->close();
+            if (!$allAdded || !$closed) {
+                @unlink($path);
+                return [null, 'Backup ZIP could not be completed with all required files.'];
+            }
+            // Do not show "Backup created and verified" until each stored
+            // protected file has been re-read and checksum-verified from the
+            // finalized ZIP. Remove incomplete or corrupted snapshots.
+            [$verified, $verificationError] = $this->inspect($path);
+            if ($verified === null) {
+                @unlink($path);
+                return [null, 'Backup archive failed final verification: ' . $verificationError];
+            }
             return [$path, null];
         } finally {
             $this->removeTree($tmp);

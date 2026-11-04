@@ -83,6 +83,33 @@ version mismatch.
 - A broken optional extension can never lock administrators out: the
   recovery-mode flag boots trusted core only (Modules screen).
 
+## Fresh-install trust for pre-extracted commercial bundles
+
+A pre-extracted licensed bundle arrives directly in
+`site/modules/industries/...` and **does not pass**
+`PackageManager::stage()`. The Website Core installer now applies an
+equivalent, fail-closed boundary before the database or owner is created:
+verify the license-bearing `addon.json` Ed25519 signature and every
+referenced package file's SHA-256; reject missing/extra/modified source
+files and any filesystem symlink. Never trust a signer embedded in that
+same unverified download.
+
+The host/operator must independently provision the trusted **public**
+Ed25519 key(s) in the process environment as
+`WC_INSTALL_TRUST_PUBLIC_KEYS` (comma-separated base64 32-byte keys).
+This is **not** `WC_BUNDLE_SIGN_KEY` (which is a private build-time
+secret and must never reach customer hosting). If the installer cannot
+access an approved independent trust root, a licensed install is
+refused **before** modifying the database. On success the approved
+public key is retained in the generated site's `trust.public_keys`;
+`trust.allow_unsigned` remains `false` for later module updates.
+The explicit keyless development TEST-BUNDLE path remains distinct.
+
+This protects the module payload, not the entire Core/bootstrap PHP
+installation image. Production delivery still requires approved
+transport provenance, SHA-256, release signing, a secure deployment
+process and independent human acceptance.
+
 ## Signing customer-licensed bundles (commercial release gate)
 
 The customer-licensed `bundle <industry> <license_key> [outdir]` command now

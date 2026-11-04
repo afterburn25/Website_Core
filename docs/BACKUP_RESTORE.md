@@ -46,6 +46,37 @@ prove representative content/media, then record evidence. The archive
 includes configuration and secrets, so store any offsite copy privately;
 never upload it to a public repository or untrusted file host.
 
+## Offline verification of an exported private recovery ZIP
+
+The standard-library-only script `tools/verify-backup-offline.py` is designed
+for an administrator who has **privately downloaded** a completed recovery ZIP
+using **Admin → Backups → Download**. The ZIP includes the database,
+configuration files and possibly secrets and personal information. Never
+attach it to an issue, commit it to GitHub, or upload it to a public service.
+
+Use the script **on the computer holding that archive**; it performs no
+network requests, extraction, SQL import or configuration changes, and it
+prints only the archive SHA-256 and counts. Python 3.10+ is sufficient:
+
+```powershell
+py -3 tools\verify-backup-offline.py "D:\PrivateBackups\backup-20261104-035140-f476fc.zip" --expect-tables 73 --expect-files 1210
+```
+
+The `73`/`1210` figures are the staging backup's **observed** counts,
+not universal Core requirements. If your archive differs, use its own
+verified counts. The script independently streams the SQL and every
+protected file and validates all manifest digests, missing/undeclared
+members, duplicate/case-colliding names, unsafe paths and symlink types.
+Optionally pass `--expect-sha256 HEX` to compare against a separate
+record of the exact source ZIP checksum. Exit code 0 means full integrity
+passed; 1 means the copy must not be relied on. The script prints no
+archive file contents, SQL, config, user identifiers or member filenames.
+
+**Next:** Store a private, access-controlled independent copy and perform
+an *isolated disposable restore* with mail/cron/production integrations
+disabled, verify restored database and uploads, and record operator
+approval. An offline checksum PASS is not a real restore test.
+
 ## Explicit module purge data protection
 
 Uninstall removes module files but **preserves** module data. A separate

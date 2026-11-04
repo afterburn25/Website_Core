@@ -9,9 +9,8 @@ root = Path(__file__).resolve().parents[1]
 manifest = json.loads((root / 'addon.json').read_text())
 version = manifest['version']
 release = root / 'releases' / f'industry-catering-{version}.zip'
-for previous in (root / 'releases').glob('*.zip'):
-    if previous != release:
-        previous.unlink()
+# Historical releases are immutable: never remove or overwrite older version
+# archives while building the new directly installable module ZIP.
 with zipfile.ZipFile(release, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
     for path in sorted(root.rglob('*')):
         relative = path.relative_to(root)
@@ -32,6 +31,15 @@ assert release.stat().st_size < 1_900_000, 'Keep the module below common shared-
 digest = hashlib.sha256(release.read_bytes()).hexdigest()
 latest_path = root / 'releases/LATEST.json'
 latest = json.loads(latest_path.read_text())
-latest.update(version=version, file=release.name, sha256=digest)
+latest.update(
+    version=version,
+    file=release.name,
+    sha256=digest,
+    released_at='',
+    verification='Candidate archive only; Core/host acceptance and owner approval pending',
+    tested_core='2.6.2',
+    tested_core_commit='pending',
+    ci={'module': 'pending', 'acceptance': 'pending'},
+)
 latest_path.write_text(json.dumps(latest, indent=2) + '\n')
 print(f'{release.name}: {release.stat().st_size:,} bytes; SHA-256 {digest}')

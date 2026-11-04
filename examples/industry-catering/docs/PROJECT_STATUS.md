@@ -1,7 +1,7 @@
 # Catering Module Project Status
 
-- Current version: `2.1.0`
-- State: commercial theme release published with green CI; responsive browser acceptance pending
+- Current version: `2.1.2` (commercial design candidate; not yet deployed or accepted)
+- State: new single-hero and compact-navigation change pending exact-head module/Core tests and real hosted browser acceptance
 - Development branch: `module/catering`
 - Repository folder: `modules/industry-catering/`
 - Module API: `1`

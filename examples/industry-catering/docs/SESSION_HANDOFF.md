@@ -1,5 +1,23 @@
 # Catering Module Session Handoff
 
+## 2.1.2 candidate — one theme-owned hero per page (2026-11-03)
+
+The owner clarified that a chosen visual theme must **replace** the page's
+original hero, not stack a second image/banner above it. All ten layouts now
+show exactly one theme-rendered hero with a page-specific title and default
+photograph; the legacy top section is suppressed during theme rendering.
+Detail-page prices, service information and quote/contact forms remain in
+compact content sections rather than disappearing. Navigation is centered,
+sticky, and reduced to 58px desktop / 56px mobile, with a shaded 75%-opaque
+surface. Hero height is reduced and multi-photo hero collages are replaced
+with one image. The change remains module-only and does not mutate deployed
+media/content or add a database migration. A release ZIP, exact-head CI,
+Core integration, and authenticated staging browser checks remain required
+before updating the current 2.0.2 installed demo module or claiming
+commercial acceptance.
+
+
+
 ## Current continuation — 2.1.0 candidate (2026-10-26)
 
 Catering 2.1.0 completes the requested commercial design refinement without

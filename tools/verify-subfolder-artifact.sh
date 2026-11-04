@@ -38,8 +38,8 @@ test -z "$(find "$site" -type f -iname '*.zip' -print -quit)"
 test ! -e "$site/config/config.php"
 php -r '
   $m=json_decode(file_get_contents($argv[1]),true,512,JSON_THROW_ON_ERROR);
-  if(($m["id"]??null)!=="cajunwebpro/catering"||($m["version"]??null)!=="2.1.1"||isset($m["license_key"])){
-    fwrite(STDERR,"Catering 2.1.1 keyless package manifest missing or unexpected\n"); exit(1);
+  if(($m["id"]??null)!=="cajunwebpro/catering"||($m["version"]??null)!=="2.1.2"||isset($m["license_key"])){
+    fwrite(STDERR,"Catering 2.1.2 keyless package manifest missing or unexpected\n"); exit(1);
   }' "$site/modules/industries/industry-catering/addon.json"
 
 # Native CI matrix runs MySQL 8.4 and MariaDB 11.4 separately.
@@ -109,7 +109,7 @@ php -r '
   $pdo=new PDO("mysql:host=127.0.0.1;port=3306;dbname=wc_subfolder_acceptance","root","");
   $q=$pdo->query("SELECT version,state FROM wc_packages WHERE package_id=\"cajunwebpro/catering\"");
   $package=$q->fetch(PDO::FETCH_ASSOC);
-  if(($package["version"]??"")!=="2.1.1"||($package["state"]??"")!=="enabled"){
+  if(($package["version"]??"")!=="2.1.2"||($package["state"]??"")!=="enabled"){
     fwrite(STDERR,"Subfolder Catering package not registered and enabled\n"); exit(1);
   }
   if($pdo->query("SHOW TABLES LIKE \"wc_catering_inquiries\"")->rowCount()!==1){
@@ -132,10 +132,10 @@ php -r '
   $report=json_decode(file_get_contents($argv[1]),true,512,JSON_THROW_ON_ERROR);
   if(($report["core_version"]??null)!=="2.6.2"
     || ($report["installation_state"]??"")!=="marker_and_config_present"
-    || ($report["industries"][0]["version"]??"")!=="2.1.1"
+    || ($report["industries"][0]["version"]??"")!=="2.1.2"
     || ($report["checks"]["install_php_present"]??true)
     || ($report["checks"]["install_dir_present"]??true)) {
     fwrite(STDERR,"Subfolder installed-artifact preflight failed\n"); exit(1);
   }' "$workspace/preflight.json"
 
-echo "Subfolder no-rewrite acceptance OK: real Catering 2.1.1 ZIP, installer, database, URLs, assets, cleanup."
+echo "Subfolder no-rewrite acceptance OK: real Catering 2.1.2 ZIP, installer, database, URLs, assets, cleanup."

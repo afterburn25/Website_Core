@@ -370,7 +370,7 @@ final class MySqlNativeTest extends TestCase
 
         $catering = 'cajunwebpro/catering';
         $landscaping = 'cajunwebpro/landscaping';
-        $this->assertSame('2.1.1', $db->fetchColumn(
+        $this->assertSame('2.1.2', $db->fetchColumn(
             'SELECT version FROM ' . $db->table('packages') . ' WHERE package_id=?', [$catering]
         ));
         $this->assertSame('1.0.0', $db->fetchColumn(

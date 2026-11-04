@@ -112,6 +112,93 @@ final class ThemeSupport
         return '<script src="' . self::a((string) ($v['assetBase'] ?? '') . '/assets/js/catering.js&v=' . $version) . '" defer></script>';
     }
 
+    /**
+     * Exactly one hero belongs to the selected theme on every page.
+     * Existing page templates suppress their old top-level hero; the theme
+     * supplies the subject, unique photograph, and primary H1 instead.
+     * Hero subjects follow the current route, not the theme's homepage text.
+     *
+     * @return array{eyebrow:string,title:string,description:string}
+     */
+    private static function pageHeroText(array $v): array
+    {
+        $page = (string) ($v['pageTemplate'] ?? 'home');
+        $title = trim((string) (($v['page'] ?? [])['title'] ?? ''));
+        $defaults = [
+            'home' => ['Catering for every occasion', 'Gather beautifully.', 'Thoughtful menus and gracious service for your most meaningful gatherings.'],
+            'services' => ['Made for every gathering', 'Catering experiences, beautifully considered.', 'Explore full-service events, intimate celebrations, and effortless delivery.'],
+            'menus' => ['Seasonal, personal, memorable', 'Menus that bring people together.', 'Make the menu yours with signature dishes and thoughtful selections.'],
+            'packages' => ['Plan with confidence', 'Catering packages made for your occasion.', 'Start with a curated package and tailor every detail.'],
+            'about' => ['Our story', 'Hospitality lives in the details.', 'The people, ingredients, and care behind every gathering.'],
+            'gallery' => ['Moments around the table', 'Gatherings worth remembering.', 'See what considered hospitality looks like.'],
+            'contact' => ['Start a conversation', 'Tell us what you are planning.', 'We would love to hear about your event.'],
+            'quote' => ['Plan your gathering', 'A menu made for your occasion.', 'Choose your dishes and share the details of your celebration.'],
+            'faq' => ['Good to know', 'Frequently asked questions.', 'Helpful answers for a more effortless event.'],
+            'venues' => ['Preferred places', 'Venue partners.', 'Find a place that fits the moment.'],
+            'event-stories' => ['Real gatherings', 'Event stories.', 'Thoughtful menus and memorable outcomes.'],
+            'service-area' => ['Where we serve', 'Catering that comes to you.', 'Delivery, pickup, and full-service events in your area.'],
+            'service-detail' => ['Made for your moment', $title !== '' ? $title : 'Personalized catering.', 'Beautifully prepared food and attentive service for your event.'],
+            'menu-detail' => ['Explore the menu', $title !== '' ? $title : 'Our menu.', 'Discover dishes that fit your occasion.'],
+            'package-detail' => ['Personalize your event', $title !== '' ? $title : 'Your catering package.', 'A starting point that you can make your own.'],
+        ];
+        $copy = $defaults[$page] ?? ['Catering, considered', $title !== '' ? $title : 'Gather beautifully.', 'Let us help plan your next event.'];
+        return ['eyebrow' => $copy[0], 'title' => $copy[1], 'description' => $copy[2]];
+    }
+
+    public static function heroEyebrow(array $v): string
+    {
+        return self::h(self::pageHeroText($v)['eyebrow']);
+    }
+
+    public static function heroTitle(array $v): string
+    {
+        return self::h(self::pageHeroText($v)['title']);
+    }
+
+    public static function heroDescription(array $v): string
+    {
+        return self::h(self::pageHeroText($v)['description']);
+    }
+
+    /**
+     * Give every public route a distinct default hero photograph. Homepage,
+     * Services and Menus respect the existing Core theme Media selections;
+     * other routes use unique bundled photographs instead of repeating
+     * the theme's home hero on every page. No extra image is rendered.
+     */
+    public static function heroImage(array $v): string
+    {
+        $page = (string) ($v['pageTemplate'] ?? 'home');
+        $slots = ['home' => 'hero', 'services' => 'feature', 'menus' => 'accent'];
+        if (isset($slots[$page])) {
+            $url = (string) (($v['themeMedia'] ?? [])[$slots[$page]] ?? '');
+            if ($url !== '') return self::a($url);
+        }
+
+        $photos = [
+            'about' => 'assets/images/corporate-service.webp',
+            'packages' => 'assets/images/wedding-table.webp',
+            'gallery' => 'assets/images/plated-dinner.webp',
+            'contact' => 'assets/images/menu/crawfish-bread.webp',
+            'quote' => 'assets/images/menu/chicken-andouille-gumbo.webp',
+            'faq' => 'assets/images/menu/boudin-balls.webp',
+            'venues' => 'assets/images/menu/crawfish-bisque.webp',
+            'event-stories' => 'assets/images/menu/shrimp-fettuccine.webp',
+            'service-area' => 'assets/images/menu/cajun-jambalaya.webp',
+            'menu-detail' => 'assets/images/menu/blackened-redfish.webp',
+            'package-detail' => 'assets/images/menu/cajun-shrimp-grits-bites.webp',
+            'service-detail' => 'assets/images/hero.webp',
+        ];
+        $file = $photos[$page] ?? 'assets/images/hero.webp';
+        if ($page === 'service-detail') {
+            $image = (string) ($v['pageHeroSource'] ?? '');
+            if (preg_match('/^[a-z0-9-]+\\.webp$/', $image) === 1) {
+                $file = 'assets/images/' . $image;
+            }
+        }
+        return self::a(rtrim((string) ($v['assetBase'] ?? ''), '/') . '/' . $file);
+    }
+
     public static function media(array $v, string $slot): string
     {
         return self::a((string) (($v['themeMedia'] ?? [])[$slot] ?? ''));

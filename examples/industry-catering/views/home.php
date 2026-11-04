@@ -1,4 +1,5 @@
 <?php /** @var array $featuredItems @var array $packages @var ?array $review @var string $basePath @var string $assetBase */ ?>
+<?php if (empty($themeOwnsHero)): ?>
 <section class="c-hero c-hero-home">
 <div class="c-hero-shade"></div>
 <div class="c-hero-content">
@@ -9,6 +10,7 @@
 </div>
 <a class="c-scroll-cue" href="#story"><span>Discover</span><i></i></a>
 </section>
+<?php endif; ?>
 
 <section class="c-story-split c-section" id="story">
 <div class="c-story-copy c-reveal">

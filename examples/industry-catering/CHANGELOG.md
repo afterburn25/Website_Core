@@ -1,5 +1,19 @@
 # Catering Module Changelog
 
+## 2.1.2 — 2026-11-03 (candidate)
+
+- Each of the ten themes replaces the legacy page hero rather than stacking
+  a second hero above it. Public routes receive distinct default photographs,
+  route-appropriate titles, and one primary H1 per themed page.
+- Reduce theme hero height; keep only one photograph per hero in the layouts
+  that previously displayed photo collages or secondary image tiles.
+- Shorten and center navigation in every theme and the fallback layout, with
+  a 75%-opaque shaded/blurred sticky bar and responsive keyboard navigation.
+- Preserve admin-owned content, existing Core media selections and all module
+  records; no migration, core API, license or commerce changes.
+
+
+
 ## 2.1.1 — 2026-11-03
 
 - Repair social-link placement across all ten industry theme layouts. Every

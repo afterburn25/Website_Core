@@ -3,7 +3,7 @@
   "id": "cajunwebpro/catering",
   "type": "industry",
   "name": "Catering Website",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "license": "PROPRIETARY",
   "requires": {
     "core": ">=2.6.2,<3.0.0",

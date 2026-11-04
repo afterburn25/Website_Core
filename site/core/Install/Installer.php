@@ -505,6 +505,12 @@ final class Installer
             $errors['license'] = 'This bundle contains more than one industry module. Upload a product bundle with exactly one industry.';
         }
         foreach ($bundledModules as $manifestFile) {
+            // A planted link must not read arbitrary host configuration and
+            // masquerade as an extracted commercial module's manifest.
+            if (is_link($manifestFile) || is_link(dirname($manifestFile))) {
+                $errors['license'] = 'Bundled industry uses an unsupported symbolic-link manifest or directory.';
+                break;
+            }
             $manifest = json_decode((string) file_get_contents($manifestFile), true);
             if (is_array($manifest)) {
                 $manifestErrors = \Core\Modules\Manifest::validate($manifest);
@@ -519,6 +525,22 @@ final class Installer
                 break;
             } else {
                 $errors['license'] = 'Bundled industry manifest is not valid JSON.';
+            }
+        }
+
+        // Commercial licensed bundles are pre-extracted, so they bypass
+        // PackageManager::stage(). Verify the final signed license manifest
+        // AND all module bytes before any database, owner or config writes.
+        // Public trust roots MUST come from the host/operator, not from the
+        // uploaded bundle itself. Keyless explicit TEST-BUNDLEs are distinct.
+        $installerTrustKeys = \Core\Install\BundledPackageTrust::trustedPublicKeys();
+        if ($licenseKey !== null && $bundledModuleDir !== null && is_array($bundledManifest)
+            && !isset($errors['license'])) {
+            $trustError = \Core\Install\BundledPackageTrust::verify(
+                $bundledModuleDir, $bundledManifest, $installerTrustKeys
+            );
+            if ($trustError !== null) {
+                $errors['license'] = $trustError;
             }
         }
 
@@ -708,6 +730,7 @@ final class Installer
             'storage' => $storagePath, 'upload' => $uploadPath, 'appKey' => $appKey,
             'https' => $this->requestSecure(),
             'licenseApiUrl' => rtrim((string) (getenv('WC_LICENSE_API_URL') ?: 'https://cajunwebpro.com/api'), '/'),
+            'trustedPublicKeys' => $licenseKey !== null ? $installerTrustKeys : [],
         ]);
         try {
             $this->writeConfigAtomically($configPhp, $appKey, $dbName);
@@ -936,6 +959,7 @@ final class Installer
         $s = fn (string $x) => var_export($x, true);
         $coreVersion = defined('WC_VERSION') ? WC_VERSION : '0.0.0-dev';
         $mailDefaults=\Core\Mail\MailDefaults::fromUrl((string)$v['baseUrl']);
+        $trustedKeysExport = var_export($v['trustedPublicKeys'] ?? [], true);
         return <<<PHP
         <?php
         declare(strict_types=1);
@@ -981,7 +1005,7 @@ final class Installer
             'license' => [
                 'api_url' => {$s($v['licenseApiUrl'])},
             ],
-            'trust' => ['public_keys' => [], 'allow_unsigned' => false],
+            'trust' => ['public_keys' => {$trustedKeysExport}, 'allow_unsigned' => false],
             'updates' => ['channel' => 'stable', 'require_window' => false],
         ];
         PHP;

@@ -222,6 +222,7 @@ final class CoreUpdaterTest extends TestCase
             $this->markTestSkipped('Requires POSIX symlinks.');
         }
         $outside = \WcProcessTmpDirs::make('wc-upd-external-');
+        mkdir($outside, 0777, true);
         $marker = $outside . '/marker.php';
         file_put_contents($marker, 'DO-NOT-TOUCH');
         $this->assertTrue(symlink($marker, $this->root . '/includes/new-file.php'));
@@ -242,6 +243,7 @@ final class CoreUpdaterTest extends TestCase
             $this->markTestSkipped('Requires POSIX symlinks.');
         }
         $outside = \WcProcessTmpDirs::make('wc-upd-temp-target-');
+        mkdir($outside, 0777, true);
         $marker = $outside . '/marker.txt';
         file_put_contents($marker, 'STAYS-ORIGINAL');
         $oldPredictableTemp = $this->root . '/index.php.tmp-' . getmypid();
@@ -262,6 +264,7 @@ final class CoreUpdaterTest extends TestCase
             $this->markTestSkipped('Requires POSIX symlinks.');
         }
         $outside = \WcProcessTmpDirs::make('wc-upd-rollback-out-');
+        mkdir($outside, 0777, true);
         $this->assertTrue(symlink($outside, $this->root . '/includes/foreign'));
         // Intentionally place a normally writable member first to prove the
         // complete rollback preflight prevents any partial writes.

@@ -407,9 +407,9 @@ final class PackageManagerTest extends TestCase
             $this->db->pdo()->exec(
                 'CREATE TABLE "' . $table . '" (id INTEGER PRIMARY KEY, value TEXT)'
             );
-            $this->db->pdo()->exec(
-                'INSERT INTO "' . $table . '" (id, value) VALUES (1, "preserve")'
-            );
+            $this->db->pdo()->prepare(
+                'INSERT INTO "' . $table . '" (id, value) VALUES (1, ?)'
+            )->execute(['preserve']);
         }
         [$ok, $error] = $this->pm->purgeData('acme/widgets');
         $this->assertTrue($ok, (string) $error);

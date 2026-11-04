@@ -505,6 +505,12 @@ final class Installer
             $errors['license'] = 'This bundle contains more than one industry module. Upload a product bundle with exactly one industry.';
         }
         foreach ($bundledModules as $manifestFile) {
+            // A planted link must not read arbitrary host configuration and
+            // masquerade as an extracted commercial module's manifest.
+            if (is_link($manifestFile) || is_link(dirname($manifestFile))) {
+                $errors['license'] = 'Bundled industry uses an unsupported symbolic-link manifest or directory.';
+                break;
+            }
             $manifest = json_decode((string) file_get_contents($manifestFile), true);
             if (is_array($manifest)) {
                 $manifestErrors = \Core\Modules\Manifest::validate($manifest);

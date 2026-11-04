@@ -198,11 +198,13 @@ final class CoreUpdater
                     return [false, "Integrity check failed for {$name}", null];
                 }
             }
-            $dest = $this->rootDir . '/' . $name;
-            $resolvedDir = realpath(dirname($dest)) ?: dirname($dest);
-            if (!str_starts_with(str_replace('\\', '/', $resolvedDir), str_replace('\\', '/', $this->rootDir))) {
+            // Refuse existing symlinks at ANY component, including the
+            // destination itself, before touching the deployment tree. A
+            // realpath() string-prefix test is insufficient: sibling roots
+            // can share prefixes, and a missing descendant may hide a link.
+            if (!$this->safeDestination($name)) {
                 $zip->close();
-                return [false, "Refusing to write outside the deployment root: {$name}", null];
+                return [false, "Refusing unsafe update destination: {$name}", null];
             }
             $payload[$name] = $contents;
         }
@@ -214,14 +216,34 @@ final class CoreUpdater
 
         $written = 0;
         foreach ($payload as $name => $contents) {
+            // Recheck immediately before each write in case a shared-host
+            // process changed the filesystem after the validation pass.
+            if (!$this->safeDestination($name)) {
+                $zip->close();
+                $backup->close();
+                return [false, "Refusing unsafe update destination: {$name}", $backupPath];
+            }
             $dest = $this->rootDir . '/' . $name;
             if (is_file($dest)) {
                 $backup->addFromString($name, (string) file_get_contents($dest));
             }
             @mkdir(dirname($dest), 0777, true);
+            if (!$this->safeDestination($name)) {
+                $zip->close();
+                $backup->close();
+                return [false, "Refusing unsafe update destination: {$name}", $backupPath];
+            }
             // Temp-write + rename keeps each member atomic — a crash
             // mid-write never leaves a truncated file being served.
-            $tmp = $dest . '.tmp-' . getmypid();
+            // A unique, exclusively created temp file cannot follow a
+            // pre-planted predictable .tmp-PID symlink into another path.
+            $tmp = @tempnam(dirname($dest), '.wc-update-');
+            if (!is_string($tmp) || dirname($tmp) !== dirname($dest)) {
+                if (is_string($tmp)) @unlink($tmp);
+                $zip->close();
+                $backup->close();
+                return [false, "Cannot prepare safe temporary update file for {$name}", $backupPath];
+            }
             if (file_put_contents($tmp, $contents) === false
                 || (!@rename($tmp, $dest)
                     // Windows rename() cannot overwrite an existing file.
@@ -250,6 +272,36 @@ final class CoreUpdater
     {
         $norm = fn (string $v) => preg_replace('/^v/', '', $v);
         return version_compare($norm($have), $norm($need), '>=');
+    }
+
+    /**
+     * Verify every component below the canonical deployment root, not
+     * merely the resolved destination's string prefix. An existing link in
+     * an ancestor OR the final member is never an acceptable update target.
+     * The root itself may be a legitimate hosting-panel symlink.
+     */
+    private function safeDestination(string $name): bool
+    {
+        $root = realpath($this->rootDir);
+        if ($root === false || !is_dir($root) || !ArchiveInspector::memberNameOk($name)) {
+            return false;
+        }
+        $parts = explode('/', str_replace('\\', '/', $name));
+        $path = $root;
+        $last = count($parts) - 1;
+        foreach ($parts as $index => $component) {
+            if ($component === '' || $component === '.' || $component === '..') {
+                return false;
+            }
+            $path .= '/' . $component;
+            if (is_link($path)) {
+                return false;
+            }
+            if ($index < $last && file_exists($path) && !is_dir($path)) {
+                return false;
+            }
+        }
+        return !is_dir($path);
     }
 
     private function isSkipped(string $name): bool
@@ -292,14 +344,36 @@ final class CoreUpdater
         if ($errors !== []) return [false, implode(' ', $errors)];
         $zip = new ZipArchive();
         if ($zip->open($backupPath, ZipArchive::RDONLY) !== true) return [false, 'Rollback archive is unreadable.'];
+        $payload = [];
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $name = str_replace('\\', '/', (string) $zip->getNameIndex($i));
             if (str_ends_with($name, '/') || $this->isSkipped($name)) continue;
             $contents = $zip->getFromIndex($i);
             if ($contents === false) { $zip->close(); return [false, "Rollback member is unreadable: {$name}"]; }
+            // Preflight ALL destinations before restoring the first file.
+            if (!$this->safeDestination($name)) {
+                $zip->close();
+                return [false, "Refusing unsafe rollback destination: {$name}"];
+            }
+            $payload[$name] = $contents;
+        }
+        foreach ($payload as $name => $contents) {
+            if (!$this->safeDestination($name)) {
+                $zip->close();
+                return [false, "Refusing unsafe rollback destination: {$name}"];
+            }
             $dest = $this->rootDir . '/' . $name;
             @mkdir(dirname($dest), 0750, true);
-            $tmp = $dest . '.rollback-' . getmypid();
+            if (!$this->safeDestination($name)) {
+                $zip->close();
+                return [false, "Refusing unsafe rollback destination: {$name}"];
+            }
+            $tmp = @tempnam(dirname($dest), '.wc-rollback-');
+            if (!is_string($tmp) || dirname($tmp) !== dirname($dest)) {
+                if (is_string($tmp)) @unlink($tmp);
+                $zip->close();
+                return [false, "Cannot prepare safe temporary rollback file for {$name}"];
+            }
             if (@file_put_contents($tmp, $contents, LOCK_EX) === false || !@rename($tmp, $dest)) {
                 @unlink($tmp); $zip->close(); return [false, "Rollback could not restore {$name}"];
             }

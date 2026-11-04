@@ -37,6 +37,8 @@ jobs:
       - run: php tools/lint.php
       - run: vendor/bin/phpunit --testsuite unit
       - run: vendor/bin/phpunit --testsuite package
+      - name: Offline private backup export integrity tests
+        run: python3 -m unittest discover -s tests/tools -p 'test_verify_backup_offline.py' -v
 
   native-mysql:
     name: Native MySQL ${{ matrix.db }} (PHP ${{ matrix.php }})

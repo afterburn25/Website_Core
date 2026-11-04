@@ -611,11 +611,19 @@ final class PackageManager
             return [false, 'Package id is invalid; no data was changed.'];
         }
         $prefix = explode('/', $packageId, 2)[1] . '_';
+        // SQL LIKE treats '_' as a single-character wildcard and '%' as
+        // arbitrary characters. A literal module prefix such as "catering_"
+        // must NEVER also match "cateringx_..." (or a different DB namespace)
+        // during irreversible purge. Escape both the configured DB prefix and
+        // the module-owned table prefix with an explicit portable escape char.
+        $escaped = strtr($this->db->prefix() . $prefix, [
+            '!' => '!!', '%' => '!%', '_' => '!_',
+        ]);
         foreach ($this->db->fetchAll(
             $this->db->driver() === 'sqlite'
-                ? "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE ?"
-                : 'SELECT table_name AS name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name LIKE ?',
-            [$this->db->prefix() . $prefix . '%']
+                ? "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE ? ESCAPE '!'"
+                : "SELECT table_name AS name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name LIKE ? ESCAPE '!'",
+            [$escaped . '%']
         ) as $row) {
             $this->db->pdo()->exec('DROP TABLE IF EXISTS `' . $row['name'] . '`');
             $this->journal($packageId, 'purge', 'ok', 'dropped ' . $row['name']);

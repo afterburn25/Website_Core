@@ -24,6 +24,17 @@ integrity or are rejected, and the write loop refuses paths outside the
 roots even with a forged manifest. Manifest paths are forward-slash
 normalized at backup time so archives are portable across OSes.
 
+## Explicit module purge data protection
+
+Uninstall removes module files but **preserves** module data. A separate
+operator-confirmed purge is irreversible. Its table discovery matches the
+**literal** configured database prefix and module-owned table prefix:
+underscores and percent signs must not expand as SQL `LIKE` wildcards and
+must never match another module's or another namespace's tables. This
+contract is enforced by SQLite and native MySQL/MariaDB regression tests,
+but customer-host backups and authorized restore evidence remain required
+before a real production purge.
+
 ## Symbolic-link safety
 
 A backup must remain inside its declared, operator-configured roots. Core now

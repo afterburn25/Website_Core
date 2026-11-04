@@ -386,6 +386,41 @@ final class PackageManagerTest extends TestCase
         $this->assertFalse($this->db->tableExists('widgets_data'));
     }
 
+    public function testPurgeEscapesLikeWildcardsAndPreservesForeignModuleTables(): void
+    {
+        $archive = $this->zip(['widgets/addon.json' => $this->manifest()]);
+        [, $stageError] = $this->pm->stage($archive);
+        $this->assertNull($stageError);
+        [$installed, $error] = $this->pm->install('acme/widgets');
+        $this->assertTrue($installed, (string) $error);
+        [$removed, $error] = $this->pm->uninstall('acme/widgets');
+        $this->assertTrue($removed, (string) $error);
+
+        // A SQL LIKE 'wc_widgets_%' erroneously matches both "widgetsX"
+        // and the entirely different DB namespace "wcXwidgets".
+        // Purging widgets must remove ONLY a literal wc_widgets_ prefix.
+        foreach ([
+            'wc_widgets_data',
+            'wc_widgetsx_customer',
+            'wcXwidgets_customer',
+        ] as $table) {
+            $this->db->pdo()->exec(
+                'CREATE TABLE "' . $table . '" (id INTEGER PRIMARY KEY, value TEXT)'
+            );
+            $this->db->pdo()->prepare(
+                'INSERT INTO "' . $table . '" (id, value) VALUES (1, ?)'
+            )->execute(['preserve']);
+        }
+        [$ok, $error] = $this->pm->purgeData('acme/widgets');
+        $this->assertTrue($ok, (string) $error);
+        $this->assertFalse($this->db->tableExists('widgets_data'));
+        foreach (['wc_widgetsx_customer', 'wcXwidgets_customer'] as $foreign) {
+            $this->assertSame('preserve', $this->db->pdo()->query(
+                'SELECT value FROM "' . $foreign . '" WHERE id=1'
+            )->fetchColumn(), 'Foreign table was dropped: ' . $foreign);
+        }
+    }
+
     public function testPurgeRemovesOnlyPackageOwnedFormsAndSubmissionEvidence(): void
     {
         $zip = $this->zip(['widgets/addon.json' => $this->manifest()]);

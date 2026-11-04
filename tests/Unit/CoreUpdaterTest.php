@@ -196,7 +196,7 @@ final class CoreUpdaterTest extends TestCase
 
     public function testApplyRefusesLinkedParentBeforeAnySiteFileChanges(): void
     {
-        if (!function_exists('symlink') || DIRECTORY_SEPARATOR === '\\\\') {
+        if (!function_exists('symlink') || DIRECTORY_SEPARATOR === chr(92)) {
             $this->markTestSkipped('Requires POSIX symlinks.');
         }
         // Deliberately shares the site's string prefix: the old realpath()
@@ -218,7 +218,7 @@ final class CoreUpdaterTest extends TestCase
 
     public function testApplyRefusesLinkedFinalMemberBeforeAnySiteFileChanges(): void
     {
-        if (!function_exists('symlink') || DIRECTORY_SEPARATOR === '\\\\') {
+        if (!function_exists('symlink') || DIRECTORY_SEPARATOR === chr(92)) {
             $this->markTestSkipped('Requires POSIX symlinks.');
         }
         $outside = \\WcProcessTmpDirs::make('wc-upd-external-');
@@ -238,7 +238,7 @@ final class CoreUpdaterTest extends TestCase
 
     public function testApplyCannotFollowPredictableTemporaryFileSymlink(): void
     {
-        if (!function_exists('symlink') || DIRECTORY_SEPARATOR === '\\\\') {
+        if (!function_exists('symlink') || DIRECTORY_SEPARATOR === chr(92)) {
             $this->markTestSkipped('Requires POSIX symlinks.');
         }
         $outside = \\WcProcessTmpDirs::make('wc-upd-temp-target-');
@@ -258,7 +258,7 @@ final class CoreUpdaterTest extends TestCase
 
     public function testRollbackRefusesLinkedParentBeforeAnySiteFileChanges(): void
     {
-        if (!function_exists('symlink') || DIRECTORY_SEPARATOR === '\\\\') {
+        if (!function_exists('symlink') || DIRECTORY_SEPARATOR === chr(92)) {
             $this->markTestSkipped('Requires POSIX symlinks.');
         }
         $outside = \\WcProcessTmpDirs::make('wc-upd-rollback-out-');

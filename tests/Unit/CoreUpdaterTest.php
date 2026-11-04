@@ -280,6 +280,48 @@ final class CoreUpdaterTest extends TestCase
         $this->assertFileDoesNotExist($outside . '/escaped.php');
     }
 
+
+    public function testApplyRefusesMissingRollbackDirectoryWithoutChangingSite(): void
+    {
+        // A plain file prevents creation of the backup directory even when
+        // this test runs as a privileged user (chmod-only tests are unreliable).
+        @mkdir($this->storage, 0777, true);
+        file_put_contents($this->storage . '/update-backups', 'BLOCKING FILE');
+
+        $members = $this->validMembers();
+        $zip = $this->updateZip($members, $this->manifestFor($members));
+        [$ok, $err, $backup] = $this->updater->apply($zip);
+
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('rollback backup directory', (string) $err);
+        $this->assertNull($backup);
+        $this->assertSame('OLD-INDEX', file_get_contents($this->root . '/index.php'));
+        $this->assertStringContainsString('0.1.1-dev', file_get_contents($this->root . '/includes/bootstrap.php'));
+    }
+
+    public function testBackToBackUpdatesNeverOverwriteAnEarlierRollbackArchive(): void
+    {
+        $members = $this->validMembers();
+        $zip = $this->updateZip($members, $this->manifestFor($members));
+
+        [$firstOk, $firstErr, $firstBackup] = $this->updater->apply($zip);
+        $this->assertTrue($firstOk, (string) $firstErr);
+        $this->assertFileExists($firstBackup);
+        [$secondOk, $secondErr, $secondBackup] = $this->updater->apply($zip);
+        $this->assertTrue($secondOk, (string) $secondErr);
+        $this->assertFileExists($secondBackup);
+        $this->assertNotSame($firstBackup, $secondBackup);
+
+        $first = new ZipArchive();
+        $this->assertTrue($first->open($firstBackup, ZipArchive::RDONLY));
+        $this->assertSame('OLD-INDEX', $first->getFromName('index.php'));
+        $first->close();
+        $second = new ZipArchive();
+        $this->assertTrue($second->open($secondBackup, ZipArchive::RDONLY));
+        $this->assertSame('NEW-INDEX', $second->getFromName('index.php'));
+        $second->close();
+    }
+
     public function testManifestHashMismatchAbortsApply(): void
     {
         $members = $this->validMembers();

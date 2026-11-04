@@ -193,6 +193,90 @@ final class CoreUpdaterTest extends TestCase
         fclose($lock);
     }
 
+
+    public function testApplyRefusesLinkedParentBeforeAnySiteFileChanges(): void
+    {
+        if (!function_exists('symlink') || DIRECTORY_SEPARATOR === '\\\\') {
+            $this->markTestSkipped('Requires POSIX symlinks.');
+        }
+        // Deliberately shares the site's string prefix: the old realpath()
+        // str_starts_with(root) guard would incorrectly allow this sibling.
+        $outside = $this->root . '-other';
+        mkdir($outside, 0777, true);
+        $this->assertTrue(symlink($outside, $this->root . '/includes/foreign'));
+
+        $members = $this->validMembers();
+        $members['includes/foreign/escaped.php'] = 'OUTSIDE-WRITE';
+        $zip = $this->updateZip($members, $this->manifestFor($members));
+        [$ok, $err] = $this->updater->apply($zip);
+
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('unsafe update destination', (string) $err);
+        $this->assertSame('OLD-INDEX', file_get_contents($this->root . '/index.php'));
+        $this->assertFileDoesNotExist($outside . '/escaped.php');
+    }
+
+    public function testApplyRefusesLinkedFinalMemberBeforeAnySiteFileChanges(): void
+    {
+        if (!function_exists('symlink') || DIRECTORY_SEPARATOR === '\\\\') {
+            $this->markTestSkipped('Requires POSIX symlinks.');
+        }
+        $outside = \\WcProcessTmpDirs::make('wc-upd-external-');
+        $marker = $outside . '/marker.php';
+        file_put_contents($marker, 'DO-NOT-TOUCH');
+        $this->assertTrue(symlink($marker, $this->root . '/includes/new-file.php'));
+
+        $members = $this->validMembers();
+        $zip = $this->updateZip($members, $this->manifestFor($members));
+        [$ok, $err] = $this->updater->apply($zip);
+
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('unsafe update destination', (string) $err);
+        $this->assertSame('OLD-INDEX', file_get_contents($this->root . '/index.php'));
+        $this->assertSame('DO-NOT-TOUCH', file_get_contents($marker));
+    }
+
+    public function testApplyCannotFollowPredictableTemporaryFileSymlink(): void
+    {
+        if (!function_exists('symlink') || DIRECTORY_SEPARATOR === '\\\\') {
+            $this->markTestSkipped('Requires POSIX symlinks.');
+        }
+        $outside = \\WcProcessTmpDirs::make('wc-upd-temp-target-');
+        $marker = $outside . '/marker.txt';
+        file_put_contents($marker, 'STAYS-ORIGINAL');
+        $oldPredictableTemp = $this->root . '/index.php.tmp-' . getmypid();
+        $this->assertTrue(symlink($marker, $oldPredictableTemp));
+
+        $members = $this->validMembers();
+        $zip = $this->updateZip($members, $this->manifestFor($members));
+        [$ok, $err] = $this->updater->apply($zip);
+
+        $this->assertTrue($ok, (string) $err);
+        $this->assertSame('NEW-INDEX', file_get_contents($this->root . '/index.php'));
+        $this->assertSame('STAYS-ORIGINAL', file_get_contents($marker));
+    }
+
+    public function testRollbackRefusesLinkedParentBeforeAnySiteFileChanges(): void
+    {
+        if (!function_exists('symlink') || DIRECTORY_SEPARATOR === '\\\\') {
+            $this->markTestSkipped('Requires POSIX symlinks.');
+        }
+        $outside = \\WcProcessTmpDirs::make('wc-upd-rollback-out-');
+        $this->assertTrue(symlink($outside, $this->root . '/includes/foreign'));
+        // Intentionally place a normally writable member first to prove the
+        // complete rollback preflight prevents any partial writes.
+        $zip = $this->updateZip([
+            'includes/bootstrap.php' => 'ROLLBACK-CHANGED',
+            'includes/foreign/escaped.php' => 'OUTSIDE-ROLLBACK',
+        ]);
+        [$ok, $err] = $this->updater->restoreFiles($zip);
+
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('unsafe rollback destination', (string) $err);
+        $this->assertStringContainsString('0.1.1-dev', file_get_contents($this->root . '/includes/bootstrap.php'));
+        $this->assertFileDoesNotExist($outside . '/escaped.php');
+    }
+
     public function testManifestHashMismatchAbortsApply(): void
     {
         $members = $this->validMembers();

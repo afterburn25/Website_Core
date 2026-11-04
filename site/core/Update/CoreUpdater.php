@@ -209,10 +209,60 @@ final class CoreUpdater
             $payload[$name] = $contents;
         }
 
-        $backupPath = $this->storageDir . '/update-backups/update-' . date('Ymd-His') . '.zip';
-        @mkdir(dirname($backupPath), 0777, true);
+        // A rollback must exist and pass a read-back checksum verification
+        // BEFORE the first deployment file is replaced. Previously a failed
+        // ZIP open/add/close was ignored while site files were overwritten.
+        $backupDir = $this->storageDir . '/update-backups';
+        if (!is_dir($backupDir) && !@mkdir($backupDir, 0750, true) && !is_dir($backupDir)) {
+            $zip->close();
+            return [false, 'Cannot create the rollback backup directory; no update files changed.', null];
+        }
+        $backupPath = $backupDir . '/update-' . date('Ymd-His') . '-' . bin2hex(random_bytes(5)) . '.zip';
         $backup = new ZipArchive();
-        $backup->open($backupPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        if ($backup->open($backupPath, ZipArchive::CREATE | ZipArchive::EXCL) !== true) {
+            $zip->close();
+            return [false, 'Cannot create the rollback archive; no update files changed.', null];
+        }
+        $originalHashes = [];
+        foreach ($payload as $name => $_contents) {
+            if (!$this->safeDestination($name)) {
+                $zip->close();
+                $backup->close();
+                @unlink($backupPath);
+                return [false, "Refusing unsafe update destination: {$name}", null];
+            }
+            $dest = $this->rootDir . '/' . $name;
+            if (!is_file($dest)) {
+                continue;
+            }
+            $original = @file_get_contents($dest);
+            if (!is_string($original) || !$backup->addFromString($name, $original)) {
+                $zip->close();
+                $backup->close();
+                @unlink($backupPath);
+                return [false, "Cannot capture rollback file: {$name}", null];
+            }
+            $originalHashes[$name] = hash('sha256', $original);
+        }
+        if (!$backup->close()) {
+            $zip->close();
+            @unlink($backupPath);
+            return [false, 'Rollback archive could not be finalized; no update files changed.', null];
+        }
+        $checkBackup = new ZipArchive();
+        if ($checkBackup->open($backupPath, ZipArchive::RDONLY) !== true) {
+            $zip->close();
+            return [false, 'Rollback archive could not be reopened for verification; no update files changed.', null];
+        }
+        foreach ($originalHashes as $name => $digest) {
+            $saved = $checkBackup->getFromName($name);
+            if (!is_string($saved) || !hash_equals($digest, hash('sha256', $saved))) {
+                $checkBackup->close();
+                $zip->close();
+                return [false, "Rollback archive verification failed for {$name}; no update files changed.", null];
+            }
+        }
+        $checkBackup->close();
 
         $written = 0;
         foreach ($payload as $name => $contents) {
@@ -220,17 +270,12 @@ final class CoreUpdater
             // process changed the filesystem after the validation pass.
             if (!$this->safeDestination($name)) {
                 $zip->close();
-                $backup->close();
                 return [false, "Refusing unsafe update destination: {$name}", $backupPath];
             }
             $dest = $this->rootDir . '/' . $name;
-            if (is_file($dest)) {
-                $backup->addFromString($name, (string) file_get_contents($dest));
-            }
             @mkdir(dirname($dest), 0777, true);
             if (!$this->safeDestination($name)) {
                 $zip->close();
-                $backup->close();
                 return [false, "Refusing unsafe update destination: {$name}", $backupPath];
             }
             // Temp-write + rename keeps each member atomic — a crash
@@ -241,7 +286,6 @@ final class CoreUpdater
             if (!is_string($tmp) || dirname($tmp) !== dirname($dest)) {
                 if (is_string($tmp)) @unlink($tmp);
                 $zip->close();
-                $backup->close();
                 return [false, "Cannot prepare safe temporary update file for {$name}", $backupPath];
             }
             if (file_put_contents($tmp, $contents) === false
@@ -250,13 +294,11 @@ final class CoreUpdater
                     && (!@unlink($dest) || !@rename($tmp, $dest)))) {
                 @unlink($tmp);
                 $zip->close();
-                $backup->close();
                 return [false, "Failed writing {$name}", $backupPath];
             }
             $written++;
         }
         $zip->close();
-        $backup->close();
 
         $this->journal(sprintf(
             'apply version=%s members=%d backup=%s',

@@ -66,6 +66,11 @@ class ReleaseDownloadVerificationTest(unittest.TestCase):
         self.fixture(kind="UPDATE")
         self.assertEqual(mod.verify(self.path, self.sums)["kind"], "UPDATE")
 
+    def test_checksum_manifest_includes_runtime_sbom(self):
+        self.fixture()
+        self.sums.write_text(self.sums.read_text() + "0" * 64 + "  SBOM.json\n")
+        self.assertEqual(mod.verify(self.path, self.sums)["version"], "2.6.2")
+
     def test_wrong_trusted_digest_rejected_even_if_sums_match(self):
         self.fixture()
         with self.assertRaisesRegex(mod.VerificationError, "SHA-256"):

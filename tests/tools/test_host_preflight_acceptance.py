@@ -122,6 +122,27 @@ class HostedPreflightAcceptanceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("private_guard_invalid_core", report["failures"])
 
+    def test_comment_only_private_guard_does_not_count(self):
+        (self.root / "core" / ".htaccess").write_text(
+            "# Require all denied\\n# Deny from all\\n"
+        )
+        result, report = self.invoke()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("private_guard_invalid_core", report["failures"])
+
+    def test_industry_symlink_path_fails(self):
+        self.add_industry()
+        real = self.root / "modules" / "industries" / "industry-catering"
+        moved = self.root / "industry-safe"
+        real.rename(moved)
+        try:
+            real.symlink_to(moved, target_is_directory=True)
+        except (NotImplementedError, OSError):
+            self.skipTest("filesystem does not permit symlinks")
+        result, report = self.invoke("--expected-industry", "cajunwebpro/catering@2.1.2")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("linked_industry_manifest_path", report["failures"])
+
     def test_missing_runtime_autoloader_fails(self):
         (self.root / "vendor" / "autoload.php").unlink()
         result, report = self.invoke()

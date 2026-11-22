@@ -1,5 +1,38 @@
 # Session Handoff
 
+## 2026-11-22 — verified release-hardening baseline; real-host work still gated
+
+- Repository `afterburn25/Website_Core`, `main` at `4dd39001db72a04a05689765b3a7beedd987adf4` after
+  [PR #31](https://github.com/afterburn25/Website_Core/pull/31)
+  (offline ZIP/checksum/member safety),
+  [PR #32](https://github.com/afterburn25/Website_Core/pull/32)
+  (read-only fail-closed staging preflight), and
+  [PR #33](https://github.com/afterburn25/Website_Core/pull/33)
+  (independent Ed25519 public-key verification of signed UPDATE download).
+- Source exact-head [Core CI](https://github.com/afterburn25/Website_Core/actions/runs/45060502514)
+  passed all six jobs and
+  [authoritative Catering 2.1.2 integration](https://github.com/afterburn25/Website_Core/actions/runs/45060502475)
+  passed at PR #33 head `74da3a10`. Do not attribute those PR checks
+  to resulting-main without inspecting `4dd39001` push runs separately.
+- Current version remains Website Core **2.6.2**; `WC_SCHEMA_VERSION`
+  remains `2026_10_25_0032` and Module API remains v1. The pinned
+  Catering reference is 2.1.2; Landscaping reference remains 1.0.0.
+- New operator commands, from a trusted private source checkout:
+  `python3 tools/verify-release-download.py <UPDATE.zip> --checksums SHA256SUMS.txt --version 2.6.2 --expected-sha256 <independently-pinned-digest>`;
+  `php tools/verify-host-preflight.php <installed-root> --expected-core 2.6.2 --expected-industry cajunwebpro/catering@2.1.2`;
+  `php tools/verify-signed-update-offline.php <UPDATE.zip> <independently-trusted-public-key-file> --version 2.6.2 --expected-sha256 <independently-pinned-digest>`.
+  No command reads live credentials, extracts payloads onto customer sites or
+  authorizes production deployment. All have explicit confidence limits.
+- Next release acceptance: authorized disposable staging host, independently
+  backed up and verified, needs real Apache/LiteSpeed + PHP-FPM,
+  authenticated admin/browser, MySQL/MariaDB, module lifecycle, static
+  access denial, protected backup/download/restore, signed upgrade rollback,
+  actual license test purchase/domain/authorization, production trust-root
+  verification, accessibility/performance and operator approval. Production
+  release remains **NO-GO**. Never store credentials, exported backups or
+  production signer in this public repository. Don't infer access to the
+  live host or bypass 403/503 observations.
+
 ## 2.0.32 Core analytics
 
 - Core now owns anonymous first-party analytics for all successful public HTML

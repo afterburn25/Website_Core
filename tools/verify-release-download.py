@@ -111,10 +111,11 @@ def inspect_archive(path: Path, kind: str, version: str) -> int:
                     or lower.endswith((".pem", ".key", ".ser"))
                     or lower == "config/config.php" or lower == "config/installed.lock"
                     or lower.startswith(".git/") or "/.git/" in lower
-                    or (lower.startswith("storage/") and lower not in {"storage/.htaccess", "storage/.gitkeep"})
+                    or (lower.startswith("storage/") and re.fullmatch(
+                        r"storage/(?:[a-z0-9_-]+/)?\.(?:htaccess|gitkeep)", lower) is None)
                     or (lower.startswith("upload/") and lower not in {"upload/.htaccess", "upload/.gitkeep", "upload/.html"})
-                    or lower.startswith("modules/industries/")
-                    or lower.startswith("modules/addons/")):
+                    or (lower.startswith("modules/industries/") and lower != "modules/industries/.gitkeep")
+                    or (lower.startswith("modules/addons/") and lower != "modules/addons/.gitkeep")):
                 raise VerificationError("Archive contains runtime/private or unexpected package files")
             members[name] = info
         missing = REQUIRED - members.keys()

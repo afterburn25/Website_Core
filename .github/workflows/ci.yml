@@ -43,6 +43,8 @@ jobs:
         run: python3 -m unittest discover -s tests/tools -p 'test_verify_release_download.py' -v
       - name: Strict hosted static preflight acceptance tests (synthetic fixtures)
         run: python3 -m unittest discover -s tests/tools -p 'test_host_preflight_acceptance.py' -v
+      - name: Independently trusted offline signed UPDATE acceptance tests
+        run: python3 -m unittest discover -s tests/tools -p 'test_verify_signed_update_offline.py' -v
 
   native-mysql:
     name: Native MySQL ${{ matrix.db }} (PHP ${{ matrix.php }})
@@ -520,6 +522,14 @@ jobs:
           WC_TEST_SIGN_PUBLIC="$(cat /tmp/wc-ci-sign.public)" php tools/verify-update-signing.php \
             /tmp/dist/Website-Core-*-UPDATE.zip \
             /tmp/wc-ci-signed-dist/Website-Core-*-UPDATE.zip
+          # Independent offline public-key verification of the exact signed
+          # UPDATE. CI keys are ephemeral test keys, never production trust.
+          signed_zip=(/tmp/wc-ci-signed-dist/Website-Core-*-UPDATE.zip)
+          test "${#signed_zip[@]}" -eq 1
+          signed_sha="$(sha256sum "${signed_zip[0]}" | cut -d' ' -f1)"
+          php tools/verify-signed-update-offline.php "${signed_zip[0]}" \
+            /tmp/wc-ci-sign.public --version "${{ steps.release-version.outputs.version }}" \
+            --expected-sha256 "$signed_sha"
       - name: Commercial bundle signing is mandatory and fail-closed
         run: |
           set -euo pipefail

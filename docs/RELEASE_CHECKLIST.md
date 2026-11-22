@@ -30,8 +30,25 @@ Before starting this checklist, every applicable surface in
    - Separately versioned example package ZIPs (never inside
      COMPLETE-UPLOAD) + `SHA256SUMS.txt` + `SBOM.json` (CycloneDX 1.5,
      runtime deps only — emitted by `tools/sbom.php`, CI-asserted).
-5. Verify extracted artifacts: member paths, no missing files, version
-   consistency, dependency hashes, source↔package equivalence.
+5. Verify downloaded/extracted artifacts: member paths, no missing files, version
+   consistency, dependency hashes, source↔package equivalence. From a trusted
+   release channel, obtain the exact downloaded ZIP and its SHA256SUMS.txt:
+   ```bash
+   python3 tools/verify-release-download.py \
+     Website-Core-2.6.2-COMPLETE-UPLOAD.zip \
+     --checksums SHA256SUMS.txt --version 2.6.2 \
+     --expected-sha256 <independently-recorded-64-character-hex-digest>
+   python3 tools/verify-release-download.py \
+     Website-Core-2.6.2-UPDATE.zip \
+     --checksums SHA256SUMS.txt --version 2.6.2 \
+     --expected-sha256 <independently-recorded-update-digest>
+   ```
+   The tool does not extract or execute ZIP entries. It rejects unsafe paths,
+   duplicates, nested ZIPs, private runtime files, wrong versions and broken
+   UPDATE per-file hashes. The checksum file alone does not establish origin:
+   obtain expected digests independently and verify update signing/trust through
+   the real updater before publication. A local CI-generated archive PASS is
+   **not** proof that the GitHub Release asset has the same bytes.
 6. Fresh install + upgrade using the actual artifacts on a clean host dir
    (`php tools/verify-artifact.php <COMPLETE-UPLOAD.zip>` extracts,
    provisions, and serves the real artifact).

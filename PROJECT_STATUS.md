@@ -1,5 +1,31 @@
 # Project Status
 
+**Current 2026-11-22 — Core 2.6.2 release hardening (source verified,
+production NO-GO):** [PR #31](https://github.com/afterburn25/Website_Core/pull/31)
+merged at `5facc6de` with a read-only offline downloaded-ZIP verifier;
+[PR #32](https://github.com/afterburn25/Website_Core/pull/32) merged at
+`de2a9bc3` with a strict, redacted static staging installation receipt;
+[PR #33](https://github.com/afterburn25/Website_Core/pull/33) merged at
+`4dd39001` with independently trusted Ed25519 UPDATE download validation.
+PR #33 exact-head [six-job CI](https://github.com/afterburn25/Website_Core/actions/runs/45060502514)
+and [authoritative Catering integration](https://github.com/afterburn25/Website_Core/actions/runs/45060502475)
+passed before merge. Independently, resulting-main
+[CI run 45060685285](https://github.com/afterburn25/Website_Core/actions/runs/45060685285)
+passed all six jobs and [Catering run 45060685278](https://github.com/afterburn25/Website_Core/actions/runs/45060685278)
+passed on exact merge commit `4dd39001`. No Core
+version, schema marker or Module API change occurred; Core remains 2.6.2,
+Catering reference remains 2.1.2, Landscaping remains 1.0.0.
+
+**Still unverified:** authorized shared-host root/subfolder installation;
+full Apache/LiteSpeed + PHP-FPM authenticated runtime; independent offsite
+backup and disposable-clone restore; 2.0.2→2.1.2 live staged module upgrade
+and rollback; approved production key provenance; real licensed purchase,
+domain binding and denial/recovery; browser/accessibility/performance;
+published immutable release assets with independent byte checks, and owner
+approval. CI test keys and mock license responses are *not* production
+acceptance. See `docs/2.6.2_RELEASE_READINESS.md` and
+`docs/2.6.2_HOSTED_ACCEPTANCE_RUNBOOK.md`.
+
 **Catering 2.1.2 synchronization candidate (2026-11-03):** The authoritative
 [Catering PR #3](https://github.com/afterburn25/Core_Mods/pull/3)
 is merged on `Core_Mods:module/catering` as `5aef1584dc814bde2f84256aab20175a1f69fa76`. Its

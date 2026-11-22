@@ -27,6 +27,12 @@ REQUIRED = {
     "config/.htaccess", "storage/.htaccess", "vendor/.htaccess",
     "vendor/autoload.php",
 }
+# Composer's pinned HTMLPurifier runtime requires these two serialized lookup
+# tables. They are package resources, not application-generated cache files.
+ALLOWED_VENDOR_SER = {
+    "vendor/ezyang/htmlpurifier/library/htmlpurifier/configschema/schema.ser",
+    "vendor/ezyang/htmlpurifier/library/htmlpurifier/entitylookup/entities.ser",
+}
 MAX_MEMBERS = 50000
 MAX_TOTAL_SIZE = 5 * 1024**3
 
@@ -108,7 +114,8 @@ def inspect_archive(path: Path, kind: str, version: str) -> int:
             if lower.endswith(".zip"):
                 raise VerificationError("Archive contains a nested ZIP")
             if (lower == ".env" or lower.endswith("/.env")
-                    or lower.endswith((".pem", ".key", ".ser"))
+                    or lower.endswith((".pem", ".key"))
+                    or (lower.endswith(".ser") and lower not in ALLOWED_VENDOR_SER)
                     or lower == "config/config.php" or lower == "config/installed.lock"
                     or lower.startswith(".git/") or "/.git/" in lower
                     or (lower.startswith("storage/") and re.fullmatch(

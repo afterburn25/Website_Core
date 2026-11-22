@@ -9,8 +9,10 @@ merged at `5facc6de` with a read-only offline downloaded-ZIP verifier;
 `4dd39001` with independently trusted Ed25519 UPDATE download validation.
 PR #33 exact-head [six-job CI](https://github.com/afterburn25/Website_Core/actions/runs/45060502514)
 and [authoritative Catering integration](https://github.com/afterburn25/Website_Core/actions/runs/45060502475)
-passed before merge. Resulting-main runs for `4dd39001` must be checked
-independently; a PR pass is not sufficient post-merge evidence. No Core
+passed before merge. Independently, resulting-main
+[CI run 45060685285](https://github.com/afterburn25/Website_Core/actions/runs/45060685285)
+passed all six jobs and [Catering run 45060685278](https://github.com/afterburn25/Website_Core/actions/runs/45060685278)
+passed on exact merge commit `4dd39001`. No Core
 version, schema marker or Module API change occurred; Core remains 2.6.2,
 Catering reference remains 2.1.2, Landscaping remains 1.0.0.
 

@@ -17,7 +17,7 @@ import sys
 import zipfile
 
 ZIP_NAME = re.compile(r"Website-Core-(?P<version>[0-9]+\.[0-9]+\.[0-9]+(?:-dev)?)-(?P<kind>COMPLETE-UPLOAD|UPDATE)\.zip\Z")
-SUM_LINE = re.compile(r"([0-9a-fA-F]{64})  (Website-Core-[A-Za-z0-9._-]+\.zip)\Z")
+SUM_LINE = re.compile(r"([0-9a-fA-F]{64})  ((?:Website-Core-[A-Za-z0-9._-]+\.zip)|(?:SBOM\.json))\Z")
 BOOT_VERSION = re.compile(rb"define\('WC_VERSION', '([^']+)'\)")
 HEX = re.compile(r"[0-9a-f]{64}\Z")
 REQUIRED = {

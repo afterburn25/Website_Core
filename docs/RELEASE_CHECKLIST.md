@@ -49,6 +49,18 @@ Before starting this checklist, every applicable surface in
    obtain expected digests independently and verify update signing/trust through
    the real updater before publication. A local CI-generated archive PASS is
    **not** proof that the GitHub Release asset has the same bytes.
+   For the signed production UPDATE, also verify with the external owner-pinned
+   Ed25519 **public** key (never a key embedded in the archive):
+   ```bash
+   php tools/verify-signed-update-offline.php \
+     Website-Core-2.6.2-UPDATE.zip /private/trusted-update-public.txt \
+     --version 2.6.2 --expected-sha256 <independently-recorded-update-digest>
+   ```
+   This verifies actual ZIP members against the signed manifest with no
+   extraction, network connection or host mutation. It refuses an expired,
+   unsigned, wrongly signed, mismatched or tampered UPDATE. The key's provenance,
+   the live updater trust store, staged rollback and production deployment
+   still need separate operator evidence.
 6. Fresh install + upgrade using the actual artifacts on a clean host dir
    (`php tools/verify-artifact.php <COMPLETE-UPLOAD.zip>` extracts,
    provisions, and serves the real artifact). Record the separate static

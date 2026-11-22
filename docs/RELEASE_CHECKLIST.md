@@ -51,7 +51,12 @@ Before starting this checklist, every applicable surface in
    **not** proof that the GitHub Release asset has the same bytes.
 6. Fresh install + upgrade using the actual artifacts on a clean host dir
    (`php tools/verify-artifact.php <COMPLETE-UPLOAD.zip>` extracts,
-   provisions, and serves the real artifact).
+   provisions, and serves the real artifact). Record the separate static
+   read-only staging receipt from the source-only tool:
+   `php tools/verify-host-preflight.php <installed-webroot> --expected-core 2.6.2 --expected-industry cajunwebpro/catering@2.1.2`
+   (or `--no-industry` for a Core-only site). A passing receipt only proves
+   on-disk checks; it never replaces actual Apache/LiteSpeed+PHP-FPM,
+   authenticated browser, licensing, database, or restore acceptance.
 7. Confirm public core pages receive ETags, while previews and industry forms
    containing CSRF tokens remain `private, no-store`.
 8. Confirm every public HTML response contains the locked Cajun Web Pro LLC

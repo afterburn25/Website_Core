@@ -41,6 +41,8 @@ jobs:
         run: python3 -m unittest discover -s tests/tools -p 'test_verify_backup_offline.py' -v
       - name: Offline release download integrity and archive safety tests
         run: python3 -m unittest discover -s tests/tools -p 'test_verify_release_download.py' -v
+      - name: Strict hosted static preflight acceptance tests (synthetic fixtures)
+        run: python3 -m unittest discover -s tests/tools -p 'test_host_preflight_acceptance.py' -v
 
   native-mysql:
     name: Native MySQL ${{ matrix.db }} (PHP ${{ matrix.php }})
@@ -408,6 +410,20 @@ jobs:
                 fwrite(STDERR,"Diagnostic leaked local path or login fixture\\n"); exit(1);
             }
             echo "installed artifact preflight OK\\n";'
+
+          # A strict read-only staging report must reject incomplete installs,
+          # missing private guards, wrong versions and orphaned installer files.
+          # This DOES NOT prove PHP-FPM, hosting ownership, license validity or restore.
+          php tools/verify-host-preflight.php /tmp/wcsite3 \
+            --expected-core 2.6.2 --expected-industry cajunwebpro/catering@2.1.2 \
+            >/tmp/wc-host-strict.json
+          php -r '
+            $r=json_decode((string)file_get_contents("/tmp/wc-host-strict.json"),true,512,JSON_THROW_ON_ERROR);
+            if(($r["accepted"]??null)!==true || ($r["core_version"]??null)!=="2.6.2"
+              || ($r["industry_count"]??null)!==1 || ($r["failures"]??null)!==[]) {
+                fwrite(STDERR,"Strict hosted static preflight refused packaged install\n");exit(1);
+            }
+            echo "strict packaged static preflight OK\n";'
 
           kill $SITE_PID 2>/dev/null || true
           echo "keyless TEST-BUNDLE acceptance OK"

@@ -97,6 +97,16 @@ class ReleaseDownloadVerificationTest(unittest.TestCase):
         with self.assertRaisesRegex(mod.VerificationError, "missing required"):
             mod.verify(self.path, self.sums)
 
+    def test_pinned_htmlpurifier_serialized_runtime_tables_are_allowed(self):
+        self.fixture(extras=[
+            ("vendor/ezyang/htmlpurifier/library/HTMLPurifier/ConfigSchema/schema.ser", b"fixture"),
+            ("vendor/ezyang/htmlpurifier/library/HTMLPurifier/EntityLookup/entities.ser", b"fixture"),
+        ])
+        self.assertEqual(mod.verify(self.path, self.sums)["kind"], "COMPLETE-UPLOAD")
+        self.fixture(extras=[("vendor/other/secret.ser", b"private")])
+        with self.assertRaises(mod.VerificationError):
+            mod.verify(self.path, self.sums)
+
     def test_shipping_empty_directory_markers_are_allowed(self):
         self.fixture(extras=[
             ("storage/cache/.gitkeep", b""),

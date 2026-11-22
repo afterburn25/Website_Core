@@ -97,6 +97,15 @@ class ReleaseDownloadVerificationTest(unittest.TestCase):
         with self.assertRaisesRegex(mod.VerificationError, "missing required"):
             mod.verify(self.path, self.sums)
 
+    def test_shipping_empty_directory_markers_are_allowed(self):
+        self.fixture(extras=[
+            ("storage/cache/.gitkeep", b""),
+            ("storage/backups/.gitkeep", b""),
+            ("modules/addons/.gitkeep", b""),
+            ("modules/industries/.gitkeep", b""),
+        ])
+        self.assertEqual(mod.verify(self.path, self.sums)["kind"], "COMPLETE-UPLOAD")
+
     def test_nested_zip_and_private_configuration_rejected(self):
         for extra in ["assets/hidden.zip", "config/config.php", "storage/secret.txt", "upload/private.png", ".env"]:
             with self.subTest(extra=extra):

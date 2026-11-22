@@ -39,6 +39,8 @@ jobs:
       - run: vendor/bin/phpunit --testsuite package
       - name: Offline private backup export integrity tests
         run: python3 -m unittest discover -s tests/tools -p 'test_verify_backup_offline.py' -v
+      - name: Offline release download integrity and archive safety tests
+        run: python3 -m unittest discover -s tests/tools -p 'test_verify_release_download.py' -v
 
   native-mysql:
     name: Native MySQL ${{ matrix.db }} (PHP ${{ matrix.php }})
@@ -473,6 +475,16 @@ jobs:
           test ! -e /tmp/invalid-signer-output/Website-Core-2.6.2-UPDATE.zip
       - name: Build all release artifacts
         run: php tools/build-packages.php /tmp/dist
+      - name: Verify generated Core ZIPs against SHA256SUMS and internal file inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.release-version.outputs.version }}"
+          for kind in COMPLETE-UPLOAD UPDATE; do
+            artifact="/tmp/dist/Website-Core-${version}-${kind}.zip"
+            python3 tools/verify-release-download.py "$artifact" \
+              --checksums /tmp/dist/SHA256SUMS.txt --version "$version"
+          done
       - name: Verify production-style signed update using CI-only ephemeral Ed25519 keys
         run: |
           set -euo pipefail

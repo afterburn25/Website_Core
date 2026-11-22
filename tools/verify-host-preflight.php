@@ -127,8 +127,9 @@ function wc_release_preflight_evaluate(
             continue;
         }
         $source = @file_get_contents($guard, false, null, 0, 16384);
-        if (!is_string($source) || !str_contains($source, 'Require all denied')
-            || !str_contains($source, 'Deny from all')) {
+        if (!is_string($source)
+            || preg_match('/^\s*Require\s+all\s+denied\s*$/mi', $source) !== 1
+            || preg_match('/^\s*Deny\s+from\s+all\s*$/mi', $source) !== 1) {
             $fail('private_guard_invalid_' . $name);
         }
     }
@@ -136,6 +137,18 @@ function wc_release_preflight_evaluate(
         || is_link($siteRoot . '/vendor') || is_link($siteRoot . '/vendor/autoload.php')
         || is_link($configDir . '/config.php') || is_link($configDir . '/installed.lock')) {
         $fail('linked_runtime_or_configuration_file');
+    }
+
+    // An indirect symlink is not detected by checking only addon.json.
+    // Reject linked industry directories before trusting a version marker.
+    $industryRoot = $siteRoot . '/modules/industries';
+    if (is_link($industryRoot)) {
+        $fail('linked_industry_manifest_path');
+    }
+    foreach (glob($industryRoot . '/*/addon.json') ?: [] as $manifestFile) {
+        if (is_link(dirname($manifestFile)) || is_link($manifestFile)) {
+            $fail('linked_industry_manifest_path');
+        }
     }
 
     $industries = $report['industries'] ?? [];

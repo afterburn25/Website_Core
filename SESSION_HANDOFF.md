@@ -12,8 +12,11 @@
 - Source exact-head [Core CI](https://github.com/afterburn25/Website_Core/actions/runs/45060502514)
   passed all six jobs and
   [authoritative Catering 2.1.2 integration](https://github.com/afterburn25/Website_Core/actions/runs/45060502475)
-  passed at PR #33 head `74da3a10`. Do not attribute those PR checks
-  to resulting-main without inspecting `4dd39001` push runs separately.
+  passed at PR #33 head `74da3a10`. Independent resulting-main
+  [Core CI](https://github.com/afterburn25/Website_Core/actions/runs/45060685285)
+  passed all six jobs and
+  [Catering integration](https://github.com/afterburn25/Website_Core/actions/runs/45060685278)
+  passed on `4dd39001`; do not confuse those separate commit scopes.
 - Current version remains Website Core **2.6.2**; `WC_SCHEMA_VERSION`
   remains `2026_10_25_0032` and Module API remains v1. The pinned
   Catering reference is 2.1.2; Landscaping reference remains 1.0.0.
